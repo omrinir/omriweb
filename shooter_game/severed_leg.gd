@@ -19,6 +19,8 @@ var state := GROUND
 var velocity := Vector2.ZERO
 var carrier: Node = null
 var _spin := 0.0
+var _resting := false     # שוכבת על הריצפה בלי שום תזוזה
+var _ground_check := 0.0
 var _pick_delay := 0.8
 var _pants := Color("3d3a4c")
 var _skin := Color("86a06a")
@@ -44,12 +46,14 @@ func can_pickup() -> bool:
 
 
 func pick(by: Node) -> void:
+	_resting = false
 	state = CARRIED
 	carrier = by
 	velocity = Vector2.ZERO
 
 
 func throw_at(from: Vector2, vel: Vector2) -> void:
+	_resting = false
 	state = THROWN
 	carrier = null
 	global_position = from
@@ -58,6 +62,7 @@ func throw_at(from: Vector2, vel: Vector2) -> void:
 
 
 func drop(vel: Vector2) -> void:
+	_resting = false
 	state = GROUND
 	carrier = null
 	velocity = vel
@@ -76,6 +81,15 @@ func _physics_process(delta: float) -> void:
 		if life <= 0.0:
 			queue_free()
 			return
+	if _resting:
+		# לא זזה בכלל. רק בודקים מדי פעם שהריצפה עדיין שם (למשל לבנה שהתפוצצה)
+		_ground_check -= delta
+		if _ground_check <= 0.0:
+			_ground_check = 0.25
+			var q := PhysicsRayQueryParameters2D.create(global_position, global_position + Vector2(0.0, 8.0 * _sc), 1)
+			if get_world_2d().direct_space_state.intersect_ray(q).is_empty():
+				_resting = false
+		return
 	velocity.y += gravity * delta
 	var to := global_position + velocity * delta
 
@@ -100,16 +114,17 @@ func _physics_process(delta: float) -> void:
 		_spin *= 0.4
 		if state == THROWN:
 			drop(velocity)
-		if velocity.length() < 40.0:
+		if velocity.length() < 60.0 and hit.normal.y < -0.7:
+			# נחתה על משטח: נשכבת על הצד ונשארת בדיוק במקום
 			velocity = Vector2.ZERO
 			_spin = 0.0
+			rotation = 0.0 if absf(wrapf(rotation, -PI, PI)) < PI / 2.0 else PI
+			global_position = hit.position + Vector2(0.0, -3.5 * _sc)
+			_resting = true
+			_ground_check = 0.25
 	else:
 		global_position = to
-	if velocity == Vector2.ZERO:   # שוכבת על הצד
-		var rest := 0.0 if absf(wrapf(rotation, -PI, PI)) < PI / 2.0 else PI
-		rotation = lerp_angle(rotation, rest, 10.0 * delta)
-	else:
-		rotation += _spin * delta
+	rotation += _spin * delta
 	queue_redraw()
 
 
