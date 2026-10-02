@@ -49,6 +49,12 @@ var head_damage := 30                 # פגיעה בראש
 var world_w := 100000.0          # רוחב העולם (main.gd קובע)
 var hp := 3
 var dead := false
+## זומבי ששוכב על הריצפה וקם כשהשחקן מתקרב (main.gd קובע)
+var dormant := false
+var wake_range := 230.0
+const RISE_TIME := 0.9
+var _rise_t := 0.0
+var _lie_side := 1.0
 
 var sc := 1.0      # גודל
 var wf := 1.0      # רוחב
@@ -112,6 +118,10 @@ func _ready() -> void:
 	_shape.shape = r
 	_shape.position = Vector2(0.0, -28.0 * sc)
 	add_child(_shape)
+	if dormant:
+		r.size = Vector2(18, 18) * sc
+		_shape.position = Vector2(0.0, -9.0 * sc)
+		_lie_side = -1.0 if randf() < 0.5 else 1.0
 	_dir = -1.0 if randf() < 0.5 else 1.0
 	_speed_mul = randf_range(0.85, 1.2)
 	_walk_phase = randf() * TAU
@@ -132,6 +142,17 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var player := get_tree().get_first_node_in_group("player")
+	# שוכב על הריצפה עד שהשחקן מתקרב
+	if dormant:
+		if player != null and not player.dead and absf(player.global_position.x - global_position.x) < wake_range \
+				and absf(player.global_position.y - global_position.y) < 120.0:
+			_wake()
+		return
+	if _rise_t > 0.0:   # קם לאט
+		_rise_t -= delta
+		if Art.on_screen(self, global_position):
+			queue_redraw()
+		return
 	# רחוק מאוד מהשחקן: הזומבי "ישן" (חוסך המון ביצועים)
 	if player != null and absf(player.global_position.x - global_position.x) > 1400.0 and is_on_floor() and _carry == null:
 		return
@@ -244,7 +265,11 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	var ly := (hit_pos.y - global_position.y) / sc
 	var dmg := amount
 	var zone := "body"
-	if not explosive:
+	var was_lying := _lying()
+	if was_lying:
+		_wake()
+		_rise_t = minf(_rise_t, 0.4)
+	if not explosive and not was_lying:
 		if ly < -42.0:
 			zone = "head"
 			dmg = head_damage
@@ -253,6 +278,8 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 			dmg = randi_range(leg_damage.x, leg_damage.y)
 		else:
 			dmg = randi_range(body_damage.x, body_damage.y)
+	elif not explosive:
+		dmg = randi_range(body_damage.x, body_damage.y)
 	hp -= dmg
 	_damage_number(dmg, zone)
 
@@ -296,6 +323,22 @@ func _damage_number(dmg: int, zone: String) -> void:
 	p.pop = true
 	get_parent().add_child(p)
 	p.global_position = global_position + Vector2(randf_range(-10.0, 10.0), -66.0 * sc)
+
+
+func _wake() -> void:
+	if not dormant:
+		return
+	dormant = false
+	_rise_t = RISE_TIME
+	var r := _shape.shape as RectangleShape2D
+	r.size = Vector2(20.0 * wf, 56.0 * sc)
+	_shape.position = Vector2(0.0, -28.0 * sc)
+	if Art.on_screen(self, global_position):
+		_popup("!", Color("ff5040"), 22, -80.0)
+
+
+func _lying() -> bool:
+	return dormant or _rise_t > 0.0
 
 
 func _lose_leg(dir: Vector2) -> void:
@@ -378,10 +421,16 @@ func _popup(text: String, col: Color, size := 18, y := -80.0) -> void:
 # ============================================================
 func _draw() -> void:
 	var s := Vector2(_dir * wf * sc, sc)
-	if not dead and is_on_floor():
+	if not dead and not _lying() and is_on_floor():
 		Art.ground_shadow(self, Vector2(0.0, 0.0), 14.0 * wf * sc)
 	if dead:
 		var outer := Transform2D(_angle, Vector2(0.0, -9.0 * sc))
+		draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
+	elif _lying():
+		# שוכב, או קם לאט (מסתובב מהשכיבה לעמידה)
+		var k := 1.0 if dormant else clampf(_rise_t / RISE_TIME, 0.0, 1.0)
+		k = k * k * (3.0 - 2.0 * k)
+		var outer := Transform2D(PI / 2.0 * _lie_side * k, Vector2(0.0, lerpf(-28.0, -9.0, k) * sc))
 		draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
 	else:
 		draw_set_transform(Vector2.ZERO, 0.0, s)
@@ -396,7 +445,7 @@ func _draw_body() -> void:
 	var pa := Color.WHITE if white else pants
 	var shoe_col := Color.WHITE if white else shoe
 	var p := _walk_phase
-	var air := not is_on_floor() and not dead
+	var air := not is_on_floor() and not dead and not _lying()
 	var lean := 0.0
 	match kind:
 		RUNNER:
@@ -438,7 +487,7 @@ func _draw_body() -> void:
 	if _carry != null or _throw_anim > 0.0:
 		var k := clampf(_throw_anim / 0.35, 0.0, 1.0)
 		front_hand = fs + Vector2(4.0 + 14.0 * k, -16.0 + 18.0 * k)
-	if dead:
+	if dead or _lying():
 		back_hand = bs + Vector2(-4.0, 15.0)
 		front_hand = fs + Vector2(5.0, 15.0)
 	_arm(bs, back_hand, Art.shade(sk, 0.2), Art.shade(sh_col, 0.2))

@@ -32,6 +32,11 @@ const DebrisScript := preload("res://debris.gd")
 @export var brick_cell := Vector2(32, 16)
 ## true = ציור של לבנים. false = משטח חלק (כמו אדמה)
 @export var show_bricks := true
+## סגנון: לבנים / ארגז עץ / בטון הרוס / כביש (הריצפה)
+@export_enum("Bricks", "Crate", "Concrete", "Road") var style := 0:
+	set(v):
+		style = v
+		queue_redraw()
 ## true = פס דשא למעלה
 @export var grass := false
 @export var grass_color := Color("58a840")
@@ -54,6 +59,7 @@ func _ready() -> void:
 	collision_layer = 1   # שכבה 1 = עולם. השחקן והקליעים מתנגשים בה
 	collision_mask = 0
 	add_to_group("bricks")
+	add_to_group("blastable")
 	hp = hit_points
 	_rebuild()
 
@@ -85,7 +91,12 @@ func hit_by_bullet(world_pos: Vector2, normal: Vector2, dir: Vector2) -> void:
 	queue_redraw()
 
 
-# נקרא מ-grenade.gd כשיש פיצוץ בקרבת הלבנה
+# המלבן של הלבנה בעולם (משמש את הפיצוץ)
+func blast_rect() -> Rect2:
+	return Rect2(global_position, size)
+
+
+# נקרא מ-explosion.gd כשיש פיצוץ בקרבת הלבנה
 func hit_by_blast(center: Vector2, break_radius: float) -> void:
 	if not breakable or _broken:
 		return
@@ -182,6 +193,22 @@ func _add_blood_rect(r: Rect2) -> void:
 #  ציור
 # ============================================================
 func _draw() -> void:
+	match style:
+		1:
+			_draw_crate()
+		2:
+			_draw_concrete()
+		3:
+			_draw_road()
+		_:
+			_draw_bricks()
+	for c in _cracks:   # סדקים
+		draw_polyline(c, Color(0, 0, 0, 0.6), 1.5)
+	for i in _blood_rects.size():   # כתמי דם (מעל הכל)
+		draw_rect(_blood_rects[i], _blood_cols[i])
+
+
+func _draw_bricks() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), mortar_color)
 	if show_bricks:
 		var rows := int(ceil(size.y / brick_cell.y))
@@ -207,7 +234,67 @@ func _draw() -> void:
 	if grass:
 		draw_rect(Rect2(0, 0, size.x, 8), grass_color)
 		draw_rect(Rect2(0, 6, size.x, 3), grass_color.darkened(0.25))
-	for c in _cracks:   # סדקים
-		draw_polyline(c, Color(0, 0, 0, 0.6), 1.5)
-	for i in _blood_rects.size():   # כתמי דם (מעל הכל)
-		draw_rect(_blood_rects[i], _blood_cols[i])
+
+
+# ---- ארגז עץ ----
+func _draw_crate() -> void:
+	var dark := color.darkened(0.35)
+	draw_rect(Rect2(Vector2.ZERO, size), dark)
+	var y := 2.0
+	var i := 0
+	while y < size.y - 2.0:   # קרשים
+		var h := minf(7.0, size.y - 2.0 - y)
+		draw_rect(Rect2(2, y, size.x - 4, h - 1.0), color.darkened(0.08 * float(i % 3)))
+		y += 7.0
+		i += 1
+	draw_line(Vector2(3, 3), Vector2(size.x - 3, size.y - 3), dark, 3.0, true)   # חיזוק באלכסון
+	draw_rect(Rect2(Vector2.ZERO, size), dark, false, 3.0)                     # מסגרת
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.8), false, 1.0)
+	for p in [Vector2(4, 4), Vector2(size.x - 4, 4), Vector2(4, size.y - 4), Vector2(size.x - 4, size.y - 4)]:
+		draw_circle(p, 1.0, Color("2a2a2a"))
+	draw_rect(Rect2(0, 0, size.x, 2), Color(1, 1, 1, 0.15))
+
+
+# ---- בטון הרוס עם ברזלים ----
+func _draw_concrete() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(absf(global_position.x * 3.0 + global_position.y))
+	draw_rect(Rect2(Vector2.ZERO, size), color.darkened(0.3))
+	var rows := int(ceil(size.y / 16.0))
+	for r in rows:
+		var y := float(r) * 16.0
+		var h := minf(16.0, size.y - y)
+		var x := -(24.0 if r % 2 == 1 else 0.0)
+		while x < size.x:
+			var x0 := maxf(x, 0.0)
+			var x1 := minf(x + 48.0, size.x)
+			if x1 - x0 > 2.0:
+				draw_rect(Rect2(x0 + 1.0, y + 1.0, x1 - x0 - 2.0, h - 2.0), color.darkened(rng.randf_range(-0.05, 0.12)))
+			x += 48.0
+	# סדקים קבועים
+	for i in int(size.x / 24.0) + 1:
+		var p := Vector2(rng.randf_range(2.0, size.x - 2.0), rng.randf_range(2.0, size.y - 2.0))
+		draw_polyline(PackedVector2Array([p, p + Vector2(rng.randf_range(-6, 6), rng.randf_range(4, 9)), p + Vector2(rng.randf_range(-8, 8), rng.randf_range(9, 15))]), Color(0, 0, 0, 0.35), 1.0, true)
+	# ברזלים חלודים שבולטים מלמעלה
+	for i in rng.randi_range(1, 3):
+		var rx := rng.randf_range(4.0, size.x - 4.0)
+		draw_polyline(PackedVector2Array([Vector2(rx, 4), Vector2(rx + rng.randf_range(-2, 2), -6), Vector2(rx + rng.randf_range(-6, 6), -rng.randf_range(10, 16))]), Color("6a3a20"), 1.6, true)
+	# פינה שבורה למעלה
+	var cx := rng.randf_range(0.0, size.x - 14.0)
+	draw_colored_polygon(PackedVector2Array([Vector2(cx, 0), Vector2(cx + 14, 0), Vector2(cx + 7, 6)]), color.darkened(0.45))
+	draw_rect(Rect2(0, 0, size.x, 2), Color(1, 1, 1, 0.12))
+
+
+# ---- כביש: אספלט למעלה, אדמה והריסות למטה ----
+func _draw_road() -> void:
+	var asphalt := Color("38383d")
+	draw_rect(Rect2(Vector2.ZERO, size), Color("3a3029"))
+	draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(size.x, 0), Vector2(size.x, minf(14.0, size.y)), Vector2(0, minf(14.0, size.y))]),
+		PackedColorArray([asphalt.lightened(0.08), asphalt.lightened(0.08), asphalt.darkened(0.15), asphalt.darkened(0.15)]))
+	draw_line(Vector2(0, 14), Vector2(size.x, 14), Color(0, 0, 0, 0.5), 2.0)
+	# אבנים וחצץ בשכבת האדמה
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(absf(global_position.x)) + 7
+	for i in int(size.x / 22.0):
+		var p := Vector2(rng.randf_range(0.0, size.x), rng.randf_range(20.0, maxf(size.y - 4.0, 21.0)))
+		draw_rect(Rect2(p, Vector2(rng.randf_range(3.0, 8.0), rng.randf_range(2.0, 4.0))), Color(0, 0, 0, rng.randf_range(0.1, 0.25)))

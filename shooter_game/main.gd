@@ -13,6 +13,10 @@ const LeavesScript := preload("res://leaves.gd")
 const ZombieScene := preload("res://zombie.tscn")
 const HudScript := preload("res://hud.gd")
 const CameraScript := preload("res://shake_camera.gd")
+const PropScript := preload("res://prop.gd")
+const StreetPropScript := preload("res://street_prop.gd")
+const RoadDecorScript := preload("res://road_decor.gd")
+const FogScript := preload("res://fog.gd")
 
 @export_group("Level")
 ## אורך הרמה במסכים (רוחב מסך = 1280). המינימום הוא 8 מסכים
@@ -37,9 +41,14 @@ const CameraScript := preload("res://shake_camera.gd")
 ## כך הדמות תמיד מסוגלת לעבור כל לבנה. אם תגדיל - הלבנות יהיו גבוהות יותר
 @export_range(0.3, 0.95) var obstacle_safety := 0.7
 
+## כמה בורות יש בכביש
+@export var pits := 3
+
 @export_group("Zombies")
 ## כמה זומבים בממוצע בכל מסך
 @export var zombies_per_screen := 1.6
+## איזה חלק מהזומבים שוכבים על הריצפה וקמים כשמתקרבים
+@export_range(0.0, 1.0) var dormant_chance := 0.25
 ## הסיכוי שזומבי יופיע בקבוצה של 2-3
 @export_range(0.0, 1.0) var zombie_cluster_chance := 0.25
 ## כמה נפוץ כל סוג זומבי: רגיל / רץ / ענק
@@ -47,40 +56,49 @@ const CameraScript := preload("res://shake_camera.gd")
 
 const UNIT := 16.0   # גובה "שורת לבנים"
 const BRICK_COLORS := [Color("9a4f3a"), Color("8a5a40"), Color("7a4a4a"), Color("a0603f")]
+const CONCRETE_COLORS := [Color("7d7a74"), Color("6e6c68"), Color("85807a")]
+const CAR_COLORS := [Color("7a3a32"), Color("3d5670"), Color("b8b2a2"), Color("4d5e48"), Color("6a5a3a")]
+## בורות בכביש: [x, רוחב]
+const PIT_DEPTH := 60.0
 
 var level_w := 10240.0
 var max_h := 48.0
 var _rects: Array[Rect2] = []
+var _pits := []
 
 
 func _ready() -> void:
 	var vp := get_viewport_rect().size
 	level_w = vp.x * float(maxi(level_screens, 8))
 
-	# רקעים (פרלקסה) ועלים
+	# רקע: עיר הרוסה (פרלקסה), ועיתונים ואפר באוויר
 	var bg_layer := CanvasLayer.new()
 	bg_layer.layer = -10
 	add_child(bg_layer)
-	bg_layer.add_child(BackgroundScript.new())
+	var bg = BackgroundScript.new()
+	bg.level_w = level_w
+	bg_layer.add_child(bg)
 	var leaf_layer := CanvasLayer.new()
 	leaf_layer.layer = -5
 	add_child(leaf_layer)
 	leaf_layer.add_child(LeavesScript.new())
-
-	# ריצפה לכל אורך הרמה
-	var floor_y := vp.y - floor_thickness
-	_make_brick(Vector2(0, floor_y), Vector2(level_w, floor_thickness), false, true, Color("6b4a35"), false)
-
-	# שחקן (נוצר קודם כדי לחשב מה גובה הלבנה המקסימלי שהוא מסוגל לעבור)
-	var player = PlayerScript.new()
-	var apex: float = (player.jump_velocity * player.jump_velocity) / (2.0 * player.gravity)
-	max_h = maxf(floorf(apex * obstacle_safety / UNIT) * UNIT, 2.0 * UNIT)
 
 	var rng := RandomNumberGenerator.new()
 	if level_seed == 0:
 		rng.randomize()
 	else:
 		rng.seed = level_seed
+
+	# כביש לכל אורך הרמה, עם בורות
+	var floor_y := vp.y - floor_thickness
+	_make_road(rng, floor_y)
+
+	# שחקן (נוצר קודם כדי לחשב מה גובה המכשול המקסימלי שהוא מסוגל לעבור)
+	var player = PlayerScript.new()
+	var apex: float = (player.jump_velocity * player.jump_velocity) / (2.0 * player.gravity)
+	max_h = maxf(floorf(apex * obstacle_safety / UNIT) * UNIT, 2.0 * UNIT)
+
+	_place_street_props(rng, floor_y)
 	_generate_level(rng, floor_y)
 	_spawn_zombies(rng, floor_y)
 
@@ -101,8 +119,17 @@ func _ready() -> void:
 	cam.make_current()
 	cam.reset_smoothing()
 
-	# טקסט עזרה + בר חיים
+	# ערפל נמוך מעל הכביש
+	var fog_layer := CanvasLayer.new()
+	fog_layer.layer = 1
+	add_child(fog_layer)
+	var fog = FogScript.new()
+	fog.y_screen = vp.y - (vp.y - floor_y) * camera_zoom - 6.0
+	fog_layer.add_child(fog)
+
+	# טקסט עזרה + לבבות
 	var hud := CanvasLayer.new()
+	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
 	label.text = "A/D move   SHIFT run   W/SPACE jump   S/CTRL crouch   MOUSE aim   LMB fire   T gun/grenade   K die   R restart"
@@ -122,39 +149,177 @@ func _ready() -> void:
 
 
 # ============================================================
+#  הכביש: חתיכות ריצפה עם בורות ביניהן + קישוטים
+# ============================================================
+func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
+	# בוחרים איפה יהיו הבורות (לא באזור ההתחלה ולא בסוף)
+	_pits.clear()
+	for i in pits:
+		var px := (level_w - safe_zone - end_margin) * float(i + 1) / float(pits + 1) + safe_zone + rng.randf_range(-250.0, 250.0)
+		var pw := rng.randf_range(64.0, 90.0)
+		_pits.append([px, pw])
+		_rects.append(Rect2(px - 40.0, floor_y - PIT_DEPTH, pw + 80.0, PIT_DEPTH))   # שלא יופיעו זומבים/מכשולים בבור
+	_pits.sort_custom(func(a, b): return a[0] < b[0])
+	var x := 0.0
+	for p in _pits:
+		_make_brick(Vector2(x, floor_y), Vector2(float(p[0]) - x, floor_thickness), 3, Color("38383d"), false)
+		# תחתית הבור
+		_make_brick(Vector2(p[0], floor_y + PIT_DEPTH), Vector2(p[1], floor_thickness - PIT_DEPTH), 3, Color("38383d"), false)
+		x = float(p[0]) + float(p[1])
+	_make_brick(Vector2(x, floor_y), Vector2(level_w - x, floor_thickness), 3, Color("38383d"), false)
+	# קישוטים על הכביש
+	var cx := 0.0
+	while cx < level_w:
+		var d = RoadDecorScript.new()
+		d.position = Vector2(cx, 0.0)
+		d.width = 1024.0
+		d.floor_y = floor_y
+		d.pits = _pits
+		d.pit_depth = PIT_DEPTH
+		d.seed_value = rng.randi()
+		add_child(d)
+		cx += 1024.0
+
+
+func _in_pit(x0: float, x1: float, margin := 60.0) -> bool:
+	for p in _pits:
+		if x1 > float(p[0]) - margin and x0 < float(p[0]) + float(p[1]) + margin:
+			return true
+	return false
+
+
+# קישוטי רחוב ברקע: רמזורים, עמודי תאורה, גדרות, פחים בוערים
+func _place_street_props(rng: RandomNumberGenerator, floor_y: float) -> void:
+	var x := 300.0
+	while x < level_w - 200.0:
+		var kind := rng.randi_range(0, 3)
+		var w := 150.0 if kind == 2 else 50.0
+		if not _in_pit(x - 20.0, x + w + 20.0, 20.0):
+			var sp = StreetPropScript.new()
+			sp.kind = kind
+			sp.position = Vector2(x, floor_y)
+			add_child(sp)
+		x += rng.randf_range(380.0, 820.0)
+
+
+# ============================================================
 #  יצירת רמה אקראית
 #  כל מכשול בגובה של עד max_h כדי שהדמות תמיד תוכל לקפוץ מעליו.
 # ============================================================
+# [סוג, משקל] - משקל גבוה = מופיע יותר
+const GENERATORS := [["car", 3.0], ["barrels", 2.0], ["barrier", 2.0], ["crates", 1.5], ["rubble", 1.5],
+	["bus", 1.0], ["tires", 1.0], ["sandbags", 1.0], ["block", 1.0], ["wall", 1.0]]
+
+
 func _generate_level(rng: RandomNumberGenerator, floor_y: float) -> void:
+	var total := 0.0
+	for g in GENERATORS:
+		total += float(g[1])
 	var x := safe_zone
 	while x < level_w - end_margin:
+		if _in_pit(x, x + 280.0):   # לא שמים מכשולים ליד בור
+			x += 60.0
+			continue
+		var r := rng.randf() * total
+		var pick := ""
+		for g in GENERATORS:
+			r -= float(g[1])
+			if r <= 0.0:
+				pick = g[0]
+				break
 		var used := 0.0
-		match rng.randi_range(0, 3):
-			0: used = _gen_block(rng, x, floor_y)
-			1: used = _gen_low_wall(rng, x, floor_y)
-			2: used = _gen_pyramid(rng, x, floor_y)
-			3: used = _gen_crates(rng, x, floor_y)
+		match pick:
+			"car": used = _gen_car(rng, x, floor_y)
+			"barrels": used = _gen_barrels(rng, x, floor_y)
+			"barrier": used = _gen_barrier(rng, x, floor_y)
+			"crates": used = _gen_crates(rng, x, floor_y)
+			"rubble": used = _gen_pyramid(rng, x, floor_y)
+			"bus": used = _gen_bus(rng, x, floor_y)
+			"tires": used = _gen_prop_simple(rng, x, floor_y, PropScript.TIRES)
+			"sandbags": used = _gen_prop_simple(rng, x, floor_y, PropScript.SANDBAGS)
+			"block": used = _gen_block(rng, x, floor_y)
+			_: used = _gen_low_wall(rng, x, floor_y)
 		x += used + rng.randf_range(gap_min, gap_max)
 
 
-# לבנה בודדת / קופסה
+func _prop(kind: int, x: float, floor_y: float) -> Node:
+	var p = PropScript.new()
+	p.kind = kind
+	p.max_height = max_h
+	p.position = Vector2(x, floor_y)
+	return p
+
+
+func _add_prop(p: Node, floor_y: float) -> void:
+	add_child(p)
+	_rects.append(Rect2(p.position.x, floor_y - p.size.y, p.size.x, p.size.y))
+
+
+# מכונית הרוסה (לפעמים הפוכה, לפעמים שרופה עם אש, לפעמים עם חבית לידה)
+func _gen_car(rng: RandomNumberGenerator, x: float, floor_y: float) -> float:
+	var p = _prop(PropScript.CAR, x, floor_y)
+	p.color = CAR_COLORS[rng.randi() % CAR_COLORS.size()]
+	p.upside_down = rng.randf() < 0.25
+	p.wrecked = rng.randf() < 0.3
+	_add_prop(p, floor_y)
+	var used := 128.0
+	if rng.randf() < 0.35:
+		var b = _prop(PropScript.BARREL, x + 140.0, floor_y)
+		_add_prop(b, floor_y)
+		used += 34.0
+	return used
+
+
+func _gen_bus(rng: RandomNumberGenerator, x: float, floor_y: float) -> float:
+	var p = _prop(PropScript.BUS, x, floor_y)
+	_add_prop(p, floor_y)
+	return p.size.x
+
+
+# 1-3 חביות נפץ (טוב לפוצץ קבוצת זומבים)
+func _gen_barrels(rng: RandomNumberGenerator, x: float, floor_y: float) -> float:
+	var n := rng.randi_range(1, 3)
+	var cx := x
+	for i in n:
+		_add_prop(_prop(PropScript.BARREL, cx, floor_y), floor_y)
+		cx += 24.0 + rng.randf_range(0.0, 10.0)
+	return cx - x
+
+
+func _gen_barrier(rng: RandomNumberGenerator, x: float, floor_y: float) -> float:
+	var n := rng.randi_range(1, 2)
+	for i in n:
+		_add_prop(_prop(PropScript.BARRIER, x + float(i) * 66.0, floor_y), floor_y)
+	return float(n) * 66.0
+
+
+func _gen_prop_simple(rng: RandomNumberGenerator, x: float, floor_y: float, kind: int) -> float:
+	var p = _prop(kind, x, floor_y)
+	if kind == PropScript.TIRES:
+		p.count = rng.randi_range(2, 3)
+	add_child(p)
+	_rects.append(Rect2(x, floor_y - 40.0, p.size.x, 40.0))
+	return p.size.x
+
+
+# גוש בטון הרוס
 func _gen_block(rng: RandomNumberGenerator, x: float, floor_y: float) -> float:
 	var ws := [32.0, 48.0, 64.0]
 	var w: float = ws[rng.randi() % ws.size()]
 	var rows := rng.randi_range(2, maxi(2, int(max_h / UNIT)))
-	_place(rng, x, floor_y, w, float(rows) * UNIT)
+	_place(rng, x, floor_y, w, float(rows) * UNIT, 2)
 	return w
 
 
-# קיר נמוך וארוך
+# קיר בטון נמוך וארוך
 func _gen_low_wall(rng: RandomNumberGenerator, x: float, floor_y: float) -> float:
 	var w := float(rng.randi_range(3, 6)) * 32.0
 	var rows := rng.randi_range(1, mini(2, maxi(1, int(max_h / UNIT))))
-	_place(rng, x, floor_y, w, float(rows) * UNIT)
+	_place(rng, x, floor_y, w, float(rows) * UNIT, rng.randi_range(0, 1) * 2)
 	return w
 
 
-# פירמידה: מדרגות עולות ויורדות (כל מדרגה נמוכה מספיק כדי לקפוץ עליה)
+# ערימת הריסות: מדרגות עולות ויורדות (כל מדרגה נמוכה מספיק כדי לקפוץ עליה)
 func _gen_pyramid(rng: RandomNumberGenerator, x: float, floor_y: float) -> float:
 	var n := rng.randi_range(2, 3)
 	var step := minf(2.0 * UNIT, max_h)
@@ -162,25 +327,31 @@ func _gen_pyramid(rng: RandomNumberGenerator, x: float, floor_y: float) -> float
 	var total := float(2 * n - 1)
 	for i in 2 * n - 1:
 		var level := mini(i, 2 * n - 2 - i) + 1
-		_place(rng, x + float(i) * step_w, floor_y, step_w, float(level) * step)
+		_place(rng, x + float(i) * step_w, floor_y, step_w, float(level) * step, 2 if rng.randf() < 0.7 else 0)
 	return total * step_w
 
 
-# כמה קופסאות עם רווחים ביניהן
+# ארגזי עץ (נשברים מקליעים)
 func _gen_crates(rng: RandomNumberGenerator, x: float, floor_y: float) -> float:
 	var n := rng.randi_range(2, 4)
 	var cx := x
 	for i in n:
-		var rows := rng.randi_range(2, maxi(2, mini(3, int(max_h / UNIT))))
-		_place(rng, cx, floor_y, 32.0, float(rows) * UNIT)
-		cx += 32.0 + rng.randf_range(24.0, 72.0)
+		var sz := 32.0 if rng.randf() < 0.6 else 40.0
+		_place(rng, cx, floor_y, sz, sz, 1)
+		if rng.randf() < 0.3 and sz * 2.0 <= max_h:   # ארגז על ארגז
+			_place(rng, cx + 2.0, floor_y - sz, sz - 4.0, sz - 4.0, 1)
+		cx += sz + rng.randf_range(10.0, 50.0)
 	return cx - x
 
 
-func _place(rng: RandomNumberGenerator, x: float, floor_y: float, w: float, h: float) -> void:
+func _place(rng: RandomNumberGenerator, x: float, floor_y: float, w: float, h: float, style := 0) -> void:
 	h = minf(h, max_h * 2.5)   # הגנה: גם מדרגות לא יעלו על הגובה הכולל
 	var col: Color = BRICK_COLORS[rng.randi() % BRICK_COLORS.size()]
-	_make_brick(Vector2(x, floor_y - h), Vector2(w, h), true, false, col, true)
+	if style == 1:
+		col = Color("7a5a36").darkened(rng.randf_range(0.0, 0.2))
+	elif style == 2:
+		col = CONCRETE_COLORS[rng.randi() % CONCRETE_COLORS.size()]
+	_make_brick(Vector2(x, floor_y - h), Vector2(w, h), style, col, true)
 	_rects.append(Rect2(x, floor_y - h, w, h))
 
 
@@ -202,7 +373,7 @@ func _spawn_zombies(rng: RandomNumberGenerator, floor_y: float) -> void:
 		for g in group:
 			var gx := zx + float(g) * rng.randf_range(34.0, 60.0)
 			if gx < level_w - 80.0 and not _near_brick(gx):
-				_spawn_zombie(gx, floor_y, _pick_kind(rng))
+				_spawn_zombie(gx, floor_y, _pick_kind(rng), rng)
 				spawned += 1
 
 
@@ -223,22 +394,27 @@ func _pick_kind(rng: RandomNumberGenerator) -> int:
 	return 2
 
 
-func _spawn_zombie(x: float, floor_y: float, kind := 0) -> void:
+func _spawn_zombie(x: float, floor_y: float, kind := 0, rng: RandomNumberGenerator = null) -> void:
 	var z = ZombieScene.instantiate()
 	z.kind = kind   # 0 = רגיל, 1 = רץ, 2 = ענק
+	if rng != null and rng.randf() < dormant_chance:
+		z.dormant = true   # שוכב על הריצפה וקם כשמתקרבים
 	z.position = Vector2(x, floor_y)   # (0,0) של הזומבי = כפות הרגליים
 	add_child(z)
 	z.world_w = level_w
 
 
-func _make_brick(pos: Vector2, sz: Vector2, bricks := true, grass := false, col := Color("9a4f3a"), is_breakable := true) -> void:
+func _make_brick(pos: Vector2, sz: Vector2, style := 0, col := Color("9a4f3a"), is_breakable := true) -> void:
 	var b = BrickScene.instantiate()
 	b.position = pos
 	b.size = sz
-	b.show_bricks = bricks
-	b.grass = grass
+	b.style = style
+	b.show_bricks = true
+	b.grass = false
 	b.color = col
 	b.breakable = is_breakable
+	if style == 1:
+		b.hit_points = 2   # ארגז עץ נשבר מהר
 	add_child(b)
 
 
