@@ -5,6 +5,8 @@ extends Node2D
 #  ומרעיד את המצלמה.
 # ============================================================
 
+const Art := preload("res://art.gd")
+
 var fuse := 1.6            # שניות עד הפיצוץ
 var radius := 120.0        # טווח הפיצוץ
 var break_radius := 70.0   # לבנים במרחק הזה נשברות מיד
@@ -74,10 +76,16 @@ func _explode() -> void:
 
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, 6.0, Color("3a4a2a"))
-	draw_rect(Rect2(-2, -9, 4, 4), Color("888888"))
-	if fmod(fuse, 0.3) < 0.15:   # נורה מהבהבת
-		draw_circle(Vector2(0, -10), 2.0, Color(1, 0.2, 0.1))
+	var blink := fmod(fuse, 0.3) < 0.15
+	if blink:   # הילה אדומה מהבהבת - כדי שיהיה קל לראות את הרימון
+		Art.glow(self, Vector2.ZERO, 16.0, Color(1.0, 0.2, 0.1, 0.7))
+	Art.oval_shaded(self, Vector2.ZERO, 6.5, 7.5, Color("6d8236"), 0.0, Art.OUTLINE, 1.6)
+	draw_line(Vector2(-6.0, -1.0), Vector2(6.0, -1.0), Color(0, 0, 0, 0.4), 1.0, true)
+	draw_line(Vector2(-6.0, 2.5), Vector2(6.0, 2.5), Color(0, 0, 0, 0.4), 1.0, true)
+	Art.fill(self, PackedVector2Array([Vector2(-2.5, -7.0), Vector2(2.5, -7.0), Vector2(2.5, -10.0), Vector2(-2.5, -10.0)]), Color("9a9aa2"), Art.OUTLINE, 1.0)
+	draw_line(Vector2(2.0, -9.5), Vector2(6.0, -4.0), Color("c0c0c8"), 1.5, true)   # ידית
+	Art.disc(self, Vector2(0.0, -11.0), 1.8, Color(1, 0.3, 0.1) if blink else Color("551010"), Art.NONE)
+	Art.oval(self, Vector2(-2.5, -3.5), 1.8, 1.2, Color(1, 1, 1, 0.35), -0.5, Art.NONE)
 
 
 # ---- אפקט הפיצוץ ----

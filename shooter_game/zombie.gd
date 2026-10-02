@@ -126,10 +126,14 @@ func _physics_process(delta: float) -> void:
 		_dead_process(delta)
 		return
 
+	var player := get_tree().get_first_node_in_group("player")
+	# רחוק מאוד מהשחקן: הזומבי "ישן" (חוסך המון ביצועים)
+	if player != null and absf(player.global_position.x - global_position.x) > 1400.0 and is_on_floor() and _carry == null:
+		return
+
 	if not is_on_floor():
 		velocity.y += gravity * delta
 
-	var player := get_tree().get_first_node_in_group("player")
 	var target_speed := walk_speed
 	_chasing = false
 	if player != null and not player.dead and global_position.distance_to(player.global_position) < chase_range:
@@ -181,7 +185,8 @@ func _physics_process(delta: float) -> void:
 
 	if is_on_floor():
 		_walk_phase += delta * absf(velocity.x) * 0.075 / sc
-	queue_redraw()
+	if Art.on_screen(self, global_position):   # מציירים רק מה שרואים
+		queue_redraw()
 
 
 # ============================================================
@@ -310,7 +315,8 @@ func _dead_process(delta: float) -> void:
 	if is_on_wall():
 		velocity.x *= -0.3
 	_angle += _spin * delta
-	queue_redraw()
+	if Art.on_screen(self, global_position):
+		queue_redraw()
 
 
 func _spray_blood(pos: Vector2, dir: Vector2, n: int, power: float) -> void:
@@ -335,6 +341,8 @@ func _popup(text: String, col: Color) -> void:
 # ============================================================
 func _draw() -> void:
 	var s := Vector2(_dir * wf * sc, sc)
+	if not dead and is_on_floor():
+		Art.ground_shadow(self, Vector2(0.0, 0.0), 14.0 * wf * sc)
 	if dead:
 		var outer := Transform2D(_angle, Vector2(0.0, -9.0 * sc))
 		draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
@@ -472,7 +480,7 @@ func _torso_walker(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color) -> void
 		hip + Vector2(4.5, 1.0), hip + Vector2(2.0, 4.5), hip + Vector2(-1.0, 1.5), hip + Vector2(-4.5, 4.0),
 		hip + Vector2(-8.0, 0.5), sh + Vector2(-9.0, 6.0),
 	])
-	Art.fill(self, body, shirt_c, Art.OUTLINE, 1.4)
+	Art.fill_shaded(self, body, shirt_c, 0.15, 0.35, Art.OUTLINE, 1.4)
 	# קרע בחולצה + צלעות
 	Art.fill(self, PackedVector2Array([sh + Vector2(1.0, 7.0), sh + Vector2(6.0, 5.0), sh + Vector2(5.0, 12.0), sh + Vector2(2.0, 10.0)]), Art.shade(sk, 0.15), Art.NONE)
 	draw_line(sh + Vector2(2.5, 7.5), sh + Vector2(5.3, 6.6), Art.shade(sk, 0.45), 0.8, true)
@@ -488,14 +496,14 @@ func _torso_runner(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color) -> void
 		sh + Vector2(-7.0, -1.0), sh + Vector2(7.0, 0.0), hip + Vector2(6.5, -2.0),
 		hip + Vector2(-6.5, -1.0), sh + Vector2(-7.5, 5.0),
 	])
-	Art.fill(self, body, Art.shade(sk, 0.05), Art.OUTLINE, 1.3)   # גוף חשוף
+	Art.fill_shaded(self, body, Art.shade(sk, 0.05), 0.15, 0.3, Art.OUTLINE, 1.3)   # גוף חשוף
 	# גופייה קרועה
 	var top := PackedVector2Array([
 		sh + Vector2(-4.0, -0.5), sh + Vector2(-1.5, -0.5), sh + Vector2(1.0, 4.0), sh + Vector2(4.0, -0.3),
 		sh + Vector2(6.5, 0.0), hip + Vector2(6.0, -8.0), hip + Vector2(3.0, -5.0), hip + Vector2(0.0, -9.0),
 		hip + Vector2(-3.0, -6.0), hip + Vector2(-6.5, -8.0), sh + Vector2(-7.0, 4.0),
 	])
-	Art.fill(self, top, shirt_c, Art.OUTLINE, 1.0)
+	Art.fill_shaded(self, top, shirt_c, 0.15, 0.35, Art.OUTLINE, 1.0)
 	for i in 3:   # צלעות בולטות
 		var y := hip.y - 6.5 + float(i) * 2.2
 		draw_line(Vector2(hip.x + 0.5, y), Vector2(hip.x + 5.5, y - 0.8), Art.shade(sk, 0.4), 0.9, true)
@@ -509,7 +517,7 @@ func _torso_brute(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color, pa: Colo
 		sh + Vector2(-9.0, -2.0), sh + Vector2(8.0, -1.0), sh + Vector2(10.0, 6.0), hip + Vector2(11.5, -6.0),
 		hip + Vector2(10.0, 0.0), hip + Vector2(3.0, 3.0), hip + Vector2(-8.0, 2.0), sh + Vector2(-10.0, 7.0),
 	])
-	Art.fill(self, body, shirt_c, Art.OUTLINE, 1.5)
+	Art.fill_shaded(self, body, shirt_c, 0.1, 0.35, Art.OUTLINE, 1.5)
 	Art.oval(self, hip + Vector2(5.0, -7.0), 4.0, 3.0, Color(0.4, 0.33, 0.2, 0.35), 0.0, Art.NONE)   # כתמים
 	Art.oval(self, sh + Vector2(-2.0, 6.0), 3.0, 2.5, Color(0.45, 0.04, 0.04, 0.5), 0.0, Art.NONE)
 	# אוברול עם כתפיות
@@ -517,7 +525,7 @@ func _torso_brute(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color, pa: Colo
 		sh + Vector2(-5.0, 6.0), sh + Vector2(7.0, 6.0), hip + Vector2(11.0, -4.0), hip + Vector2(10.0, 2.0),
 		hip + Vector2(-8.0, 2.5), hip + Vector2(-8.0, -6.0),
 	])
-	Art.fill(self, bib, pa, Art.OUTLINE, 1.3)
+	Art.fill_shaded(self, bib, pa, 0.15, 0.35, Art.OUTLINE, 1.3)
 	Art.limb(self, PackedVector2Array([sh + Vector2(-5.0, 6.5), sh + Vector2(-6.0, -1.5)]), 2.4, pa)
 	Art.limb(self, PackedVector2Array([sh + Vector2(6.0, 6.5), sh + Vector2(5.0, -1.0)]), 2.4, pa)
 	Art.disc(self, sh + Vector2(-5.0, 7.0), 1.2, Color("c0a050"), Art.OUTLINE, 0.6)
@@ -539,7 +547,10 @@ func _head(c: Vector2, sk: Color) -> void:
 			Art.oval(self, c + Vector2(-2.5, -2.5), 6.0, 5.5, Color("3a3026"), 0.2)
 	var rx := 8.0 if kind == BRUTE else 7.2
 	var ry := 7.5 if kind == BRUTE else 8.2
-	Art.oval(self, c, rx, ry, sk, tilt, Art.OUTLINE, 1.4)
+	Art.oval_shaded(self, c, rx, ry, sk, tilt, Art.OUTLINE, 1.4)
+	Art.oval(self, c + Vector2(2.5, -0.5), 4.5, 3.0, Color(0.1, 0.0, 0.05, 0.22), 0.1, Art.NONE)   # עיניים שקועות
+	draw_line(c + Vector2(-4.0, 2.0), c + Vector2(-1.0, 5.0), Color(0.3, 0.1, 0.3, 0.4), 0.7, true)   # ורידים
+	draw_line(c + Vector2(-3.0, -3.0), c + Vector2(-5.0, 0.5), Color(0.3, 0.1, 0.3, 0.4), 0.7, true)
 	# לסת פתוחה
 	var jaw_open := 2.0 + sin(_time * 5.0) * 1.0 + (2.5 if _bite_anim > 0.0 else 0.0)
 	Art.fill(self, PackedVector2Array([c + Vector2(1.5, 3.0), c + Vector2(7.5, 2.0), c + Vector2(7.0, 3.5 + jaw_open), c + Vector2(2.0, 5.0 + jaw_open)]), Color("2a0a0c"), Art.OUTLINE, 1.0)

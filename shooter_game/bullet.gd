@@ -7,9 +7,9 @@ extends Node2D
 
 # ---- אפשר לשנות ----
 var life_time := 2.0                       # כמה שניות הקליע חי לפני שנעלם
-var length := 18.0                         # אורך הקו של הקליע
+var length := 22.0                         # אורך הקו של הקליע
 var width := 3.0                           # עובי
-var bullet_color := Color(1.0, 0.9, 0.4)   # צבע
+var bullet_color := Color(1.0, 0.85, 0.3)  # צבע
 var collision_mask := 5                    # 1 = ריצפה ולבנים, 4 = זומבים
 var damage := 1                            # כמה נזק הקליע עושה לזומבי
 
@@ -53,8 +53,11 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_line(Vector2(-length, 0.0), Vector2.ZERO, Color(bullet_color, 0.35), width * 2.0, true)
+	# שובל אור ארוך + ראש לבן, כדי שיהיה קל לראות את הקליע
+	draw_line(Vector2(-length * 2.2, 0.0), Vector2.ZERO, Color(bullet_color, 0.18), width * 4.0, true)
+	draw_line(Vector2(-length * 1.6, 0.0), Vector2.ZERO, Color(bullet_color, 0.45), width * 2.0, true)
 	draw_line(Vector2(-length, 0.0), Vector2.ZERO, bullet_color, width, true)
+	draw_circle(Vector2.ZERO, width * 0.9, Color(1, 1, 0.9))
 
 
 # ---- ניצוצות כשהקליע פוגע ----

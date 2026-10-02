@@ -237,6 +237,8 @@ func _draw() -> void:
 		return
 
 	var la := Vector2(_aim.x * face, _aim.y)   # כיוון הנשק במרחב המקומי (תמיד ימינה)
+	if is_on_floor():
+		Art.ground_shadow(self, Vector2.ZERO, 15.0)
 	var blink := _invuln > 0.0 and int(_invuln * 16.0) % 2 == 0
 	modulate = Color(1.0, 0.55, 0.55) if blink else Color.WHITE
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(face, 1.0))
@@ -301,7 +303,7 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 		Vector2(hip.x + 1.0, hem + 1.0), Vector2(hip.x - 11.5 - flare * 1.5, hem - 1.5 - flare * 0.6),
 		hip + Vector2(-8.5, -2.0), sh + Vector2(-10.0, 5.0),
 	])
-	Art.fill(self, coat, coat_color, Art.OUTLINE, 1.5)
+	Art.fill_shaded(self, coat, coat_color, 0.12, 0.4, Art.OUTLINE, 1.5)
 	# קפלים והארה
 	draw_colored_polygon(PackedVector2Array([sh + Vector2(4.0, -1.5), sh + Vector2(8.0, 4.0), hip + Vector2(7.0, -2.0), hip + Vector2(4.5, -2.0)]), Color(1, 1, 1, 0.07))
 	draw_polyline(PackedVector2Array([sh + Vector2(3.0, 0.0), hip + Vector2(3.5, 0.0), Vector2(hip.x + 4.0, hem)]), coat_light, 1.0, true)
@@ -313,14 +315,19 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	# כפתורים
 	Art.disc(self, sh + Vector2(5.0, 6.0), 0.9, Color("55555f"), Art.NONE)
 	Art.disc(self, sh + Vector2(5.5, 11.0), 0.9, Color("55555f"), Art.NONE)
+	# צעיף אדום כהה
+	Art.fill_shaded(self, PackedVector2Array([sh + Vector2(-4.0, -3.5), sh + Vector2(4.5, -3.0), sh + Vector2(5.0, 0.5), sh + Vector2(-4.0, 0.5)]), Color("5a1218"), 0.2, 0.3, Art.OUTLINE, 1.0)
+	var tail := sin(_time * 3.0 + speed_k * 2.0) * 1.5 + speed_k * 4.0
+	Art.fill_shaded(self, PackedVector2Array([sh + Vector2(-3.0, -1.0), sh + Vector2(-0.5, -0.5), sh + Vector2(-5.0 - tail, 9.0), sh + Vector2(-8.0 - tail, 8.0)]), Color("4a0e14"), 0.2, 0.3, Art.OUTLINE, 1.0)
 	# צווארון מורם
 	Art.fill(self, PackedVector2Array([sh + Vector2(-5.0, -2.5), sh + Vector2(-1.0, -8.0), sh + Vector2(1.5, -3.0)]), Art.shade(coat_color, -0.1), Art.OUTLINE, 1.0)
 	Art.fill(self, PackedVector2Array([sh + Vector2(2.0, -3.0), sh + Vector2(6.5, -6.5), sh + Vector2(6.5, -1.5)]), Art.shade(coat_color, -0.15), Art.OUTLINE, 1.0)
 
 	# ---- ראש ----
 	Art.oval(self, head + Vector2(-2.8, -0.5), 5.0, 6.2, Color("2a1c14"))                 # שיער מאחור
-	Art.oval(self, head, 6.6, 7.2, skin_color)                                           # פנים
-	Art.oval(self, head + Vector2(-1.6, 1.0), 1.2, 1.9, Art.shade(skin_color, 0.18), 0.0, Color(0.3, 0.15, 0.1, 0.6), 0.7)   # אוזן
+	Art.oval_shaded(self, head, 6.6, 7.2, skin_color)                                    # פנים
+	Art.oval(self, head + Vector2(-1.5, 2.5), 3.5, 3.0, Color(0.5, 0.25, 0.2, 0.18), 0.0, Art.NONE)   # צל בלחי
+	Art.oval(self, head + Vector2(-2.2, 1.2), 1.0, 1.7, Art.shade(skin_color, 0.22), 0.0, Art.NONE)   # אוזן
 	Art.fill(self, PackedVector2Array([head + Vector2(5.8, -1.0), head + Vector2(8.3, 2.0), head + Vector2(5.8, 2.6)]), Art.shade(skin_color, 0.05), Art.OUTLINE, 0.9)   # אף
 	Art.oval(self, head + Vector2(2.5, 4.0), 4.5, 2.6, Color(0.25, 0.18, 0.14, 0.35), 0.0, Art.NONE)   # זיפים
 	draw_line(head + Vector2(3.0, 4.6), head + Vector2(5.6, 4.3), Color("7a3b30"), 1.0, true)        # פה
@@ -335,7 +342,7 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 		hb + Vector2(-7.0, 0.0), hb + Vector2(-6.6, -7.0), hb + Vector2(-3.0, -9.6), hb + Vector2(0.0, -8.4),
 		hb + Vector2(3.0, -9.6), hb + Vector2(6.6, -7.0), hb + Vector2(7.0, 0.0),
 	])
-	Art.fill(self, crown, hat_color, Art.OUTLINE, 1.3)
+	Art.fill_shaded(self, crown, Art.shade(hat_color, -0.06), 0.12, 0.3, Art.OUTLINE, 1.3)
 	Art.fill(self, PackedVector2Array([hb + Vector2(-7.0, -1.0), hb + Vector2(7.0, -1.0), hb + Vector2(6.9, -3.2), hb + Vector2(-6.9, -3.2)]), hat_band, Art.NONE)
 	draw_polyline(PackedVector2Array([hb + Vector2(-5.6, -3.6), hb + Vector2(-5.4, -7.0), hb + Vector2(-2.8, -8.8)]), Color(1, 1, 1, 0.16), 1.0, true)
 	draw_line(hb + Vector2(-11.0, -0.8), hb + Vector2(10.0, -0.8), Color(1, 1, 1, 0.1), 0.8, true)

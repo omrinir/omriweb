@@ -29,6 +29,9 @@ const CameraScript := preload("res://shake_camera.gd")
 @export var gap_min := 260.0
 @export var gap_max := 560.0
 
+## זום של המצלמה (גדול יותר = הדמויות נראות גדולות יותר)
+@export var camera_zoom := 1.5
+
 @export_group("Obstacles")
 ## איזה חלק מגובה הקפיצה של הדמות מותר שיהיה גובה מכשול (0.7 = 70%).
 ## כך הדמות תמיד מסוגלת לעבור כל לבנה. אם תגדיל - הלבנות יהיו גבוהות יותר
@@ -93,6 +96,7 @@ func _ready() -> void:
 	cam.limit_bottom = int(vp.y)
 	cam.position_smoothing_enabled = true
 	cam.position_smoothing_speed = 8.0
+	cam.zoom = Vector2(camera_zoom, camera_zoom)
 	player.add_child(cam)
 	cam.make_current()
 	cam.reset_smoothing()
