@@ -39,6 +39,8 @@ const CameraScript := preload("res://shake_camera.gd")
 @export var zombies_per_screen := 1.6
 ## הסיכוי שזומבי יופיע בקבוצה של 2-3
 @export_range(0.0, 1.0) var zombie_cluster_chance := 0.25
+## כמה נפוץ כל סוג זומבי: רגיל / רץ / ענק
+@export var zombie_weights := Vector3(0.55, 0.25, 0.2)
 
 const UNIT := 16.0   # גובה "שורת לבנים"
 const BRICK_COLORS := [Color("9a4f3a"), Color("8a5a40"), Color("7a4a4a"), Color("a0603f")]
@@ -196,7 +198,7 @@ func _spawn_zombies(rng: RandomNumberGenerator, floor_y: float) -> void:
 		for g in group:
 			var gx := zx + float(g) * rng.randf_range(34.0, 60.0)
 			if gx < level_w - 80.0 and not _near_brick(gx):
-				_spawn_zombie(gx, floor_y)
+				_spawn_zombie(gx, floor_y, _pick_kind(rng))
 				spawned += 1
 
 
@@ -207,8 +209,19 @@ func _near_brick(x: float) -> bool:
 	return false
 
 
-func _spawn_zombie(x: float, floor_y: float) -> void:
+func _pick_kind(rng: RandomNumberGenerator) -> int:
+	var total := zombie_weights.x + zombie_weights.y + zombie_weights.z
+	var r := rng.randf() * total
+	if r < zombie_weights.x:
+		return 0
+	if r < zombie_weights.x + zombie_weights.y:
+		return 1
+	return 2
+
+
+func _spawn_zombie(x: float, floor_y: float, kind := 0) -> void:
 	var z = ZombieScene.instantiate()
+	z.kind = kind   # 0 = רגיל, 1 = רץ, 2 = ענק
 	z.position = Vector2(x, floor_y)   # (0,0) של הזומבי = כפות הרגליים
 	add_child(z)
 	z.world_w = level_w

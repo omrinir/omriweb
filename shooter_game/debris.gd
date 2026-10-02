@@ -33,7 +33,7 @@ func _physics_process(delta: float) -> void:
 	var to := global_position + velocity * delta
 	var query := PhysicsRayQueryParameters2D.create(global_position, to, 1)   # שכבה 1 = ריצפה ולבנים
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
-	if hit:
+	if hit and hit.normal != Vector2.ZERO:   # normal = 0 כשמתחילים בתוך לבנה
 		global_position = hit.position + hit.normal * 0.5
 		velocity = velocity.bounce(hit.normal) * bounce
 		velocity.x *= 0.7

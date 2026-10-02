@@ -8,7 +8,7 @@ extends Node2D
 var fuse := 1.6            # שניות עד הפיצוץ
 var radius := 120.0        # טווח הפיצוץ
 var break_radius := 70.0   # לבנים במרחק הזה נשברות מיד
-var damage := 5            # נזק לזומבים
+var damage := 10           # נזק לזומבים
 var gravity := 1300.0
 var bounce := 0.45
 
@@ -32,7 +32,7 @@ func _physics_process(delta: float) -> void:
 	var to := global_position + velocity * delta
 	var query := PhysicsRayQueryParameters2D.create(global_position, to, 1)   # שכבה 1 = ריצפה ולבנים
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
-	if hit:
+	if hit and hit.normal != Vector2.ZERO:   # normal = 0 כשמתחילים בתוך לבנה
 		global_position = hit.position + hit.normal * 4.0
 		velocity = velocity.bounce(hit.normal) * bounce
 		velocity.x *= 0.8
@@ -55,7 +55,7 @@ func _explode() -> void:
 			if c.distance_to(cp) <= radius:
 				b.hit_by_blast(c, break_radius)
 	for z in get_tree().get_nodes_in_group("zombies"):
-		var zc: Vector2 = z.global_position + Vector2(0, -25)
+		var zc: Vector2 = z.global_position + Vector2(0, -32)
 		if c.distance_to(zc) <= radius:
 			z.take_damage(damage, zc, (zc - c).normalized())
 	var p := get_tree().get_first_node_in_group("player")
