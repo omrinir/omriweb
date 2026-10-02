@@ -10,7 +10,7 @@ const Art := preload("res://art.gd")
 var fuse := 1.6            # שניות עד הפיצוץ
 var radius := 120.0        # טווח הפיצוץ
 var break_radius := 70.0   # לבנים במרחק הזה נשברות מיד
-var damage := 10           # נזק לזומבים
+var damage := 40           # נזק לזומבים (לכל זומבי יש 30)
 var gravity := 1300.0
 var bounce := 0.45
 
@@ -59,7 +59,7 @@ func _explode() -> void:
 	for z in get_tree().get_nodes_in_group("zombies"):
 		var zc: Vector2 = z.global_position + Vector2(0, -32)
 		if c.distance_to(zc) <= radius:
-			z.take_damage(damage, zc, (zc - c).normalized())
+			z.take_damage(damage, zc, (zc - c).normalized(), true)
 	var p := get_tree().get_first_node_in_group("player")
 	if p != null:
 		var pc: Vector2 = p.global_position + Vector2(0, -26)

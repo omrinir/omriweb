@@ -26,7 +26,7 @@ var accel := 1800.0
 
 # ---- נשק ----
 var bullet_speed := 1300.0
-var fire_delay := 0.12           # שניות בין יריות
+var fire_delay := 1.0            # שניות בין יריות (1 = כדור אחד בשנייה)
 var grenade_speed := 620.0
 var grenade_delay := 0.7
 var recoil_push := 70.0          # כמה כל ירייה דוחפת אחורה על הריצפה
@@ -45,6 +45,8 @@ var rim_color := Color("e8e8f0")      # קווי האור הלבנים על המ
 var pants_color := Color("111115")
 var boot_color := Color("08080a")
 var glove_color := Color("141418")
+## כמה הדמות רזה (1 = רגיל, קטן יותר = רזה יותר)
+@export_range(0.5, 1.0) var slim := 0.8
 ## עיניים זוהרות בתוך הברדס (false = רק חושך, כמו בתמונה)
 @export var glowing_eyes := false
 var eye_color := Color("ff3030")
@@ -54,6 +56,7 @@ var weapon := GUN
 var dead := false
 
 const W := 22.0
+const BREATH_SPEED := 1.6        # מהירות הנשימה
 const H_STAND := 52.0
 const H_CROUCH := 34.0
 
@@ -64,6 +67,10 @@ var _cooldown := 0.0
 var _invuln := 0.0
 var _walk_phase := 0.0
 var _time := 0.0
+var _idle_k := 0.0               # 0 = זז, 1 = עומד במקום (לאנימציית נשימה)
+var _breath_was_up := false
+var _mist := []                  # אדי נשימה: [מיקום, מהירות, גיל]
+var _base_xf := Transform2D.IDENTITY
 var _aim := Vector2.RIGHT
 var _muzzle_flash := 0.0
 var _recoil := 0.0
@@ -165,6 +172,20 @@ func _physics_process(delta: float) -> void:
 	else:
 		_walk_phase = move_toward(_walk_phase, roundf(_walk_phase / PI) * PI, delta * 6.0)
 
+	# עמידה במקום: נשימה + אדים יוצאים מהברדס בכל נשיפה
+	var standing := is_on_floor() and absf(velocity.x) < 10.0 and not _crouching
+	_idle_k = move_toward(_idle_k, 1.0 if standing else 0.0, delta * 3.0)
+	var up := cos(_time * BREATH_SPEED) > 0.0
+	if _breath_was_up and not up and _idle_k > 0.6:
+		for i in 4:
+			_mist.append([Vector2(8.5, -47.0 + randf_range(-1.0, 1.0)), Vector2(randf_range(7.0, 14.0), randf_range(-7.0, -2.0)), -float(i) * 0.08])
+	_breath_was_up = up
+	for m in _mist:
+		m[2] += delta
+		if m[2] > 0.0:
+			m[0] += m[1] * delta
+	_mist = _mist.filter(func(m): return m[2] < 1.6)
+
 	# כיוון ויריה
 	var sh := global_position + _front_shoulder()
 	var to_mouse := get_global_mouse_position() - sh
@@ -249,7 +270,8 @@ func _draw() -> void:
 		if pool > 0.0:   # שלולית דם
 			Art.oval(self, Vector2(-face * 22.0, -1.0), 26.0 * pool, 3.0 * pool, Color("6a0a0a"), 0.0, Art.NONE)
 		var outer := Transform2D(-PI / 2.0 * k * face, Vector2(0.0, -9.0 * k))
-		draw_set_transform_matrix(outer * Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2.ZERO))
+		_base_xf = outer * Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2.ZERO)
+		draw_set_transform_matrix(_base_xf)
 		_draw_body(Vector2(1.0, 0.25), true)
 		draw_set_transform_matrix(Transform2D.IDENTITY)
 		return
@@ -259,9 +281,22 @@ func _draw() -> void:
 		Art.ground_shadow(self, Vector2.ZERO, 15.0)
 	var blink := _invuln > 0.0 and int(_invuln * 16.0) % 2 == 0
 	modulate = Color(1.0, 0.55, 0.55) if blink else Color.WHITE
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(face, 1.0))
+	_base_xf = Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2.ZERO)
+	draw_set_transform_matrix(_base_xf)
 	_draw_body(la, false)
+	# אדי נשימה
+	for m in _mist:
+		var age: float = m[2]
+		if age <= 0.0:
+			continue
+		var a := 0.32 * clampf(age / 0.2, 0.0, 1.0) * (1.0 - age / 1.6)
+		draw_circle(m[0], 1.2 + age * 4.0, Color(0.85, 0.88, 0.95, a))
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+
+
+# הגוף מצויר צר יותר (רזה), הידיים והנשק ברוחב רגיל
+func _slim(on: bool) -> void:
+	draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(slim, 1.0), 0.0, Vector2.ZERO) if on else _base_xf)
 
 
 func _draw_body(la: Vector2, limp: bool) -> void:
@@ -269,12 +304,16 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	var speed_k := clampf(absf(velocity.x) / run_speed, 0.0, 1.0)
 	var air := not is_on_floor() and not limp
 	var p := _walk_phase
-	var breathe := sin(_time * 2.2) * 0.6 * (1.0 - speed_k)
+	# נשימה: החזה עולה ויורד, הראש נוטה קצת אחורה בשאיפה, והמשקל עובר מרגל לרגל
+	var idle := 0.0 if limp else _idle_k
+	var br := sin(_time * BREATH_SPEED) * idle
+	var sway := sin(_time * 0.55) * idle
+	var breathe := sin(_time * 2.2) * 0.6 * (1.0 - speed_k) * (1.0 - idle)
 
 	# שלד: ירכיים, כתפיים, ראש
-	var hip := Vector2(0.0, -24.0 + 11.0 * c - absf(cos(p)) * 1.2 * speed_k)
-	var sh := Vector2(3.0 * c + speed_k * 2.0, -41.0 + 17.0 * c + breathe * 0.4 - absf(cos(p)) * 1.2 * speed_k)
-	var head := sh + Vector2(1.5, -8.5)
+	var hip := Vector2(sway * 0.9, -24.0 + 11.0 * c - absf(cos(p)) * 1.2 * speed_k)
+	var sh := Vector2(3.0 * c + speed_k * 2.0 + sway * 0.5, -41.0 + 17.0 * c + breathe * 0.4 - absf(cos(p)) * 1.2 * speed_k - br * 2.0)
+	var head := sh + Vector2(1.5 + br * 0.6, -8.5 - br * 0.6)
 
 	# כפות רגליים
 	var stride := 6.0 + 6.0 * speed_k
@@ -292,6 +331,9 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	if limp:
 		f_front = Vector2(2.0, 0.0)
 		f_back = Vector2(-2.0, 0.0)
+	else:   # בעמידה: רגליים קצת פתוחות
+		f_front.x += 3.0 * idle
+		f_back.x -= 3.0 * idle
 
 	# כמה המעיל מתנופף (ריצה / אוויר / רתיעה) + רפרוף של הרוח
 	var flow := clampf(speed_k * 0.8 + (0.5 if air else 0.0) + _recoil * 0.25 + 0.15, 0.0, 1.0)
@@ -313,6 +355,7 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	else:
 		back_hand = bs + Vector2(-3.0 + sin(p) * 3.0, 15.0)
 	_arm(bs, back_hand, true)
+	_slim(true)
 
 	# ---- זנב אחורי של המעיל (מתנופף מאחור) ----
 	var bottom := -1.0
@@ -338,7 +381,7 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 
 	# ---- גוף המעיל ----
 	var torso := PackedVector2Array([
-		sh + Vector2(-9.0, -1.0), sh + Vector2(7.0, -2.0), sh + Vector2(9.0, 4.0),
+		sh + Vector2(-9.0, -1.0), sh + Vector2(7.0, -2.0), sh + Vector2(9.0 + br * 0.8, 4.0),
 		hip + Vector2(8.5, -1.0), hip + Vector2(-8.5, -1.0), sh + Vector2(-10.0, 5.0),
 	])
 	Art.fill_shaded(self, torso, coat_color, 0.1, 0.3, Art.OUTLINE, 1.5)
@@ -389,6 +432,7 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	draw_polyline(PackedVector2Array([sh + Vector2(3.5, -1.5), sh + Vector2(10.0, -9.5), sh + Vector2(8.0, 2.0)]), rim_color, 1.0, true)
 
 	# ---- נשק + יד קדמית ----
+	_slim(false)
 	if limp:
 		_arm(fs, hand, false)
 		return
@@ -404,7 +448,7 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 func _arm(shoulder: Vector2, hand: Vector2, back: bool) -> void:
 	var elbow := Art.joint(shoulder, hand, 8.5, 8.5, -1.0)
 	var col := Art.shade(coat_color, -0.05) if back else coat_color
-	Art.limb(self, PackedVector2Array([shoulder, elbow, hand]), 5.8, col)
+	Art.limb(self, PackedVector2Array([shoulder, elbow, hand]), 4.6, col)
 	if not back:   # הארה לבנה על השרוול
 		draw_polyline(PackedVector2Array([shoulder + Vector2(0.0, -2.6), elbow + (elbow - shoulder).orthogonal().normalized() * 2.6]), Color(rim_color, 0.7), 0.9, true)
 	# שרוול רחב ליד כף היד

@@ -11,7 +11,7 @@ var length := 22.0                         # אורך הקו של הקליע
 var width := 3.0                           # עובי
 var bullet_color := Color(1.0, 0.85, 0.3)  # צבע
 var collision_mask := 5                    # 1 = ריצפה ולבנים, 4 = זומבים
-var damage := 1                            # כמה נזק הקליע עושה לזומבי
+var damage := 0                            # הנזק נקבע בזומבי לפי מקום הפגיעה (ראש / גוף / רגל)
 
 var velocity := Vector2.ZERO
 var _cast_from := Vector2.ZERO

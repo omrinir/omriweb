@@ -22,15 +22,15 @@ enum { WALKER, RUNNER, BRUTE }
 # ---- נתוני כל סוג (אפשר לשנות) ----
 const KINDS := [
 	{   # WALKER
-		"hp": 3, "walk": 45.0, "chase": 95.0, "damage": 1, "bite_delay": 0.8, "scale": 1.0, "width": 1.0,
+		"hp": 30, "walk": 45.0, "chase": 95.0, "damage": 1, "bite_delay": 0.8, "scale": 1.0, "width": 1.0,
 		"skin": Color("86a06a"), "shirt": Color("4f6688"), "pants": Color("3d3a4c"), "shoe": Color("2c241e"),
 	},
 	{   # RUNNER
-		"hp": 2, "walk": 70.0, "chase": 175.0, "damage": 1, "bite_delay": 0.6, "scale": 0.97, "width": 0.85,
+		"hp": 30, "walk": 70.0, "chase": 175.0, "damage": 1, "bite_delay": 0.6, "scale": 0.97, "width": 0.85,
 		"skin": Color("aab7a6"), "shirt": Color("8c3434"), "pants": Color("33402f"), "shoe": Color(0, 0, 0, 0),
 	},
 	{   # BRUTE
-		"hp": 9, "walk": 28.0, "chase": 62.0, "damage": 2, "bite_delay": 1.2, "scale": 1.25, "width": 1.35,
+		"hp": 30, "walk": 28.0, "chase": 62.0, "damage": 2, "bite_delay": 1.2, "scale": 1.25, "width": 1.35,
 		"skin": Color("6c8450"), "shirt": Color("b9b29a"), "pants": Color("34466a"), "shoe": Color("1e1a16"),
 	},
 ]
@@ -40,6 +40,11 @@ var throw_range := 430.0         # מאיזה מרחק הוא זורק רגל
 var jump_velocity := -560.0
 var gravity := 1500.0
 var corpse_time := 7.0           # כמה שניות הגופה נשארת
+
+# ---- נזק מקליעים (לכל זומבי יש 30 נקודות חיים) ----
+var leg_damage := Vector2i(7, 10)     # פגיעה ברגל: בין 7 ל-10
+var body_damage := Vector2i(12, 15)   # פגיעה בגוף: בין 12 ל-15
+var head_damage := 30                 # פגיעה בראש
 
 var world_w := 100000.0          # רוחב העולם (main.gd קובע)
 var hp := 3
@@ -230,36 +235,67 @@ func _hand_world() -> Vector2:
 # ============================================================
 #  פגיעות
 # ============================================================
-# נקרא מ-bullet.gd ומ-grenade.gd. hit_pos קובע איפה הפגיעה: ראש / גוף / רגליים
-func take_damage(amount: int, hit_pos: Vector2, dir: Vector2) -> void:
+# נקרא מ-bullet.gd ומ-grenade.gd. hit_pos קובע איפה הפגיעה: ראש / גוף / רגליים.
+# explosive = true (רימון): amount הוא הנזק, בלי קשר למקום הפגיעה
+func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false) -> void:
 	if dead:
 		return
 	_flash = 0.1
 	var ly := (hit_pos.y - global_position.y) / sc
-	if ly < -42.0:
-		# ---- HEADSHOT ----
-		_headless = true
-		_spray_blood(global_position + Vector2(0.0, -50.0 * sc), Vector2(dir.x, -0.6), 22, 420.0)
-		_popup("HEADSHOT!", Color("ffdd44"))
-		hp = 0
-		_die(dir)
-		return
-	if ly > -20.0 and not _one_leg:
-		# ---- רגליים ----
-		_leg_hits += 1
+	var dmg := amount
+	var zone := "body"
+	if not explosive:
+		if ly < -42.0:
+			zone = "head"
+			dmg = head_damage
+		elif ly > -20.0:
+			zone = "leg"
+			dmg = randi_range(leg_damage.x, leg_damage.y)
+		else:
+			dmg = randi_range(body_damage.x, body_damage.y)
+	hp -= dmg
+	_damage_number(dmg, zone)
+
+	if zone == "head":
+		_spray_blood(global_position + Vector2(0.0, -50.0 * sc), Vector2(dir.x, -0.6), 12, 320.0)
+		if hp <= 0:   # HEADSHOT: הראש מתפוצץ
+			_headless = true
+			_spray_blood(global_position + Vector2(0.0, -50.0 * sc), Vector2(dir.x, -0.6), 16, 420.0)
+			_popup("HEADSHOT!", Color("ffdd44"), 20, -86.0)
+	elif zone == "leg":
 		_spray_blood(hit_pos, dir, 5, 220.0)
-		if _leg_hits >= 2:
-			_lose_leg(dir)
-		return
-	hp -= amount
-	_spray_blood(hit_pos, dir, 6, 260.0)
-	if _wounds.size() < 6:
-		var lx := (hit_pos.x - global_position.x) * _dir / (sc * wf)
-		_wounds.append(Vector2(clampf(lx, -6.0, 6.0), clampf(ly, -40.0, -22.0)))
+		if not _one_leg:
+			_leg_hits += 1
+			if _leg_hits >= 2 and hp > 0:   # 2 פגיעות ברגליים = הרגל נתלשת
+				_lose_leg(dir)
+	else:
+		_spray_blood(hit_pos, dir, 6, 260.0)
+		if _wounds.size() < 6:
+			var lx := (hit_pos.x - global_position.x) * _dir / (sc * wf)
+			_wounds.append(Vector2(clampf(lx, -6.0, 6.0), clampf(ly, -40.0, -22.0)))
 	if hp <= 0:
 		_die(dir)
 	else:
 		velocity.x += dir.x * 110.0
+
+
+# מספר הנזק שקופץ מעל הזומבי וצף למעלה
+func _damage_number(dmg: int, zone: String) -> void:
+	var col := Color.WHITE
+	var size := 18
+	match zone:
+		"head":
+			col = Color("ff4a3a")
+			size = 26
+		"leg":
+			col = Color("ffb04a")
+	var p := HitText.new()
+	p.text = str(dmg)
+	p.color = col
+	p.size = size
+	p.pop = true
+	get_parent().add_child(p)
+	p.global_position = global_position + Vector2(randf_range(-10.0, 10.0), -66.0 * sc)
 
 
 func _lose_leg(dir: Vector2) -> void:
@@ -270,7 +306,7 @@ func _lose_leg(dir: Vector2) -> void:
 	var leg = LegScript.new()
 	get_parent().add_child(leg)
 	leg.setup(hip + Vector2(0.0, 8.0 * sc), Vector2(dir.x * 160.0 + randf_range(-40.0, 40.0), -200.0), pants, skin, shoe, sc)
-	_popup("LEG!", Color("ff8a5a"))
+	_popup("LEG!", Color("ff8a5a"), 16, -40.0)
 
 
 func _die(dir: Vector2) -> void:
@@ -327,12 +363,13 @@ func _spray_blood(pos: Vector2, dir: Vector2, n: int, power: float) -> void:
 		b.setup(pos, v + Vector2(0.0, -randf_range(40.0, 160.0)))
 
 
-func _popup(text: String, col: Color) -> void:
+func _popup(text: String, col: Color, size := 18, y := -80.0) -> void:
 	var p := HitText.new()
 	p.text = text
 	p.color = col
+	p.size = size
 	get_parent().add_child(p)
-	p.global_position = global_position + Vector2(0.0, -70.0 * sc)
+	p.global_position = global_position + Vector2(0.0, y * sc)
 
 
 # ============================================================
@@ -582,23 +619,31 @@ func _head(c: Vector2, sk: Color) -> void:
 class HitText extends Node2D:
 	var text := ""
 	var color := Color.WHITE
+	var size := 18
+	var pop := false       # מספר נזק: "קופץ" בהתחלה
+	var life := 1.1
 	var t := 0.0
+	var _drift := 0.0
 
 	func _ready() -> void:
 		z_index = 30
+		_drift = randf_range(-12.0, 12.0)
 
 	func _process(delta: float) -> void:
 		t += delta
-		position.y -= 40.0 * delta
-		modulate.a = clampf(1.5 - t, 0.0, 1.0)
-		if t > 1.5:
+		position += Vector2(_drift, -55.0 + t * 25.0) * delta   # צף למעלה ומאט
+		modulate.a = clampf((life - t) / 0.4, 0.0, 1.0)
+		if t > life:
 			queue_free()
 		queue_redraw()
 
 	func _draw() -> void:
 		var f := ThemeDB.fallback_font
-		var sz := 18
-		var w := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x
+		var k := 1.0
+		if pop:
+			k = 1.0 + 0.6 * clampf(1.0 - t / 0.15, 0.0, 1.0)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(k, k))
+		var w := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 		var pos := Vector2(-w / 2.0, 0.0)
-		draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, 4, Color(0, 0, 0, 0.8))
-		draw_string(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, color)
+		draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 5, Color(0, 0, 0, 0.85))
+		draw_string(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)

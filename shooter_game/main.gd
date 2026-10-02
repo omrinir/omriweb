@@ -30,7 +30,7 @@ const CameraScript := preload("res://shake_camera.gd")
 @export var gap_max := 560.0
 
 ## זום של המצלמה (גדול יותר = הדמויות נראות גדולות יותר)
-@export var camera_zoom := 1.5
+@export var camera_zoom := 1.25
 
 @export_group("Obstacles")
 ## איזה חלק מגובה הקפיצה של הדמות מותר שיהיה גובה מכשול (0.7 = 70%).
