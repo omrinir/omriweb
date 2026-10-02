@@ -53,6 +53,7 @@ var _cracks: Array[PackedVector2Array] = []
 func _ready() -> void:
 	collision_layer = 1   # שכבה 1 = עולם. השחקן והקליעים מתנגשים בה
 	collision_mask = 0
+	add_to_group("bricks")
 	hp = hit_points
 	_rebuild()
 
