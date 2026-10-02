@@ -29,21 +29,25 @@ var bullet_speed := 1300.0
 var fire_delay := 0.12           # שניות בין יריות
 var grenade_speed := 620.0
 var grenade_delay := 0.7
+var recoil_push := 70.0          # כמה כל ירייה דוחפת אחורה על הריצפה
+var air_recoil_push := 120.0     # כמה כל ירייה דוחפת באוויר (גם למעלה אם יורים למטה)
+var air_control := 0.35          # שליטה בתנועה באוויר (קטן = הרתיעה מורגשת יותר)
 
 # ---- חיים ----
 var max_health := 5
 var health := 5
 var invuln_time := 0.8           # שניות שבהן אי אפשר להיפגע שוב
 
-# ---- צבעים ----
-var coat_color := Color("16161b")
-var coat_light := Color("34343f")
-var hat_color := Color("101013")
-var hat_band := Color("4a1016")
-var pants_color := Color("2a2a31")
-var boot_color := Color("17110d")
-var skin_color := Color("e7b48b")
-var glove_color := Color("2b1e17")
+# ---- צבעים (סגנון מנגה: שחור עם קצוות לבנים) ----
+var coat_color := Color("0d0d11")
+var coat_lining := Color("44444e")
+var rim_color := Color("e8e8f0")      # קווי האור הלבנים על המעיל
+var pants_color := Color("111115")
+var boot_color := Color("08080a")
+var glove_color := Color("141418")
+## עיניים זוהרות בתוך הברדס (false = רק חושך, כמו בתמונה)
+@export var glowing_eyes := false
+var eye_color := Color("ff3030")
 
 var world_w := 100000.0          # רוחב העולם (main.gd קובע)
 var weapon := GUN
@@ -64,6 +68,8 @@ var _aim := Vector2.RIGHT
 var _muzzle_flash := 0.0
 var _recoil := 0.0
 var _dead_t := 0.0
+var _push_t := 0.0
+var _fire_test := false   # לבדיקות אוטומטיות בלבד
 
 
 func _ready() -> void:
@@ -108,6 +114,7 @@ func _physics_process(delta: float) -> void:
 	_invuln -= delta
 	_muzzle_flash -= delta
 	_recoil = move_toward(_recoil, 0.0, delta * 12.0)
+	_push_t -= delta
 
 	if not is_on_floor():
 		velocity.y += gravity * delta
@@ -140,7 +147,10 @@ func _physics_process(delta: float) -> void:
 		speed = crouch_speed
 	elif Input.is_physical_key_pressed(KEY_SHIFT):
 		speed = run_speed
-	velocity.x = move_toward(velocity.x, dir * speed, accel * delta)
+	var acc := accel if is_on_floor() else accel * air_control
+	if _push_t > 0.0:   # רגע אחרי ירייה - הדחיפה גוברת על ההליכה
+		acc *= 0.25
+	velocity.x = move_toward(velocity.x, dir * speed, acc * delta)
 
 	# קפיצה
 	var jump := Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_SPACE)
@@ -158,10 +168,11 @@ func _physics_process(delta: float) -> void:
 	# כיוון ויריה
 	var sh := global_position + _front_shoulder()
 	var to_mouse := get_global_mouse_position() - sh
-	if to_mouse.length() > 4.0:
+	if to_mouse.length() > 4.0 and not _fire_test:
 		_aim = to_mouse.normalized()
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and _cooldown <= 0.0:
+	if (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _fire_test) and _cooldown <= 0.0:
 		_fire()
+	_fire_test = false
 
 	queue_redraw()
 
@@ -183,6 +194,13 @@ func _fire() -> void:
 		_cooldown = fire_delay
 		_muzzle_flash = 0.05
 		_recoil = 1.0
+		# רתיעה: הירייה דוחפת את הדמות הפוך לכיוון הקנה
+		if is_on_floor():
+			velocity.x -= _aim.x * recoil_push
+		else:
+			velocity -= _aim * air_recoil_push
+			velocity.y = maxf(velocity.y, -700.0)
+		_push_t = 0.12
 		var b = BulletScript.new()
 		get_parent().add_child(b)
 		var spread := randf_range(-0.025, 0.025)
@@ -275,7 +293,13 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 		f_front = Vector2(2.0, 0.0)
 		f_back = Vector2(-2.0, 0.0)
 
-	# ---- יד אחורית (מאחורי הגוף) ----
+	# כמה המעיל מתנופף (ריצה / אוויר / רתיעה) + רפרוף של הרוח
+	var flow := clampf(speed_k * 0.8 + (0.5 if air else 0.0) + _recoil * 0.25 + 0.15, 0.0, 1.0)
+	if limp:
+		flow = 0.0
+	var wv := sin(_time * 7.0) * (0.6 + flow * 1.6)
+
+	# ---- יד אחורית ----
 	var bs := sh + Vector2(-2.0, 1.5)
 	var fs := sh + Vector2(2.0, 1.5)
 	var kick := la * -2.5 * _recoil
@@ -288,68 +312,85 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 		back_hand = hand + la * 9.0 + la.rotated(PI / 2.0) * 2.0
 	else:
 		back_hand = bs + Vector2(-3.0 + sin(p) * 3.0, 15.0)
-	_arm(bs, back_hand, Art.shade(coat_color, -0.04), true)
+	_arm(bs, back_hand, true)
+
+	# ---- זנב אחורי של המעיל (מתנופף מאחור) ----
+	var bottom := -1.0
+	var tail := PackedVector2Array([
+		hip + Vector2(-2.0, -2.0),
+		Vector2(hip.x - 3.0 - flow * 2.0, minf(-6.0 + wv, bottom)),
+		Vector2(hip.x - 6.0 - flow * 7.0, minf(-1.0 + wv * 1.5, bottom)),
+		Vector2(hip.x - 9.0 - flow * 10.0, minf(-6.0 - flow * 3.0 + wv, bottom)),
+		Vector2(hip.x - 13.0 - flow * 16.0, minf(-3.0 - flow * 9.0 + wv * 2.0, bottom)),
+		Vector2(hip.x - 12.0 - flow * 10.0, hip.y + 2.0 - flow * 4.0),
+		hip + Vector2(-9.0, -3.0),
+	])
+	Art.fill(self, tail, coat_color, Art.OUTLINE, 1.4)
+	# בטנה אפורה + קפלים
+	Art.fill_shaded(self, PackedVector2Array([tail[0], tail[1], tail[2], Vector2(hip.x - 5.0 - flow * 4.0, hip.y + 6.0)]), coat_lining, 0.1, 0.4, Art.NONE)
+	draw_line(Vector2(hip.x - 5.0 - flow * 5.0, hip.y + 8.0), Vector2(hip.x - 8.0 - flow * 9.0, -6.0 - flow * 2.0 + wv), Color(1, 1, 1, 0.12), 1.0, true)
+	draw_line(Vector2(hip.x - 8.0 - flow * 6.0, hip.y + 4.0), Vector2(hip.x - 12.0 - flow * 13.0, -6.0 - flow * 7.0 + wv * 1.5), Color(1, 1, 1, 0.1), 1.0, true)
+	draw_polyline(PackedVector2Array([tail[0], tail[1], tail[2]]), rim_color, 1.0, true)
 
 	# ---- רגליים ----
-	_leg(hip + Vector2(-1.5, 0.0), f_back, Art.shade(pants_color, 0.25), Art.shade(boot_color, 0.2))
-	_leg(hip + Vector2(1.5, 0.0), f_front, pants_color, boot_color)
+	_leg(hip + Vector2(-1.5, 0.0), f_back, true)
+	_leg(hip + Vector2(1.5, 0.0), f_front, false)
 
-	# ---- מעיל ----
-	var flare := speed_k * 5.0 + (3.0 if air else 0.0)
-	var hem := minf(hip.y + 15.0 - c * 3.0, -1.0)
-	var coat := PackedVector2Array([
-		sh + Vector2(-9.0, -1.0), sh + Vector2(-3.0, -3.5), sh + Vector2(6.5, -2.5), sh + Vector2(9.0, 4.0),
-		hip + Vector2(8.0, -2.0), Vector2(hip.x + 10.5 - flare * 0.3, hem - 1.0),
-		Vector2(hip.x + 1.0, hem + 1.0), Vector2(hip.x - 11.5 - flare * 1.5, hem - 1.5 - flare * 0.6),
-		hip + Vector2(-8.5, -2.0), sh + Vector2(-10.0, 5.0),
+	# ---- גוף המעיל ----
+	var torso := PackedVector2Array([
+		sh + Vector2(-9.0, -1.0), sh + Vector2(7.0, -2.0), sh + Vector2(9.0, 4.0),
+		hip + Vector2(8.5, -1.0), hip + Vector2(-8.5, -1.0), sh + Vector2(-10.0, 5.0),
 	])
-	Art.fill_shaded(self, coat, coat_color, 0.12, 0.4, Art.OUTLINE, 1.5)
-	# קפלים והארה
-	draw_colored_polygon(PackedVector2Array([sh + Vector2(4.0, -1.5), sh + Vector2(8.0, 4.0), hip + Vector2(7.0, -2.0), hip + Vector2(4.5, -2.0)]), Color(1, 1, 1, 0.07))
-	draw_polyline(PackedVector2Array([sh + Vector2(3.0, 0.0), hip + Vector2(3.5, 0.0), Vector2(hip.x + 4.0, hem)]), coat_light, 1.0, true)
-	draw_polyline(PackedVector2Array([hip + Vector2(-4.0, 2.0), Vector2(hip.x - 6.0 - flare, hem - 1.0)]), Color(0, 0, 0, 0.6), 1.0, true)
-	draw_polyline(PackedVector2Array([hip + Vector2(0.0, 3.0), Vector2(hip.x - 1.0, hem)]), Color(0, 0, 0, 0.5), 1.0, true)
-	# חגורה + אבזם
-	draw_line(hip + Vector2(-8.5, -2.5), hip + Vector2(8.0, -2.5), Color("0a0a0c"), 2.6, true)
-	Art.fill(self, PackedVector2Array([hip + Vector2(3.0, -4.0), hip + Vector2(6.0, -4.0), hip + Vector2(6.0, -1.0), hip + Vector2(3.0, -1.0)]), Color("8a7448"), Art.OUTLINE, 0.8)
-	# כפתורים
-	Art.disc(self, sh + Vector2(5.0, 6.0), 0.9, Color("55555f"), Art.NONE)
-	Art.disc(self, sh + Vector2(5.5, 11.0), 0.9, Color("55555f"), Art.NONE)
-	# צעיף אדום כהה
-	Art.fill_shaded(self, PackedVector2Array([sh + Vector2(-4.0, -3.5), sh + Vector2(4.5, -3.0), sh + Vector2(5.0, 0.5), sh + Vector2(-4.0, 0.5)]), Color("5a1218"), 0.2, 0.3, Art.OUTLINE, 1.0)
-	var tail := sin(_time * 3.0 + speed_k * 2.0) * 1.5 + speed_k * 4.0
-	Art.fill_shaded(self, PackedVector2Array([sh + Vector2(-3.0, -1.0), sh + Vector2(-0.5, -0.5), sh + Vector2(-5.0 - tail, 9.0), sh + Vector2(-8.0 - tail, 8.0)]), Color("4a0e14"), 0.2, 0.3, Art.OUTLINE, 1.0)
-	# צווארון מורם
-	Art.fill(self, PackedVector2Array([sh + Vector2(-5.0, -2.5), sh + Vector2(-1.0, -8.0), sh + Vector2(1.5, -3.0)]), Art.shade(coat_color, -0.1), Art.OUTLINE, 1.0)
-	Art.fill(self, PackedVector2Array([sh + Vector2(2.0, -3.0), sh + Vector2(6.5, -6.5), sh + Vector2(6.5, -1.5)]), Art.shade(coat_color, -0.15), Art.OUTLINE, 1.0)
+	Art.fill_shaded(self, torso, coat_color, 0.1, 0.3, Art.OUTLINE, 1.5)
+	# הארה לבנה בצד הקדמי (כמו במנגה)
+	draw_polyline(PackedVector2Array([sh + Vector2(7.5, -1.0), sh + Vector2(9.0, 4.0), hip + Vector2(8.0, -1.5)]), rim_color, 1.1, true)
+	draw_polyline(PackedVector2Array([sh + Vector2(2.0, 0.0), hip + Vector2(3.0, -2.0)]), coat_lining, 1.0, true)   # פתח המעיל
+	draw_polyline(PackedVector2Array([sh + Vector2(-5.0, 4.0), sh + Vector2(-3.0, 9.0), sh + Vector2(-5.0, 12.0)]), Color(1, 1, 1, 0.1), 1.0, true)
+	draw_line(hip + Vector2(-8.5, -2.5), hip + Vector2(8.5, -2.5), Color("050507"), 2.4, true)   # חגורה
 
-	# ---- ראש ----
-	Art.oval(self, head + Vector2(-2.8, -0.5), 5.0, 6.2, Color("2a1c14"))                 # שיער מאחור
-	Art.oval_shaded(self, head, 6.6, 7.2, skin_color)                                    # פנים
-	Art.oval(self, head + Vector2(-1.5, 2.5), 3.5, 3.0, Color(0.5, 0.25, 0.2, 0.18), 0.0, Art.NONE)   # צל בלחי
-	Art.oval(self, head + Vector2(-2.2, 1.2), 1.0, 1.7, Art.shade(skin_color, 0.22), 0.0, Art.NONE)   # אוזן
-	Art.fill(self, PackedVector2Array([head + Vector2(5.8, -1.0), head + Vector2(8.3, 2.0), head + Vector2(5.8, 2.6)]), Art.shade(skin_color, 0.05), Art.OUTLINE, 0.9)   # אף
-	Art.oval(self, head + Vector2(2.5, 4.0), 4.5, 2.6, Color(0.25, 0.18, 0.14, 0.35), 0.0, Art.NONE)   # זיפים
-	draw_line(head + Vector2(3.0, 4.6), head + Vector2(5.6, 4.3), Color("7a3b30"), 1.0, true)        # פה
-	Art.oval(self, head + Vector2(3.6, -0.3), 1.0, 1.4, Color("1a1414"), 0.0, Art.NONE)             # עין
-	draw_line(head + Vector2(2.0, -2.6), head + Vector2(5.4, -2.0), Color("2a1c14"), 1.2, true)     # גבה
-	Art.oval(self, head + Vector2(2.0, -2.8), 6.5, 1.8, Color(0, 0, 0, 0.3), 0.0, Art.NONE)         # צל של הכובע
-
-	# ---- כובע ----
-	var hb := head + Vector2(0.5, -5.2)
-	Art.oval(self, hb, 12.5, 2.3, hat_color, 0.0, Art.OUTLINE, 1.3)
-	var crown := PackedVector2Array([
-		hb + Vector2(-7.0, 0.0), hb + Vector2(-6.6, -7.0), hb + Vector2(-3.0, -9.6), hb + Vector2(0.0, -8.4),
-		hb + Vector2(3.0, -9.6), hb + Vector2(6.6, -7.0), hb + Vector2(7.0, 0.0),
+	# ---- הפאנל הקדמי של המעיל (עם חריץ שרואים דרכו את הרגליים) ----
+	var front := PackedVector2Array([
+		hip + Vector2(1.0, -2.0), hip + Vector2(8.5, -2.0),
+		Vector2(hip.x + 10.5 - flow * 2.0, minf(-6.0 + wv * 0.5, bottom)),
+		Vector2(hip.x + 6.0 - flow * 2.0, minf(-2.5 + wv * 0.4, bottom)),
+		Vector2(hip.x + 3.0 - flow * 3.0, minf(-8.0 + wv * 0.3, bottom)),
+		hip + Vector2(0.0, 6.0),
 	])
-	Art.fill_shaded(self, crown, Art.shade(hat_color, -0.06), 0.12, 0.3, Art.OUTLINE, 1.3)
-	Art.fill(self, PackedVector2Array([hb + Vector2(-7.0, -1.0), hb + Vector2(7.0, -1.0), hb + Vector2(6.9, -3.2), hb + Vector2(-6.9, -3.2)]), hat_band, Art.NONE)
-	draw_polyline(PackedVector2Array([hb + Vector2(-5.6, -3.6), hb + Vector2(-5.4, -7.0), hb + Vector2(-2.8, -8.8)]), Color(1, 1, 1, 0.16), 1.0, true)
-	draw_line(hb + Vector2(-11.0, -0.8), hb + Vector2(10.0, -0.8), Color(1, 1, 1, 0.1), 0.8, true)
+	Art.fill_shaded(self, front, coat_color, 0.08, 0.3, Art.OUTLINE, 1.3)
+	draw_polyline(PackedVector2Array([front[1], front[2]]), rim_color, 1.0, true)
+	draw_line(hip + Vector2(4.0, 2.0), Vector2(hip.x + 6.0 - flow * 2.0, -6.0), Color(1, 1, 1, 0.1), 0.9, true)
+
+	# ---- צווארון גבוה (אחורי) ----
+	Art.fill(self, PackedVector2Array([sh + Vector2(-7.0, 1.0), sh + Vector2(-10.0, -10.0), sh + Vector2(-2.0, -3.0)]), coat_color, Art.OUTLINE, 1.2)
+	draw_line(sh + Vector2(-9.5, -9.0), sh + Vector2(-3.0, -3.5), Color(1, 1, 1, 0.25), 0.9, true)
+
+	# ---- ברדס: הפנים חבויות בחושך ----
+	var hood := PackedVector2Array([
+		sh + Vector2(-7.0, -1.0), head + Vector2(-8.0, 2.0), head + Vector2(-7.5, -5.0),
+		head + Vector2(-3.0, -10.5), head + Vector2(-0.5, -12.0), head + Vector2(3.5, -9.5),
+		head + Vector2(7.0, -4.0), head + Vector2(7.8, 3.0), sh + Vector2(6.0, -1.0),
+	])
+	Art.fill_shaded(self, hood, coat_color, 0.14, 0.25, Art.OUTLINE, 1.5)
+	var face := PackedVector2Array([
+		head + Vector2(0.5, -6.5), head + Vector2(4.5, -6.0), head + Vector2(6.8, -2.5),
+		head + Vector2(6.6, 3.5), head + Vector2(3.0, 5.5), head + Vector2(0.0, 2.0),
+	])
+	Art.fill(self, face, Color("000000"), Art.NONE)
+	# קצה לבן של הברדס
+	draw_polyline(PackedVector2Array([head + Vector2(-0.5, -12.0), head + Vector2(3.5, -9.5), head + Vector2(7.0, -4.0), head + Vector2(7.8, 3.0)]), rim_color, 1.2, true)
+	draw_polyline(PackedVector2Array([head + Vector2(0.5, -6.5), head + Vector2(0.0, 2.0), head + Vector2(3.0, 5.5)]), Color(1, 1, 1, 0.35), 0.8, true)
+	draw_line(head + Vector2(-3.0, -9.5), head + Vector2(-6.5, -3.0), Color(1, 1, 1, 0.12), 1.0, true)
+	if glowing_eyes:
+		Art.glow(self, head + Vector2(5.0, -1.5), 2.6, Color(eye_color, 0.8))
+		draw_line(head + Vector2(3.8, -1.6), head + Vector2(5.8, -1.3), eye_color, 1.0, true)
+
+	# ---- צווארון גבוה (קדמי) ----
+	Art.fill(self, PackedVector2Array([sh + Vector2(3.0, -1.0), sh + Vector2(10.0, -9.5), sh + Vector2(8.0, 2.0)]), coat_color, Art.OUTLINE, 1.2)
+	draw_polyline(PackedVector2Array([sh + Vector2(3.5, -1.5), sh + Vector2(10.0, -9.5), sh + Vector2(8.0, 2.0)]), rim_color, 1.0, true)
 
 	# ---- נשק + יד קדמית ----
 	if limp:
-		_arm(fs, hand, coat_color, false)
+		_arm(fs, hand, false)
 		return
 	if weapon == GUN:
 		_draw_rifle(hand, la)
@@ -357,25 +398,39 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 		var g := hand + la * 3.0
 		Art.disc(self, g, 4.3, Color("4a5a2c"))
 		draw_line(g + Vector2(-1.5, -4.0), g + Vector2(2.5, -5.0), Color("9a9a9a"), 1.4, true)
-	_arm(fs, hand, coat_color, false)
+	_arm(fs, hand, false)
 
 
-func _arm(shoulder: Vector2, hand: Vector2, sleeve: Color, back: bool) -> void:
+func _arm(shoulder: Vector2, hand: Vector2, back: bool) -> void:
 	var elbow := Art.joint(shoulder, hand, 8.5, 8.5, -1.0)
-	Art.limb(self, PackedVector2Array([shoulder, elbow, hand]), 5.6, sleeve)
-	if not back:
-		draw_line(shoulder + Vector2(0.0, 1.0), elbow, Color(1, 1, 1, 0.06), 1.5, true)
-	Art.disc(self, hand, 2.6, glove_color)
+	var col := Art.shade(coat_color, -0.05) if back else coat_color
+	Art.limb(self, PackedVector2Array([shoulder, elbow, hand]), 5.8, col)
+	if not back:   # הארה לבנה על השרוול
+		draw_polyline(PackedVector2Array([shoulder + Vector2(0.0, -2.6), elbow + (elbow - shoulder).orthogonal().normalized() * 2.6]), Color(rim_color, 0.7), 0.9, true)
+	# שרוול רחב ליד כף היד
+	var d := (hand - elbow).normalized()
+	var n := d.orthogonal()
+	Art.fill(self, PackedVector2Array([hand - d * 4.5 + n * 3.6, hand - d * 1.0 + n * 3.2, hand - d * 1.0 - n * 3.2, hand - d * 4.5 - n * 3.6]), col, Art.OUTLINE, 1.0)
+	Art.disc(self, hand, 2.5, glove_color)
 
 
-func _leg(hip: Vector2, foot: Vector2, pants: Color, boot: Color) -> void:
+func _leg(hip: Vector2, foot: Vector2, back: bool) -> void:
 	var ankle := foot + Vector2(0.0, -3.5)
 	var knee := Art.joint(hip, ankle, 11.5, 11.0, 1.0)
-	Art.limb(self, PackedVector2Array([hip, knee, ankle]), 6.4, pants)
+	var pants := Art.shade(pants_color, 0.25) if back else pants_color
+	var boot := Art.shade(boot_color, 0.2) if back else boot_color
+	Art.limb(self, PackedVector2Array([hip, knee, ankle]), 6.2, pants)
+	# מגף גבוה עם שוליים משוננים
+	var top := knee.lerp(ankle, 0.25)
+	var d := (ankle - top).normalized()
+	var n := d.orthogonal()
 	Art.fill(self, PackedVector2Array([
-		foot + Vector2(-3.5, -5.0), foot + Vector2(2.5, -5.0), foot + Vector2(4.0, -2.8),
-		foot + Vector2(7.5, -1.8), foot + Vector2(7.5, 0.0), foot + Vector2(-3.8, 0.0),
+		top + n * 4.2 - d * 1.5, top + n * 2.0 + d * 1.5, top - d * 0.5, top - n * 2.0 + d * 1.5, top - n * 4.2 - d * 1.5,
+		ankle - n * 3.6, foot + Vector2(-3.8, 0.0), foot + Vector2(7.5, 0.0), foot + Vector2(7.5, -2.0),
+		foot + Vector2(3.0, -4.0), ankle + n * 3.4,
 	]), boot, Art.OUTLINE, 1.1)
+	if not back:
+		draw_polyline(PackedVector2Array([top + n * 4.0 - d * 1.2, ankle + n * 3.2, foot + Vector2(3.0, -4.0), foot + Vector2(7.5, -2.0)]), Color(rim_color, 0.6), 0.9, true)
 
 
 func _draw_rifle(hand: Vector2, la: Vector2) -> void:
