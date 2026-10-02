@@ -14,6 +14,8 @@ var _max := 5
 var _weapon := 0
 var _game_over := false
 var _pulse := 0.0
+var difficulty := ""
+var difficulty_color := Color.WHITE
 
 
 func set_health(h: int, m: int) -> void:
@@ -67,9 +69,13 @@ func _draw() -> void:
 	var tx := hearts_pos + Vector2(float(_max) * heart_gap, 6.0)
 	draw_string_outline(font, tx, wname, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Color(0, 0, 0, 0.7))
 	draw_string(font, tx, wname, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
+	if difficulty != "":
+		var dx := tx + Vector2(110, 0)
+		draw_string_outline(font, dx, difficulty, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Color(0, 0, 0, 0.7))
+		draw_string(font, dx, difficulty, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, difficulty_color)
 	if _game_over:
 		var s := get_viewport_rect().size
 		draw_rect(Rect2(Vector2.ZERO, s), Color(0, 0, 0, 0.55))
 		draw_string_outline(font, Vector2(0, s.y / 2.0), "GAME OVER", HORIZONTAL_ALIGNMENT_CENTER, s.x, 64, 8, Color(0, 0, 0, 0.8))
 		draw_string(font, Vector2(0, s.y / 2.0), "GAME OVER", HORIZONTAL_ALIGNMENT_CENTER, s.x, 64, Color("ff4040"))
-		draw_string(font, Vector2(0, s.y / 2.0 + 50), "press R to restart", HORIZONTAL_ALIGNMENT_CENTER, s.x, 22, Color.WHITE)
+

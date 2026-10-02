@@ -47,6 +47,9 @@ var body_damage := Vector2i(12, 15)   # פגיעה בגוף: בין 12 ל-15
 var head_damage := 30                 # פגיעה בראש
 
 var world_w := 100000.0          # רוחב העולם (main.gd קובע)
+# רמת קושי (main.gd קובע): מהירות, וכמה הזומבים "חכמים" (מתכופפים / מתחבאים)
+var speed_mult := 1.0
+var smart_mult := 1.0
 var hp := 3
 var dead := false
 ## זומבי ששוכב על הריצפה וקם כשהשחקן מתקרב (main.gd קובע)
@@ -118,8 +121,10 @@ func _ready() -> void:
 	chase_speed = k.chase
 	damage = k.damage
 	bite_delay = k.bite_delay
-	duck_chance = k.duck
-	cover_chance = k.cover
+	duck_chance = clampf(k.duck * smart_mult, 0.0, 0.9)
+	cover_chance = clampf(k.cover * smart_mult, 0.0, 0.9)
+	walk_speed *= speed_mult
+	chase_speed *= speed_mult
 	_think_t = randf_range(1.0, 3.0)
 	sc = k.scale
 	wf = k.width

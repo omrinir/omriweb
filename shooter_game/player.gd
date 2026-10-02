@@ -48,6 +48,10 @@ var boot_color := Color("08080a")
 var glove_color := Color("141418")
 ## כמה הדמות רזה (1 = רגיל, קטן יותר = רזה יותר)
 @export_range(0.5, 1.0) var slim := 0.8
+## false = הדמות לא מגיבה למקשים (בתפריט הראשי)
+@export var controllable := true
+## לאן הדמות מכוונת כשהיא לא נשלטת
+var idle_aim := Vector2(-1.0, 0.25).normalized()
 ## עיניים זוהרות בתוך הברדס (false = רק חושך, כמו בתמונה)
 @export var glowing_eyes := false
 var eye_color := Color("ff3030")
@@ -135,7 +139,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# כריעה
-	var want_crouch := Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_CTRL)
+	var want_crouch := controllable and (Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_CTRL))
 	if want_crouch and not _crouching:
 		_crouching = true
 		_set_height(H_CROUCH)
@@ -146,14 +150,14 @@ func _physics_process(delta: float) -> void:
 
 	# הליכה / ריצה
 	var dir := 0.0
-	if Input.is_physical_key_pressed(KEY_A):
+	if controllable and Input.is_physical_key_pressed(KEY_A):
 		dir -= 1.0
-	if Input.is_physical_key_pressed(KEY_D):
+	if controllable and Input.is_physical_key_pressed(KEY_D):
 		dir += 1.0
 	var speed := walk_speed
 	if _crouching:
 		speed = crouch_speed
-	elif Input.is_physical_key_pressed(KEY_SHIFT):
+	elif controllable and Input.is_physical_key_pressed(KEY_SHIFT):
 		speed = run_speed
 	var acc := accel if is_on_floor() else accel * air_control
 	if _push_t > 0.0:   # רגע אחרי ירייה - הדחיפה גוברת על ההליכה
@@ -161,7 +165,7 @@ func _physics_process(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, dir * speed, acc * delta)
 
 	# קפיצה
-	var jump := Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_SPACE)
+	var jump := controllable and (Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_SPACE))
 	if jump and is_on_floor() and not _crouching:
 		velocity.y = jump_velocity
 
@@ -190,9 +194,12 @@ func _physics_process(delta: float) -> void:
 	# כיוון ויריה
 	var sh := global_position + _front_shoulder()
 	var to_mouse := get_global_mouse_position() - sh
-	if to_mouse.length() > 4.0 and not _fire_test:
+	if not controllable:
+		_aim = idle_aim
+	elif to_mouse.length() > 4.0 and not _fire_test:
 		_aim = to_mouse.normalized()
-	if (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _fire_test) and _cooldown <= 0.0:
+	var trigger := controllable and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not get_tree().paused
+	if (trigger or _fire_test) and _cooldown <= 0.0:
 		_fire()
 	_fire_test = false
 
@@ -245,7 +252,7 @@ func _eject_casing(sh: Vector2) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not (event is InputEventKey and event.pressed and not event.echo):
+	if not controllable or not (event is InputEventKey and event.pressed and not event.echo):
 		return
 	if event.physical_keycode == KEY_T and not dead:
 		weapon = GRENADE if weapon == GUN else GUN

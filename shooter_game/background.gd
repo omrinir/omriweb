@@ -13,6 +13,8 @@ extends Node2D
 @export var sun_pos := Vector2(0.72, 0.5)   # יחסי למסך (0..1)
 
 var level_w := 10240.0
+## בתפריט: גלילה איטית של הרקע בלי מצלמה (-1 = לפי המצלמה)
+var scroll_override := -1.0
 var _layers: Array[Node2D] = []
 var _factors: Array[float] = []
 
@@ -66,10 +68,12 @@ func _add_layer(rng: RandomNumberGenerator, factor: float, col: Color, h_min: fl
 
 
 func _process(_delta: float) -> void:
-	var cam := get_viewport().get_camera_2d()
-	if cam == null:
-		return
-	var cx := cam.get_screen_center_position().x
+	var cx := scroll_override
+	if cx < 0.0:
+		var cam := get_viewport().get_camera_2d()
+		if cam == null:
+			return
+		cx = cam.get_screen_center_position().x
 	for i in _layers.size():
 		_layers[i].position.x = -cx * _factors[i]
 

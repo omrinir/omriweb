@@ -17,6 +17,7 @@ const PropScript := preload("res://prop.gd")
 const StreetPropScript := preload("res://street_prop.gd")
 const RoadDecorScript := preload("res://road_decor.gd")
 const FogScript := preload("res://fog.gd")
+const PauseScript := preload("res://pause_menu.gd")
 
 @export_group("Level")
 ## אורך הרמה במסכים (רוחב מסך = 1280). המינימום הוא 8 מסכים
@@ -68,6 +69,11 @@ var _pits := []
 
 
 func _ready() -> void:
+	get_tree().paused = false
+	# רמת הקושי מהתפריט
+	var diff: Dictionary = Settings.preset()
+	zombies_per_screen = diff.zombies_per_screen
+	dormant_chance = diff.dormant
 	var vp := get_viewport_rect().size
 	level_w = vp.x * float(maxi(level_screens, 8))
 
@@ -102,6 +108,8 @@ func _ready() -> void:
 	_generate_level(rng, floor_y)
 	_spawn_zombies(rng, floor_y)
 
+	player.max_health = diff.player_hp
+	player.health = diff.player_hp
 	player.position = Vector2(vp.x * 0.12, floor_y)   # (0,0) של השחקן = כפות הרגליים
 	add_child(player)
 	player.world_w = level_w
@@ -132,7 +140,7 @@ func _ready() -> void:
 	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
-	label.text = "A/D move   SHIFT run   W/SPACE jump   S/CTRL crouch   MOUSE aim   LMB fire   T gun/grenade   K die   R restart"
+	label.text = "A/D move   SHIFT run   W/SPACE jump   S/CTRL crouch   MOUSE aim   LMB fire   T gun/grenade   R restart   ESC pause"
 	label.position = Vector2(12, 8)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
@@ -146,6 +154,13 @@ func _ready() -> void:
 	player.health_changed.connect(bar.set_health)
 	player.weapon_changed.connect(bar.set_weapon)
 	player.died.connect(bar.show_game_over)
+	bar.difficulty = Settings.difficulty_name()
+	bar.difficulty_color = Settings.COLORS[Settings.difficulty]
+
+	# תפריט השהיה (ESC) + כפתורים במסך GAME OVER
+	var pause = PauseScript.new()
+	add_child(pause)
+	player.died.connect(pause.show_game_over)
 
 
 # ============================================================
@@ -397,6 +412,9 @@ func _pick_kind(rng: RandomNumberGenerator) -> int:
 func _spawn_zombie(x: float, floor_y: float, kind := 0, rng: RandomNumberGenerator = null) -> void:
 	var z = ZombieScene.instantiate()
 	z.kind = kind   # 0 = רגיל, 1 = רץ, 2 = ענק
+	var diff: Dictionary = Settings.preset()
+	z.speed_mult = diff.zombie_speed
+	z.smart_mult = diff.smart
 	if rng != null and rng.randf() < dormant_chance:
 		z.dormant = true   # שוכב על הריצפה וקם כשמתקרבים
 	z.position = Vector2(x, floor_y)   # (0,0) של הזומבי = כפות הרגליים
@@ -419,5 +437,5 @@ func _make_brick(pos: Vector2, sz: Vector2, style := 0, col := Color("9a4f3a"), 
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_R:
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_R and not get_tree().paused:
 		get_tree().reload_current_scene()
