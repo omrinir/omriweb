@@ -21,6 +21,10 @@ static func blast(parent: Node2D, center: Vector2, radius := 120.0, break_radius
 		var zc: Vector2 = z.global_position + Vector2(0, -32)
 		if center.distance_to(zc) <= radius:
 			z.take_damage(damage, zc, (zc - center).normalized(), true)
+	for sv in tree.get_nodes_in_group("survivors"):
+		var sc: Vector2 = sv.global_position + Vector2(0, -26)
+		if center.distance_to(sc) <= radius:
+			sv.take_damage(damage, sc, (sc - center).normalized(), true)
 	var p := tree.get_first_node_in_group("player")
 	if p != null:
 		var pc: Vector2 = p.global_position + Vector2(0, -26)

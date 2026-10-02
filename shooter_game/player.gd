@@ -82,6 +82,12 @@ var _recoil := 0.0
 var _dead_t := 0.0
 var _push_t := 0.0
 var _fire_test := false   # לבדיקות אוטומטיות בלבד
+# ---- מכשיר שאיבת כוח חיים ----
+const DRAIN_TIME := 1.8          # כמה שניות לוקחת השאיבה
+var _drain_target: Node = null
+var _drain_t := 0.0
+var _heal_flash := 0.0
+var _device_tip := Vector2.ZERO   # קצה המכשיר (בקואורדינטות הציור)
 
 
 func _ready() -> void:
@@ -127,9 +133,14 @@ func _physics_process(delta: float) -> void:
 	_muzzle_flash -= delta
 	_recoil = move_toward(_recoil, 0.0, delta * 12.0)
 	_push_t -= delta
+	_heal_flash = move_toward(_heal_flash, 0.0, delta * 0.8)
 
 	if not is_on_floor():
 		velocity.y += gravity * delta
+
+	if _drain_target != null:
+		_drain_process(delta)
+		return
 
 	if dead:
 		_dead_t += delta
@@ -218,6 +229,11 @@ func _can_stand() -> bool:
 
 
 func _fire() -> void:
+	# ניצולה ממש קרובה? במקום לירות - מפעילים את המכשיר
+	var s := _drain_candidate()
+	if s != null:
+		_start_drain(s)
+		return
 	var sh := global_position + _front_shoulder()
 	if weapon == GUN:
 		_cooldown = fire_delay
@@ -262,9 +278,64 @@ func _unhandled_input(event: InputEvent) -> void:
 		hurt(health, Vector2.ZERO)
 
 
+# ============================================================
+#  שאיבת כוח חיים מניצולה -> חיים מלאים
+# ============================================================
+func _drain_candidate() -> Node:
+	var best: Node = null
+	var best_d := INF
+	for s in get_tree().get_nodes_in_group("survivors"):
+		if s.can_drain(self):
+			var d := absf(s.global_position.x - global_position.x)
+			if d < best_d:
+				best_d = d
+				best = s
+	return best
+
+
+func _start_drain(s: Node) -> void:
+	_drain_target = s
+	_drain_t = 0.0
+	_cooldown = DRAIN_TIME
+	s.start_drain()
+
+
+func _drain_process(delta: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, accel * delta)
+	move_and_slide()
+	_idle_k = move_toward(_idle_k, 0.0, delta * 3.0)
+	if not is_instance_valid(_drain_target):
+		_drain_target = null
+		return
+	var to: Vector2 = _drain_target.chest() - (global_position + _front_shoulder())
+	if to.length() > 1.0:
+		_aim = to.normalized()
+	_drain_t += delta
+	var k := clampf(_drain_t / DRAIN_TIME, 0.0, 1.0)
+	_drain_target.set_drain(k)
+	if k >= 1.0:
+		_drain_target.finish_drain()
+		_drain_target = null
+		health = max_health
+		health_changed.emit(health, max_health)
+		_heal_flash = 1.0
+		var p = preload("res://zombie.gd").HitText.new()
+		p.text = "FULL LIFE"
+		p.color = Color(0.45, 1.0, 0.75)
+		p.size = 20
+		p.pop = true
+		get_parent().add_child(p)
+		p.global_position = global_position + Vector2(0, -72)
+	queue_redraw()
+
+
+func is_draining() -> bool:
+	return _drain_target != null
+
+
 # נקרא ע"י זומבים, רגליים שנזרקות ורימונים
 func hurt(amount: int, knock_dir: Vector2) -> void:
-	if dead or _invuln > 0.0:
+	if dead or _invuln > 0.0 or _drain_target != null:
 		return
 	_invuln = invuln_time
 	health = maxi(health - amount, 0)
@@ -302,6 +373,13 @@ func _draw() -> void:
 	_base_xf = Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2.ZERO)
 	draw_set_transform_matrix(_base_xf)
 	_draw_body(la, false)
+	# קרן כוח החיים: מהניצולה אל המכשיר
+	if _drain_target != null and is_instance_valid(_drain_target):
+		var tgt: Vector2 = _drain_target.chest() - global_position
+		tgt.x *= face
+		_draw_beam(tgt, _device_tip, clampf(_drain_t / DRAIN_TIME, 0.0, 1.0))
+	if _heal_flash > 0.0:   # הילה ירוקה אחרי שקיבלנו חיים
+		Art.glow(self, Vector2(0, -28), 34.0 * (1.5 - _heal_flash * 0.5), Color(0.45, 1.0, 0.75, 0.6 * _heal_flash))
 	# אדי נשימה
 	for m in _mist:
 		var age: float = m[2]
@@ -454,7 +532,9 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	if limp:
 		_arm(fs, hand, false)
 		return
-	if weapon == GUN:
+	if _drain_target != null:
+		_draw_device(hand, la)
+	elif weapon == GUN:
 		_draw_rifle(hand, la)
 	else:
 		var g := hand + la * 3.0
@@ -493,6 +573,41 @@ func _leg(hip: Vector2, foot: Vector2, back: bool) -> void:
 	]), boot, Art.OUTLINE, 1.1)
 	if not back:
 		draw_polyline(PackedVector2Array([top + n * 4.0 - d * 1.2, ankle + n * 3.2, foot + Vector2(3.0, -4.0), foot + Vector2(7.5, -2.0)]), Color(rim_color, 0.6), 0.9, true)
+
+
+# המכשיר: גוש מתכת עם ליבה זוהרת ושלושה שיניים
+func _draw_device(hand: Vector2, la: Vector2) -> void:
+	var n := la.rotated(PI / 2.0)
+	var g := func(x: float, y: float) -> Vector2: return hand + la * x + n * y
+	var k := clampf(_drain_t / DRAIN_TIME, 0.0, 1.0)
+	var pulse := 0.6 + 0.4 * sin(_time * 25.0)
+	Art.fill(self, PackedVector2Array([g.call(-4.0, -4.0), g.call(8.0, -5.0), g.call(10.0, 0.0), g.call(8.0, 5.0), g.call(-4.0, 4.0)]), Color("23262b"), Art.OUTLINE, 1.2)
+	for y in [-3.5, 0.0, 3.5]:   # שיניים
+		Art.limb(self, PackedVector2Array([g.call(9.0, y * 0.8), g.call(15.0, y)]), 1.4, Color("8a9098"), Art.OUTLINE)
+	var core: Vector2 = g.call(3.0, 0.0)
+	Art.glow(self, core, 8.0 + 6.0 * k, Color(0.45, 1.0, 0.85, 0.8 * pulse))
+	Art.disc(self, core, 2.4, Color(0.75, 1.0, 0.95), Art.NONE)
+	_device_tip = g.call(16.0, 0.0)
+
+
+# קרן גלית + חלקיקים שזורמים מהיעד אל המכשיר
+func _draw_beam(from: Vector2, to: Vector2, k: float) -> void:
+	var col := Color(0.45, 1.0, 0.85)
+	var d := to - from
+	var n := d.orthogonal().normalized()
+	var amp := 3.0 + 3.0 * sin(k * PI)
+	for layer in 2:
+		var pts := PackedVector2Array()
+		for i in 17:
+			var t := float(i) / 16.0
+			var w := sin(t * 12.0 - _time * 20.0 + float(layer) * 2.0) * amp * sin(t * PI)
+			pts.append(from + d * t + n * w)
+		draw_polyline(pts, Color(col, 0.25 if layer == 0 else 0.7), 5.0 if layer == 0 else 1.6, true)
+	for i in 10:   # חלקיקים של כוח חיים
+		var t := fmod(float(i) / 10.0 + _time * 1.6, 1.0)
+		var p := from + d * t + n * sin(t * 9.0 + float(i)) * amp
+		draw_circle(p, 1.8 * (1.0 - t * 0.5), Color(0.8, 1.0, 0.95, 0.9))
+	Art.glow(self, from, 10.0, Color(col, 0.6))
 
 
 func _draw_rifle(hand: Vector2, la: Vector2) -> void:

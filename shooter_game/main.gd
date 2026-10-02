@@ -18,6 +18,7 @@ const StreetPropScript := preload("res://street_prop.gd")
 const RoadDecorScript := preload("res://road_decor.gd")
 const FogScript := preload("res://fog.gd")
 const PauseScript := preload("res://pause_menu.gd")
+const SurvivorScript := preload("res://survivor.gd")
 
 @export_group("Level")
 ## אורך הרמה במסכים (רוחב מסך = 1280). המינימום הוא 8 מסכים
@@ -107,6 +108,7 @@ func _ready() -> void:
 	_place_street_props(rng, floor_y)
 	_generate_level(rng, floor_y)
 	_spawn_zombies(rng, floor_y)
+	_spawn_survivors(rng, floor_y)
 
 	player.max_health = diff.player_hp
 	player.health = diff.player_hp
@@ -390,6 +392,21 @@ func _spawn_zombies(rng: RandomNumberGenerator, floor_y: float) -> void:
 			if gx < level_w - 80.0 and not _near_brick(gx):
 				_spawn_zombie(gx, floor_y, _pick_kind(rng), rng)
 				spawned += 1
+
+
+# 3 ניצולות לאורך השלב (במקומות פנויים)
+func _spawn_survivors(rng: RandomNumberGenerator, floor_y: float) -> void:
+	for i in 3:
+		var x := level_w * (0.25 + 0.27 * float(i)) + rng.randf_range(-200.0, 200.0)
+		var tries := 0
+		while _near_brick(x) and tries < 80:
+			x += 37.0
+			tries += 1
+		var s = SurvivorScript.new()
+		s.variant = i
+		s.position = Vector2(x, floor_y)
+		add_child(s)
+		s.world_w = level_w
 
 
 func _near_brick(x: float) -> bool:
