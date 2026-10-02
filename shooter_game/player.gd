@@ -13,6 +13,7 @@ signal died
 const Art := preload("res://art.gd")
 const BulletScript := preload("res://bullet.gd")
 const GrenadeScript := preload("res://grenade.gd")
+const DebrisScript := preload("res://debris.gd")
 
 enum { GUN, GRENADE }
 
@@ -222,6 +223,8 @@ func _fire() -> void:
 			velocity -= _aim * air_recoil_push
 			velocity.y = maxf(velocity.y, -700.0)
 		_push_t = 0.12
+		get_tree().call_group("zombies", "on_player_fired", sh, _aim)
+		_eject_casing(sh)
 		var b = BulletScript.new()
 		get_parent().add_child(b)
 		var spread := randf_range(-0.025, 0.025)
@@ -231,6 +234,14 @@ func _fire() -> void:
 		var g = GrenadeScript.new()
 		get_parent().add_child(g)
 		g.setup(sh + _aim * 14.0, _aim * grenade_speed + velocity * 0.3)
+
+
+# תרמיל נחושת שעף מהרובה אחרי כל ירייה
+func _eject_casing(sh: Vector2) -> void:
+	var c = DebrisScript.new()
+	get_parent().add_child(c)
+	var up := Vector2(-_aim.x, -1.0).normalized()
+	c.setup(sh + _aim * 14.0, Vector2(3.5, 1.6), Color("c8a040"), up * randf_range(140.0, 220.0) + velocity * 0.3)
 
 
 func _unhandled_input(event: InputEvent) -> void:

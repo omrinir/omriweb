@@ -74,7 +74,9 @@ func _ready() -> void:
 			size = Vector2(72, 26)
 			_box(Rect2(0, -26, 72, 26))
 	z_index = 1
-	set_process(false)   # מופעל רק כשיש פתיל דולק (חוסך ביצועים)
+	set_process(false)
+	if kind in [CAR, BUS, BARRIER, SANDBAGS, TIRES]:
+		add_to_group("cover")   # זומבים יכולים להתחבא מאחוריו   # מופעל רק כשיש פתיל דולק (חוסך ביצועים)
 
 
 func _box(r: Rect2) -> void:
@@ -97,6 +99,10 @@ func _add_fire(pos: Vector2, w: float, h: float, life := -1.0) -> void:
 
 func blast_rect() -> Rect2:
 	return Rect2(global_position + Vector2(0.0, -size.y), size)
+
+
+func cover_rect() -> Rect2:
+	return blast_rect()
 
 
 # ============================================================

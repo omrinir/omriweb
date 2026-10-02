@@ -60,6 +60,8 @@ func _ready() -> void:
 	collision_mask = 0
 	add_to_group("bricks")
 	add_to_group("blastable")
+	if breakable and style in [1, 2] and size.y >= 24.0 and not Engine.is_editor_hint():
+		add_to_group("cover")   # זומבים יכולים להתחבא מאחורי ארגזים והריסות
 	hp = hit_points
 	_rebuild()
 
@@ -89,6 +91,10 @@ func hit_by_bullet(world_pos: Vector2, normal: Vector2, dir: Vector2) -> void:
 		var v := Vector2.from_angle(normal.angle() + randf_range(-1.0, 1.0)) * randf_range(80.0, 220.0)
 		_spawn_chunk(world_pos, Vector2(randf_range(3.0, 5.0), randf_range(3.0, 5.0)), v)
 	queue_redraw()
+
+
+func cover_rect() -> Rect2:
+	return Rect2(global_position, size)
 
 
 # המלבן של הלבנה בעולם (משמש את הפיצוץ)

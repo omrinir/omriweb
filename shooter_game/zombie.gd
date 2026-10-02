@@ -22,15 +22,15 @@ enum { WALKER, RUNNER, BRUTE }
 # ---- נתוני כל סוג (אפשר לשנות) ----
 const KINDS := [
 	{   # WALKER
-		"hp": 30, "walk": 45.0, "chase": 95.0, "damage": 1, "bite_delay": 0.8, "scale": 1.0, "width": 1.0,
+		"hp": 30, "walk": 45.0, "chase": 95.0, "damage": 1, "bite_delay": 0.8, "scale": 1.0, "width": 1.0, "duck": 0.25, "cover": 0.45,
 		"skin": Color("86a06a"), "shirt": Color("4f6688"), "pants": Color("3d3a4c"), "shoe": Color("2c241e"),
 	},
 	{   # RUNNER
-		"hp": 30, "walk": 70.0, "chase": 175.0, "damage": 1, "bite_delay": 0.6, "scale": 0.97, "width": 0.85,
+		"hp": 30, "walk": 70.0, "chase": 175.0, "damage": 1, "bite_delay": 0.6, "scale": 0.97, "width": 0.85, "duck": 0.4, "cover": 0.6,
 		"skin": Color("aab7a6"), "shirt": Color("8c3434"), "pants": Color("33402f"), "shoe": Color(0, 0, 0, 0),
 	},
 	{   # BRUTE
-		"hp": 30, "walk": 28.0, "chase": 62.0, "damage": 2, "bite_delay": 1.2, "scale": 1.25, "width": 1.35,
+		"hp": 30, "walk": 28.0, "chase": 62.0, "damage": 2, "bite_delay": 1.2, "scale": 1.25, "width": 1.35, "duck": 0.1, "cover": 0.25,
 		"skin": Color("6c8450"), "shirt": Color("b9b29a"), "pants": Color("34466a"), "shoe": Color("1e1a16"),
 	},
 ]
@@ -93,6 +93,21 @@ var _spin := 0.0
 var _angle := 0.0
 var _dead_t := 0.0
 var _bled_on: Dictionary = {}
+# ---- התחמקות ומחסה ----
+var duck_chance := 0.25          # הסיכוי להתכופף כשיורים לכיוונו
+var cover_chance := 0.45         # הסיכוי לברוח למחסה כשהוא נפגע
+var cover_search := 380.0        # כמה רחוק הוא מחפש מחסה
+var _duck_t := 0.0
+var _duck_cd := 0.0
+var _crouch_k := 0.0
+var _crouched_shape := false
+var _cover_state := 0            # 0 = רגיל, 1 = רץ למחסה, 2 = מתחבא
+var _cover_node: Node = null
+var _cover_x := 0.0
+var _cover_y := 0.0
+var _cover_dir := 1.0
+var _cover_t := 0.0
+var _think_t := 0.0
 
 
 func _ready() -> void:
@@ -103,6 +118,9 @@ func _ready() -> void:
 	chase_speed = k.chase
 	damage = k.damage
 	bite_delay = k.bite_delay
+	duck_chance = k.duck
+	cover_chance = k.cover
+	_think_t = randf_range(1.0, 3.0)
 	sc = k.scale
 	wf = k.width
 	var tint := randf_range(-0.08, 0.08)
@@ -160,9 +178,18 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += gravity * delta
 
+	# ---- התכופפות ----
+	_duck_t -= delta
+	_duck_cd -= delta
+	var want_crouch := (_duck_t > 0.0 or _cover_state == 2) and not _one_leg
+	_set_crouch(want_crouch)
+	_crouch_k = move_toward(_crouch_k, 1.0 if want_crouch else 0.0, delta * 10.0)
+
 	var target_speed := walk_speed
 	_chasing = false
-	if player != null and not player.dead and global_position.distance_to(player.global_position) < chase_range:
+	if _cover_state != 0:
+		target_speed = _cover_process(delta, player)
+	elif player != null and not player.dead and global_position.distance_to(player.global_position) < chase_range:
 		_chasing = true
 		_dir = signf(player.global_position.x - global_position.x)
 		if _dir == 0.0:
@@ -174,6 +201,14 @@ func _physics_process(delta: float) -> void:
 			_attack_t = bite_delay
 			_bite_anim = 0.25
 			player.hurt(damage, Vector2(_dir, 0.0))
+		# לפעמים, כשהשחקן מכוון אליו מרחוק, הוא מתקדם ממחסה למחסה
+		_think_t -= delta
+		if _think_t <= 0.0:
+			_think_t = randf_range(2.5, 4.5)
+			var far := absf(d.x) > 240.0
+			var aimed: bool = player._aim.dot((global_position - player.global_position).normalized()) > 0.85
+			if far and aimed and randf() < cover_chance * 0.4:
+				_try_cover(player)
 	else:
 		_wander_t -= delta
 		if _wander_t <= 0.0:
@@ -192,12 +227,14 @@ func _physics_process(delta: float) -> void:
 				velocity.y = -250.0 if not is_on_wall() else jump_velocity * 0.85
 				velocity.x = _dir * maxf(target_speed * _speed_mul * 0.8, 70.0)
 	else:
+		if _duck_t > 0.0:
+			target_speed *= 0.3   # מתכופף = כמעט לא זז
 		velocity.x = move_toward(velocity.x, _dir * target_speed * _speed_mul, 600.0 * delta)
 	move_and_slide()
 
 	# נתקע בקיר: קופץ (או מסתובב אם הוא סתם מטייל)
 	if is_on_wall() and is_on_floor() and not _one_leg:
-		if _chasing:
+		if _chasing or _cover_state == 1:
 			velocity.y = jump_velocity
 		else:
 			_dir = -_dir
@@ -213,6 +250,118 @@ func _physics_process(delta: float) -> void:
 		_walk_phase += delta * absf(velocity.x) * 0.075 / sc
 	if Art.on_screen(self, global_position):   # מציירים רק מה שרואים
 		queue_redraw()
+
+
+# ============================================================
+#  התחמקות: התכופפות ומחסה מאחורי מכוניות / מחסומים / ארגזים
+# ============================================================
+# נקרא מ-player.gd בכל ירייה. לפעמים הזומבי מתכופף והקליע עובר מעליו
+func on_player_fired(origin: Vector2, aim: Vector2) -> void:
+	if dead or _lying() or _one_leg or _duck_cd > 0.0 or _cover_state == 2:
+		return
+	var to_me := global_position + Vector2(0.0, -30.0 * sc) - origin
+	if to_me.length() > 520.0 or to_me.length() < 60.0 or aim.dot(to_me.normalized()) < 0.93:
+		return
+	_duck_cd = 2.0
+	if randf() < duck_chance:
+		_duck_t = randf_range(0.6, 0.9)
+		_set_crouch(true)
+
+
+func _set_crouch(on: bool) -> void:
+	if on == _crouched_shape or dead or _lying():
+		return
+	_crouched_shape = on
+	var r := _shape.shape as RectangleShape2D
+	r.size.y = (42.0 if on else 56.0) * sc
+	_shape.position.y = -r.size.y / 2.0
+
+
+# מחפש מחסה קרוב בצד הרחוק מהשחקן. אם אין - ממשיך להילחם
+func _try_cover(player: Node) -> bool:
+	if _one_leg or player == null or player.dead:
+		return false
+	var px: float = player.global_position.x
+	var best_d := INF
+	for c in get_tree().get_nodes_in_group("cover"):
+		var r: Rect2 = c.cover_rect()
+		if r.size.y < 24.0 or absf(r.end.y - global_position.y) > 12.0:
+			continue
+		var center := r.get_center().x
+		var hx := r.end.x + 14.0 * wf if px < center else r.position.x - 14.0 * wf
+		var d := absf(hx - global_position.x)
+		if d > cover_search or d < 4.0:
+			continue
+		if (hx - px) * (global_position.x - px) < 0.0 or absf(hx - px) < 120.0:   # בלי לעבור ליד השחקן
+			continue
+		if not _spot_ok(hx):
+			continue
+		if d < best_d:
+			best_d = d
+			_cover_node = c
+			_cover_x = hx
+			_cover_y = global_position.y
+	if best_d == INF:
+		return false
+	_cover_state = 1
+	_cover_dir = signf(_cover_x - global_position.x)
+	_cover_t = 3.5   # אם לא הגיע תוך 3.5 שניות - מוותר
+	_duck_t = 0.0
+	return true
+
+
+# האם יש ריצפה במקום ואין שם משהו אחר
+func _spot_ok(x: float) -> bool:
+	var space := get_world_2d().direct_space_state
+	var gy := global_position.y
+	var q := PhysicsRayQueryParameters2D.create(Vector2(x, gy - 50.0), Vector2(x, gy + 12.0), 1)
+	var hit := space.intersect_ray(q)
+	if hit.is_empty() or absf(hit.position.y - gy) > 8.0:
+		return false
+	var pq := PhysicsPointQueryParameters2D.new()
+	pq.collision_mask = 1
+	for yy in [20.0, 40.0]:
+		pq.position = Vector2(x, gy - yy)
+		if not space.intersect_point(pq, 1).is_empty():
+			return false
+	return true
+
+
+func _cover_process(delta: float, player: Node) -> float:
+	if not is_instance_valid(_cover_node) or player == null or player.dead or _one_leg:
+		_end_cover()
+		return walk_speed
+	var cr: Rect2 = _cover_node.cover_rect()
+	var cx := cr.get_center().x
+	# השחקן עבר לצד שלו / קרוב מדי - המחסה לא עוזר, חוזר לתקוף
+	if signf(player.global_position.x - cx) == signf(_cover_x - cx) or absf(player.global_position.x - global_position.x) < 70.0:
+		_end_cover()
+		return chase_speed
+	_cover_t -= delta
+	if _cover_state == 1:
+		_chasing = true   # כדי שיקפוץ מעל מכשולים בדרך
+		var dx := _cover_x - global_position.x
+		var grounded := is_on_floor() and absf(global_position.y - _cover_y) < 10.0
+		if grounded and absf(dx) < 14.0:
+			_cover_state = 2
+			_cover_t = randf_range(2.5, 4.5)
+			velocity.x = 0.0
+			return 0.0
+		# עדיין על מכונית / ארגז: ממשיך באותו כיוון עד שהוא יורד לריצפה
+		_dir = _cover_dir if absf(dx) < 14.0 else signf(dx)
+		if _cover_t <= 0.0:
+			_end_cover()
+		return maxf(chase_speed * 1.25, 90.0)
+	# מתחבא: מסתכל לכיוון השחקן ומחכה
+	_dir = signf(player.global_position.x - global_position.x)
+	if _cover_t <= 0.0:
+		_end_cover()
+	return 0.0
+
+
+func _end_cover() -> void:
+	_cover_state = 0
+	_cover_node = null
 
 
 # ============================================================
@@ -269,11 +418,13 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	if was_lying:
 		_wake()
 		_rise_t = minf(_rise_t, 0.4)
+	var head_y := -30.0 if _crouched_shape else -42.0   # מתכופף = הראש נמוך יותר
+	var leg_y := -12.0 if _crouched_shape else -20.0
 	if not explosive and not was_lying:
-		if ly < -42.0:
+		if ly < head_y:
 			zone = "head"
 			dmg = head_damage
-		elif ly > -20.0:
+		elif ly > leg_y:
 			zone = "leg"
 			dmg = randi_range(leg_damage.x, leg_damage.y)
 		else:
@@ -304,6 +455,9 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		_die(dir)
 	else:
 		velocity.x += dir.x * 110.0
+		# לפעמים הוא בורח ומתחבא מאחורי מכונית / מחסום (אם יש אחד קרוב)
+		if _cover_state == 0 and not was_lying and randf() < cover_chance:
+			_try_cover(get_tree().get_first_node_in_group("player"))
 
 
 # מספר הנזק שקופץ מעל הזומבי וצף למעלה
@@ -455,8 +609,9 @@ func _draw_body() -> void:
 		_:
 			lean = 3.0
 	var bob := absf(sin(p)) * 1.5
-	var hip := Vector2(0.0, -24.0 - bob * 0.5)
-	var sh := Vector2(lean, -41.0 - bob * 0.5 + (1.0 if kind == BRUTE else 0.0))
+	var ck := 0.0 if dead or _lying() else _crouch_k   # התכופפות
+	var hip := Vector2(0.0, -24.0 - bob * 0.5 + 11.0 * ck)
+	var sh := Vector2(lean + 3.0 * ck, -41.0 - bob * 0.5 + (1.0 if kind == BRUTE else 0.0) + 12.0 * ck)
 	var head := sh + Vector2(2.5 + lean * 0.35, -9.0)
 	if kind == BRUTE:
 		head = sh + Vector2(3.5, -7.5)
@@ -471,6 +626,8 @@ func _draw_body() -> void:
 	elif air:
 		f1 = Vector2(5.0, -7.0)
 		f2 = Vector2(-4.0, -4.0)
+	f1.x += 5.0 * ck
+	f2.x -= 5.0 * ck
 
 	# ---- יד אחורית ----
 	var reach := sin(_time * 3.0) * 1.5
@@ -478,9 +635,12 @@ func _draw_body() -> void:
 	var fs := sh + Vector2(2.5, 2.0)
 	var back_hand := bs + Vector2(16.0, 1.0 - reach)
 	var front_hand := fs + Vector2(17.0, 3.0 + reach)
-	if kind == RUNNER and _chasing:
+	if (kind == RUNNER and _chasing) or _cover_state == 1:   # רץ (או בורח) - ידיים מתנופפות
 		back_hand = bs + Vector2(-8.0 + sin(p) * 10.0, 12.0)
 		front_hand = fs + Vector2(8.0 - sin(p) * 10.0, 10.0)
+	if ck > 0.5:   # מתכופף: ידיים מגינות על הראש
+		front_hand = head + Vector2(4.0, -5.0)
+		back_hand = head + Vector2(-3.0, -6.0)
 	if _bite_anim > 0.0:
 		front_hand = fs + Vector2(18.0, -3.0)
 		back_hand = bs + Vector2(18.0, -1.0)
