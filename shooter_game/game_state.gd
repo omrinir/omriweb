@@ -35,7 +35,7 @@ const UPGRADES := [
 ]
 
 # ---------------- ניקוד ----------------
-const KILL_POINTS := [100, 120, 200, 150, 150, 2000]   # לפי סוג זומבי
+const KILL_POINTS := [100, 120, 200, 150, 150, 2000, 160]   # לפי סוג זומבי
 const COMBO_WINDOW := 4.0                               # שניות בין הריגות כדי שהקומבו ימשיך
 
 # מצב הריצה (נשמר בין שלבים, מתאפס במשחק חדש)
@@ -206,7 +206,7 @@ func on_zombie_killed(kind: int, info: Dictionary) -> Array:
 	if info.get("perfect", false):
 		on_style("perfect", 15)
 	var src: String = info.get("source", "")
-	if src == "barrel" or src == "car":
+	if src == "barrel" or src == "car" or src == "bloater":
 		bonuses.append(["BOOM", 75])
 	if src == "fire":
 		bonuses.append(["ROASTED", 40])

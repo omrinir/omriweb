@@ -29,7 +29,7 @@ var accel := 1800.0
 
 # ---- נשק ----
 var bullet_speed := 2600.0   # מהיר = פחות זמן לזומבי לזוז לפני הפגיעה
-var fire_delay := 1.0            # שניות בין יריות (1 = כדור אחד בשנייה)
+var fire_delay := 0.7            # שניות בין יריות
 var grenade_speed := 620.0
 var grenade_delay := 0.7
 var recoil_push := 70.0          # כמה כל ירייה דוחפת אחורה על הריצפה

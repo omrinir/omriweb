@@ -58,7 +58,7 @@ const ResultsScript := preload("res://results.gd")
 @export_range(0.0, 1.0) var zombie_cluster_chance := 0.25
 ## כמה נפוץ כל סוג זומבי: רגיל / רץ / ענק
 ## כמה נפוץ כל סוג: רגיל, רץ, ענק, יורק, צורח (בשלבים מתקדמים יש יותר ענקים)
-var zombie_weights := [0.45, 0.2, 0.12, 0.13, 0.1]
+var zombie_weights := [0.42, 0.2, 0.12, 0.12, 0.1, 0.0, 0.09]   # אינדקס 5 = בוס (לא נבחר), 6 = נפוח
 
 const UNIT := 16.0   # גובה "שורת לבנים"
 const BRICK_COLORS := [Color("9a4f3a"), Color("8a5a40"), Color("7a4a4a"), Color("a0603f")]

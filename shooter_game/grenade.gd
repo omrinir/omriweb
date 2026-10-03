@@ -16,6 +16,7 @@ var gravity := 1300.0
 var bounce := 0.45
 
 var velocity := Vector2.ZERO
+var source := "grenade"   # "boss_grenade" = נזרק ע"י הבוס (לא פוגע בו)
 var _spin := 0.0
 
 
@@ -49,7 +50,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _explode() -> void:
-	Boom.blast(get_parent(), global_position, radius, break_radius, damage)
+	Boom.blast(get_parent(), global_position, radius, break_radius, damage, 2, source)
 	queue_free()
 
 

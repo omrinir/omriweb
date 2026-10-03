@@ -7,6 +7,7 @@ extends CharacterBody2D
 #    3 = SPITTER - שומר מרחק ויורק חומצה
 #    4 = SCREAMER - כשהוא רואה אותך הוא צורח ומזעיק את כל הזומבים מסביב
 #    5 = BOSS    - ענק עם דלת של מכונית כמגן. שומר על היציאה מהשלב
+#    6 = BLOATER - מתנפח מהרגע שהוא רואה אותך, רץ אליך ומתפוצץ
 #  * ירייה בראש (HEADSHOT) = מוות מיידי.
 #  * 2 קליעים ברגליים = הרגל נתלשת והזומבי מקפץ על רגל אחת.
 #  * זומבי שעובר ליד רגל שנפלה מרים אותה וזורק אותה על השחקן.
@@ -21,11 +22,13 @@ const FireScript := preload("res://fire.gd")
 const PickupScript := preload("res://pickup.gd")
 const DebrisScript := preload("res://debris.gd")
 const Particles := preload("res://particles.gd")
+const GrenadeScript := preload("res://grenade.gd")
+const Boom := preload("res://explosion.gd")
 
-enum { WALKER, RUNNER, BRUTE, SPITTER, SCREAMER, BOSS }
+enum { WALKER, RUNNER, BRUTE, SPITTER, SCREAMER, BOSS, BLOATER }
 
 ## סוג הזומבי (main.gd בוחר באקראי)
-@export_enum("Walker", "Runner", "Brute", "Spitter", "Screamer", "Boss") var kind := 0
+@export_enum("Walker", "Runner", "Brute", "Spitter", "Screamer", "Boss", "Bloater") var kind := 0
 
 # ---- נתוני כל סוג (אפשר לשנות) ----
 const KINDS := [
@@ -52,6 +55,10 @@ const KINDS := [
 	{   # BOSS
 		"hp": 400, "walk": 32.0, "chase": 70.0, "damage": 2, "bite_delay": 1.4, "scale": 1.75, "width": 1.6, "duck": 0.0, "cover": 0.0,
 		"skin": Color("5e7444"), "shirt": Color("8a8270"), "pants": Color("2e3a52"), "shoe": Color("141210"),
+	},
+	{   # BLOATER
+		"hp": 20, "walk": 40.0, "chase": 120.0, "damage": 2, "bite_delay": 1.0, "scale": 1.0, "width": 1.1, "duck": 0.0, "cover": 0.0,
+		"skin": Color("9aa860"), "shirt": Color("6a5a40"), "pants": Color("3a3428"), "shoe": Color("2a241e"),
 	},
 ]
 
@@ -93,6 +100,9 @@ var _slam_t := 0.0               # בוס: מכין מכה (המגן למטה!)
 var _slam_cd := 0.0
 var _charge_t := 0.0
 var _charge_cd := 3.0
+var _swell := 0.0                # נפוח: כמה הוא התנפח (0..1)
+var _fuse_t := -1.0              # נפוח: עומד להתפוצץ
+const SWELL_TIME := 7.0
 var _roar_cd := 3.0              # בוס: שואג ומרים את הדלת - חלון לירות בו מרחוק
 var _last_info := {}
 
@@ -273,8 +283,12 @@ func _physics_process(delta: float) -> void:
 					target_speed = 0.0
 			BOSS:
 				target_speed = _boss_logic(player, d, delta)
+			BLOATER:
+				target_speed = _bloater_logic(d, delta)
+				if dead:
+					return
 		# נשיכה
-		if kind != BOSS and absf(d.x) < 16.0 + 10.0 * wf and absf(d.y) < 50.0 and _attack_t <= 0.0:
+		if kind != BOSS and kind != BLOATER and absf(d.x) < 16.0 + 10.0 * wf and absf(d.y) < 50.0 and _attack_t <= 0.0:
 			_attack_t = bite_delay
 			_bite_anim = 0.25
 			player.hurt(damage, Vector2(_dir, 0.0))
@@ -546,11 +560,13 @@ func _boss_logic(player: Node, d: Vector2, delta: float) -> float:
 		return chase_speed * 2.6
 	if absf(d.x) < 80.0 and _slam_cd <= 0.0:
 		_slam_t = 1.3
+		_boss_grenades()
 		return 0.0
 	if absf(d.x) > 160.0 and _roar_cd <= 0.0:   # שואג עם הדלת למעלה: אפשר לירות בו
 		_slam_t = 2.4
 		_roar_cd = randf_range(4.5, 6.0)
 		_popup("ROAR!", Color("ffb040"), 20, -110.0)
+		_boss_grenades()
 		return 0.0
 	if absf(d.x) > 220.0 and _charge_cd <= 0.0:
 		_charge_t = 1.1
@@ -558,6 +574,44 @@ func _boss_logic(player: Node, d: Vector2, delta: float) -> float:
 		_popup("CHARGE!", Color("ff5030"), 20, -110.0)
 		return chase_speed * 2.6
 	return chase_speed
+
+
+# הבוס מרים את המגן וזורק 2 רימונים למקומות אקראיים
+func _boss_grenades() -> void:
+	for i in 2:
+		var g = GrenadeScript.new()
+		g.source = "boss_grenade"
+		g.fuse = 1.8
+		get_parent().add_child(g)
+		var dx := randf_range(150.0, 420.0) * (1.0 if randf() < 0.5 else -1.0)
+		var t := randf_range(0.7, 1.0)   # זמן מעוף
+		g.setup(global_position + Vector2(0.0, -110.0 * sc), Vector2(dx / t, -0.5 * g.gravity * t + 110.0 * sc / t))
+
+
+# ---- BLOATER: מתנפח, רץ אל השחקן ומתפוצץ ----
+func _bloater_logic(d: Vector2, delta: float) -> float:
+	_swell = minf(_swell + delta / SWELL_TIME, 1.0)
+	if _fuse_t >= 0.0:
+		_fuse_t -= delta
+		if _fuse_t <= 0.0:
+			_bloat_pop()
+		return 0.0
+	if (absf(d.x) < 34.0 and absf(d.y) < 60.0) or _swell >= 1.0:
+		_fuse_t = 0.45
+		_popup("!!", Color("ff4030"), 22, -90.0)
+		return 0.0
+	return chase_speed * (1.0 + 0.4 * _swell)   # ככל שהוא נפוח יותר הוא מהיר יותר
+
+
+# מתפוצץ ליד השחקן (בלי ניקוד)
+func _bloat_pop() -> void:
+	dead = true
+	remove_from_group("zombies")
+	if _carry != null and is_instance_valid(_carry):
+		_carry.drop(Vector2(0.0, -150.0))
+	_spray_blood(global_position + Vector2(0, -30) * sc, Vector2.UP, 18, 420.0)
+	Boom.blast(get_parent(), global_position + Vector2(0.0, -30.0 * sc), 110.0 + 30.0 * _swell, 50.0, 40, 2, "bloater")
+	queue_free()
 
 
 func is_boss() -> bool:
@@ -611,6 +665,8 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	if dead:
 		return
 	var source: String = src.get("source", "grenade" if explosive else "bullet")
+	if kind == BOSS and source == "boss_grenade":
+		return
 	# בוס: הדלת חוסמת קליעים מלפנים (חוץ מכשהוא מרים אותה למכה)
 	if kind == BOSS and source == "melee":   # מכות לא עוזרות נגד הבוס
 		_popup("BLOCKED", Color("c0c0c8"), 15, -120.0)
@@ -764,6 +820,9 @@ func _die(dir: Vector2) -> void:
 			_drop(PickupScript.BOOST)
 			_drop(PickupScript.SUPPLY)
 			get_tree().call_group("level_exit", "on_boss_dead")
+		BLOATER:   # נפוח שנהרג - מתפוצץ ופוגע בזומבים מסביב
+			Boom.blast.call_deferred(get_parent(), global_position + Vector2(0.0, -30.0 * sc), 100.0 + 30.0 * _swell, 50.0, 40, 2, "bloater")
+			hide()
 		_:
 			if randf() < 0.1:
 				_drop(PickupScript.AMMO)
@@ -926,6 +985,18 @@ func _draw_body() -> void:
 			_torso_runner(sh, hip, sk, sh_col)
 		_:
 			_torso_walker(sh, hip, sk, sh_col)
+	if kind == BLOATER and not dead:   # בטן נפוחה שפועמת
+		var pulse := 1.0 + 0.06 * sin(_time * (6.0 + 14.0 * _swell))
+		var r := (9.0 + 9.0 * _swell) * pulse
+		var bc := Color("b8b060").lerp(Color("c86050"), _swell)
+		if _fuse_t >= 0.0 and int(_time * 20.0) % 2 == 0:
+			bc = Color("ff5040")
+		var c := (sh + hip) * 0.5 + Vector2(3.0, 2.0)
+		Art.oval(self, c, r * 0.9, r, bc, 0.0, Art.OUTLINE)
+		for v in 3:   # ורידים
+			var a := float(v) * 2.1 + 0.4
+			draw_line(c + Vector2.from_angle(a) * r * 0.3, c + Vector2.from_angle(a + 0.4) * r * 0.85, Color(0.4, 0.15, 0.2, 0.6), 1.0, true)
+		Art.glow(self, c, r * 1.4, Color(0.7, 1.0, 0.3, 0.12 + 0.2 * _swell))
 	for w in _wounds:
 		Art.oval(self, w, 2.4, 1.8, Color("7a0a0a"), 0.0, Art.NONE)
 		Art.oval(self, w + Vector2(0.3, 0.2), 1.1, 0.8, Color("2a0303"), 0.0, Art.NONE)
