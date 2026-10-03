@@ -105,7 +105,9 @@ var _walk_phase := 0.0
 var _time := 0.0
 var _idle_k := 0.0               # 0 = זז, 1 = עומד במקום (לאנימציית נשימה)
 var _breath_was_up := false
-var _mist := []                  # אדי נשימה: [מיקום, מהירות, גיל]
+var _mist := []                  # (לא בשימוש)
+var _magic := []                 # חלקיקי קסם עדינים סביב הדמות: [מיקום בעולם, מהירות, גיל, חיים, גודל, צבע]
+var _magic_t := 0.0
 var _base_xf := Transform2D.IDENTITY
 var _aim := Vector2.RIGHT
 var _muzzle_flash := 0.0
@@ -395,15 +397,19 @@ func _physics_process(delta: float) -> void:
 	var standing := is_on_floor() and absf(velocity.x) < 10.0 and not _crouching
 	_idle_k = move_toward(_idle_k, 1.0 if standing else 0.0, delta * 3.0)
 	var up := cos(_time * BREATH_SPEED) > 0.0
-	if _breath_was_up and not up and _idle_k > 0.6:
-		for i in 4:
-			_mist.append([Vector2(8.5, -47.0 + randf_range(-1.0, 1.0)), Vector2(randf_range(7.0, 14.0), randf_range(-7.0, -2.0)), -float(i) * 0.08])
 	_breath_was_up = up
-	for m in _mist:
+	# חלקיקי קסם: עולים לאט מסביב לגוף ונשארים קצת מאחור כשהוא זז
+	_magic_t -= delta
+	while _magic_t <= 0.0 and not dead:
+		_magic_t += 0.055
+		var off := Vector2(randf_range(-11.0, 11.0), randf_range(-50.0, -6.0))
+		var cols := [Color(0.6, 0.75, 1.0), Color(0.75, 0.6, 1.0), Color(0.55, 0.95, 0.95)]
+		_magic.append([global_position + off, Vector2(randf_range(-6.0, 6.0), randf_range(-22.0, -10.0)), 0.0, randf_range(1.0, 1.8), randf_range(0.6, 1.3), cols[randi() % cols.size()]])
+	for m in _magic:
 		m[2] += delta
-		if m[2] > 0.0:
-			m[0] += m[1] * delta
-	_mist = _mist.filter(func(m): return m[2] < 1.6)
+		m[1].x += sin(_time * 2.0 + m[4] * 9.0) * 10.0 * delta   # מתפתל קצת
+		m[0] += m[1] * delta
+	_magic = _magic.filter(func(m): return m[2] < m[3])
 
 	# כיוון ויריה
 	var sh := global_position + _front_shoulder()
@@ -969,17 +975,18 @@ func _draw() -> void:
 			draw_line(Vector2(-14.0, y), Vector2(-14.0 - ln, y), Color(1.0, 0.3, 0.2, 0.55), 1.5, true)
 	if _heal_flash > 0.0:   # הילה ירוקה אחרי שקיבלנו חיים
 		Art.glow(self, Vector2(0, -28), 34.0 * (1.5 - _heal_flash * 0.5), Color(0.45, 1.0, 0.75, 0.6 * _heal_flash))
-	# אדי נשימה
-	for m in _mist:
-		var age: float = m[2]
-		if age <= 0.0:
-			continue
-		var a := 0.32 * clampf(age / 0.2, 0.0, 1.0) * (1.0 - age / 1.6)
-		draw_circle(m[0], 1.2 + age * 4.0, Color(0.85, 0.88, 0.95, a))
 	if _melee_t > 0.0:   # קו תנועה של המכה
 		var mk := 1.0 - _melee_t / MELEE_TIME
 		draw_arc(Vector2(10, -24), 22.0, -0.9 + mk * 0.6, 0.5 + mk * 0.6, 10, Color(1, 1, 1, 0.5 * sin(mk * PI)), 3.0, true)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+	# חלקיקי קסם (עדינים מאוד)
+	for m in _magic:
+		var k: float = m[2] / m[3]
+		var a := 0.32 * minf(k * 5.0, 1.0) * (1.0 - k)
+		var c: Color = m[5]
+		var p: Vector2 = m[0] - global_position
+		draw_circle(p, m[4] * 3.2, Color(c, a * 0.18))
+		draw_circle(p, m[4], Color(c.lerp(Color.WHITE, 0.4), a))
 	# לייזר (שדרוג)
 	# קשת: קו נקודות שמראה לאן החץ יעוף
 	if weapon == GUN and gun == BOW and controllable and _drain_target == null and not dead:
@@ -1049,9 +1056,12 @@ func _hero_frame() -> Array:
 			return ["crouch", [0, 4][int(_dist / 22.0) % 2]]
 		return ["crouch", 1]
 	if absf(velocity.x) > 30.0:
-		if _running:
-			return ["run", int(_dist / 26.0) % 6]
-		return ["walk", int(_dist / 17.0) % 8]
+		var back := signf(velocity.x) != _face()   # הולך אחורה (מכוון לצד השני): הפריימים הפוך
+		var n := 6 if _running else 8
+		var i := int(_dist / (26.0 if _running else 15.0)) % n
+		if back:
+			i = n - 1 - i
+		return ["run" if _running else "walk", i]
 	return ["idle", int(_time * 7.0) % 8]
 
 
@@ -1060,7 +1070,27 @@ func _draw_hero(la: Vector2) -> void:
 	_anim = fi[0]
 	var fr: Array = HeroAnim.FRAMES[fi[0]][fi[1]]
 	var s := SPRITE_SCALE
-	draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s), Rect2(fr[0], fr[1], fr[2], fr[3]))
+	if HeroAnim.FLIP.has(fi[0]):   # פריים שמצויר בדף לכיוון השני
+		draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(-1.0, 1.0), 0.0, Vector2.ZERO))
+	if fi[0] == "walk":   # הליכה: הספרייט עד הברכיים + רגליים שזזות בבירור
+		var cut := 0.8
+		draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s * cut), Rect2(fr[0], fr[1], fr[2], float(fr[3]) * cut))
+		var knee_y := (-float(fr[5]) + float(fr[3]) * cut) * s
+		var ph := _dist / 15.0 / 8.0 * TAU * (-1.0 if signf(velocity.x) != _face() else 1.0)
+		for k in 2:
+			var sgn := 1.0 if k == 0 else -1.0
+			var sw := sin(ph) * sgn
+			var lift := maxf(0.0, cos(ph) * sgn) * 3.0
+			var knee := Vector2(1.0 + sw * 2.5, knee_y + 1.0)
+			var foot := Vector2(1.0 + sw * 8.0, -lift)
+			var col := Color("0b0b0e") if k == 0 else Color("16161a")
+			Art.limb(self, PackedVector2Array([knee, knee.lerp(foot, 0.5) + Vector2(-1.0, 0.0), foot + Vector2(0.0, -2.0)]), 3.4, col, Art.NONE)
+			if k == 0:
+				draw_line(knee + Vector2(1.6, 0.0), foot + Vector2(1.4, -3.0), Color(rim_color, 0.55), 0.7, true)   # הארה לבנה
+			Art.fill(self, PackedVector2Array([foot + Vector2(-2.5, -3.5), foot + Vector2(2.0, -3.5), foot + Vector2(4.5, -1.2), foot + Vector2(4.5, 0.0), foot + Vector2(-2.5, 0.0)]), boot_color, Art.NONE)
+	else:
+		draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s), Rect2(fr[0], fr[1], fr[2], fr[3]))
+	draw_set_transform_matrix(_base_xf)
 	if dead or _melee_t > 0.0 or _roll_t > 0.0 or _slide_t > 0.0:
 		return
 	# ידיים + נשק מעל הספרייט (מכוונים לעכבר)

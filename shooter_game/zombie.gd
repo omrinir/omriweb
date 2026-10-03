@@ -174,6 +174,7 @@ var _stun_t := 0.0
 var _grab_state := 0             # יד: 0 = מחכה מתחת למים, 1 = תופסת, 2 = נסוגה
 var _grab_t := 0.0
 var _charge_t := 0.0
+var _det := [false, false, false, 0.0, 0.0, false]   # פרטים: [ריקבון, תפרים, רצועת בשר, x, y, לחי קרועה]
 # ---- שלב 3: רובוט / זורק / קטן ----
 var _imp: Node = null            # זורק: הזומבי הקטן שהוא מחזיק
 var _carrier: Node = null        # קטן: מי מחזיק אותו
@@ -278,6 +279,19 @@ func _ready() -> void:
 	_think_t = randf_range(1.0, 3.0)
 	sc = k.scale
 	wf = k.width
+	# כל הזומבים בגובה של הדמות הראשית, ורזים יותר
+	if is_boss():
+		sc *= 0.92
+	elif kind == DOG:
+		sc *= 0.88
+	elif kind in [MECH, GUNNER, RAT, HAND]:
+		sc *= 0.9
+	else:
+		sc *= 0.88
+		wf *= 0.84
+	var drng := RandomNumberGenerator.new()   # פרטים קבועים לכל זומבי (ריקבון, תפרים, קרעים)
+	drng.seed = get_instance_id()
+	_det = [drng.randf() < 0.5, drng.randf() < 0.4, drng.randf() < 0.5, drng.randf_range(-3.0, 3.0), drng.randf_range(-2.0, 4.0), drng.randf() < 0.35]
 	var tint := randf_range(-0.08, 0.08)
 	skin = Art.shade(k.skin, tint)
 	shirt = Art.shade(k.shirt, randf_range(-0.1, 0.1))
@@ -1149,7 +1163,7 @@ func _draw() -> void:
 		_draw_mech()
 		return
 	if kind == DOG:
-		_draw_canine(0.9, false)
+		_draw_canine(0.8, false)
 		return
 	if kind == HOUND:
 		_draw_canine(2.0, true)
@@ -1305,6 +1319,8 @@ func _draw_body() -> void:
 			var a := float(v) * 2.1 + 0.4
 			draw_line(c + Vector2.from_angle(a) * r * 0.3, c + Vector2.from_angle(a + 0.4) * r * 0.85, Color(0.4, 0.15, 0.2, 0.6), 1.0, true)
 		Art.glow(self, c, r * 1.4, Color(0.7, 1.0, 0.3, 0.12 + 0.2 * _swell))
+	if kind in [WALKER, RUNNER, BRUTE, SPITTER, SCREAMER, BLOATER, CRAWLER, COP, DRUNK, HURLER, IMP, JETPACK, CONDUCTOR, BOSS] and not dead:
+		_details(sh, hip, sk)
 	for w in _wounds:
 		Art.oval(self, w, 2.4, 1.8, Color("7a0a0a"), 0.0, Art.NONE)
 		Art.oval(self, w + Vector2(0.3, 0.2), 1.1, 0.8, Color("2a0303"), 0.0, Art.NONE)
@@ -1500,6 +1516,19 @@ func _head(c: Vector2, sk: Color) -> void:
 	Art.oval(self, c + Vector2(2.5, -0.5), 4.5, 3.0, Color(0.1, 0.0, 0.05, 0.22), 0.1, Art.NONE)   # עיניים שקועות
 	draw_line(c + Vector2(-4.0, 2.0), c + Vector2(-1.0, 5.0), Color(0.3, 0.1, 0.3, 0.4), 0.7, true)   # ורידים
 	draw_line(c + Vector2(-3.0, -3.0), c + Vector2(-5.0, 0.5), Color(0.3, 0.1, 0.3, 0.4), 0.7, true)
+	# פרטים בפנים: סדקים בעור, עין מתה, שערות
+	draw_line(c + Vector2(-1.0, -6.5), c + Vector2(1.5, -3.5), Color(0.15, 0.05, 0.05, 0.5), 0.6, true)
+	draw_line(c + Vector2(1.5, -3.5), c + Vector2(0.5, -1.0), Color(0.15, 0.05, 0.05, 0.5), 0.6, true)
+	draw_circle(c + Vector2(4.0, -1.0), 1.1, Color(0.85, 0.88, 0.75, 0.85))   # עין מתה (בלי אישון)
+	draw_circle(c + Vector2(4.3, -1.0), 0.4, Color(0.3, 0.05, 0.05))
+	if kind in [WALKER, SPITTER, DRUNK, IMP, CRAWLER, BLOATER]:
+		for i in 4:   # שערות דלילות
+			var hs := c + Vector2(-4.0 + float(i) * 1.8, -7.5 + absf(float(i) - 1.5) * 0.6)
+			draw_line(hs, hs + Vector2(-2.0 - float(i) * 0.5, -2.5 + sin(_time * 3.0 + float(i)) * 0.6), Color("2a241e"), 0.8, true)
+	if _det[5]:   # לחי קרועה: רואים שיניים
+		Art.fill(self, PackedVector2Array([c + Vector2(-1.0, 1.0), c + Vector2(2.5, 0.5), c + Vector2(2.0, 4.0), c + Vector2(-1.5, 3.5)]), Color("5a1010"), Art.NONE)
+		for i in 3:
+			draw_line(c + Vector2(-0.5 + float(i) * 1.0, 1.4), c + Vector2(-0.5 + float(i) * 1.0, 2.6), Color("e0d8b0"), 0.6)
 	if kind == SPITTER:   # שק חומצה ירוק נפוח בגרון
 		Art.oval(self, c + Vector2(2.0, 8.0), 5.5 + (1.5 if _spit_anim > 0.0 else 0.0), 4.5, Color("8ad040"), 0.0, Art.OUTLINE, 1.0)
 		Art.glow(self, c + Vector2(2.0, 8.0), 8.0, Color(0.6, 1.0, 0.2, 0.4))
@@ -2186,40 +2215,73 @@ func _draw_canine(S: float, hound: bool) -> void:
 		for s2 in 6:
 			var sa := float(s2) * TAU / 6.0
 			draw_colored_polygon(PackedVector2Array([pts[-1] + Vector2.from_angle(sa + 0.35) * 4.0, pts[-1] + Vector2.from_angle(sa) * 10.0, pts[-1] + Vector2.from_angle(sa - 0.35) * 4.0]), Color("b0b0b8"))
-	# זנב
-	Art.limb(self, PackedVector2Array([Vector2(-20, by - 4), Vector2(-28, by - 10 + sin(_time * 8.0) * 2.0), Vector2(-35, by - 7)]), 2.4, dark)
-	# רגליים: 2 רחוקות (כהות) ו-2 קרובות
+	# ---- זנב עצמי ודק ----
+	var tail := PackedVector2Array()
+	for i in 6:
+		var k := float(i) / 5.0
+		tail.append(Vector2(-19.0 - k * 15.0, by - 6.0 - sin(k * 2.0) * 6.0 + sin(_time * 8.0 + k * 3.0) * 1.5 * k))
+	draw_polyline(tail, dark, 2.0, true)
+	for i in range(1, 5):
+		draw_circle(tail[i], 1.1, Color(0.85, 0.8, 0.7, 0.5))   # חוליות
+	# ---- רגליים דקות עם מפרקים, כפות וטפרים ----
 	for far in [true, false]:
-		for hx in [-14.0, 13.0]:
-			var phase := ph + (PI if far else 0.0) + (0.0 if hx < 0.0 else PI * 0.5)
-			var hip := Vector2(hx + (1.5 if far else 0.0), by + 4.0)
-			var foot := hip + Vector2(sin(phase) * 9.0 if run else 0.0, 20.0 - bob - crouch * 7.0 + (minf(0.0, cos(phase)) * 4.0 if run else 0.0))
-			var knee := hip.lerp(foot, 0.5) + Vector2(-3.0 if hx < 0.0 else 3.0, 0.0)
-			Art.limb(self, PackedVector2Array([hip, knee, foot]), 4.0, dark if far else fur)
-			draw_line(foot, foot + Vector2(3.0, 0.0), Color("1a1410"), 2.0)   # טפרים
-	# גוף: צלעות חשופות ופצעים
-	Art.oval(self, Vector2(0, by), 22.0, 10.0, fur, 0.0, Art.OUTLINE, 1.4)
-	Art.oval(self, Vector2(-5, by + 2), 8.0, 5.0, flesh, 0.1, Art.NONE)
-	for i in 4:
-		draw_line(Vector2(-10.0 + float(i) * 3.5, by - 2.0), Vector2(-9.0 + float(i) * 3.5, by + 5.0), Color("e0d4bc"), 1.0)
-	for i in 5:   # עמוד שדרה
-		draw_circle(Vector2(-14.0 + float(i) * 6.0, by - 9.5), 1.3, dark)
-	# צוואר וראש
-	var hd := Vector2(28.0, by - 12.0 + (2.0 if run else 0.0) + crouch * 4.0)
-	Art.limb(self, PackedVector2Array([Vector2(12, by - 2), nk, hd]), 9.0, fur)
-	Art.oval(self, hd, 9.0, 7.0, fur, -0.15, Art.OUTLINE, 1.2)
-	Art.fill(self, PackedVector2Array([hd + Vector2(4, -5), hd + Vector2(17, -2), hd + Vector2(17, 1), hd + Vector2(4, 2)]), fur, Art.OUTLINE, 1.0)
+		for front in [false, true]:
+			var phase := ph + (PI if far else 0.0) + (PI * 0.5 if front else 0.0)
+			var sw := sin(phase) * (9.0 if run else 0.0)
+			var lift := maxf(0.0, cos(phase)) * (5.0 if run else 0.0)
+			var col := dark if far else fur
+			var w0 := 3.2 if far else 3.6
+			var pts: PackedVector2Array
+			if front:   # כתף - מרפק - שורש כף - כף
+				var shp := Vector2(10.0 + (1.0 if far else 0.0), by - 3.0)
+				pts = PackedVector2Array([shp, Vector2(11.0 + sw * 0.3, by + 6.0 - crouch * 3.0), Vector2(12.0 + sw, by + 14.0 - lift - crouch * 5.0), Vector2(14.0 + sw, -1.0 - lift)])
+			else:       # ירך - ברך - קרסול (הפוך) - כף
+				var hp := Vector2(-15.0 + (1.0 if far else 0.0), by - 2.0)
+				pts = PackedVector2Array([hp, Vector2(-9.0 + sw * 0.3, by + 5.0 - crouch * 2.0), Vector2(-17.0 + sw, by + 12.0 - lift - crouch * 4.0), Vector2(-14.0 + sw, -1.0 - lift)])
+			Art.limb(self, PackedVector2Array([pts[0], pts[1]]), w0, col, Art.OUTLINE)
+			Art.limb(self, PackedVector2Array([pts[1], pts[2], pts[3]]), w0 * 0.62, col, Art.OUTLINE)
+			draw_circle(pts[1], w0 * 0.42, Art.shade(col, -0.1))   # מפרק בולט
+			Art.oval(self, pts[3] + Vector2(1.5, 0.0), 2.4, 1.3, col, 0.0, Art.OUTLINE, 0.8)   # כף
+			for cl in 3:   # טפרים
+				draw_line(pts[3] + Vector2(2.5 + float(cl) * 0.8, 0.6), pts[3] + Vector2(4.2 + float(cl) * 0.8, 1.4), Color("1a1410"), 0.6, true)
+	# ---- גוף רזה: חזה עמוק, בטן שקועה ----
+	var body := PackedVector2Array([Vector2(14, by - 5), Vector2(10, by + 6), Vector2(4, by + 8), Vector2(-5, by + 3), Vector2(-14, by + 2),
+		Vector2(-20, by - 2), Vector2(-21, by - 7), Vector2(-12, by - 9.5), Vector2(-2, by - 8.5), Vector2(9, by - 10)])
+	Art.fill_shaded(self, body, fur, 0.18, 0.4, Art.OUTLINE, 1.3)
+	draw_colored_polygon(PackedVector2Array([Vector2(10, by + 6), Vector2(4, by + 8), Vector2(-5, by + 3), Vector2(-4, by + 0.5), Vector2(6, by + 3)]), Color(0, 0, 0, 0.25))   # צל בטן
+	# קרחת עם בשר חשוף, צלעות ועצם אגן
+	draw_colored_polygon(PackedVector2Array([Vector2(7, by - 5), Vector2(8, by + 4), Vector2(0, by + 5), Vector2(-4, by + 1), Vector2(-1, by - 6)]), flesh)
+	for i in 5:
+		var rx := 6.0 - float(i) * 2.2
+		draw_arc(Vector2(rx + 3.0, by - 1.0), 5.0, PI * 0.55, PI * 1.25, 6, Color("e8dcc4"), 0.9, true)
+	Art.oval(self, Vector2(-16, by - 4), 2.4, 1.6, Color("e8dcc4"), 0.3, Art.OUTLINE, 0.6)   # עצם אגן בולטת
+	for i in 7:   # עמוד שדרה + פרווה סתורה
+		var sx := -18.0 + float(i) * 4.5
+		var sy := by - 9.0 - sin(float(i) * 0.5) * 0.8
+		draw_circle(Vector2(sx, sy), 1.0, Color(0.85, 0.8, 0.7, 0.7))
+		draw_line(Vector2(sx + 1.5, sy), Vector2(sx + 0.5, sy - 2.5 - float(i % 2)), dark, 0.8, true)
+	# ---- צוואר עם גידים + ראש גולגולתי ----
+	var hd := Vector2(28.0, by - 13.0 + (2.0 if run else 0.0) + crouch * 4.0)
+	Art.limb(self, PackedVector2Array([Vector2(10, by - 6), nk, hd + Vector2(-4, 2)]), 6.5, fur)
+	draw_line(Vector2(12, by - 4), hd + Vector2(-3, 4), Color(0.75, 0.3, 0.25, 0.7), 0.8, true)   # גיד חשוף
+	Art.oval(self, hd, 8.0, 6.2, fur, -0.15, Art.OUTLINE, 1.2)
+	draw_line(hd + Vector2(-3, -5), hd + Vector2(5, -5.5), dark, 1.2, true)   # גבה בולטת
+	Art.fill(self, PackedVector2Array([hd + Vector2(4, -4.5), hd + Vector2(17, -2), hd + Vector2(17.5, 0.5), hd + Vector2(4, 1.5)]), fur, Art.OUTLINE, 1.0)   # לוע עליון
 	var jaw := 0.3 + (0.6 if _bite_anim > 0.0 or (hound and _hstate == 2) else 0.0) + 0.15 * sin(_time * 10.0)
-	Art.fill(self, PackedVector2Array([hd + Vector2(3, 2), hd + Vector2(16, 1.5), hd + Vector2(15, 2.0 + jaw * 7.0), hd + Vector2(4, 4 + jaw * 4.0)]), Color("3a0a0a"), Art.NONE)
-	Art.fill(self, PackedVector2Array([hd + Vector2(3, 4 + jaw * 4.0), hd + Vector2(15, 2.0 + jaw * 7.0), hd + Vector2(14, 4.5 + jaw * 7.0), hd + Vector2(3, 7 + jaw * 4.0)]), dark, Art.OUTLINE, 0.9)
-	for i in 5:   # שיניים
-		var tx := 6.0 + float(i) * 2.2
-		draw_line(hd + Vector2(tx, 1.5), hd + Vector2(tx + 0.4, 3.2), Color("f0e8d0"), 0.9)
-		draw_line(hd + Vector2(tx, 2.0 + jaw * (4.0 + float(i) * 0.7)), hd + Vector2(tx + 0.3, 0.6 + jaw * (4.0 + float(i) * 0.7)), Color("f0e8d0"), 0.9)
-	draw_circle(hd + Vector2(17, -1), 1.6, Color("0a0a0a"))   # אף
-	Art.glow(self, hd + Vector2(4, -3), 4.0, Color(1.0, 0.15, 0.1, 0.8))   # עין אדומה
-	draw_circle(hd + Vector2(4, -3), 1.2, Color(1.0, 0.5, 0.4))
-	Art.fill(self, PackedVector2Array([hd + Vector2(-5, -4), hd + Vector2(-1, -15), hd + Vector2(1, -10), hd + Vector2(3, -5)]), dark, Art.OUTLINE, 0.9)   # אוזן קרועה
+	Art.fill(self, PackedVector2Array([hd + Vector2(3, 1.5), hd + Vector2(16, 1.0), hd + Vector2(15, 1.5 + jaw * 7.0), hd + Vector2(4, 3.5 + jaw * 4.0)]), Color("3a0a0a"), Art.NONE)
+	Art.fill(self, PackedVector2Array([hd + Vector2(3, 3.5 + jaw * 4.0), hd + Vector2(15, 1.5 + jaw * 7.0), hd + Vector2(14, 4.0 + jaw * 7.0), hd + Vector2(3, 6.5 + jaw * 4.0)]), dark, Art.OUTLINE, 0.9)
+	Art.fill(self, PackedVector2Array([hd + Vector2(2, -1), hd + Vector2(7, -0.5), hd + Vector2(7, 2.5), hd + Vector2(2, 2.5)]), flesh, Art.NONE)   # לחי קרועה
+	for i in 6:   # שיניים
+		var tx := 4.0 + float(i) * 2.0
+		draw_line(hd + Vector2(tx, 1.0), hd + Vector2(tx + 0.4, 2.8 + (0.6 if i % 2 == 0 else 0.0)), Color("f0e8d0"), 0.9)
+		draw_line(hd + Vector2(tx, 1.5 + jaw * (4.0 + float(i) * 0.6)), hd + Vector2(tx + 0.3, 0.2 + jaw * (4.0 + float(i) * 0.6)), Color("f0e8d0"), 0.9)
+	draw_circle(hd + Vector2(17, -0.8), 1.5, Color("0a0a0a"))   # אף
+	draw_circle(hd + Vector2(17.4, -1.3), 0.5, Color(1, 1, 1, 0.5))
+	Art.oval(self, hd + Vector2(4, -2.5), 2.4, 1.8, Color("1a0606"), 0.0, Art.NONE)   # ארובת עין שקועה
+	Art.glow(self, hd + Vector2(4.3, -2.5), 3.5, Color(1.0, 0.15, 0.1, 0.8))
+	draw_circle(hd + Vector2(4.3, -2.5), 0.9, Color(1.0, 0.5, 0.4))
+	Art.fill(self, PackedVector2Array([hd + Vector2(-5, -3), hd + Vector2(-2, -14), hd + Vector2(0, -11), hd + Vector2(-0.5, -8.5), hd + Vector2(2, -4)]), dark, Art.OUTLINE, 0.9)   # אוזן קרועה
+	draw_line(hd + Vector2(-4, -6), hd + Vector2(-1.5, -12), Color(0.5, 0.15, 0.15, 0.7), 0.7, true)
 	if run and int(_time * 4.0) % 3 == 0:   # ריר
 		draw_line(hd + Vector2(12, 4 + jaw * 6.0), hd + Vector2(12, 9 + jaw * 6.0), Color(0.8, 0.9, 0.8, 0.6), 0.8)
 	if hound:   # קולר קוצים
@@ -2281,6 +2343,32 @@ func _draw_gunner() -> void:
 	if _muzzle_t > 0.0:
 		for i in 5:
 			draw_line(muzzle, muzzle + dv.rotated(randf_range(-0.6, 0.6)) * randf_range(6.0, 14.0), Color(1.0, 0.85, 0.4), 2.0)
+
+
+# ---- פרטים על הגוף: ריקבון, חולצה קרועה, תפרים, רצועת בשר תלויה ----
+func _details(sh: Vector2, hip: Vector2, sk: Color) -> void:
+	var mid := sh.lerp(hip, 0.5)
+	if _det[0]:   # כתמי ריקבון
+		var p := mid + Vector2(_det[3], _det[4])
+		Art.oval(self, p, 2.6, 2.0, Color(0.25, 0.3, 0.12, 0.75), 0.4, Art.NONE)
+		Art.oval(self, p + Vector2(0.5, 0.3), 1.2, 0.9, Color(0.35, 0.1, 0.08, 0.8), 0.0, Art.NONE)
+	# שוליים קרועים של החולצה
+	var hem := PackedVector2Array()
+	for i in 7:
+		hem.append(hip + Vector2(-7.0 + float(i) * 2.3, -1.5 + (2.0 if i % 2 == 0 else -0.5)))
+	draw_polyline(hem, Color(0, 0, 0, 0.45), 0.9, true)
+	if _det[1]:   # תפרים על החזה
+		var a := sh + Vector2(-5.0, 4.0)
+		var b := sh + Vector2(3.0, 9.0)
+		draw_line(a, b, Color(0.12, 0.05, 0.05, 0.8), 0.8, true)
+		for i in 4:
+			var q := a.lerp(b, (float(i) + 0.5) / 4.0)
+			draw_line(q + Vector2(-0.8, 1.0), q + Vector2(0.8, -1.0), Color(0.8, 0.75, 0.6, 0.8), 0.6, true)
+	if _det[2]:   # רצועת בשר תלויה
+		var t0 := mid + Vector2(5.0, 2.0)
+		draw_colored_polygon(PackedVector2Array([t0, t0 + Vector2(2.0, 0.0), t0 + Vector2(1.5, 6.0 + sin(_time * 4.0)), t0 + Vector2(0.5, 5.0)]), Color("6a1414"))
+	# צל בצד הגוף (נפח)
+	draw_line(sh + Vector2(-6.5, 3.0), hip + Vector2(-6.0, -2.0), Color(0, 0, 0, 0.22), 2.0, true)
 
 
 # ---- טקסט קופץ (HEADSHOT!) ----
