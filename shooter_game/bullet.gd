@@ -88,9 +88,13 @@ func _physics_process(delta: float) -> void:
 		src["fixed"] = randi_range(13, 19)
 	while true:
 		var query := PhysicsRayQueryParameters2D.create(from, to, collision_mask, _exclude)
+		query.hit_from_inside = true   # זומבי צמוד לקנה (הקרן מתחילה בתוכו) - עדיין נפגע
 		var hit := get_world_2d().direct_space_state.intersect_ray(query)
 		if not hit:
 			break
+		if hit.normal == Vector2.ZERO and not hit.collider.is_in_group("zombies"):   # מתחילים בתוך קיר/ניצולה - מתעלמים כמו קודם
+			_exclude.append(hit.rid)
+			continue
 		if hit.collider.has_method("take_damage"):
 			# שולחים גם את כיוון הקליע - לפיו הזומבי עף כשהוא מת
 			hit.collider.take_damage(damage, hit.position, velocity.normalized(), false, src)

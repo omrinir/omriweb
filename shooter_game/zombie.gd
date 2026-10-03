@@ -310,10 +310,13 @@ func _ready() -> void:
 	_shape.shape = r
 	_shape.position = Vector2(0.0, 33.0 * sc if on_ceiling else -33.0 * sc)
 	add_child(_shape)
+	if kind == DOG or kind == HOUND:   # אזור פגיעה בגודל הספרייט (כולל הראש)
+		r.size = Vector2(70.0, 48.0) * (0.8 if kind == DOG else 2.0)
+		_shape.position = Vector2(0.0, -r.size.y / 2.0)
 	if kind == HAND:
 		collision_layer = 0   # מתחת למים אי אפשר לפגוע בה
 	if dormant:
-		r.size = Vector2(18, 18) * sc
+		r.size = Vector2(52, 18) * sc   # שוכב: כל אורך הגוף
 		_shape.position = Vector2(0.0, -9.0 * sc)
 		_lie_side = -1.0 if randf() < 0.5 else 1.0
 	_dir = -1.0 if randf() < 0.5 else 1.0
@@ -404,8 +407,8 @@ func _physics_process(delta: float) -> void:
 	_duck_t -= delta
 	_duck_cd -= delta
 	var want_crouch := (_duck_t > 0.0 or _cover_state == 2) and not _one_leg
-	_set_crouch(want_crouch)
 	_crouch_k = move_toward(_crouch_k, 1.0 if want_crouch else 0.0, delta * 10.0)
+	_set_crouch(_crouch_k > 0.6)   # אזור הפגיעה יורד רק כשהציור באמת התכופף
 
 	var target_speed := walk_speed
 	_chasing = false
@@ -2239,8 +2242,20 @@ func _draw_canine(S: float, hound: bool) -> void:
 		sq *= Vector2(1.0 + crouch * 0.06, 1.0 - crouch * 0.16)
 		if _bite_anim > 0.0 or (hound and _hstate == 2):
 			rot -= 0.08
-	draw_set_transform_matrix(base * Transform2D(rot, sq, 0.0, Vector2(0.0, -bob)))
-	draw_texture_rect(DOG_TEX, Rect2(-36, -50, 76, 50), false, Color(4, 4, 4) if white else Color.WHITE)
+	var bm := base * Transform2D(rot, sq, 0.0, Vector2(0.0, -bob))
+	var mod := Color(4, 4, 4) if white else Color.WHITE
+	var k := Vector2(76.0 / 186.0, 50.0 / 123.0)   # פיקסל בתמונה -> יחידה מקומית
+	var amp := 0.0 if dead else clampf(absf(velocity.x) / 260.0, 0.0, 0.55)
+	var air := not dead and not is_on_floor()
+	# שוקיים נפרדות (צד ימין של התמונה) שמתנדנדות סביב הברך: [x0, חיתוך y, x1, ציר x, היסט פאזה, זווית באוויר]
+	for lg in [[0.0, 84.0, 24.0, 12.0, PI * 0.5, 0.6], [24.0, 84.0, 60.0, 36.0, PI, 0.5], [90.0, 76.0, 150.0, 115.0, 0.0, -0.6]]:
+		var src := Rect2(192.0 + lg[0], lg[1] - 2.0, lg[2] - lg[0], 125.0 - lg[1])
+		var pv := Vector2(-36.0, -50.0) + Vector2(lg[3], lg[1]) * k
+		var la: float = lg[5] if air else sin(ph + lg[4]) * amp
+		draw_set_transform_matrix(bm * Transform2D(la, pv) * Transform2D(0.0, -pv))
+		draw_texture_rect_region(DOG_TEX, Rect2(Vector2(-36.0, -50.0) + Vector2(lg[0], lg[1] - 2.0) * k, src.size * k), src, mod)
+	draw_set_transform_matrix(bm)
+	draw_texture_rect_region(DOG_TEX, Rect2(-36, -50, 76, 50), Rect2(0, 0, 186, 123), mod)
 	if hound:   # קולר קוצים
 		Art.limb(self, PackedVector2Array([nk + Vector2(-3, -9), nk + Vector2(3, 9)]), 5.0, Color("2a2a2e"))
 		for i in 5:
