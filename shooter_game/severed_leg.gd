@@ -61,6 +61,12 @@ func throw_at(from: Vector2, vel: Vector2) -> void:
 	_spin = randf_range(12.0, 18.0) * signf(vel.x)
 
 
+# קליע פגע ברגל באוויר: עפה לאחור ונופלת
+func shot_down(dir: Vector2) -> void:
+	drop(Vector2(dir.x * 260.0, -220.0))
+	_spin = randf_range(14.0, 20.0)
+
+
 func drop(vel: Vector2) -> void:
 	_resting = false
 	state = GROUND

@@ -12,6 +12,7 @@ config/features=PackedStringArray("4.3", "GL Compatibility")
 [autoload]
 
 Settings="*res://game_settings.gd"
+Game="*res://game_state.gd"
 
 [display]
 

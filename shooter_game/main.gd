@@ -19,6 +19,9 @@ const RoadDecorScript := preload("res://road_decor.gd")
 const FogScript := preload("res://fog.gd")
 const PauseScript := preload("res://pause_menu.gd")
 const SurvivorScript := preload("res://survivor.gd")
+const PickupScript := preload("res://pickup.gd")
+const ExitScript := preload("res://exit.gd")
+const ResultsScript := preload("res://results.gd")
 
 @export_group("Level")
 ## אורך הרמה במסכים (רוחב מסך = 1280). המינימום הוא 8 מסכים
@@ -30,7 +33,7 @@ const SurvivorScript := preload("res://survivor.gd")
 ## אזור ריק בתחילת הרמה (בלי לבנים וזומבים)
 @export var safe_zone := 700.0
 ## אזור ריק בסוף הרמה
-@export var end_margin := 300.0
+@export var end_margin := 750.0   # בסוף השלב יש מקום לבוס וליציאה
 ## מרחק מינימלי / מקסימלי בין מבנים
 @export var gap_min := 260.0
 @export var gap_max := 560.0
@@ -54,7 +57,8 @@ const SurvivorScript := preload("res://survivor.gd")
 ## הסיכוי שזומבי יופיע בקבוצה של 2-3
 @export_range(0.0, 1.0) var zombie_cluster_chance := 0.25
 ## כמה נפוץ כל סוג זומבי: רגיל / רץ / ענק
-@export var zombie_weights := Vector3(0.55, 0.25, 0.2)
+## כמה נפוץ כל סוג: רגיל, רץ, ענק, יורק, צורח (בשלבים מתקדמים יש יותר ענקים)
+var zombie_weights := [0.45, 0.2, 0.12, 0.13, 0.1]
 
 const UNIT := 16.0   # גובה "שורת לבנים"
 const BRICK_COLORS := [Color("9a4f3a"), Color("8a5a40"), Color("7a4a4a"), Color("a0603f")]
@@ -67,6 +71,10 @@ var level_w := 10240.0
 var max_h := 48.0
 var _rects: Array[Rect2] = []
 var _pits := []
+var _time := 0.0
+var _player: Node
+var _pause: Node
+var _finished := false
 
 
 func _ready() -> void:
@@ -75,6 +83,10 @@ func _ready() -> void:
 	var diff: Dictionary = Settings.preset()
 	zombies_per_screen = diff.zombies_per_screen
 	dormant_chance = diff.dormant
+	# כל שלב קשה יותר: יותר זומבים ויותר ענקים
+	Game.reset_level()
+	zombies_per_screen *= 1.0 + 0.15 * float(Game.level - 1)
+	zombie_weights[2] += 0.04 * float(Game.level - 1)
 	var vp := get_viewport_rect().size
 	level_w = vp.x * float(maxi(level_screens, 8))
 
@@ -109,6 +121,8 @@ func _ready() -> void:
 	_generate_level(rng, floor_y)
 	_spawn_zombies(rng, floor_y)
 	_spawn_survivors(rng, floor_y)
+	_spawn_supplies(rng, floor_y)
+	_make_exit(floor_y)
 
 	player.max_health = diff.player_hp
 	player.health = diff.player_hp
@@ -163,6 +177,9 @@ func _ready() -> void:
 	var pause = PauseScript.new()
 	add_child(pause)
 	player.died.connect(pause.show_game_over)
+	_player = player
+	_pause = pause
+	bar.player = player
 
 
 # ============================================================
@@ -417,18 +434,72 @@ func _near_brick(x: float) -> bool:
 
 
 func _pick_kind(rng: RandomNumberGenerator) -> int:
-	var total := zombie_weights.x + zombie_weights.y + zombie_weights.z
+	var total := 0.0
+	for w in zombie_weights:
+		total += float(w)
 	var r := rng.randf() * total
-	if r < zombie_weights.x:
-		return 0
-	if r < zombie_weights.x + zombie_weights.y:
-		return 1
-	return 2
+	for i in zombie_weights.size():
+		r -= float(zombie_weights[i])
+		if r <= 0.0:
+			return i
+	return 0
+
+
+# קופסאות תחמושת ורימונים פזורות בשלב
+func _spawn_supplies(rng: RandomNumberGenerator, floor_y: float) -> void:
+	for i in 3:
+		var x := rng.randf_range(safe_zone, level_w - end_margin)
+		var tries := 0
+		while _near_brick(x) and tries < 60:
+			x += 41.0
+			tries += 1
+		var p = PickupScript.new()
+		p.kind = PickupScript.GRENADE if i == 2 else PickupScript.AMMO
+		p.life = 100000.0
+		add_child(p)
+		p.setup(Vector2(x, floor_y - 30.0), Vector2.ZERO)
+
+
+# היציאה + הבוס ששומר עליה
+func _make_exit(floor_y: float) -> void:
+	var ex = ExitScript.new()
+	ex.position = Vector2(level_w - 230.0, floor_y)
+	add_child(ex)
+	ex.reached.connect(_level_complete)
+	var boss = ZombieScene.instantiate()
+	boss.kind = 5
+	boss.position = Vector2(level_w - 480.0, floor_y)
+	boss.chase_range = 650.0
+	var diff: Dictionary = Settings.preset()
+	boss.speed_mult = diff.zombie_speed
+	add_child(boss)
+	boss.world_w = level_w
+	boss._dir = -1.0
+
+
+func _process(delta: float) -> void:
+	if not _finished and _player != null and not _player.dead:
+		_time += delta
+
+
+func _level_complete() -> void:
+	if _finished:
+		return
+	_finished = true
+	Engine.time_scale = 1.0
+	var result := Game.finish_level(_time)
+	var r = ResultsScript.new()
+	add_child(r)
+	r.show_results(result)
+
+
+func _exit_tree() -> void:
+	Engine.time_scale = 1.0
 
 
 func _spawn_zombie(x: float, floor_y: float, kind := 0, rng: RandomNumberGenerator = null) -> void:
 	var z = ZombieScene.instantiate()
-	z.kind = kind   # 0 = רגיל, 1 = רץ, 2 = ענק
+	z.kind = kind   # 0 = רגיל, 1 = רץ, 2 = ענק, 3 = יורק, 4 = צורח
 	var diff: Dictionary = Settings.preset()
 	z.speed_mult = diff.zombie_speed
 	z.smart_mult = diff.smart

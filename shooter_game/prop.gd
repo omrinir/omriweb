@@ -13,6 +13,7 @@ const Art := preload("res://art.gd")
 const Boom := preload("res://explosion.gd")
 const FireScript := preload("res://fire.gd")
 const DebrisScript := preload("res://debris.gd")
+const PickupScript := preload("res://pickup.gd")
 
 enum { CAR, BUS, BARRIER, BARREL, TIRES, SANDBAGS }
 
@@ -33,6 +34,7 @@ var _hits := 0
 var _burning := false
 var _fuse := -1.0
 var _seed := 0
+var _trunk_open := false
 
 
 func _ready() -> void:
@@ -114,6 +116,8 @@ func hit_by_bullet(world_pos: Vector2, normal: Vector2, dir: Vector2) -> void:
 		BARREL:
 			_arm(0.05)
 		CAR:
+			if not _trunk_open:
+				_open_trunk()
 			if wrecked:
 				return
 			_hits += 1
@@ -134,6 +138,24 @@ func hit_by_blast(_center: Vector2, _break_radius: float) -> void:
 				_arm(0.2)
 			else:
 				_ignite(0.8)
+
+
+# תא המטען נפתח בפעם הראשונה שיורים במכונית: יוצא שלל
+func _open_trunk() -> void:
+	_trunk_open = true
+	var r := randf()
+	var p = PickupScript.new()
+	if r < 0.6:
+		p.kind = PickupScript.AMMO
+	elif r < 0.85:
+		p.kind = PickupScript.GRENADE
+	else:
+		p.kind = PickupScript.BOOST
+		p.boost = randi() % 5
+	get_parent().add_child(p)
+	var back := global_position + (Vector2(6, -size.y + 4) if not upside_down else Vector2(6, -size.y + 4))
+	p.setup(back, Vector2(randf_range(-90, -30), -260))
+	queue_redraw()
 
 
 func _ignite(fuse := 2.5) -> void:
@@ -163,12 +185,12 @@ func _explode() -> void:
 	remove_from_group("blastable")
 	if kind == BARREL:
 		_chips(c, Vector2.UP, 10, Color("8a2018"))
-		Boom.blast(get_parent(), c, 110.0, 60.0, 40, 2)
+		Boom.blast(get_parent(), c, 110.0, 60.0, 40, 2, "barrel")
 		queue_free()
 		return
 	# מכונית: מתפוצצת ונשארת שרופה עם אש
 	_chips(c, Vector2.UP, 14)
-	Boom.blast(get_parent(), c, 140.0, 70.0, 40, 2)
+	Boom.blast(get_parent(), c, 140.0, 70.0, 40, 2, "car")
 	wrecked = true
 	_burning = false
 	for ch in get_children():
@@ -254,6 +276,9 @@ func _draw_car() -> void:
 	Art.oval(self, Vector2(24, -4), 11.0, 4.0, Color("1a1a1c"), 0.0, Art.OUTLINE, 1.0)   # צמיג שטוח
 	# הארה על הגג
 	draw_line(Vector2(46, -49), Vector2(86, -49), Color(1, 1, 1, 0.12), 1.2, true)
+	if _trunk_open:   # מכסה תא המטען פתוח
+		Art.fill(self, PackedVector2Array([Vector2(4, -30), Vector2(-6, -46), Vector2(-2, -48), Vector2(10, -31)]), body.darkened(0.15), Art.OUTLINE, 1.2)
+		Art.fill(self, PackedVector2Array([Vector2(4, -30), Vector2(30, -31), Vector2(30, -27), Vector2(4, -26)]), Color("0c0a0a"), Art.NONE)
 
 
 func _draw_bus() -> void:

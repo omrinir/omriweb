@@ -14,7 +14,10 @@ var collision_mask := 5                    # 1 = ריצפה ולבנים, 4 = ז
 var max_offscreen := 70.0                  # כמה פיקסלים אחרי קצה המסך הקליע עוד ממשיך
 var damage := 0                            # הנזק נקבע בזומבי לפי מקום הפגיעה (ראש / גוף / רגל)
 
+var pierce := 0                            # בוסט: כמה זומבים נוספים הקליע עובר דרכם
+var incendiary := false                    # בוסט: הקליע מצית זומבים
 var velocity := Vector2.ZERO
+var _exclude: Array[RID] = []
 var _cast_from := Vector2.ZERO
 var _first := true
 
@@ -44,12 +47,25 @@ func _physics_process(delta: float) -> void:
 		else:
 			queue_free()
 			return
-	var query := PhysicsRayQueryParameters2D.create(from, to, collision_mask)
-	var hit := get_world_2d().direct_space_state.intersect_ray(query)
-	if hit:
+	# קליע שפוגע ברגל שזומבי זרק - מפיל אותה מהאוויר
+	for leg in get_tree().get_nodes_in_group("severed_legs"):
+		if leg.state == 2 and Geometry2D.get_closest_point_to_segment(leg.global_position, from, to).distance_to(leg.global_position) < 16.0:
+			leg.shot_down(velocity.normalized())
+			Game.on_leg_shot()
+	var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary}
+	while true:
+		var query := PhysicsRayQueryParameters2D.create(from, to, collision_mask, _exclude)
+		var hit := get_world_2d().direct_space_state.intersect_ray(query)
+		if not hit:
+			break
 		if hit.collider.has_method("take_damage"):
 			# שולחים גם את כיוון הקליע - לפיו הזומבי עף כשהוא מת
-			hit.collider.take_damage(damage, hit.position, velocity.normalized())
+			hit.collider.take_damage(damage, hit.position, velocity.normalized(), false, src)
+			if pierce > 0:   # קליע חודר: ממשיך לזומבי הבא
+				pierce -= 1
+				_exclude.append(hit.rid)
+				from = hit.position
+				continue
 		else:
 			if hit.collider.has_method("hit_by_bullet"):   # לבנה - נסדקת / נשברת
 				hit.collider.hit_by_bullet(hit.position, hit.normal, velocity.normalized())
@@ -86,6 +102,14 @@ func _draw() -> void:
 	])
 	var light := Color("e0a060")
 	var dark := Color("8a4a20")
+	if pierce > 0:   # קליע חודר - כחול
+		light = Color("90c8ff")
+		dark = Color("2a5a9a")
+		draw_line(Vector2(-40.0, 0.0), Vector2(-6.0, 0.0), Color(0.4, 0.7, 1.0, 0.35), 3.0, true)
+	elif incendiary:  # קליע אש - כתום
+		light = Color("ffc060")
+		dark = Color("c04010")
+		draw_line(Vector2(-30.0, 0.0), Vector2(-6.0, 0.0), Color(1.0, 0.5, 0.1, 0.4), 3.0, true)
 	draw_polygon(body, PackedColorArray([dark, light, light, light, light, dark, dark, dark, dark]))
 	var closed := PackedVector2Array(body)
 	closed.append(body[0])

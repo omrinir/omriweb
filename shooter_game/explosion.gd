@@ -8,8 +8,15 @@ extends RefCounted
 
 # center = מרכז הפיצוץ, radius = טווח, break_radius = לבנים קרובות מזה נשברות מיד,
 # damage = נזק לזומבים, player_damage = נזק לשחקן (אם הוא קרוב)
-static func blast(parent: Node2D, center: Vector2, radius := 120.0, break_radius := 70.0, damage := 40, player_damage := 2) -> void:
+static var _next_blast := 1
+
+
+# source = מה התפוצץ ("grenade" / "barrel" / "car") - משמש לניקוד ולגביעים
+static func blast(parent: Node2D, center: Vector2, radius := 120.0, break_radius := 70.0, damage := 40, player_damage := 2, source := "grenade") -> void:
 	var tree := parent.get_tree()
+	_next_blast += 1
+	var src := {"source": source, "blast": _next_blast}
+	Game.make_noise(center, 700.0)   # פיצוץ מעיר את כל הזומבים מסביב
 	# לבנים, מכוניות, חביות...
 	for b in tree.get_nodes_in_group("blastable"):
 		if b.has_method("hit_by_blast") and b.has_method("blast_rect"):
@@ -20,7 +27,7 @@ static func blast(parent: Node2D, center: Vector2, radius := 120.0, break_radius
 	for z in tree.get_nodes_in_group("zombies"):
 		var zc: Vector2 = z.global_position + Vector2(0, -32)
 		if center.distance_to(zc) <= radius:
-			z.take_damage(damage, zc, (zc - center).normalized(), true)
+			z.take_damage(damage, zc, (zc - center).normalized(), true, src)
 	for sv in tree.get_nodes_in_group("survivors"):
 		var sc: Vector2 = sv.global_position + Vector2(0, -26)
 		if center.distance_to(sc) <= radius:

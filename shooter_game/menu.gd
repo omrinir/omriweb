@@ -25,6 +25,33 @@ var _diff_buttons: Array = []
 var _desc: Caption
 var _fade: ColorRect
 var _leaving := false
+var _ui: CanvasLayer
+var _root_ctrl: Control
+var _trophy_layer: CanvasLayer
+
+
+func _desc_text() -> String:
+	return "%s      BEST: %d" % [Settings.preset().desc, Game.high_scores[Settings.difficulty]]
+
+
+# חדר הגביעים: גביעים שנפתחו בזהב, נעולים כצללית כהה
+func _show_trophies() -> void:
+	if _trophy_layer != null:
+		return
+	_trophy_layer = CanvasLayer.new()
+	_trophy_layer.layer = 4
+	add_child(_trophy_layer)
+	var room := TrophyRoom.new()
+	_trophy_layer.add_child(room)
+	var ctrl := Control.new()
+	ctrl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ctrl.mouse_filter = Control.MOUSE_FILTER_STOP
+	_trophy_layer.add_child(ctrl)
+	var back := _button(ctrl, "BACK", Vector2(540, 600), Vector2(200, 54), 28, 0.1)
+	back.pressed.connect(func():
+		_trophy_layer.queue_free()
+		_trophy_layer = null)
+	back.call_deferred("grab_focus")
 
 
 func _ready() -> void:
@@ -134,10 +161,16 @@ func _build_ui(vp: Vector2) -> void:
 	_desc.size = 17
 	_desc.color = Color(0.85, 0.82, 0.8)
 	_desc.position = Vector2(72, 446)
-	_desc.text = Settings.preset().desc
+	_desc.text = _desc_text()
 	ui.add_child(_desc)
+	_ui = ui
+	_root_ctrl = root
 
-	var quit := _button(root, "QUIT", Vector2(70, 480), Vector2(250, 54), 30, 0.6)
+	var tro := _button(root, "TROPHIES", Vector2(70, 482), Vector2(250, 50), 26, 0.5)
+	tro.accent = Color("d8a033")
+	tro.pressed.connect(_show_trophies)
+
+	var quit := _button(root, "QUIT", Vector2(70, 546), Vector2(250, 50), 28, 0.6)
 	quit.accent = Color("5a5a62")
 	quit.pressed.connect(_quit)
 
@@ -174,7 +207,7 @@ func _set_difficulty(i: int) -> void:
 	Settings.difficulty = i
 	for j in _diff_buttons.size():
 		_diff_buttons[j].selected = j == i
-	_desc.text = Settings.preset().desc
+	_desc.text = _desc_text()
 	_desc.flash()
 
 
@@ -182,6 +215,7 @@ func _start_game() -> void:
 	if _leaving:
 		return
 	_leaving = true
+	Game.new_run()
 	var tw := create_tween()
 	tw.tween_interval(0.15)
 	tw.tween_property(_fade, "color:a", 1.0, 0.6)
@@ -282,3 +316,55 @@ class Title extends Node2D:
 				draw_circle(Vector2(x, y0 + dl + fall * 60.0), 2.6 * (1.0 - fall * 0.5), Color(red.darkened(0.2), 1.0 - fall))
 		draw_string_outline(f, p + Vector2(4, 44), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 6, Color(0, 0, 0, 0.9 * appear))
 		draw_string(f, p + Vector2(4, 44), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.85, 0.8, 0.75, appear))
+
+
+# ---- חדר הגביעים ----
+class TrophyRoom extends Node2D:
+	var _t := 0.0
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+
+	func _txt(p: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0) -> void:
+		var f := ThemeDB.fallback_font
+		draw_string_outline(f, p, t, align, w, size, 5, Color(0, 0, 0, 0.85))
+		draw_string(f, p, t, align, w, size, col)
+
+	func _draw() -> void:
+		var vp := get_viewport_rect().size
+		draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 0.82))
+		var got := 0
+		for t in Game.TROPHIES:
+			if Game.trophies.get(t.id, false):
+				got += 1
+		_txt(Vector2(0, 80), "TROPHIES", 48, Color("d8a033"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+		_txt(Vector2(0, 112), "%d / %d UNLOCKED" % [got, Game.TROPHIES.size()], 18, Color(0.85, 0.8, 0.75), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+		var cw := 270.0
+		var ch := 170.0
+		var x0 := (vp.x - (cw * 4.0 + 18.0 * 3.0)) / 2.0
+		for i in Game.TROPHIES.size():
+			var t: Dictionary = Game.TROPHIES[i]
+			var unlocked: bool = Game.trophies.get(t.id, false)
+			var a := clampf((_t - float(i) * 0.06) / 0.25, 0.0, 1.0)
+			var p := Vector2(x0 + float(i % 4) * (cw + 18.0), 140.0 + float(i / 4) * (ch + 18.0) + (1.0 - a) * 20.0)
+			draw_rect(Rect2(p, Vector2(cw, ch)), Color(0.08, 0.07, 0.07, 0.95 * a))
+			draw_rect(Rect2(p, Vector2(cw, ch)), Color("d8a033") if unlocked else Color(0.3, 0.28, 0.27), false, 2.0)
+			var c := p + Vector2(cw / 2.0, 62)
+			var gold := Color("e0b040") if unlocked else Color(0.18, 0.17, 0.17)
+			if unlocked:
+				draw_circle(c, 34.0 + 3.0 * sin(_t * 3.0 + float(i)), Color(1.0, 0.8, 0.3, 0.12))
+			draw_colored_polygon(PackedVector2Array([c + Vector2(-20, -24), c + Vector2(20, -24), c + Vector2(14, 0), c + Vector2(4, 6), c + Vector2(-4, 6), c + Vector2(-14, 0)]), gold)
+			draw_arc(c + Vector2(-20, -13), 9.0, PI * 0.5, PI * 1.5, 10, gold, 3.5, true)
+			draw_arc(c + Vector2(20, -13), 9.0, -PI * 0.5, PI * 0.5, 10, gold, 3.5, true)
+			draw_rect(Rect2(c + Vector2(-3, 6), Vector2(6, 10)), gold)
+			draw_rect(Rect2(c + Vector2(-14, 16), Vector2(28, 6)), gold.darkened(0.2))
+			if not unlocked:
+				_txt(c + Vector2(-8, -2), "?", 22, Color(0.5, 0.48, 0.45))
+			_txt(p + Vector2(0, 122), t.name if unlocked else "???", 18, Color.WHITE if unlocked else Color(0.6, 0.58, 0.55), HORIZONTAL_ALIGNMENT_CENTER, cw)
+			_txt(p + Vector2(0, 146), t.desc, 13, Color(0.75, 0.72, 0.7), HORIZONTAL_ALIGNMENT_CENTER, cw)
+		var lt := Game.lifetime
+		_txt(Vector2(0, 560), "ALL TIME:   %d kills    %d headshots    %d legs severed" % [lt.kills, lt.headshots, lt.legs], 16, Color(0.8, 0.78, 0.75), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+		var hs := Game.high_scores
+		_txt(Vector2(0, 584), "BEST SCORES:   EASY %d    NORMAL %d    HARD %d" % [hs[0], hs[1], hs[2]], 16, Color("d8a033"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+

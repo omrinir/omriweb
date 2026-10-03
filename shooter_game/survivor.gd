@@ -10,8 +10,9 @@ extends CharacterBody2D
 const Art := preload("res://art.gd")
 const BloodScript := preload("res://blood_drop.gd")
 const ZombieScript := preload("res://zombie.gd")
+const PickupScript := preload("res://pickup.gd")
 
-enum { IDLE, RUN, WAIT, DRAINED, DEAD }
+enum { IDLE, RUN, WAIT, DRAINED, DEAD, LEAVE }
 
 ## מראה: 0 = שיער חום, 1 = בלונדינית, 2 = שיער שחור
 @export_range(0, 2) var variant := 0
@@ -29,6 +30,9 @@ var drain_range := 72.0          # מאיזה מרחק אפשר להפעיל א�
 var gravity := 1500.0
 var jump_velocity := -560.0
 var world_w := 100000.0
+var mercy_time := 5.0            # אם לא שואבים ממנה תוך 5 שניות - היא נותנת אספקה ובורחת
+var _wait_t := 0.0
+var _leave_t := 0.0
 
 var state := IDLE
 var _c: Dictionary
@@ -81,10 +85,25 @@ func _physics_process(delta: float) -> void:
 					state = WAIT
 				elif absf(dx) > stop_dist + 25.0:
 					state = RUN
+				if state == WAIT:
+					_wait_t += delta
+					if _wait_t >= mercy_time:
+						_leave()
+						return
 				var target := run_speed * _dir if state == RUN else 0.0
 				velocity.x = move_toward(velocity.x, target, 1200.0 * delta)
 				if state == RUN and is_on_wall() and is_on_floor():
 					velocity.y = jump_velocity
+		LEAVE:   # רצה הרחק מהשחקן ונעלמת
+			_leave_t += delta
+			velocity.x = move_toward(velocity.x, run_speed * 1.1 * _dir, 1200.0 * delta)
+			if is_on_wall() and is_on_floor():
+				velocity.y = jump_velocity
+			if _leave_t > 4.0:
+				modulate.a = clampf(5.0 - _leave_t, 0.0, 1.0)
+				if _leave_t > 5.0:
+					queue_free()
+					return
 		DRAINED:
 			velocity.x = 0.0
 			if _burn_t >= 0.0:
@@ -103,10 +122,22 @@ func _physics_process(delta: float) -> void:
 					return
 	move_and_slide()
 	global_position.x = clampf(global_position.x, 15.0, world_w - 15.0)
-	if is_on_floor() and state == RUN:
+	if is_on_floor() and (state == RUN or state == LEAVE):
 		_phase += delta * absf(velocity.x) * 0.075
 	if Art.on_screen(self, global_position):
 		queue_redraw()
+
+
+# חסת עליה: היא משאירה ארגז אספקה ובורחת
+func _leave() -> void:
+	state = LEAVE
+	_say("THANK YOU!")
+	var p = PickupScript.new()
+	p.kind = PickupScript.SUPPLY
+	get_parent().add_child(p)
+	p.setup(global_position + Vector2(0, -30), Vector2(-_dir * 60.0, -220.0))
+	_dir = -_dir   # בורחת לכיוון ההפוך
+	Game.on_spared()
 
 
 func _say(text: String) -> void:
@@ -121,7 +152,7 @@ func _say(text: String) -> void:
 # ============================================================
 #  קליע / פיצוץ = מוות מיידי
 # ============================================================
-func take_damage(_amount: int, hit_pos: Vector2, dir: Vector2, _explosive := false) -> void:
+func take_damage(_amount: int, hit_pos: Vector2, dir: Vector2, _explosive := false, _src := {}) -> void:
 	if state == DEAD or state == DRAINED:
 		return
 	state = DEAD
@@ -142,7 +173,7 @@ func take_damage(_amount: int, hit_pos: Vector2, dir: Vector2, _explosive := fal
 #  המכשיר של השחקן (player.gd קורא לפונקציות האלה)
 # ============================================================
 func can_drain(p: Node) -> bool:
-	if state == DEAD or state == DRAINED or not is_on_floor():
+	if state == DEAD or state == DRAINED or state == LEAVE or not is_on_floor():
 		return false
 	var d: Vector2 = p.global_position - global_position
 	return absf(d.x) < drain_range and absf(d.y) < 40.0
@@ -190,6 +221,9 @@ func _draw() -> void:
 	draw_set_transform(Vector2(0, lift) + shake, 0.0, Vector2(_dir, 1.0))
 	_draw_woman(1.0)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+	if state == WAIT:   # כמה זמן נשאר להחליט (שאיבה או רחמים)
+		var left := 1.0 - _wait_t / mercy_time
+		draw_arc(Vector2(0, -68), 14.0, -PI / 2.0, -PI / 2.0 + TAU * left, 24, Color(1, 1, 1, 0.35), 2.0, true)
 	# סימן: אפשר להפעיל את המכשיר עכשיו
 	if _player != null and is_instance_valid(_player) and can_drain(_player) and not _player.dead:
 		var pulse := 0.5 + 0.5 * sin(_t * 8.0)
@@ -229,7 +263,7 @@ func _draw_woman(alive: float) -> void:
 		collapse = collapse * collapse * (3.0 - 2.0 * collapse)
 
 	var p := _phase
-	var running := state == RUN and is_on_floor()
+	var running := (state == RUN or state == LEAVE) and is_on_floor()
 	var lean := 5.0 if running else 0.0
 	var breath := sin(_t * 6.0) * 0.8 if state == WAIT else sin(_t * 2.0) * 0.4
 	var hip := Vector2(0, -24.0 - (absf(sin(p)) * 1.5 if running else 0.0))

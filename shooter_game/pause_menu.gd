@@ -55,6 +55,7 @@ func _open_pause() -> void:
 # נקרא כשהשחקן מת
 func show_game_over() -> void:
 	_game_over = true
+	Game.finish_run()
 	await get_tree().create_timer(1.3).timeout
 	_show("", [["TRY AGAIN", _restart, Color("b3121a")], ["MAIN MENU", _to_menu, Color("5a5a62")]], 470.0)
 	_dim.visible = false   # ה-HUD כבר מחשיך את המסך ומציג GAME OVER
@@ -96,10 +97,13 @@ func _resume() -> void:
 
 
 func _restart() -> void:
+	Game.restart_level()   # חוזרים לתחילת השלב הנוכחי
 	_leave(func(): get_tree().reload_current_scene())
 
 
 func _to_menu() -> void:
+	if not _game_over:
+		Game.finish_run()
 	_leave(func(): get_tree().change_scene_to_file(MENU_SCENE))
 
 

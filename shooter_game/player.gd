@@ -14,6 +14,8 @@ const Art := preload("res://art.gd")
 const BulletScript := preload("res://bullet.gd")
 const GrenadeScript := preload("res://grenade.gd")
 const DebrisScript := preload("res://debris.gd")
+const PickupScript := preload("res://pickup.gd")
+const TextScript := preload("res://zombie.gd")
 
 enum { GUN, GRENADE }
 
@@ -81,6 +83,15 @@ var _muzzle_flash := 0.0
 var _recoil := 0.0
 var _dead_t := 0.0
 var _push_t := 0.0
+# ---- תחמושת ובוסטים ----
+var ammo := 36
+var grenades := 2
+var shield_hits := 0             # כמה פגיעות המגן עוד יספוג
+var boosts := {}                 # סוג בוסט -> כמה שניות נשארו
+var boost_time := 12.0           # כמה זמן בוסט נמשך
+var _rt := 1.0                   # פיצוי על BULLET TIME: השחקן זז במהירות רגילה
+var _laser_end := Vector2.ZERO
+var _empty_t := 0.0
 var _fire_test := false   # לבדיקות אוטומטיות בלבד
 # ---- מכשיר שאיבת כוח חיים ----
 const DRAIN_TIME := 1.8          # כמה שניות לוקחת השאיבה
@@ -99,6 +110,11 @@ func _ready() -> void:
 	add_child(_shape)
 	_set_height(H_STAND)
 	z_index = 4
+	# תחמושת לפי קושי + שדרוגים
+	ammo = [50, 36, 26][Settings.difficulty] + 10 * Game.upgrade_level("ammo")
+	grenades = [3, 2, 1][Settings.difficulty] + Game.upgrade_level("grenades")
+	fire_delay *= pow(0.85, Game.upgrade_level("fire_rate"))
+	boost_time *= 1.0 + 0.3 * Game.upgrade_level("boost_time")
 
 
 func _set_height(h: float) -> void:
@@ -127,6 +143,11 @@ func _front_shoulder() -> Vector2:
 
 
 func _physics_process(delta: float) -> void:
+	# BULLET TIME: העולם איטי, אבל השחקן ממשיך במהירות רגילה
+	_rt = 1.0 / maxf(Engine.time_scale, 0.05)
+	delta *= _rt
+	_boosts_process(delta)
+	_empty_t -= delta
 	_time += delta
 	_cooldown -= delta
 	_invuln -= delta
@@ -145,7 +166,7 @@ func _physics_process(delta: float) -> void:
 	if dead:
 		_dead_t += delta
 		velocity.x = move_toward(velocity.x, 0.0, accel * delta)
-		move_and_slide()
+		_move()
 		queue_redraw()
 		return
 
@@ -170,6 +191,8 @@ func _physics_process(delta: float) -> void:
 		speed = crouch_speed
 	elif controllable and Input.is_physical_key_pressed(KEY_SHIFT):
 		speed = run_speed
+	if boosts.has(PickupScript.ADRENALINE):
+		speed *= 1.4
 	var acc := accel if is_on_floor() else accel * air_control
 	if _push_t > 0.0:   # רגע אחרי ירייה - הדחיפה גוברת על ההליכה
 		acc *= 0.25
@@ -180,7 +203,7 @@ func _physics_process(delta: float) -> void:
 	if jump and is_on_floor() and not _crouching:
 		velocity.y = jump_velocity
 
-	move_and_slide()
+	_move()
 	global_position.x = clampf(global_position.x, W, world_w - W)
 
 	if is_on_floor() and absf(velocity.x) > 10.0:
@@ -213,8 +236,78 @@ func _physics_process(delta: float) -> void:
 	if (trigger or _fire_test) and _cooldown <= 0.0:
 		_fire()
 	_fire_test = false
+	_update_laser(sh)
 
 	queue_redraw()
+
+
+func _move() -> void:
+	velocity *= _rt
+	move_and_slide()
+	velocity /= _rt
+
+
+# ============================================================
+#  בוסטים, תחמושת, איסוף
+# ============================================================
+func _boosts_process(delta: float) -> void:
+	for b in boosts.keys():
+		boosts[b] -= delta
+		if boosts[b] <= 0.0:
+			boosts.erase(b)
+			if b == PickupScript.BULLET_TIME:
+				Engine.time_scale = 1.0
+
+
+func activate_boost(b: int) -> void:
+	if b == PickupScript.SHIELD:
+		shield_hits += 2
+		return
+	boosts[b] = boost_time
+	if b == PickupScript.BULLET_TIME:
+		Engine.time_scale = 0.4
+
+
+# pickup.gd קורא לזה כשעוברים על חפץ
+func collect(p: Node) -> bool:
+	if dead:
+		return false
+	match p.kind:
+		PickupScript.AMMO:
+			ammo += 12
+		PickupScript.GRENADE:
+			grenades += 1
+		PickupScript.SUPPLY:
+			ammo += 15
+			grenades += 1
+		PickupScript.BOOST:
+			activate_boost(p.boost)
+	_say(p.label(), p.color())
+	return true
+
+
+func _say(text: String, col: Color) -> void:
+	var t = TextScript.HitText.new()
+	t.text = text
+	t.color = col
+	t.size = 16
+	get_parent().add_child(t)
+	t.global_position = global_position + Vector2(0, -74)
+
+
+func has_boost(b: int) -> bool:
+	return boosts.has(b)
+
+
+# קו לייזר (שדרוג): עד הפגיעה הראשונה
+func _update_laser(sh: Vector2) -> void:
+	if Game.upgrade_level("laser") == 0 or not controllable:
+		return
+	var from := sh + _aim * 40.0
+	var to := from + _aim * 650.0
+	var q := PhysicsRayQueryParameters2D.create(from, to, 5)
+	var hit := get_world_2d().direct_space_state.intersect_ray(q)
+	_laser_end = hit.position if hit else to
 
 
 func _can_stand() -> bool:
@@ -236,7 +329,16 @@ func _fire() -> void:
 		return
 	var sh := global_position + _front_shoulder()
 	if weapon == GUN:
-		_cooldown = fire_delay
+		if ammo <= 0:
+			_cooldown = 0.3
+			if _empty_t <= 0.0:
+				_empty_t = 1.0
+				_say("NO AMMO", Color("ff6050"))
+			return
+		ammo -= 1
+		Game.on_shot()
+		Game.make_noise(global_position, 380.0)   # יריות מעירות זומבים מסביב
+		_cooldown = fire_delay * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
 		_muzzle_flash = 0.05
 		_recoil = 1.0
 		# רתיעה: הירייה דוחפת את הדמות הפוך לכיוון הקנה
@@ -251,8 +353,18 @@ func _fire() -> void:
 		var b = BulletScript.new()
 		get_parent().add_child(b)
 		var spread := randf_range(-0.025, 0.025)
+		if boosts.has(PickupScript.PIERCING):
+			b.pierce = 3
+		b.incendiary = boosts.has(PickupScript.INCENDIARY)
 		b.setup(sh + _aim * 40.0, _aim.rotated(spread) * bullet_speed, sh)
 	else:
+		if grenades <= 0:
+			_cooldown = 0.3
+			if _empty_t <= 0.0:
+				_empty_t = 1.0
+				_say("NO GRENADES", Color("ff6050"))
+			return
+		grenades -= 1
 		_cooldown = grenade_delay
 		var g = GrenadeScript.new()
 		get_parent().add_child(g)
@@ -302,7 +414,7 @@ func _start_drain(s: Node) -> void:
 
 func _drain_process(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0.0, accel * delta)
-	move_and_slide()
+	_move()
 	_idle_k = move_toward(_idle_k, 0.0, delta * 3.0)
 	if not is_instance_valid(_drain_target):
 		_drain_target = null
@@ -319,6 +431,10 @@ func _drain_process(delta: float) -> void:
 		health = max_health
 		health_changed.emit(health, max_health)
 		_heal_flash = 1.0
+		Game.on_drain()
+		var siphon := Game.upgrade_level("siphon")
+		if siphon > 0:   # שדרוג: השאיבה נותנת גם מגן
+			shield_hits += siphon + 1
 		var p = preload("res://zombie.gd").HitText.new()
 		p.text = "FULL LIFE"
 		p.color = Color(0.45, 1.0, 0.75)
@@ -337,12 +453,21 @@ func is_draining() -> bool:
 func hurt(amount: int, knock_dir: Vector2) -> void:
 	if dead or _invuln > 0.0 or _drain_target != null:
 		return
+	if shield_hits > 0:   # המגן סופג את הפגיעה
+		shield_hits -= 1
+		_invuln = 0.5
+		_heal_flash = 0.4
+		_say("BLOCKED", Color("40e0e8"))
+		return
+	Game.on_player_hurt(amount)
 	_invuln = invuln_time
 	health = maxi(health - amount, 0)
 	health_changed.emit(health, max_health)
 	velocity += Vector2(knock_dir.x * 260.0, -180.0)
 	if health <= 0:
 		dead = true
+		Engine.time_scale = 1.0
+		boosts.clear()
 		died.emit()
 
 
@@ -378,6 +503,15 @@ func _draw() -> void:
 		var tgt: Vector2 = _drain_target.chest() - global_position
 		tgt.x *= face
 		_draw_beam(tgt, _device_tip, clampf(_drain_t / DRAIN_TIME, 0.0, 1.0))
+	if shield_hits > 0:   # מגן: טבעת תכלת
+		var sp := 0.7 + 0.3 * sin(_time * 6.0)
+		draw_arc(Vector2(0, -27), 30.0, 0.0, TAU, 32, Color(0.25, 0.9, 0.95, 0.55 * sp), 2.0, true)
+		draw_arc(Vector2(0, -27), 33.0, 0.0, TAU, 32, Color(0.25, 0.9, 0.95, 0.2 * sp), 4.0, true)
+	if boosts.has(PickupScript.ADRENALINE):   # אדרנלין: קווי מהירות אדומים
+		for i in 4:
+			var y := -10.0 - float(i) * 11.0
+			var ln := 10.0 + 8.0 * absf(sin(_time * 9.0 + float(i)))
+			draw_line(Vector2(-14.0, y), Vector2(-14.0 - ln, y), Color(1.0, 0.3, 0.2, 0.55), 1.5, true)
 	if _heal_flash > 0.0:   # הילה ירוקה אחרי שקיבלנו חיים
 		Art.glow(self, Vector2(0, -28), 34.0 * (1.5 - _heal_flash * 0.5), Color(0.45, 1.0, 0.75, 0.6 * _heal_flash))
 	# אדי נשימה
@@ -388,6 +522,12 @@ func _draw() -> void:
 		var a := 0.32 * clampf(age / 0.2, 0.0, 1.0) * (1.0 - age / 1.6)
 		draw_circle(m[0], 1.2 + age * 4.0, Color(0.85, 0.88, 0.95, a))
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+	# לייזר (שדרוג)
+	if Game.upgrade_level("laser") > 0 and controllable and _drain_target == null and weapon == GUN:
+		var from := _front_shoulder() + _aim * 40.0
+		var to := _laser_end - global_position
+		draw_line(from, to, Color(1.0, 0.1, 0.1, 0.35), 1.0, true)
+		draw_circle(to, 2.0, Color(1.0, 0.2, 0.2, 0.9))
 
 
 # הגוף מצויר צר יותר (רזה), הידיים והנשק ברוחב רגיל
