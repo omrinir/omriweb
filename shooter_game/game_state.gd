@@ -40,7 +40,14 @@ const COMBO_WINDOW := 4.0                               # שניות בין הר
 
 # מצב הריצה (נשמר בין שלבים, מתאפס במשחק חדש)
 var level := 1
-var weapons_owned := [true, false, false, false]   # רובה, שוטגאן, צלף, טייזר (נשמר לאורך הריצה)
+# ---- נשקים: 5 מקומות, לכל נשק תחמושת משלו (נשמר בין שלבים) ----
+const WEAPON_NAMES := ["RIFLE", "SHOTGUN", "BOW", "SNIPER", "TASER"]
+const WEAPON_COLORS := [Color("d8c070"), Color("e07a3a"), Color("8ac060"), Color("7ad0ff"), Color("b080ff")]
+const AMMO_START := [30, 8, 12, 5, 6]    # תחמושת כשמוצאים את הנשק
+const AMMO_BOX := [10, 3, 4, 2, 2]       # כמה כל קופסת תחמושת נותנת לכל נשק
+const AMMO_MAX := [60, 16, 20, 10, 12]
+var weapon_slots := [{"id": 0, "ammo": 30}, null, null, null, null]
+var ability_slots := [null, null, null, null, null]   # בקרוב
 var player_dark := false   # השחקן בחושך (ברכבת התחתית) - זומבים רואים אותו פחות
 var run_score := 0
 var scrap := 0
@@ -104,7 +111,7 @@ func is_subway() -> bool:
 
 func new_run() -> void:
 	level = 1
-	weapons_owned = [true, false, false, false]
+	weapon_slots = [{"id": 0, "ammo": 30}, null, null, null, null]
 	run_score = 0
 	scrap = 0
 	for u in UPGRADES:

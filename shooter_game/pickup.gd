@@ -11,8 +11,8 @@ extends Node2D
 const Art := preload("res://art.gd")
 
 enum { AMMO, GRENADE, SUPPLY, BOOST, WEAPON }
-const WEAPON_NAMES := ["RIFLE", "SHOTGUN", "SNIPER", "TASER"]
-const WEAPON_COLORS := [Color("d8c070"), Color("e07a3a"), Color("7ad0ff"), Color("b080ff")]
+const WEAPON_NAMES := ["RIFLE", "SHOTGUN", "BOW", "SNIPER", "TASER"]
+const WEAPON_COLORS := [Color("d8c070"), Color("e07a3a"), Color("8ac060"), Color("7ad0ff"), Color("b080ff")]
 enum { ADRENALINE, PIERCING, BULLET_TIME, SHIELD, INCENDIARY }
 
 const BOOST_NAMES := ["ADRENALINE", "PIERCING ROUNDS", "BULLET TIME", "SHIELD", "INCENDIARY"]
@@ -20,7 +20,9 @@ const BOOST_COLORS := [Color("ff4a3a"), Color("4aa8ff"), Color("b0b8c8"), Color(
 
 var kind := AMMO
 var boost := ADRENALINE
-var weapon_id := 1          # WEAPON: איזה נשק (1 = שוטגאן, 2 = צלף, 3 = טייזר)
+var weapon_id := 1          # WEAPON: איזה נשק (1 שוטגאן, 2 קשת, 3 צלף, 4 טייזר)
+var ammo_amount := -1       # WEAPON: כמה תחמושת בפנים (-1 = רגיל)
+var pick_delay := 0.0       # נשק שנזרק: אי אפשר להרים אותו מיד
 var life := 25.0
 var velocity := Vector2.ZERO
 var gravity := 1100.0
@@ -52,8 +54,9 @@ func _physics_process(delta: float) -> void:
 			_resting = true
 		else:
 			global_position = to
+	pick_delay -= delta
 	var p := get_tree().get_first_node_in_group("player")
-	if p != null and not p.dead and p.global_position.distance_to(global_position + Vector2(0, 16)) < 28.0:
+	if p != null and not p.dead and pick_delay <= 0.0 and p.global_position.distance_to(global_position + Vector2(0, 16)) < 28.0:
 		if p.collect(self):
 			queue_free()
 			return
@@ -63,10 +66,10 @@ func _physics_process(delta: float) -> void:
 
 func label() -> String:
 	match kind:
-		AMMO: return "+12 AMMO"
+		AMMO: return "+AMMO"
 		GRENADE: return "+1 GRENADE"
 		SUPPLY: return "SUPPLIES"
-		WEAPON: return WEAPON_NAMES[weapon_id] + "!  [%d]" % (weapon_id + 1)
+		WEAPON: return WEAPON_NAMES[weapon_id] + "!"
 		_: return BOOST_NAMES[boost]
 
 
@@ -100,7 +103,7 @@ func _draw() -> void:
 			draw_rect(Rect2(bob + Vector2(-3, -6), Vector2(6, 12)), Color("e8e0d0"))
 			draw_rect(Rect2(bob + Vector2(-8, -1.5), Vector2(16, 3)), Color("e8e0d0"))
 		WEAPON:   # צללית של הנשק
-			var ln: float = [0.0, 26.0, 34.0, 20.0][weapon_id]
+			var ln: float = [0.0, 26.0, 26.0, 34.0, 20.0][weapon_id]
 			Art.fill_shaded(self, PackedVector2Array([bob + Vector2(-ln * 0.5, -3), bob + Vector2(ln * 0.5, -3), bob + Vector2(ln * 0.5, 0), bob + Vector2(-ln * 0.5, 1)]), Color("2a2a30"), 0.2, 0.3, Art.OUTLINE, 1.0)
 			Art.fill(self, PackedVector2Array([bob + Vector2(-ln * 0.5, -2), bob + Vector2(-ln * 0.5 + 9, -1), bob + Vector2(-ln * 0.5 + 7, 6), bob + Vector2(-ln * 0.5 - 1, 5)]), Color("5a3a24"), Art.OUTLINE, 1.0)
 			draw_rect(Rect2(bob + Vector2(-ln * 0.5 + 10, -5), Vector2(ln * 0.4, 2)), col)

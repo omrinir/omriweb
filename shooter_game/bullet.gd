@@ -16,7 +16,10 @@ var damage := 0                            # הנזק נקבע בזומבי לפ
 
 var pierce := 0                            # בוסט: כמה זומבים נוספים הקליע עובר דרכם
 var incendiary := false                    # בוסט: הקליע מצית זומבים
-var falloff := false                       # שוטגאן: הנזק יורד עם המרחק
+var falloff := false                       # שוטגאן: הנזק יורד עם המרחק (9 מקרוב עד 1 מרחוק)
+var arrow := false                         # חץ: עף בקשת (כבידה), נזק 13-19, ננעץ בריצפה ואפשר לאסוף
+var gravity := 0.0
+var _stuck := -1.0                         # חץ שננעץ: כמה זמן נשאר
 var sniper := false                        # צלף: נזק כפול בראש, פי 1.5 בגוף
 var count_hit := true                      # false = לא נספר לדיוק (כדורי שוטגאן נוספים)
 var _dist := 0.0
@@ -35,6 +38,18 @@ func setup(muzzle_pos: Vector2, vel: Vector2, check_from: Vector2) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _stuck >= 0.0:   # חץ תקוע: השחקן יכול לאסוף אותו
+		_stuck -= delta
+		modulate.a = clampf(_stuck, 0.0, 1.0)
+		var pl := get_tree().get_first_node_in_group("player")
+		if pl != null and not pl.dead and pl.global_position.distance_to(global_position) < 26.0 and pl.add_ammo(2, 1):
+			queue_free()
+		elif _stuck <= 0.0:
+			queue_free()
+		return
+	if gravity != 0.0:
+		velocity.y += gravity * delta
+		rotation = velocity.angle()
 	life_time -= delta
 	if life_time <= 0.0:
 		queue_free()
@@ -65,8 +80,11 @@ func _physics_process(delta: float) -> void:
 		if mh.hit_test(from, to):
 			mh.pop(velocity.normalized())
 	_dist += from.distance_to(to)
-	var mult := clampf(1.0 - (_dist - 110.0) / 380.0, 0.25, 1.0) if falloff else 1.0
-	var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary, "mult": mult, "sniper": sniper, "counted": not count_hit}
+	var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary, "sniper": sniper, "counted": not count_hit}
+	if falloff:   # שוטגאן: 9 נזק מקרוב, יורד עד 1 במרחק 420
+		src["fixed"] = int(round(lerpf(9.0, 1.0, clampf((_dist - 50.0) / 370.0, 0.0, 1.0))))
+	elif arrow:
+		src["fixed"] = randi_range(13, 19)
 	while true:
 		var query := PhysicsRayQueryParameters2D.create(from, to, collision_mask, _exclude)
 		var hit := get_world_2d().direct_space_state.intersect_ray(query)
@@ -83,6 +101,10 @@ func _physics_process(delta: float) -> void:
 		else:
 			if hit.collider.has_method("hit_by_bullet"):   # לבנה - נסדקת / נשברת
 				hit.collider.hit_by_bullet(hit.position, hit.normal, velocity.normalized())
+			if arrow:   # החץ ננעץ ונשאר (אפשר לאסוף)
+				global_position = hit.position - velocity.normalized() * 4.0
+				_stuck = 8.0
+				return
 			var fx := Impact.new()   # ניצוצות רק על לבנים
 			get_parent().add_child(fx)
 			fx.global_position = hit.position
@@ -106,6 +128,12 @@ func _dist_to_edge(r: Rect2, p: Vector2, d: Vector2) -> float:
 
 
 func _draw() -> void:
+	if arrow:   # חץ: מוט עץ, ראש מתכת ונוצות
+		draw_line(Vector2(-22.0, 0.0), Vector2(4.0, 0.0), Color("8a6a40"), 1.6, true)
+		draw_colored_polygon(PackedVector2Array([Vector2(4, -2.5), Vector2(10, 0), Vector2(4, 2.5)]), Color("b8b8c0"))
+		draw_colored_polygon(PackedVector2Array([Vector2(-22, 0), Vector2(-17, -3.5), Vector2(-14, -3.5), Vector2(-18, 0)]), Color("d04030"))
+		draw_colored_polygon(PackedVector2Array([Vector2(-22, 0), Vector2(-17, 3.5), Vector2(-14, 3.5), Vector2(-18, 0)]), Color("d04030"))
+		return
 	# שובל אוויר דק ושקוף (כדי שיהיה אפשר לראות את הקליע זז)
 	draw_line(Vector2(-34.0, 0.0), Vector2(-6.0, 0.0), Color(0.9, 0.9, 0.95, 0.12), 2.0, true)
 	draw_line(Vector2(-18.0, 0.0), Vector2(-6.0, 0.0), Color(0.9, 0.9, 0.95, 0.22), 1.2, true)

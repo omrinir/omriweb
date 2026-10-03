@@ -178,12 +178,6 @@ func _physics_process(delta: float) -> void:
 		for z in tree.get_nodes_in_group("zombies"):
 			if not z.dead and z.global_position.y > floor_y - 6.0 and z.global_position.x > x0 and z.global_position.x < x1 and not z.is_boss():
 				z.take_damage(999, z.global_position + Vector2(0, -30), Vector2.LEFT, true, {"source": "train"})
-		if player != null and not player.dead and not _train_hit and player.global_position.y > floor_y - 6.0 \
-				and player.global_position.x > x0 and player.global_position.x < x1:
-			_train_hit = true
-			player._invuln = 0.0
-			player.hurt(2, Vector2.LEFT)
-			player.velocity = Vector2(-520.0, -420.0)
 		if x1 < view.position.x - 100.0:
 			_train_x = INF
 	queue_redraw()

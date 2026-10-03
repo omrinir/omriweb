@@ -19,6 +19,7 @@ const RoadDecorScript := preload("res://road_decor.gd")
 const ManholeScript := preload("res://manhole.gd")
 const LampScript := preload("res://street_lamp.gd")
 const SubwayScript := preload("res://subway.gd")
+const WheelScript := preload("res://weapon_wheel.gd")
 const CEIL_Y := 250.0   # רכבת תחתית: גובה התקרה
 # רכבת תחתית: [רגיל, רץ, ענק, יורק, צורח, בוס, נפוח, מוליך, זוחל, שוטר, חולדות, יד]
 const SUBWAY_WEIGHTS := [0.25, 0.14, 0.08, 0.08, 0.05, 0.0, 0.07, 0.0, 0.1, 0.1, 0.12, 0.07]
@@ -176,7 +177,7 @@ func _ready() -> void:
 	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
-	label.text = "A/D move  SHIFT run  W jump (x2)  S crouch  LMB fire  1-4 weapons  T grenade  Q roll  SHIFT+S slide  E grapple  RMB scope  ESC pause"
+	label.text = "A/D move  SHIFT run  W jump (x2)  S crouch  LMB fire  1-5/TAB weapons  G drop  T grenade  Q roll  SHIFT+S slide  E grapple  RMB scope  ESC pause"
 	label.position = Vector2(12, 8)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
@@ -200,6 +201,9 @@ func _ready() -> void:
 	_player = player
 	_pause = pause
 	bar.player = player
+	var wheel = WheelScript.new()   # גלגל נשקים (TAB)
+	wheel.player = player
+	hud.add_child(wheel)
 
 
 # ============================================================
@@ -519,23 +523,29 @@ func _spawn_supplies(rng: RandomNumberGenerator, floor_y: float) -> void:
 		p.life = 100000.0
 		add_child(p)
 		p.setup(Vector2(x, floor_y - 30.0), Vector2.ZERO)
-	# רכבת תחתית: נשקים חדשים (שוטגאן בהתחלה, צלף וטייזר בהמשך)
-	if Game.is_subway():
-		var spots := [safe_zone * 0.75, level_w * 0.3, level_w * 0.55]
-		for i in 3:
-			if Game.weapons_owned[i + 1]:
-				continue
-			var x: float = spots[i]
-			var tries := 0
-			while _near_brick(x) and tries < 60:
-				x += 41.0
-				tries += 1
-			var p = PickupScript.new()
-			p.kind = PickupScript.WEAPON
-			p.weapon_id = i + 1
-			p.life = 100000.0
-			add_child(p)
-			p.setup(Vector2(x, floor_y - 30.0), Vector2.ZERO)
+	# נשקים חדשים לאורך השלב (רק כאלה שעוד אין): שלב 1 = שוטגאן + קשת, רכבת תחתית = צלף + טייזר
+	var owned := []
+	for s in Game.weapon_slots:
+		if s != null:
+			owned.append(s.id)
+	var offer := [3, 4, 1, 2] if Game.is_subway() else [1, 2]
+	var n := 0
+	for wid in offer:
+		if wid in owned or n >= 2:
+			continue
+		var spots := [safe_zone * 0.75, level_w * 0.4]
+		var x: float = spots[n]
+		n += 1
+		var tries := 0
+		while _near_brick(x) and tries < 60:
+			x += 41.0
+			tries += 1
+		var p = PickupScript.new()
+		p.kind = PickupScript.WEAPON
+		p.weapon_id = wid
+		p.life = 100000.0
+		add_child(p)
+		p.setup(Vector2(x, floor_y - 30.0), Vector2.ZERO)
 
 
 # היציאה + הבוס ששומר עליה
@@ -565,6 +575,7 @@ func _level_complete() -> void:
 		return
 	_finished = true
 	Engine.time_scale = 1.0
+	Game.weapon_slots = _player.slots.duplicate(true)   # הנשקים והתחמושת עוברים לשלב הבא
 	var result := Game.finish_level(_time)
 	var r = ResultsScript.new()
 	add_child(r)

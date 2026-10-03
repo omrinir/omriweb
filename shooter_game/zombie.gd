@@ -788,7 +788,8 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		dmg = head_damage * 2
 	if src.get("sniper", false):   # צלף
 		dmg = dmg * 2 if zone == "head" else int(dmg * 1.5)
-	dmg = maxi(1, int(round(float(dmg) * src.get("mult", 1.0))))   # שוטגאן מרחוק = פחות נזק
+	if src.has("fixed"):   # שוטגאן (לפי מרחק) / חץ (13-19)
+		dmg = int(src.fixed)
 	Particles.burst(get_parent(), hit_pos, "hit", dir if dir != Vector2.ZERO else Vector2.UP, 10)
 	# PERFECT: פגיעה בדיוק במרכז הראש
 	var perfect := false

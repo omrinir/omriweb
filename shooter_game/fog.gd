@@ -10,33 +10,54 @@ var _t := 0.0
 var _blobs := []
 
 
+# ערפל רך: רעש (noise) שזז לאט, בלי צורות עם קצוות
+const FOG_SHADER := """
+shader_type canvas_item;
+uniform float t;
+uniform float cam_x;
+uniform vec2 rect_size = vec2(1280.0, 200.0);
+uniform vec4 col : source_color;
+uniform float strength = 0.3;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p) {
+	vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float fbm(vec2 p) {
+	float v = 0.0; float a = 0.5;
+	for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; }
+	return v;
+}
+void fragment() {
+	vec2 w = vec2(UV.x * rect_size.x + cam_x * 1.15, UV.y * rect_size.y);
+	vec2 p = vec2(w.x / 240.0 + t * 0.04, w.y / 60.0);
+	float n = fbm(p + vec2(fbm(p * 0.6 + vec2(t * 0.03, 0.0)) * 1.5, 0.0));
+	float prof = smoothstep(0.0, 0.7, UV.y) * (1.0 - smoothstep(0.88, 1.0, UV.y));
+	COLOR = vec4(col.rgb, strength * prof * smoothstep(0.3, 0.85, n));
+}
+"""
+var _rect: ColorRect
+
+
 func _ready() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 5
-	for i in 16:
-		_blobs.append([rng.randf_range(0.0, 1.0), rng.randf_range(-30.0, 25.0), rng.randf_range(90.0, 200.0), rng.randf_range(0.6, 1.4)])
+	var s := get_viewport_rect().size
+	_rect = ColorRect.new()
+	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rect.position = Vector2(0.0, y_screen - 130.0)
+	_rect.size = Vector2(s.x, 170.0)
+	var m := ShaderMaterial.new()
+	m.shader = Shader.new()
+	m.shader.code = FOG_SHADER
+	m.set_shader_parameter("col", color)
+	m.set_shader_parameter("strength", strength * 3.2)
+	m.set_shader_parameter("rect_size", _rect.size)
+	_rect.material = m
+	add_child(_rect)
 
 
 func _process(delta: float) -> void:
 	_t += delta
-	queue_redraw()
-
-
-func _draw() -> void:
-	var s := get_viewport_rect().size
 	var cam := get_viewport().get_camera_2d()
-	var cx := cam.get_screen_center_position().x if cam != null else 0.0
-	var span := s.x + 400.0
-	for b in _blobs:
-		var x := fposmod(float(b[0]) * span - cx * 1.15 + _t * 12.0 * float(b[3]), span) - 200.0
-		var y := y_screen + float(b[1]) + sin(_t * 0.4 + float(b[0]) * 9.0) * 4.0
-		var r: float = b[2]
-		draw_colored_polygon(_ellipse(Vector2(x, y), r, r * 0.22), Color(color, strength))
-
-
-func _ellipse(c: Vector2, rx: float, ry: float) -> PackedVector2Array:
-	var pts := PackedVector2Array()
-	for i in 18:
-		var a := TAU * float(i) / 18.0
-		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
-	return pts
+	var m: ShaderMaterial = _rect.material
+	m.set_shader_parameter("t", _t)
+	m.set_shader_parameter("cam_x", cam.get_screen_center_position().x if cam != null else 0.0)

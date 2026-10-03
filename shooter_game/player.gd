@@ -60,8 +60,15 @@ var eye_color := Color("ff3030")
 
 var world_w := 100000.0          # רוחב העולם (main.gd קובע)
 var weapon := GUN
-var gun := 0                     # 0 רובה, 1 שוטגאן, 2 צלף, 3 טייזר (מקשים 1-4)
-const GUN_DELAY := [0.7, 1.0, 1.5, 0.9]
+# ---- נשקים: 5 מקומות (גלגל נשקים = TAB, מקשים 1-5, G = לזרוק). לכל נשק תחמושת משלו ----
+enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER }
+const GUN_DELAY := [0.7, 1.0, 0.8, 1.5, 0.9]
+var slots := []                  # 5 מקומות: {"id", "ammo"} או null
+var cur_slot := 0
+var wheel_open := false          # גלגל הנשקים פתוח: לא יורים
+var gun: int:
+	get:
+		return slots[cur_slot].id if cur_slot < slots.size() and slots[cur_slot] != null else RIFLE
 var _scoping := false            # צלף: לחצן ימני = כוונת, הזמן מאט
 var _bolts := []                 # טייזר: [נקודות, זמן]
 # ---- וו קרס (E) ----
@@ -102,7 +109,12 @@ var _recoil := 0.0
 var _dead_t := 0.0
 var _push_t := 0.0
 # ---- תחמושת ובוסטים ----
-var ammo := 36
+var ammo: int:                   # התחמושת של הנשק שביד
+	get:
+		return slots[cur_slot].ammo if cur_slot < slots.size() and slots[cur_slot] != null else 0
+	set(v):
+		if cur_slot < slots.size() and slots[cur_slot] != null:
+			slots[cur_slot].ammo = clampi(v, 0, Game.AMMO_MAX[slots[cur_slot].id])
 var grenades := 2
 var shield_hits := 0             # כמה פגיעות המגן עוד יספוג
 var boosts := {}                 # סוג בוסט -> כמה שניות נשארו
@@ -140,7 +152,15 @@ func _ready() -> void:
 	_set_height(H_STAND)
 	z_index = 4
 	# תחמושת לפי קושי + שדרוגים
-	ammo = [50, 36, 26][Settings.difficulty] + 10 * Game.upgrade_level("ammo")
+	slots = Game.weapon_slots.duplicate(true)
+	var start: int = [40, 30, 22][Settings.difficulty] + 10 * Game.upgrade_level("ammo")
+	for s in slots:   # בתחילת כל שלב: לרובה יש לפחות את תחמושת ההתחלה
+		if s != null and s.id == RIFLE:
+			s.ammo = maxi(s.ammo, start)
+	for i in slots.size():
+		if slots[i] != null:
+			cur_slot = i
+			break
 	grenades = [3, 2, 1][Settings.difficulty] + Game.upgrade_level("grenades")
 	fire_delay *= pow(0.85, Game.upgrade_level("fire_rate"))
 	boost_time *= 1.0 + 0.3 * Game.upgrade_level("boost_time")
@@ -340,9 +360,9 @@ func _physics_process(delta: float) -> void:
 		_aim = idle_aim
 	elif to_mouse.length() > 4.0 and not _fire_test:
 		_aim = to_mouse.normalized()
-	var trigger := controllable and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not get_tree().paused
+	var trigger := controllable and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not get_tree().paused and not wheel_open
 	# צלף: לחצן ימני = כוונת והזמן מאט
-	var scope := controllable and weapon == GUN and gun == 2 and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not get_tree().paused
+	var scope := controllable and weapon == GUN and gun == SNIPER and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not get_tree().paused
 	if scope != _scoping:
 		_scoping = scope
 		if scope:
@@ -405,20 +425,16 @@ func collect(p: Node) -> bool:
 		return false
 	match p.kind:
 		PickupScript.AMMO:
-			ammo += 12
+			_ammo_box(1)
 		PickupScript.GRENADE:
 			grenades += 1
 		PickupScript.SUPPLY:
-			ammo += 15
+			_ammo_box(2)
 			grenades += 1
 		PickupScript.BOOST:
 			activate_boost(p.boost)
 		PickupScript.WEAPON:
-			Game.weapons_owned[p.weapon_id] = true
-			gun = p.weapon_id
-			weapon = GUN
-			weapon_changed.emit(weapon)
-			ammo += 10
+			return _take_weapon(p)
 	_say(p.label(), p.color())
 	return true
 
@@ -478,35 +494,41 @@ func _fire() -> void:
 		Game.on_shot()
 		Game.make_noise(global_position, 380.0)   # יריות מעירות זומבים מסביב
 		_cooldown = (fire_delay if gun == 0 else GUN_DELAY[gun]) * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
-		_muzzle_flash = 0.05
+		_muzzle_flash = 0.0 if gun == BOW else 0.05
 		_recoil = 1.0
 		# רתיעה: הירייה דוחפת את הדמות הפוך לכיוון הקנה
 		if is_on_floor():
-			velocity.x -= _aim.x * recoil_push * (2.2 if gun == 1 else 1.0)
+			velocity.x -= _aim.x * recoil_push * [1.0, 2.2, 0.0, 1.4, 0.3][gun]
 		else:
 			velocity -= _aim * air_recoil_push
 			velocity.y = maxf(velocity.y, -700.0)
 		_push_t = 0.12
 		get_tree().call_group("zombies", "on_player_fired", sh, _aim)
-		_eject_casing(sh)
-		if gun == 3:
+		if gun == RIFLE or gun == SHOTGUN or gun == SNIPER:
+			_eject_casing(sh)
+		if gun == TASER:
 			_taser(sh)
 			return
-		var n := 6 if gun == 1 else 1   # שוטגאן: 6 כדורים בפיזור
+		var n := 6 if gun == SHOTGUN else 1   # שוטגאן: 6 כדורים בפיזור
 		for i in n:
 			var b = BulletScript.new()
 			get_parent().add_child(b)
-			var spread := randf_range(-0.16, 0.16) if gun == 1 else 0.0   # רובה וצלף: בלי פיזור
+			var spread := randf_range(-0.16, 0.16) if gun == SHOTGUN else 0.0   # רובה וצלף: בלי פיזור
 			if boosts.has(PickupScript.PIERCING):
 				b.pierce = 3
 			b.incendiary = boosts.has(PickupScript.INCENDIARY)
 			var spd := bullet_speed
-			if gun == 1:
+			if gun == SHOTGUN:
 				b.falloff = true
 				b.life_time = 0.35
 				b.count_hit = i == 0
 				spd *= randf_range(0.85, 1.0)
-			elif gun == 2:
+			elif gun == BOW:   # חץ: עף בקשת
+				b.arrow = true
+				b.gravity = 900.0
+				b.life_time = 3.0
+				spd = 1150.0
+			elif gun == SNIPER:
 				b.sniper = true
 				b.pierce += 3
 				spd = 4200.0
@@ -523,6 +545,80 @@ func _fire() -> void:
 		var g = GrenadeScript.new()
 		get_parent().add_child(g)
 		g.setup(sh + _aim * 14.0, _aim * grenade_speed + velocity * 0.3)
+
+
+# ============================================================
+#  מקומות לנשקים
+# ============================================================
+func select_slot(i: int) -> void:
+	if i < 0 or i >= slots.size() or slots[i] == null:
+		return
+	cur_slot = i
+	weapon = GUN
+	weapon_changed.emit(weapon)
+	_say(Game.WEAPON_NAMES[gun], Game.WEAPON_COLORS[gun])
+
+
+# קופסת תחמושת: כל נשק מקבל את הכמות שלו
+func _ammo_box(mult: int) -> void:
+	for s in slots:
+		if s != null:
+			s.ammo = mini(s.ammo + Game.AMMO_BOX[s.id] * mult, Game.AMMO_MAX[s.id])
+
+
+# מוסיף תחמושת לנשק מסוים (למשל חץ שנאסף). false = אין את הנשק / מלא
+func add_ammo(id: int, n: int) -> bool:
+	for s in slots:
+		if s != null and s.id == id and s.ammo < Game.AMMO_MAX[id]:
+			s.ammo += n
+			return true
+	return false
+
+
+func _take_weapon(p: Node) -> bool:
+	var amt: int = p.ammo_amount if p.ammo_amount >= 0 else Game.AMMO_START[p.weapon_id]
+	for s in slots:   # כבר יש את הנשק: רק תחמושת
+		if s != null and s.id == p.weapon_id:
+			s.ammo = mini(s.ammo + amt, Game.AMMO_MAX[s.id])
+			_say("+%d %s" % [amt, Game.WEAPON_NAMES[s.id]], p.color())
+			return true
+	for i in slots.size():
+		if slots[i] == null:
+			slots[i] = {"id": p.weapon_id, "ammo": amt}
+			select_slot(i)
+			_say(p.label(), p.color())
+			return true
+	if _empty_t <= 0.0:
+		_empty_t = 1.5
+		_say("SLOTS FULL  -  G = DROP WEAPON", Color("ff6050"))
+	return false
+
+
+# זורק נשק לריצפה (מפנה מקום לנשק אחר)
+func drop_weapon(i: int) -> void:
+	if i < 0 or i >= slots.size() or slots[i] == null:
+		return
+	var count := 0
+	for s in slots:
+		if s != null:
+			count += 1
+	if count <= 1:
+		_say("CAN'T DROP YOUR LAST WEAPON", Color("ff6050"))
+		return
+	var p = PickupScript.new()
+	p.kind = PickupScript.WEAPON
+	p.weapon_id = slots[i].id
+	p.ammo_amount = slots[i].ammo
+	p.pick_delay = 1.2
+	p.life = 60.0
+	get_parent().add_child(p)
+	p.setup(global_position + Vector2(0.0, -30.0), Vector2(_face() * 170.0, -260.0))
+	slots[i] = null
+	if i == cur_slot:
+		for j in slots.size():
+			if slots[j] != null:
+				select_slot(j)
+				break
 
 
 # ---- טייזר: ברק שקופץ מזומבי לזומבי (פי 3 במים) ----
@@ -659,13 +755,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.physical_keycode == KEY_T and not dead:
 		weapon = GRENADE if weapon == GUN else GUN
 		weapon_changed.emit(weapon)
-	elif event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_4 and not dead:
-		var g: int = event.physical_keycode - KEY_1
-		if Game.weapons_owned[g]:
-			gun = g
-			weapon = GUN
-			weapon_changed.emit(weapon)
-			_say(PickupScript.WEAPON_NAMES[g], PickupScript.WEAPON_COLORS[g])
+	elif event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_5 and not dead:
+		select_slot(event.physical_keycode - KEY_1)
+	elif event.physical_keycode == KEY_G and not dead and not wheel_open:
+		drop_weapon(cur_slot)
 	elif event.physical_keycode == KEY_K:
 		_invuln = 0.0
 		hurt(health, Vector2.ZERO)
@@ -818,6 +911,14 @@ func _draw() -> void:
 		draw_arc(Vector2(10, -24), 22.0, -0.9 + mk * 0.6, 0.5 + mk * 0.6, 10, Color(1, 1, 1, 0.5 * sin(mk * PI)), 3.0, true)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 	# לייזר (שדרוג)
+	# קשת: קו נקודות שמראה לאן החץ יעוף
+	if weapon == GUN and gun == BOW and controllable and _drain_target == null and not dead:
+		var p0 := _front_shoulder() + _aim * 40.0
+		var v := _aim * 1150.0
+		for i in 14:
+			var tt := 0.045 * float(i + 1)
+			var pt := p0 + v * tt + Vector2(0.0, 450.0 * tt * tt)
+			draw_circle(pt, 1.6, Color(0.6, 0.9, 0.5, 0.55 * (1.0 - float(i) / 14.0)))
 	# טייזר: ברקים
 	for b in _bolts:
 		var pts: PackedVector2Array = b[0]
@@ -1077,21 +1178,34 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 	var g := func(x: float, y: float) -> Vector2: return hand + la * x + n * y
 	var metal := Color("1d1d23")
 	var wood := Color("4b2d1c")
+	if gun == BOW:   # קשת: עץ מעוקל, מיתר וחץ דרוך
+		var bow := PackedVector2Array()
+		for k in 9:
+			var a := -1.25 + 2.5 * float(k) / 8.0
+			bow.append(g.call(3.0 + cos(a) * 6.0, sin(a) * 16.0))
+		draw_polyline(bow, Color("6a4424"), 2.6, true)
+		draw_polyline(bow, Color("9a6a3a"), 1.2, true)
+		var pull := 3.0 if _cooldown <= 0.0 else 0.0
+		draw_polyline(PackedVector2Array([bow[0], g.call(-pull, 0.0), bow[8]]), Color(0.9, 0.9, 0.85, 0.8), 0.8, true)
+		if _cooldown <= 0.0 and ammo > 0:
+			draw_line(g.call(-pull, 0.0), g.call(20.0, 0.0), Color("8a6a40"), 1.4, true)
+			draw_colored_polygon(PackedVector2Array([g.call(20.0, -2.0), g.call(25.0, 0.0), g.call(20.0, 2.0)]), Color("b8b8c0"))
+		return
 	Art.fill(self, PackedVector2Array([g.call(-11.0, -0.5), g.call(-2.0, -1.6), g.call(-1.0, 2.2), g.call(-11.0, 4.2)]), wood, Art.OUTLINE, 1.0)
 	Art.fill(self, PackedVector2Array([
 		g.call(-2.0, -1.6), g.call(14.0, -1.6), g.call(14.0, 1.6), g.call(4.0, 1.6),
 		g.call(2.6, 6.4), g.call(-0.6, 6.4), g.call(-1.0, 2.2),
 	]), metal, Art.OUTLINE, 1.0)
 	Art.fill(self, PackedVector2Array([g.call(5.0, 1.6), g.call(13.0, 1.6), g.call(12.0, 3.6), g.call(6.0, 3.6)]), wood, Art.OUTLINE, 0.9)   # ידית קדמית
-	var bl: float = [25.0, 22.0, 35.0, 20.0][gun]   # אורך הקנה לפי הנשק
-	Art.limb(self, PackedVector2Array([g.call(14.0, -0.4), g.call(bl, -0.4)]), [2.0, 3.4, 1.8, 2.4][gun], Color("2c2c34"), Art.OUTLINE)   # קנה
+	var bl: float = [25.0, 22.0, 0.0, 35.0, 20.0][gun]   # אורך הקנה לפי הנשק
+	Art.limb(self, PackedVector2Array([g.call(14.0, -0.4), g.call(bl, -0.4)]), [2.0, 3.4, 0.0, 1.8, 2.4][gun], Color("2c2c34"), Art.OUTLINE)   # קנה
 	match gun:
-		1:   # שוטגאן: ידית משאבה
+		SHOTGUN:   # שוטגאן: ידית משאבה
 			Art.fill(self, PackedVector2Array([g.call(15.0, 1.2), g.call(21.0, 1.2), g.call(21.0, 3.6), g.call(15.0, 3.6)]), Color("5a3a24"), Art.OUTLINE, 0.9)
-		2:   # צלף: כוונת טלסקופית
+		SNIPER:   # צלף: כוונת טלסקופית
 			Art.fill(self, PackedVector2Array([g.call(0.0, -3.4), g.call(11.0, -3.4), g.call(11.0, -6.4), g.call(0.0, -6.4)]), Color("16161a"), Art.OUTLINE, 0.9)
 			draw_circle(g.call(11.2, -4.9), 1.2, Color(0.5, 0.8, 1.0, 0.8))
-		3:   # טייזר: סליל סגול זוהר
+		TASER:   # טייזר: סליל סגול זוהר
 			for k in 3:
 				draw_circle(g.call(16.0 + float(k) * 2.0, -0.4), 2.2, Color(0.7, 0.5, 1.0, 0.5 + 0.3 * sin(_time * 20.0 + float(k))))
 			draw_circle(g.call(bl, -0.4), 1.8, Color(0.85, 0.75, 1.0))

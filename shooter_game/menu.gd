@@ -181,7 +181,7 @@ func _build_ui(vp: Vector2) -> void:
 	var hint := Caption.new()
 	hint.size = 15
 	hint.color = Color(1, 1, 1, 0.55)
-	hint.text = "A/D move   W jump   S crouch   MOUSE aim   LMB fire   1-4 weapons   T grenade   E grapple   ESC pause"
+	hint.text = "A/D move   W jump   S crouch   MOUSE aim   LMB fire   1-5/TAB weapons   G drop   T grenade   E grapple   ESC pause"
 	hint.position = Vector2(20, vp.y - 18.0)
 	ui.add_child(hint)
 
