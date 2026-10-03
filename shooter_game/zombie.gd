@@ -135,6 +135,9 @@ var _grab_state := 0             # יד: 0 = מחכה מתחת למים, 1 = ת�
 var _grab_t := 0.0
 var _charge_t := 0.0
 var _groan_t := randf_range(1.0, 6.0)   # צליל אנקה
+var _voice_cd := 0.0             # זעקות: לא כל הזמן
+var _noticed := false
+var _close_yell := false
 var _charge_cd := 3.0
 var _swell := 0.0                # נפוח: כמה הוא התנפח (0..1)
 var _fuse_t := -1.0              # נפוח: עומד להתפוצץ
@@ -241,6 +244,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_time += delta
 	_flash -= delta
+	_voice_cd -= delta
 	_attack_t -= delta
 	_bite_anim -= delta
 	_pick_cd -= delta
@@ -310,6 +314,12 @@ func _physics_process(delta: float) -> void:
 	elif player != null and not player.dead and (global_position.distance_to(player.global_position) < chase_range * (0.45 if Game.player_dark and not is_boss() else 1.0) or _alert_t > 0.0):   # בחושך רואים פחות
 		_chasing = true
 		_dir = signf(player.global_position.x - global_position.x)
+		if not _noticed:   # ראה את השחקן: זעקה
+			_noticed = true
+			_voice("zscream", 0.6, -3.0)
+		if not _close_yell and global_position.distance_to(player.global_position) < 130.0:   # מתקרב
+			_close_yell = true
+			_voice("zscream", 0.5, 0.0)
 		_groan_t -= delta
 		if _groan_t <= 0.0:
 			_groan_t = randf_range(4.0, 9.0)
@@ -670,6 +680,14 @@ func _bloat_pop() -> void:
 	queue_free()
 
 
+# זעקות / צעקות כאב (עם הפסקה בין צעקה לצעקה)
+func _voice(name: String, chance: float, vol: float) -> void:
+	if kind == RAT or kind == HAND or is_boss() or _voice_cd > 0.0 or randf() > chance:
+		return
+	_voice_cd = randf_range(1.8, 3.2)
+	Sfx.play(name, global_position, vol, 0.12, 3)
+
+
 func is_boss() -> bool:
 	return kind == BOSS or kind == CONDUCTOR
 
@@ -818,6 +836,8 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	Game.on_zombie_hit(_last_info)
 	Sfx.play("headshot" if zone == "head" else "hit", hit_pos, -4.0, 0.15, 4)
 	hp -= dmg
+	if hp > 0 and (source == "bullet" or source == "melee" or source == "taser"):
+		_voice("zhit", 0.7, -2.0)
 	_damage_number(dmg, zone)
 
 	if zone == "head":
@@ -869,6 +889,7 @@ func _damage_number(dmg: int, zone: String) -> void:
 func _wake() -> void:
 	if not dormant:
 		return
+	_voice("zscream", 0.8, -1.0)   # קם מהריצפה: זעקה
 	dormant = false
 	_rise_t = RISE_TIME
 	var r := _shape.shape as RectangleShape2D

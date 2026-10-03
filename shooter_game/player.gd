@@ -363,9 +363,9 @@ func _physics_process(delta: float) -> void:
 		_step_t -= delta * absf(velocity.x) / 190.0
 		if _step_t <= 0.0:
 			_step_t = 0.36
-			Sfx.play("step_water" if in_water else "step", global_position, -3.0 if _running else -7.0, 0.15, 3)
+			Sfx.play("step_water" if in_water else "step", global_position, (-1.0 if _running else -5.0) if in_water else (-3.0 if _running else -7.0), 0.15, 3)
 	if is_on_floor() and not _was_floor and fall_v > 350.0:
-		Sfx.play("step_water" if in_water else "land", global_position, -2.0)
+		Sfx.play("splash" if in_water else "land", global_position, -2.0)
 	_was_floor = is_on_floor()
 
 	if is_on_floor() and absf(velocity.x) > 10.0:
