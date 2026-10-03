@@ -1,4 +1,5 @@
 extends CharacterBody2D
+const SIZE := 0.85   # גודל הניצולה (בגובה הדמות הראשית)
 # ============================================================
 #  ניצולה (אישה, לא זומבי). כשהשחקן מתקרב היא רצה אליו ומבקשת עזרה.
 #  * קליע אחד הורג אותה.
@@ -55,9 +56,9 @@ func _ready() -> void:
 	collision_mask = 1
 	_shape = CollisionShape2D.new()
 	var r := RectangleShape2D.new()
-	r.size = Vector2(18, 52)
+	r.size = Vector2(15, 44)
 	_shape.shape = r
-	_shape.position = Vector2(0, -26)
+	_shape.position = Vector2(0, -22)
 	add_child(_shape)
 	_t = randf() * 5.0
 	z_index = 3
@@ -199,7 +200,7 @@ func finish_drain() -> void:
 
 # נקודה בחזה (משם יוצאת קרן כוח החיים)
 func chest() -> Vector2:
-	return global_position + Vector2(0, -34.0 - 6.0 * sin(_drain_k * PI) if _burn_t < 0.0 else -20.0)
+	return global_position + Vector2(0, -29.0 - 6.0 * sin(_drain_k * PI) if _burn_t < 0.0 else -17.0)
 
 
 # ============================================================
@@ -208,19 +209,19 @@ func chest() -> Vector2:
 func _draw() -> void:
 	if state == DEAD:
 		var outer := Transform2D(_angle, Vector2(0, -8))
-		draw_set_transform_matrix(outer * Transform2D(0.0, Vector2(_dir, 1.0), 0.0, Vector2(0, 26)))
+		draw_set_transform_matrix(outer * Transform2D(0.0, Vector2(_dir * SIZE, SIZE), 0.0, Vector2(0, 26.0 * SIZE)))
 		_draw_woman(0.0)
 		draw_set_transform_matrix(Transform2D.IDENTITY)
 		return
 	if is_on_floor():
-		Art.ground_shadow(self, Vector2.ZERO, 11.0)
+		Art.ground_shadow(self, Vector2.ZERO, 11.0 * SIZE)
 	# בזמן השאיבה: מתרוממת קצת ורועדת
 	var lift := 0.0
 	var shake := Vector2.ZERO
 	if state == DRAINED and _burn_t < 0.0:
 		lift = -6.0 * sin(_drain_k * PI * 0.5)
 		shake = Vector2(randf_range(-1.0, 1.0), randf_range(-0.6, 0.6)) * (0.5 + 1.5 * _drain_k)
-	draw_set_transform(Vector2(0, lift) + shake, 0.0, Vector2(_dir, 1.0))
+	draw_set_transform(Vector2(0, lift) + shake, 0.0, Vector2(_dir * SIZE, SIZE))
 	_draw_woman(1.0)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 	if state == WAIT:   # כמה זמן נשאר להחליט (שאיבה או רחמים)

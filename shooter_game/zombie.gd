@@ -285,10 +285,12 @@ func _ready() -> void:
 	elif kind == DOG:
 		sc *= 0.88
 	elif kind in [MECH, GUNNER, RAT, HAND]:
-		sc *= 0.9
+		sc *= 0.8 if kind == MECH else 0.9
 	else:
 		sc *= 0.88
 		wf *= 0.84
+		if kind == BRUTE or kind == HURLER:   # ענקים: גדולים, אבל לא ענקיים ליד הדמות
+			sc *= 0.86
 	var drng := RandomNumberGenerator.new()   # פרטים קבועים לכל זומבי (ריקבון, תפרים, קרעים)
 	drng.seed = get_instance_id()
 	_det = [drng.randf() < 0.5, drng.randf() < 0.4, drng.randf() < 0.5, drng.randf_range(-3.0, 3.0), drng.randf_range(-2.0, 4.0), drng.randf() < 0.35]
@@ -1066,6 +1068,14 @@ func _die(dir: Vector2) -> void:
 	r.size = Vector2(18, 18) * sc   # גופה = ריבוע קטן שמתגלגל
 	_shape.position = Vector2(0.0, -9.0 * sc)
 	velocity = Vector2(dir.x, minf(dir.y, 0.0)).normalized() * randf_range(420.0, 620.0) / sqrt(sc * wf) + Vector2(0.0, -260.0)
+	if kind == JETPACK:   # מתרסק בנקודה אקראית בתוך המסך שרואים
+		var vp := get_viewport()
+		var view := vp.get_canvas_transform().affine_inverse() * vp.get_visible_rect()
+		var tx := randf_range(view.position.x + 120.0, view.end.x - 120.0)
+		var vy0 := -randf_range(120.0, 260.0)
+		var h := maxf(_ground_y - global_position.y, 10.0)
+		var t_fall := (-vy0 + sqrt(vy0 * vy0 + 2.0 * 650.0 * h)) / 650.0
+		velocity = Vector2(clampf((tx - global_position.x) / t_fall, -900.0, 900.0), vy0)
 	_spin = randf_range(8.0, 14.0) * signf(velocity.x if velocity.x != 0.0 else 1.0)
 	_spray_blood(global_position + Vector2(0, -30) * sc, dir, 14, 380.0)
 	if is_instance_valid(_fire):
