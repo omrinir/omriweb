@@ -586,7 +586,7 @@ func _make_exit(floor_y: float) -> void:
 
 
 # מוזיקת רקע: שלב רחוב = TOTAL WAR, רכבת תחתית = מתח ואימה. מתנגנת בלופ ונכנסת בהדרגה
-@export var music_volume_db := -10.0
+@export var music_volume_db := -14.0
 func _start_music() -> void:
 	var path := "res://music/level2_suspense.mp3" if Game.is_subway() else "res://music/level1_total_war.mp3"
 	if not ResourceLoader.exists(path):

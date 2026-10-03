@@ -324,6 +324,12 @@ func _physics_process(delta: float) -> void:
 	_rush_t -= delta
 	_spit_cd -= delta
 	_spit_anim -= delta
+	# אנקות / נהמות של כל זומבי שעל המסך (לא רק כשהוא רודף)
+	_groan_t -= delta
+	if _groan_t <= 0.0:
+		_groan_t = randf_range(3.0, 7.0)
+		if kind != RAT and kind != HAND and kind != MECH and Art.on_screen(self, global_position):
+			Sfx.play("roar" if is_boss() else "groan", global_position, 0.0 if not is_boss() else 3.0, 0.2, 3)
 	# רחוק מאוד מהשחקן: הזומבי "ישן" (חוסך המון ביצועים)
 	if player != null and absf(player.global_position.x - global_position.x) > 1400.0 and is_on_floor() and _carry == null:
 		return
@@ -347,15 +353,10 @@ func _physics_process(delta: float) -> void:
 		_dir = signf(player.global_position.x - global_position.x)
 		if not _noticed:   # ראה את השחקן: זעקה
 			_noticed = true
-			_voice("zscream", 0.6, -3.0)
+			_voice("zscream", 0.9, 3.0)
 		if not _close_yell and global_position.distance_to(player.global_position) < 130.0:   # מתקרב
 			_close_yell = true
-			_voice("zscream", 0.5, 0.0)
-		_groan_t -= delta
-		if _groan_t <= 0.0:
-			_groan_t = randf_range(4.0, 9.0)
-			if kind != RAT and Art.on_screen(self, global_position):
-				Sfx.play("roar" if is_boss() else "groan", global_position, -9.0 if not is_boss() else -2.0, 0.25, 2)
+			_voice("zscream", 0.8, 4.0)
 		if _dir == 0.0:
 			_dir = 1.0
 		target_speed = chase_speed
@@ -722,7 +723,7 @@ func _bloat_pop() -> void:
 func _voice(name: String, chance: float, vol: float) -> void:
 	if kind == RAT or kind == HAND or is_boss() or _voice_cd > 0.0 or randf() > chance:
 		return
-	_voice_cd = randf_range(1.8, 3.2)
+	_voice_cd = randf_range(1.2, 2.2)
 	Sfx.play(name, global_position, vol, 0.12, 3)
 
 
@@ -878,7 +879,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	Sfx.play("headshot" if zone == "head" else "hit", hit_pos, -4.0, 0.15, 4)
 	hp -= dmg
 	if hp > 0 and (source == "bullet" or source == "melee" or source == "taser"):
-		_voice("zhit", 0.7, -2.0)
+		_voice("zhit", 0.85, 3.0)
 	_damage_number(dmg, zone)
 
 	if zone == "head":
@@ -930,7 +931,7 @@ func _damage_number(dmg: int, zone: String) -> void:
 func _wake() -> void:
 	if not dormant:
 		return
-	_voice("zscream", 0.8, -1.0)   # קם מהריצפה: זעקה
+	_voice("zscream", 0.95, 3.0)   # קם מהריצפה: זעקה
 	dormant = false
 	_rise_t = RISE_TIME
 	var r := _shape.shape as RectangleShape2D
@@ -1694,6 +1695,7 @@ func _mech_logic(player: Node, d: Vector2, delta: float) -> float:
 		_aim_t -= delta
 		if _aim_t <= 0.0:
 			_burst = 4
+			Sfx.play("servo", global_position, 0.0)
 			_burst_t = 0.0
 		return 0.0
 	if _gun_cd <= 0.0 and absf(d.x) < 600.0:
@@ -1701,6 +1703,7 @@ func _mech_logic(player: Node, d: Vector2, delta: float) -> float:
 		if get_world_2d().direct_space_state.intersect_ray(q).is_empty():
 			_aim_t = 0.7
 			_gun_cd = randf_range(2.2, 3.2)
+			Sfx.play("beep", global_position, 2.0, 0.0, 2)   # נעילה על מטרה
 			return 0.0
 	if absf(d.x) > 380.0:
 		return chase_speed
@@ -1724,58 +1727,139 @@ func _mech_fire(player: Node) -> void:
 func _draw_mech() -> void:
 	var f := _dir
 	var white := _flash > 0.0
-	var steel := Color.WHITE if white else Color("5a5e64")
-	var dark := Color.WHITE if white else Color("34373c")
+	var W := func(c: Color) -> Color: return Color.WHITE if white else c
+	var rust: Color = W.call(Color("7a4a2a"))
+	var steel: Color = W.call(Color("5d6168"))
+	var plate: Color = W.call(Color("4a5a3a"))
+	var dark: Color = W.call(Color("2a2c30"))
 	if dead:
-		draw_set_transform_matrix(Transform2D(_angle, Vector2(0.0, -12.0 * sc)) * Transform2D(0.0, Vector2(f * sc, sc), 0.0, Vector2(0.0, 12.0 * sc)))
+		draw_set_transform_matrix(Transform2D(_angle, Vector2(0.0, -14.0 * sc)) * Transform2D(0.0, Vector2(f * sc, sc), 0.0, Vector2(0.0, 14.0 * sc)))
 	else:
-		Art.ground_shadow(self, Vector2.ZERO, 24.0 * sc)
+		Art.ground_shadow(self, Vector2.ZERO, 28.0 * sc)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2(f * sc, sc))
-	for wx in [-15.0, 15.0]:   # גלגלים
-		draw_circle(Vector2(wx, -9.0), 9.0, Color("18181a"))
-		draw_circle(Vector2(wx, -9.0), 4.5, dark)
-		for s2 in 3:
-			draw_line(Vector2(wx, -9.0), Vector2(wx, -9.0) + Vector2.from_angle(_walk_phase + float(s2) * TAU / 3.0) * 7.0, steel, 1.5)
-	Art.fill_shaded(self, PackedVector2Array([Vector2(-24, -14), Vector2(24, -14), Vector2(22, -38), Vector2(-20, -40)]), steel, 0.15, 0.35, Art.OUTLINE, 1.5)
-	draw_rect(Rect2(-20, -24, 40, 4), Color("c8a020"))   # פס אזהרה
-	for i in 5:
-		draw_line(Vector2(-18.0 + float(i) * 8.0, -20.0), Vector2(-14.0 + float(i) * 8.0, -24.0), Color(0, 0, 0, 0.8), 1.5)
-	for p in [Vector2(-19, -34), Vector2(19, -34), Vector2(-21, -17), Vector2(21, -17)]:   # ניטים
-		draw_circle(p, 1.2, Color(0.8, 0.8, 0.85, 0.6))
-	draw_line(Vector2(-18, -40), Vector2(-23, -62), dark, 1.5)   # אנטנה
-	draw_circle(Vector2(-23, -62), 1.8, Color(1.0, 0.15, 0.1, 0.5 + 0.5 * sin(_time * 8.0)))
-	if not dead:   # הנהג: גוף + ראש (הנקודה הפגיעה)
-		var sk := Color.WHITE if white else skin
-		Art.fill(self, PackedVector2Array([Vector2(-13, -38), Vector2(5, -38), Vector2(4, -52), Vector2(-11, -52)]), Color.WHITE if white else shirt, Art.OUTLINE, 1.0)
-		Art.oval(self, Vector2(-3, -58), 7.0, 7.5, sk, 0.0, Art.OUTLINE, 1.2)
-		Art.glow(self, Vector2(1.5, -59), 4.0, Color(1.0, 0.2, 0.1, 0.7))
-		draw_circle(Vector2(1.5, -59), 1.2, Color(1.0, 0.5, 0.4))
-		draw_line(Vector2(-1, -54), Vector2(4, -54), Color(0.2, 0.05, 0.05), 1.2)
-		draw_line(Vector2(3, -46), Vector2(12, -40), sk, 2.5)   # יד על הידית
-	draw_rect(Rect2(-20, -44, 30, 5), dark)   # שפת התא
+	# ---- זחלים ----
+	var track := PackedVector2Array()
+	for i in 9:
+		track.append(Vector2(20.0, -8.0) + Vector2.from_angle(-PI / 2.0 + PI * float(i) / 8.0) * 8.0)
+	for i in 9:
+		track.append(Vector2(-20.0, -8.0) + Vector2.from_angle(PI / 2.0 + PI * float(i) / 8.0) * 8.0)
+	Art.fill(self, track, W.call(Color("161618")), Art.OUTLINE, 1.4)
+	var lk := fmod(_walk_phase * 6.0, 6.0)
+	var x := -20.0 + lk
+	while x < 20.0:   # חוליות הזחל זזות
+		draw_rect(Rect2(x, -16.5, 3.0, 2.0), W.call(Color("3a3a3e")))
+		draw_rect(Rect2(-x - 3.0, -1.5, 3.0, 2.0), W.call(Color("3a3a3e")))
+		x += 6.0
+	for wx in [-18.0, -6.0, 6.0, 18.0]:   # גלגלי הנעה
+		draw_circle(Vector2(wx, -8.0), 4.6, dark)
+		draw_circle(Vector2(wx, -8.0), 2.0, steel)
+		draw_line(Vector2(wx, -8.0), Vector2(wx, -8.0) + Vector2.from_angle(_walk_phase * 2.0) * 4.0, W.call(Color("8a8e94")), 1.0)
+	# ---- מנוע + צינורות פליטה (מאחור) ----
+	Art.fill_shaded(self, PackedVector2Array([Vector2(-30, -18), Vector2(-20, -18), Vector2(-20, -42), Vector2(-30, -40)]), dark, 0.15, 0.3, Art.OUTLINE, 1.2)
+	for k in 3:
+		draw_line(Vector2(-29, -22.0 - k * 6.0), Vector2(-21, -22.0 - k * 6.0), W.call(Color("4a4c50")), 1.5)
+	for ex in [-28.0, -23.0]:
+		draw_line(Vector2(ex, -40), Vector2(ex - 2.0, -60), W.call(Color("3a3a3c")), 3.0)
+		draw_line(Vector2(ex - 3.5, -60), Vector2(ex - 0.5, -60), W.call(Color("1a1a1a")), 3.0)
+		if not dead:
+			for pf in 3:
+				var age := fmod(_time * 1.2 + float(pf) * 0.33 + ex * 0.1, 1.0)
+				draw_circle(Vector2(ex - 2.0 - age * 10.0, -62.0 - age * 22.0), 2.0 + age * 6.0, Color(0.15, 0.15, 0.15, 0.45 * (1.0 - age)))
+			if randf() < 0.15:
+				draw_circle(Vector2(ex - 2.0, -61.0), 2.2, Color(1.0, 0.55, 0.15, 0.9))
+	# ---- גוף מרותך מפחים ----
+	Art.fill_shaded(self, PackedVector2Array([Vector2(-22, -16), Vector2(26, -16), Vector2(24, -30), Vector2(16, -40), Vector2(-20, -42)]), steel, 0.18, 0.35, Art.OUTLINE, 1.6)
+	Art.fill(self, PackedVector2Array([Vector2(-20, -18), Vector2(-4, -18), Vector2(-5, -32), Vector2(-19, -33)]), rust, Art.OUTLINE, 1.0)
+	Art.fill(self, PackedVector2Array([Vector2(4, -18), Vector2(24, -18), Vector2(22, -30), Vector2(6, -31)]), plate, Art.OUTLINE, 1.0)
+	for i in 8:   # ריתוכים
+		draw_circle(Vector2(-4.5 + float(i % 2) * 0.6, -19.0 - float(i) * 1.7), 0.7, W.call(Color("b0a090")))
+	for p in [Vector2(-18, -20), Vector2(-18, -31), Vector2(-6, -20), Vector2(22, -20), Vector2(8, -20), Vector2(20, -29)]:
+		draw_circle(p, 1.0, W.call(Color("c8c8cc")))
+	draw_rect(Rect2(10, -24, 14, 3), W.call(Color("c8a020")))   # פס אזהרה
+	for i in 3:
+		draw_line(Vector2(11.0 + i * 5.0, -21.0), Vector2(14.0 + i * 5.0, -24.0), Color(0, 0, 0, 0.8), 1.4)
+	# מיכל "דלק זומבי" ירוק זוהר עם בועות
+	Art.fill(self, PackedVector2Array([Vector2(-16, -34), Vector2(-6, -34), Vector2(-6, -24), Vector2(-16, -24)]), W.call(Color(0.25, 0.9, 0.3, 0.75)), Art.OUTLINE, 1.2)
+	if not dead:
+		Art.glow(self, Vector2(-11, -29), 9.0, Color(0.3, 1.0, 0.3, 0.25 + 0.15 * sin(_time * 5.0)))
+		for bb in 3:
+			var by := -25.0 - fmod(_time * 8.0 + float(bb) * 3.0, 9.0)
+			draw_circle(Vector2(-13.0 + float(bb) * 2.5, by), 0.8, Color(0.8, 1.0, 0.8, 0.8))
+	# פנס קדמי
+	draw_circle(Vector2(25, -26), 2.4, W.call(Color("e8e0b0")))
+	if not dead:
+		Art.glow(self, Vector2(27, -26), 8.0, Color(1.0, 0.95, 0.7, 0.25))
+	# ---- תא: כלוב + הזומבי (הנקודה הפגיעה) ----
+	if not dead:
+		var sk: Color = W.call(skin)
+		var bob := sin(_time * 3.0) * 0.6
+		# כבלים מהראש למכונה (הזומבי מחובר לרובוט)
+		draw_line(Vector2(-8, -64 + bob), Vector2(-17, -42), W.call(Color("1a1a1a")), 1.6, true)
+		draw_line(Vector2(-6, -66 + bob), Vector2(-20, -45), W.call(Color("8a2020")), 1.2, true)
+		# גוף: חולצה קרועה וצלעות חשופות
+		Art.fill(self, PackedVector2Array([Vector2(-11, -40), Vector2(5, -40), Vector2(5, -54 + bob), Vector2(-10, -55 + bob)]), W.call(shirt), Art.OUTLINE, 1.0)
+		Art.fill(self, PackedVector2Array([Vector2(-3, -42), Vector2(4, -42), Vector2(4, -51 + bob), Vector2(-2, -52 + bob)]), W.call(Color("8a3a2a")), Art.NONE)
+		for r in 3:
+			draw_line(Vector2(-2, -44.0 - r * 2.6 + bob * 0.5), Vector2(4, -44.5 - r * 2.6 + bob * 0.5), W.call(Color("e0d8c0")), 0.9)
+		# יד על ידית ההיגוי
+		Art.limb(self, PackedVector2Array([Vector2(3, -52 + bob), Vector2(9, -46), Vector2(13, -42)]), 2.6, sk)
+		draw_line(Vector2(13, -38), Vector2(15, -45), W.call(Color("2a2a2a")), 1.6)
+		# ראש: נרקב, לסת פתוחה, שתל מתכת עם עין אדומה
+		var hc := Vector2(-2.0, -61.0 + bob)
+		Art.oval(self, hc, 7.0, 7.8, sk, 0.0, Art.OUTLINE, 1.2)
+		Art.oval(self, hc + Vector2(-3.0, 2.0), 2.4, 1.6, W.call(Art.shade(skin, 0.35)), 0.3, Art.NONE)   # כתם ריקבון
+		Art.fill(self, PackedVector2Array([hc + Vector2(-6, -6), hc + Vector2(2, -8), hc + Vector2(3, -3), hc + Vector2(-5, -1)]), W.call(Color("6a6e74")), Art.OUTLINE, 0.9)   # שתל מתכת
+		draw_circle(hc + Vector2(-2, -4.5), 0.7, W.call(Color("c8c8cc")))
+		Art.glow(self, hc + Vector2(3.5, -1.0), 5.0, Color(1.0, 0.15, 0.1, 0.8))
+		draw_circle(hc + Vector2(3.5, -1.0), 1.3, Color(1.0, 0.45, 0.35))
+		Art.fill(self, PackedVector2Array([hc + Vector2(1, 3), hc + Vector2(7, 2.5), hc + Vector2(6, 7.5 + absf(sin(_time * 6.0)) * 1.5), hc + Vector2(1, 6)]), W.call(Color("2a0808")), Art.OUTLINE, 0.8)   # לסת פתוחה
+		for tth in 3:
+			draw_line(hc + Vector2(2.0 + tth * 1.6, 3.0), hc + Vector2(2.3 + tth * 1.6, 4.4), W.call(Color("e8e0c8")), 0.8)
+		# כלוב מגן
+		for cx in [-14.0, 8.0]:
+			draw_line(Vector2(cx, -40), Vector2(cx + 2.0, -70), W.call(Color("3a3c40")), 1.6)
+		draw_arc(Vector2(-3, -70), 11.0, PI, TAU, 10, W.call(Color("3a3c40")), 1.6)
+	draw_rect(Rect2(-20, -44, 34, 4), dark)   # שפת התא
+	# אנטנה מהבהבת
+	draw_line(Vector2(-18, -42), Vector2(-22, -74), dark, 1.2)
+	draw_circle(Vector2(-22, -74), 1.8, Color(1.0, 0.15, 0.1, 0.4 + 0.6 * float(int(_time * 3.0) % 2)))
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 	if dead:
 		return
-	# מכונת ירייה (מסתובבת לכיוון השחקן)
+	# ---- זרוע הידראולית + גאטלינג מסתובב ----
+	var base := Vector2(f * 12.0 * sc, -30.0 * sc)
 	var piv := Vector2(f * 14.0 * wf, -34.0 * sc)
+	draw_line(base, piv, Color("3a3c40"), 4.0)
+	draw_line(base + Vector2(0, -2), piv + Vector2(0, -2), Color("9a9ea4"), 1.0)
 	var dv := Vector2.from_angle(_gun_ang)
 	var nv := dv.rotated(PI / 2.0)
-	var L := 26.0 * sc
-	draw_colored_polygon(PackedVector2Array([piv - nv * 4.0 - dv * 6.0, piv - nv * 4.0 + dv * 10.0, piv + nv * 4.0 + dv * 10.0, piv + nv * 4.0 - dv * 6.0]), Color("2a2c30"))
-	draw_line(piv + dv * 8.0, piv + dv * L, Color("1e1f22"), 4.0)
-	for i in 3:
-		draw_circle(piv + dv * (12.0 + float(i) * 4.0), 1.0, Color(0.5, 0.5, 0.55))
-	draw_circle(piv + nv * 6.0, 5.0, Color("3a3c40"))   # מחסנית תוף
+	var L := 30.0 * sc
+	draw_colored_polygon(PackedVector2Array([piv - nv * 5.0 - dv * 7.0, piv - nv * 5.0 + dv * 11.0, piv + nv * 5.0 + dv * 11.0, piv + nv * 5.0 - dv * 7.0]), Color("26282c"))
+	draw_line(piv - nv * 5.0 + dv * 2.0, piv - nv * 5.0 + dv * 9.0, Color("c8a020"), 1.5)
+	var spin := _time * (30.0 if _burst > 0 else 2.0)   # הקנים מסתובבים בירי
+	for k in 3:
+		var o := sin(spin + float(k) * TAU / 3.0) * 2.2
+		draw_line(piv + dv * 10.0 + nv * o, piv + dv * L + nv * o, Color(0.12 + 0.05 * float(k), 0.12, 0.13), 1.6)
+	draw_line(piv + dv * (L - 3.0) - nv * 3.0, piv + dv * (L - 3.0) + nv * 3.0, Color("44464a"), 2.5)
+	# שרשרת תחמושת מהגוף לנשק
+	var belt_a := Vector2(f * 2.0 * sc, -26.0 * sc)
+	for i in 7:
+		var tt := float(i) / 6.0
+		var bp := belt_a.lerp(piv + nv * 4.0, tt) + Vector2(0, sin(tt * PI) * 6.0)
+		draw_rect(Rect2(bp - Vector2(1.2, 1.2), Vector2(2.4, 2.4)), Color("c8903a"))
 	var muzzle := piv + dv * L
 	if _muzzle_t > 0.0:
-		for i in 5:
-			draw_line(muzzle, muzzle + dv.rotated(randf_range(-0.6, 0.6)) * randf_range(6.0, 14.0), Color(1.0, 0.85, 0.4), 2.0)
+		for i in 6:
+			draw_line(muzzle, muzzle + dv.rotated(randf_range(-0.6, 0.6)) * randf_range(6.0, 16.0), Color(1.0, 0.85, 0.4), 2.0)
 	if _aim_t > 0.0:   # לייזר אזהרה
 		draw_line(muzzle, muzzle + dv * 520.0, Color(1.0, 0.1, 0.1, 0.35 + 0.35 * sin(_time * 30.0)), 1.2)
-	if hp < max_hp * 0.4:   # עשן כשנפגע
+	if hp < max_hp * 0.4:   # עשן וניצוצות כשנפגע
 		for i in 3:
 			var age := fmod(_time * 0.8 + float(i) * 0.33, 1.0)
-			draw_circle(Vector2(-f * 16.0, -40.0 * sc - age * 30.0), 4.0 + age * 8.0, Color(0.2, 0.2, 0.2, 0.4 * (1.0 - age)))
+			draw_circle(Vector2(-f * 8.0, -44.0 * sc - age * 30.0), 4.0 + age * 8.0, Color(0.2, 0.2, 0.2, 0.45 * (1.0 - age)))
+		if randf() < 0.2:
+			var sp := Vector2(f * randf_range(-15.0, 15.0), -randf_range(20.0, 40.0) * sc)
+			draw_line(sp, sp + Vector2(randf_range(-6, 6), -randf_range(3, 8)), Color(1.0, 0.85, 0.4), 1.2)
 
 
 # ---- טקסט קופץ (HEADSHOT!) ----
