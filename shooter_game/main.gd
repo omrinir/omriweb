@@ -196,11 +196,11 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 	_pits.sort_custom(func(a, b): return a[0] < b[0])
 	var x := 0.0
 	for p in _pits:
-		_make_brick(Vector2(x, floor_y), Vector2(float(p[0]) - x, floor_thickness), 3, Color("38383d"), false)
+		_road_segment(x, float(p[0]), floor_y)
 		# תחתית הבור
 		_make_brick(Vector2(p[0], floor_y + PIT_DEPTH), Vector2(p[1], floor_thickness - PIT_DEPTH), 3, Color("38383d"), false)
 		x = float(p[0]) + float(p[1])
-	_make_brick(Vector2(x, floor_y), Vector2(level_w - x, floor_thickness), 3, Color("38383d"), false)
+	_road_segment(x, level_w, floor_y)
 	# קישוטים על הכביש
 	var cx := 0.0
 	while cx < level_w:
@@ -213,6 +213,16 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 		d.seed_value = rng.randi()
 		add_child(d)
 		cx += 1024.0
+
+
+# ביצועים: הכביש בנוי מחתיכות של עד 1024 פיקסלים - כתם דם מצייר מחדש רק חתיכה אחת,
+# וחתיכות שלא על המסך לא מצוירות
+func _road_segment(x0: float, x1: float, floor_y: float) -> void:
+	var x := x0
+	while x < x1 - 0.5:
+		var w := minf(1024.0, x1 - x)
+		_make_brick(Vector2(x, floor_y), Vector2(w, floor_thickness), 3, Color("38383d"), false)
+		x += w
 
 
 func _in_pit(x0: float, x1: float, margin := 60.0) -> bool:

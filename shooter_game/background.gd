@@ -41,13 +41,14 @@ func _add_layer(rng: RandomNumberGenerator, factor: float, col: Color, h_min: fl
 	var x := -100.0
 	var chunk: Node2D = null
 	var chunk_end := -INF
+	var chunks := []
 	while x < total:
 		if x >= chunk_end:
 			chunk = Skyline.new()
 			chunk.color = col
 			chunk.windows = windows
 			chunk.base_y = base_y
-			layer.add_child(chunk)
+			chunks.append([chunk, x])
 			chunk_end = x + 1024.0
 		var w := rng.randf_range(w_min, w_max)
 		var h := rng.randf_range(h_min, h_max)
@@ -60,11 +61,33 @@ func _add_layer(rng: RandomNumberGenerator, factor: float, col: Color, h_min: fl
 			sm.seed_offset = rng.randf() * 10.0
 			layer.add_child(sm)
 		x += w + rng.randf_range(-10.0, 30.0)
+	# ביצועים: כל חתיכה מצוירת פעם אחת לתוך תמונה, ואחר כך רק מזיזים את התמונה
+	for c in chunks:
+		_bake(layer, c[0], c[1], s)
 	# ערפל אובך מעל השכבה (מרחיק אותה)
 	var haze := Haze.new()
 	haze.base_y = base_y
 	haze.strength = 0.28 if factor < 0.1 else (0.18 if factor < 0.2 else 0.1)
 	add_child(haze)
+
+
+# מצייר חתיכה של קו רקיע לתוך SubViewport פעם אחת, ומציג אותה כתמונה (Sprite2D)
+func _bake(layer: Node2D, chunk: Node2D, start_x: float, s: Vector2) -> void:
+	var margin := 700.0   # בניינים וכבלים שממשיכים אחרי סוף החתיכה
+	var vp := SubViewport.new()
+	vp.size = Vector2i(int(1024.0 + margin), int(s.y))
+	vp.transparent_bg = true
+	vp.disable_3d = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	chunk.position = Vector2(-start_x, 0.0)
+	vp.add_child(chunk)
+	layer.add_child(vp)
+	var spr := Sprite2D.new()
+	spr.centered = false
+	spr.texture = vp.get_texture()
+	spr.position = Vector2(start_x, 0.0)
+	layer.add_child(spr)
+	layer.move_child(spr, 0)   # מאחורי עמודי העשן
 
 
 func _process(_delta: float) -> void:

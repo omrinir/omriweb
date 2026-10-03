@@ -45,6 +45,7 @@ var _dead_t := 0.0
 var _angle := 0.0
 var _player: Node = null
 var _shape: CollisionShape2D
+var _tick := 0
 
 
 func _ready() -> void:
@@ -124,7 +125,8 @@ func _physics_process(delta: float) -> void:
 	global_position.x = clampf(global_position.x, 15.0, world_w - 15.0)
 	if is_on_floor() and (state == RUN or state == LEAVE):
 		_phase += delta * absf(velocity.x) * 0.075
-	if Art.on_screen(self, global_position):
+	_tick += 1
+	if (_tick % 2 == 0 or state == DRAINED) and Art.on_screen(self, global_position):   # ביצועים: כל פריים שני
 		queue_redraw()
 
 

@@ -319,8 +319,7 @@ func _physics_process(delta: float) -> void:
 
 	if is_on_floor():
 		_walk_phase += delta * absf(velocity.x) * 0.075 / sc
-	if Art.on_screen(self, global_position):   # מציירים רק מה שרואים
-		queue_redraw()
+	_maybe_redraw()
 
 
 # ============================================================
@@ -786,8 +785,7 @@ func _dead_process(delta: float) -> void:
 	if is_on_wall():
 		velocity.x *= -0.3
 	_angle += _spin * delta
-	if Art.on_screen(self, global_position):
-		queue_redraw()
+	_maybe_redraw()
 
 
 func _spray_blood(pos: Vector2, dir: Vector2, n: int, power: float) -> void:
@@ -932,6 +930,30 @@ func _draw_body() -> void:
 		for i in 3:
 			var k := fmod(1.2 - _scream_t + float(i) * 0.3, 0.9) / 0.9
 			draw_arc(head + Vector2(6, 2), 8.0 + k * 40.0, -0.9, 0.9, 12, Color(0.9, 0.9, 1.0, 0.7 * (1.0 - k)), 2.0, true)
+
+
+# ביצועים: האנימציה של הגוף מצוירת מחדש כל פריים שני (התזוזה עצמה נשארת חלקה),
+# וזומבים שלא על המסך לא מצוירים בכלל
+# כשיש הרבה זומבים על המסך - כל פריים שלישי
+var _redraw_tick := randi() % 3
+static var _vis_frame := -1
+static var _vis_count := 0
+static var _vis_prev := 0
+
+
+func _maybe_redraw() -> void:
+	var fr := Engine.get_physics_frames()
+	if fr != _vis_frame:   # סופרים כמה זומבים על המסך בכל פריים
+		_vis_prev = _vis_count
+		_vis_count = 0
+		_vis_frame = fr
+	if not Art.on_screen(self, global_position):
+		return
+	_vis_count += 1
+	var every := 2 if _vis_prev <= 3 else 3
+	_redraw_tick += 1
+	if _redraw_tick % every == 0 or _flash > 0.0:
+		queue_redraw()
 
 
 func _big() -> bool:

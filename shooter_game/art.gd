@@ -76,10 +76,10 @@ static func limb(ci: CanvasItem, pts: PackedVector2Array, w: float, col: Color, 
 		ci.draw_polyline(pts, outline, ow, true)
 		for p in pts:
 			ci.draw_circle(p, ow / 2.0, outline)
-	ci.draw_polyline(pts, col, w, true)
+	ci.draw_polyline(pts, col, w)   # בלי החלקה - קו המתאר שמתחת כבר חלק (מהיר יותר)
 	for p in pts:
 		ci.draw_circle(p, w / 2.0, col)
-	if w >= 3.0:
+	if w >= 4.5:
 		var off := Vector2(-0.22, -0.22) * w
 		ci.draw_polyline(Transform2D(0.0, off) * pts, Color(col.lightened(0.2), 0.3), w * 0.28, true)
 
