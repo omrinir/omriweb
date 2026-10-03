@@ -93,6 +93,7 @@ var _slam_t := 0.0               # בוס: מכין מכה (המגן למטה!)
 var _slam_cd := 0.0
 var _charge_t := 0.0
 var _charge_cd := 3.0
+var _roar_cd := 3.0              # בוס: שואג ומרים את הדלת - חלון לירות בו מרחוק
 var _last_info := {}
 
 var sc := 1.0      # גודל
@@ -520,6 +521,7 @@ func _boss_logic(player: Node, d: Vector2, delta: float) -> float:
 	_dir = signf(d.x) if d.x != 0.0 else _dir
 	_slam_cd -= delta
 	_charge_cd -= delta
+	_roar_cd -= delta
 	if _slam_t > 0.0:   # מרים את הדלת מעל הראש - עכשיו אפשר לפגוע בו!
 		_slam_t -= delta
 		if _slam_t <= 0.0:
@@ -543,7 +545,12 @@ func _boss_logic(player: Node, d: Vector2, delta: float) -> float:
 			_charge_t = 0.0
 		return chase_speed * 2.6
 	if absf(d.x) < 80.0 and _slam_cd <= 0.0:
-		_slam_t = 0.8
+		_slam_t = 1.3
+		return 0.0
+	if absf(d.x) > 160.0 and _roar_cd <= 0.0:   # שואג עם הדלת למעלה: אפשר לירות בו
+		_slam_t = 2.4
+		_roar_cd = randf_range(4.5, 6.0)
+		_popup("ROAR!", Color("ffb040"), 20, -110.0)
 		return 0.0
 	if absf(d.x) > 220.0 and _charge_cd <= 0.0:
 		_charge_t = 1.1
@@ -605,6 +612,9 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		return
 	var source: String = src.get("source", "grenade" if explosive else "bullet")
 	# בוס: הדלת חוסמת קליעים מלפנים (חוץ מכשהוא מרים אותה למכה)
+	if kind == BOSS and source == "melee":   # מכות לא עוזרות נגד הבוס
+		_popup("BLOCKED", Color("c0c0c8"), 15, -120.0)
+		return
 	if kind == BOSS and source == "bullet" and _slam_t <= 0.0 and dir.x * _dir < 0.0:
 		_popup("BLOCKED", Color("c0c0c8"), 15, -120.0)
 		for i in 4:

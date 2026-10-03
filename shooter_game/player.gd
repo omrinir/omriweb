@@ -71,6 +71,9 @@ var _shape: CollisionShape2D
 var _crouching := false
 var _crouch_k := 0.0             # 0 = עומד, 1 = כורע (לאנימציה חלקה)
 var _cooldown := 0.0
+var _melee_t := 0.0             # מכת קת: זמן האנימציה
+const MELEE_TIME := 0.28
+var melee_damage := 9
 var _invuln := 0.0
 var _walk_phase := 0.0
 var _time := 0.0
@@ -169,6 +172,7 @@ func _physics_process(delta: float) -> void:
 	Game.player_move = "roll" if _roll_t > 0.0 else ("slide" if _slide_t > 0.0 else ("air" if not is_on_floor() else "ground"))
 	_time += delta
 	_cooldown -= delta
+	_melee_t = maxf(_melee_t - delta, 0.0)
 	_invuln -= delta
 	_muzzle_flash -= delta
 	_recoil = move_toward(_recoil, 0.0, delta * 12.0)
@@ -394,6 +398,8 @@ func _fire() -> void:
 		_start_drain(s)
 		return
 	var sh := global_position + _front_shoulder()
+	if weapon == GUN and _try_melee():
+		return
 	if weapon == GUN:
 		if ammo <= 0:
 			_cooldown = 0.3
@@ -435,6 +441,35 @@ func _fire() -> void:
 		var g = GrenadeScript.new()
 		get_parent().add_child(g)
 		g.setup(sh + _aim * 14.0, _aim * grenade_speed + velocity * 0.3)
+
+
+# זומבי צמוד מלפנים? במקום לירות - מכה עם הקת
+func _try_melee() -> bool:
+	var face := _face()
+	var target: Node = null
+	var best := INF
+	for z in get_tree().get_nodes_in_group("zombies"):
+		if z.dead:
+			continue
+		var d: Vector2 = z.global_position - global_position
+		var reach: float = 34.0 + 14.0 * z.wf * z.sc
+		if d.x * face > -6.0 and absf(d.x) < reach and absf(d.y) < 45.0 and absf(d.x) < best:
+			best = absf(d.x)
+			target = z
+	if target == null:
+		return false
+	_melee_t = MELEE_TIME
+	_cooldown = 0.45
+	var dir := Vector2(face, -0.2).normalized()
+	var hp_pos: Vector2 = target.global_position + Vector2(-face * 8.0, -36.0 * target.sc)
+	target.take_damage(melee_damage, hp_pos, dir, true, {"source": "melee"})
+	if not target.dead and not target.is_boss():
+		target.velocity.x += face * 220.0
+	Game.make_noise(global_position, 120.0)
+	var cam := get_viewport().get_camera_2d()
+	if cam != null and cam.has_method("shake"):
+		cam.shake(3.0, 0.12)
+	return true
 
 
 # תרמיל נחושת שעף מהרובה אחרי כל ירייה
@@ -598,6 +633,9 @@ func _draw() -> void:
 			continue
 		var a := 0.32 * clampf(age / 0.2, 0.0, 1.0) * (1.0 - age / 1.6)
 		draw_circle(m[0], 1.2 + age * 4.0, Color(0.85, 0.88, 0.95, a))
+	if _melee_t > 0.0:   # קו תנועה של המכה
+		var mk := 1.0 - _melee_t / MELEE_TIME
+		draw_arc(Vector2(10, -24), 22.0, -0.9 + mk * 0.6, 0.5 + mk * 0.6, 10, Color(1, 1, 1, 0.5 * sin(mk * PI)), 3.0, true)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 	# לייזר (שדרוג)
 	if Game.upgrade_level("laser") > 0 and controllable and _drain_target == null and weapon == GUN:
@@ -658,6 +696,12 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	var bs := sh + Vector2(-2.0, 1.5)
 	var fs := sh + Vector2(2.0, 1.5)
 	var kick := la * -2.5 * _recoil
+	var jab := 0.0
+	if _melee_t > 0.0 and not limp:   # מכת קת: הקנה עולה למעלה והקת נדחפת קדימה
+		var mk := 1.0 - _melee_t / MELEE_TIME
+		jab = sin(mk * PI)
+		la = la.rotated(-2.0 * jab)
+		kick = Vector2(11.0 * jab, 5.0 * jab)
 	var hand := fs + la * 15.0 + kick
 	var back_hand: Vector2
 	if limp:
