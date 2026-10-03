@@ -90,6 +90,7 @@ var _gens: Array = GENERATORS
 func _ready() -> void:
 	get_tree().paused = false
 	Sfx.warm_up()   # מייצר את כל הצלילים פעם אחת
+	_start_music()
 	# רמת הקושי מהתפריט
 	var diff: Dictionary = Settings.preset()
 	zombies_per_screen = diff.zombies_per_screen
@@ -565,6 +566,24 @@ func _make_exit(floor_y: float) -> void:
 	add_child(boss)
 	boss.world_w = level_w
 	boss._dir = -1.0
+
+
+# מוזיקת רקע: שלב רחוב = TOTAL WAR, רכבת תחתית = מתח ואימה. מתנגנת בלופ ונכנסת בהדרגה
+@export var music_volume_db := -10.0
+func _start_music() -> void:
+	var path := "res://music/level2_suspense.mp3" if Game.is_subway() else "res://music/level1_total_war.mp3"
+	if not ResourceLoader.exists(path):
+		return
+	var stream = load(path)
+	if stream is AudioStreamMP3:
+		stream.loop = true
+	var mp := AudioStreamPlayer.new()
+	mp.stream = stream
+	mp.volume_db = -40.0
+	mp.process_mode = Node.PROCESS_MODE_ALWAYS   # ממשיכה גם בהשהיה
+	add_child(mp)
+	mp.play()
+	create_tween().tween_property(mp, "volume_db", music_volume_db, 2.5)
 
 
 func _process(delta: float) -> void:
