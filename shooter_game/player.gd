@@ -92,6 +92,17 @@ var boost_time := 12.0           # כמה זמן בוסט נמשך
 var _rt := 1.0                   # פיצוי על BULLET TIME: השחקן זז במהירות רגילה
 var _laser_end := Vector2.ZERO
 var _empty_t := 0.0
+# ---- תנועה מתקדמת (SKILL) ----
+var roll_speed := 430.0
+var _roll_t := 0.0               # גלגול: לא נפגעים
+var _roll_cd := 0.0
+var _roll_dir := 1.0
+var _slide_t := 0.0              # החלקה אחרי ריצה + כריעה
+var _air_jumps := 1              # קפיצה כפולה
+var _jump_was := false
+var _crouch_was := false
+var _q_was := false
+var _dodge_slow := 0.0
 var _fire_test := false   # לבדיקות אוטומטיות בלבד
 # ---- מכשיר שאיבת כוח חיים ----
 const DRAIN_TIME := 1.8          # כמה שניות לוקחת השאיבה
@@ -148,6 +159,14 @@ func _physics_process(delta: float) -> void:
 	delta *= _rt
 	_boosts_process(delta)
 	_empty_t -= delta
+	_roll_t -= delta
+	_roll_cd -= delta
+	_slide_t -= delta
+	if _dodge_slow > 0.0:
+		_dodge_slow -= delta
+		if _dodge_slow <= 0.0 and not boosts.has(PickupScript.BULLET_TIME):
+			Engine.time_scale = 1.0
+	Game.player_move = "roll" if _roll_t > 0.0 else ("slide" if _slide_t > 0.0 else ("air" if not is_on_floor() else "ground"))
 	_time += delta
 	_cooldown -= delta
 	_invuln -= delta
@@ -172,6 +191,22 @@ func _physics_process(delta: float) -> void:
 
 	# כריעה
 	var want_crouch := controllable and (Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_CTRL))
+	# החלקה: רצים (SHIFT) ולוחצים כריעה
+	if want_crouch and not _crouch_was and is_on_floor() and absf(velocity.x) > 250.0 and _slide_t <= 0.0:
+		_slide_t = 0.55
+		velocity.x = signf(velocity.x) * 470.0
+	_crouch_was = want_crouch
+	# גלגול התחמקות: Q
+	var q := controllable and Input.is_physical_key_pressed(KEY_Q)
+	if q and not _q_was and _roll_cd <= 0.0 and is_on_floor():
+		_roll_t = 0.35
+		_roll_cd = 0.9
+		var dd := 0.0
+		if Input.is_physical_key_pressed(KEY_A): dd -= 1.0
+		if Input.is_physical_key_pressed(KEY_D): dd += 1.0
+		_roll_dir = dd if dd != 0.0 else _face()
+	_q_was = q
+	want_crouch = want_crouch or _roll_t > 0.0 or _slide_t > 0.0
 	if want_crouch and not _crouching:
 		_crouching = true
 		_set_height(H_CROUCH)
@@ -196,15 +231,31 @@ func _physics_process(delta: float) -> void:
 	var acc := accel if is_on_floor() else accel * air_control
 	if _push_t > 0.0:   # רגע אחרי ירייה - הדחיפה גוברת על ההליכה
 		acc *= 0.25
-	velocity.x = move_toward(velocity.x, dir * speed, acc * delta)
+	if _roll_t > 0.0:
+		velocity.x = _roll_dir * roll_speed
+	elif _slide_t > 0.0:
+		velocity.x = move_toward(velocity.x, 0.0, 500.0 * delta)
+	else:
+		velocity.x = move_toward(velocity.x, dir * speed, acc * delta)
 
 	# קפיצה
 	var jump := controllable and (Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_SPACE))
-	if jump and is_on_floor() and not _crouching:
-		velocity.y = jump_velocity
+	if is_on_floor():
+		_air_jumps = 1
+	if jump and not _jump_was:
+		if is_on_floor() and not _crouching:
+			velocity.y = jump_velocity
+		elif not is_on_floor() and _air_jumps > 0:   # קפיצה כפולה
+			_air_jumps -= 1
+			velocity.y = jump_velocity * 0.85
+			preload("res://particles.gd").burst(get_parent(), global_position, "smoke", Vector2.DOWN, 6)
+	_jump_was = jump
 
+	var fall_v := velocity.y
 	_move()
 	global_position.x = clampf(global_position.x, W, world_w - W)
+	if fall_v > 120.0:
+		_try_stomp()
 
 	if is_on_floor() and absf(velocity.x) > 10.0:
 		_walk_phase += delta * absf(velocity.x) * 0.055
@@ -239,6 +290,21 @@ func _physics_process(delta: float) -> void:
 	_update_laser(sh)
 
 	queue_redraw()
+
+
+# נחיתה על ראש זומבי: מפיל אותו ומקפיץ אותך שוב
+func _try_stomp() -> void:
+	for z in get_tree().get_nodes_in_group("zombies"):
+		if z.dead or z._lying():
+			continue
+		var top: float = z.global_position.y - 60.0 * z.sc
+		if absf(z.global_position.x - global_position.x) < 18.0 * z.wf and absf(global_position.y - top) < 16.0:
+			z.take_damage(20, global_position, Vector2(_face(), 0.4), true, {"source": "stomp"})
+			velocity.y = jump_velocity * 0.8
+			_air_jumps = 1
+			_say("STOMP", Color("ffd34a"))
+			preload("res://particles.gd").burst(get_parent(), global_position, "hit", Vector2.UP, 12)
+			return
 
 
 func _move() -> void:
@@ -453,6 +519,13 @@ func is_draining() -> bool:
 func hurt(amount: int, knock_dir: Vector2) -> void:
 	if dead or _invuln > 0.0 or _drain_target != null:
 		return
+	if _roll_t > 0.0:   # בגלגול לא נפגעים. ברגע האחרון = הזמן מאט לרגע
+		if _dodge_slow <= 0.0:
+			_dodge_slow = 0.6
+			Engine.time_scale = 0.45
+			_say("PERFECT DODGE", Color("80d0ff"))
+			Game.on_style("dodge", 20)
+		return
 	if shield_hits > 0:   # המגן סופג את הפגיעה
 		shield_hits -= 1
 		_invuln = 0.5
@@ -497,6 +570,9 @@ func _draw() -> void:
 	var blink := _invuln > 0.0 and int(_invuln * 16.0) % 2 == 0
 	modulate = Color(1.0, 0.55, 0.55) if blink else Color.WHITE
 	_base_xf = Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2.ZERO)
+	if _roll_t > 0.0:   # גלגול: הגוף מסתובב סביב המרכז
+		var ang := (1.0 - _roll_t / 0.35) * TAU * _roll_dir * face
+		_base_xf = Transform2D(ang, Vector2(0, -16)) * Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2(0, 16))
 	draw_set_transform_matrix(_base_xf)
 	_draw_body(la, false)
 	# קרן כוח החיים: מהניצולה אל המכשיר

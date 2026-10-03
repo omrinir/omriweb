@@ -639,7 +639,14 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	if kind == BOSS and zone == "head":
 		dmg = head_damage * 2
 	Particles.burst(get_parent(), hit_pos, "hit", dir if dir != Vector2.ZERO else Vector2.UP, 10)
-	_last_info = {"zone": zone, "source": source, "bullet": src.get("bullet", 0), "blast": src.get("blast", 0),
+	# PERFECT: פגיעה בדיוק במרכז הראש
+	var perfect := false
+	if zone == "head":
+		var hc := global_position + Vector2(_dir * 4.0 * wf * sc, -50.0 * sc)
+		perfect = hit_pos.distance_to(hc) < 6.0 * sc
+		if perfect:
+			dmg *= 2
+	_last_info = {"zone": zone, "source": source, "perfect": perfect, "bullet": src.get("bullet", 0), "blast": src.get("blast", 0),
 		"hidden": _cover_state == 2}
 	Game.on_zombie_hit(_last_info)
 	hp -= dmg

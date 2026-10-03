@@ -54,6 +54,11 @@ var stats := {}
 var _bullet_kills := {}
 var _blast_kills := {}
 var _head_streak := 0
+# ---- דירוג סטייל (D C B A S) ----
+var style := 0.0
+var player_move := "ground"      # player.gd מעדכן: ground / air / slide / roll
+var _last_styles := []
+const STYLE_RANKS := ["D", "C", "B", "A", "S"]
 
 # נשמר לתמיד
 var trophies := {}
@@ -79,6 +84,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if get_tree().paused:
 		return
+	style = maxf(style - 6.0 * delta / maxf(Engine.time_scale, 0.01), 0.0)
 	if combo > 0:
 		combo_t -= delta / maxf(Engine.time_scale, 0.01)
 		if combo_t <= 0.0:
@@ -103,6 +109,7 @@ func reset_level() -> void:
 	level_score = 0
 	combo = 0
 	combo_t = 0.0
+	style = 0.0
 	_bullet_kills.clear()
 	_blast_kills.clear()
 	stats = {"kills": 0, "headshots": 0, "shots": 0, "hits": 0, "drained": 0, "spared": 0,
@@ -121,6 +128,19 @@ func upgrade_level(id: String) -> int:
 	return int(upgrades.get(id, 0))
 
 
+func style_rank() -> int:
+	return clampi(int(style / 20.0), 0, 4)
+
+
+# סטייל עולה על הריגות מגוונות, ויורד כשחוזרים על אותו דבר
+func on_style(kind: String, amount: float) -> void:
+	var n := _last_styles.count(kind)
+	style = minf(style + amount / (1.0 + float(n)), 100.0)
+	_last_styles.append(kind)
+	if _last_styles.size() > 4:
+		_last_styles.pop_front()
+
+
 func multiplier() -> int:
 	if combo >= 15: return 5
 	if combo >= 10: return 4
@@ -130,7 +150,7 @@ func multiplier() -> int:
 
 
 func add_score(points: int) -> void:
-	level_score += points * multiplier()
+	level_score += int(points * multiplier() * (1.0 + 0.25 * style_rank()))   # S = +100%
 	score_changed.emit()
 
 
@@ -168,6 +188,23 @@ func on_zombie_killed(kind: int, info: Dictionary) -> Array:
 		bonuses.append(["HEADSHOT", 50])
 	if info.get("hidden", false):
 		bonuses.append(["FLUSHED OUT", 75])
+	if info.get("perfect", false):
+		bonuses.append(["PERFECT", 100])
+	# בונוס תנועה: הריגה באוויר / בהחלקה / בגלגול שווה יותר
+	var mv := player_move
+	if info.get("source", "") == "stomp":
+		bonuses.append(["STOMP", 100])
+		on_style("stomp", 22)
+	elif mv == "air":
+		bonuses.append(["AIR KILL", 100])
+		on_style("air", 18)
+	elif mv == "slide" or mv == "roll":
+		bonuses.append(["SLIDE KILL" if mv == "slide" else "ROLL KILL", 100])
+		on_style(mv, 18)
+	else:
+		on_style("ground_" + str(info.get("zone", "")), 8)
+	if info.get("perfect", false):
+		on_style("perfect", 15)
 	var src: String = info.get("source", "")
 	if src == "barrel" or src == "car":
 		bonuses.append(["BOOM", 75])
@@ -204,6 +241,7 @@ func on_leg_severed() -> void:
 
 func on_player_hurt(amount: int) -> void:
 	stats.hearts_lost += amount
+	style = maxf(style - 35.0, 0.0)
 	if combo > 0:
 		combo = 0
 		score_changed.emit()

@@ -129,6 +129,14 @@ func _draw() -> void:
 		var k := clampf(Game.combo_t / Game.COMBO_WINDOW, 0.0, 1.0)
 		draw_rect(Rect2(Vector2(rx - 120, 96), Vector2(120, 3)), Color(0, 0, 0, 0.5))
 		draw_rect(Rect2(Vector2(rx - 120 * k, 96), Vector2(120 * k, 3)), mc)
+	# ---- דירוג סטייל ----
+	var sr := Game.style_rank()
+	var scol: Color = [Color(0.6, 0.6, 0.6), Color("7ad0ff"), Color("7aff8a"), Color("ffd34a"), Color("ff4a3a")][sr]
+	_text(Vector2(rx - 300, 150), Game.STYLE_RANKS[sr], 40, Color(scol, 0.4 + 0.6 * clampf(Game.style / 20.0, 0.0, 1.0)), HORIZONTAL_ALIGNMENT_RIGHT, 300)
+	_text(Vector2(rx - 300, 168), "STYLE", 12, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_RIGHT, 300)
+	var sk := fmod(Game.style, 20.0) / 20.0 if sr < 4 else 1.0
+	draw_rect(Rect2(Vector2(rx - 60, 174), Vector2(60, 3)), Color(0, 0, 0, 0.5))
+	draw_rect(Rect2(Vector2(rx - 60, 174), Vector2(60 * sk, 3)), scol)
 	# ---- בר חיים של הבוס ----
 	if player != null:
 		for z in get_tree().get_nodes_in_group("zombies"):

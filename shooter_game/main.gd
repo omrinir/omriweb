@@ -156,7 +156,7 @@ func _ready() -> void:
 	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
-	label.text = "A/D move   SHIFT run   W/SPACE jump   S/CTRL crouch   MOUSE aim   LMB fire   T gun/grenade   R restart   ESC pause"
+	label.text = "A/D move   SHIFT run   W/SPACE jump   S/CTRL crouch   MOUSE aim   LMB fire   T gun/grenade   Q roll   SHIFT+S slide   W x2 double jump   ESC pause"
 	label.position = Vector2(12, 8)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
