@@ -21,6 +21,9 @@ const ManholeScript := preload("res://manhole.gd")
 const LampScript := preload("res://street_lamp.gd")
 const SubwayScript := preload("res://subway.gd")
 const FactoryScript := preload("res://factory.gd")
+const RainScript := preload("res://rain.gd")
+# לילה (שלב 4): [רגיל, רץ, ענק, יורק, צורח, בוס, נפוח, מוליך, זוחל, שוטר, חולדות, יד, רובוט, זורק, קטן, כלב, שיכור, מקלען, ג'טפאק, בוס-כלב]
+const NIGHT_WEIGHTS := [0.18, 0.1, 0.05, 0.04, 0.04, 0.0, 0.05, 0.0, 0.0, 0.05, 0.04, 0.0, 0.0, 0.0, 0.0, 0.14, 0.12, 0.07, 0.08, 0.0]
 # מפעל: [רגיל, רץ, ענק, יורק, צורח, בוס, נפוח, מוליך, זוחל, שוטר, חולדות, יד, רובוט, זורק, קטן]
 const FACTORY_WEIGHTS := [0.2, 0.12, 0.05, 0.06, 0.05, 0.0, 0.06, 0.0, 0.0, 0.08, 0.0, 0.0, 0.14, 0.1, 0.12]
 const FACTORY_GENS := [["container", 3.0], ["crates", 2.0], ["barrels", 2.0], ["rubble", 1.5], ["barrier", 1.0], ["block", 1.0], ["wall", 1.0]]
@@ -104,6 +107,8 @@ func _ready() -> void:
 	if Game.is_factory():   # שלב מפעל (THEY BUILD)
 		zombie_weights = FACTORY_WEIGHTS.duplicate()
 		_gens = FACTORY_GENS
+	if Game.is_night():   # שלב 4: לילה וגשם
+		zombie_weights = NIGHT_WEIGHTS.duplicate()
 	if Game.is_subway():   # שלב רכבת תחתית
 		zombie_weights = SUBWAY_WEIGHTS.duplicate()
 		_gens = SUBWAY_GENS
@@ -120,7 +125,7 @@ func _ready() -> void:
 	var bg = SubwayScript.TunnelBg.new() if Game.is_subway() else (FactoryScript.FactoryBg.new() if Game.is_factory() else BackgroundScript.new())
 	bg.level_w = level_w
 	bg_layer.add_child(bg)
-	if Game.world() == 0:   # עיתונים ואפר רק ברחוב
+	if Game.world() == 0:   # עיתונים ואפר רק ברחוב ביום
 		var leaf_layer := CanvasLayer.new()
 		leaf_layer.layer = -5
 		add_child(leaf_layer)
@@ -135,6 +140,15 @@ func _ready() -> void:
 	# כביש לכל אורך הרמה, עם בורות
 	var floor_y := vp.y - floor_thickness
 	_make_road(rng, floor_y)
+	if Game.is_night():   # לילה: חושך, גשם וברקים
+		var cm := CanvasModulate.new()
+		cm.color = Color(0.5, 0.56, 0.75)
+		add_child(cm)
+		bg.modulate = Color(0.42, 0.48, 0.66)
+		var rl := CanvasLayer.new()
+		rl.layer = 1
+		add_child(rl)
+		rl.add_child(RainScript.new())
 	if Game.is_factory():
 		var fac = FactoryScript.new()
 		fac.floor_y = floor_y
@@ -242,7 +256,7 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 	_road_segment(x, level_w, floor_y)
 	# קישוטים על הכביש
 	var cx := 0.0
-	while cx < level_w and Game.world() == 0:   # סימוני כביש רק ברחוב
+	while cx < level_w and Game.is_street():   # סימוני כביש רק ברחוב
 		var d = RoadDecorScript.new()
 		d.position = Vector2(cx, 0.0)
 		d.width = 1024.0
@@ -254,7 +268,7 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 		cx += 1024.0
 	# מכסי ביוב עם אדים (לפעמים)
 	var mx := rng.randf_range(500.0, 1200.0)
-	while mx < level_w - 300.0 and Game.world() == 0:
+	while mx < level_w - 300.0 and Game.is_street():
 		if rng.randf() < 0.55 and not _in_pit(mx - 30.0, mx + 30.0, 30.0):
 			var mh = ManholeScript.new()
 			mh.position = Vector2(mx, floor_y)
@@ -295,7 +309,7 @@ func _in_pit(x0: float, x1: float, margin := 60.0) -> bool:
 
 # קישוטי רחוב ברקע: רמזורים, עמודי תאורה, גדרות, פחים בוערים
 func _place_street_props(rng: RandomNumberGenerator, floor_y: float) -> void:
-	if Game.world() != 0:
+	if not Game.is_street():
 		return
 	var x := 300.0
 	while x < level_w - 200.0:
@@ -480,12 +494,14 @@ func _spawn_zombies(rng: RandomNumberGenerator, floor_y: float) -> void:
 		var k0 := _pick_kind(rng)
 		if k0 == 10:   # חולדות: להקה
 			group = rng.randi_range(5, 7)
+		elif k0 == 15:   # כלבים: תמיד זוג
+			group = 2
 		elif rng.randf() < zombie_cluster_chance:
 			group = rng.randi_range(2, 3)
 		for g in group:
 			var gx := zx + float(g) * (rng.randf_range(16.0, 26.0) if k0 == 10 else rng.randf_range(34.0, 60.0))
 			if gx < level_w - 80.0 and not _near_brick(gx):
-				var kk := k0 if (g == 0 or k0 == 10) else _pick_kind(rng)
+				var kk := k0 if (g == 0 or k0 == 10 or k0 == 15) else _pick_kind(rng)
 				if kk == 10 and k0 != 10:
 					kk = 0
 				_spawn_zombie(gx, floor_y, kk, rng)
@@ -575,7 +591,7 @@ func _make_exit(floor_y: float) -> void:
 	add_child(ex)
 	ex.reached.connect(_level_complete)
 	var boss = ZombieScene.instantiate()
-	boss.kind = 7 if Game.is_subway() else 5   # רכבת תחתית: המוליך
+	boss.kind = 7 if Game.is_subway() else (19 if Game.is_night() else 5)   # רכבת תחתית: המוליך, לילה: הכלב
 	boss.position = Vector2(level_w - 480.0, floor_y)
 	boss.chase_range = 650.0
 	var diff: Dictionary = Settings.preset()
@@ -588,7 +604,7 @@ func _make_exit(floor_y: float) -> void:
 # מוזיקת רקע: שלב רחוב = TOTAL WAR, רכבת תחתית = מתח ואימה. מתנגנת בלופ ונכנסת בהדרגה
 @export var music_volume_db := -14.0
 func _start_music() -> void:
-	var path := "res://music/level2_suspense.mp3" if Game.is_subway() else "res://music/level1_total_war.mp3"
+	var path := "res://music/level2_suspense.mp3" if Game.is_subway() or Game.is_night() else "res://music/level1_total_war.mp3"
 	if not ResourceLoader.exists(path):
 		return
 	var stream = load(path)

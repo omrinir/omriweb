@@ -35,7 +35,7 @@ const UPGRADES := [
 ]
 
 # ---------------- ניקוד ----------------
-const KILL_POINTS := [100, 120, 200, 150, 150, 2000, 160, 3000, 140, 180, 20, 120, 250, 300, 80]   # לפי סוג זומבי
+const KILL_POINTS := [100, 120, 200, 150, 150, 2000, 160, 3000, 140, 180, 20, 120, 250, 300, 80, 120, 150, 220, 260, 4000]   # לפי סוג זומבי
 const COMBO_WINDOW := 4.0                               # שניות בין הריגות כדי שהקומבו ימשיך
 
 # מצב הריצה (נשמר בין שלבים, מתאפס במשחק חדש)
@@ -106,8 +106,18 @@ func _process(delta: float) -> void:
 # ============================================================
 # שלבים זוגיים = רכבת תחתית
 # העולמות מתחלפים: 0 = רחוב, 1 = רכבת תחתית, 2 = מפעל
+# איזה עולם בכל שלב: 0 רחוב, 1 רכבת תחתית, 2 מפעל, 3 רחוב בלילה עם גשם
+const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3}
 func world() -> int:
-	return (level - 1) % 3
+	return LEVEL_WORLD.get(level, (level - 1) % 4)
+
+
+func is_street() -> bool:
+	return world() == 0 or world() == 3
+
+
+func is_night() -> bool:
+	return world() == 3
 
 
 func is_subway() -> bool:
@@ -122,7 +132,7 @@ func is_factory() -> bool:
 #  מפה: 7 אזורים, 9 שלבים בכל אזור (כרגע 3 השלבים הראשונים קיימים)
 # ============================================================
 const LEVELS_PER_REGION := 9
-const IMPLEMENTED := 3            # כמה שלבים כבר בנויים
+const IMPLEMENTED := 4            # כמה שלבים כבר בנויים
 const REGIONS := [
 	{"name": "NORTHERN AMAZON", "color": Color(0.45, 0.85, 0.3), "desc": "Where it started. The first ones only hunger.",
 		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Canopy of Whispers", "The Drowned Port", "Fever Hospital", "Mangrove Hive", "Heart of the Swarm"]},
@@ -251,6 +261,7 @@ const LEVEL_TITLES := [
 	["THEY HUNGER", "They only want to eat. For now."],
 	["THEY HIDE", "They learned the dark. They learned to wait."],
 	["THEY BUILD", "They learned to use machines. And each other."],
+	["THEY HUNT", "They learned to hunt in packs. And to shoot back."],
 ]
 func level_title() -> Array:
 	var t: Array = LEVEL_TITLES[(level - 1) % LEVEL_TITLES.size()].duplicate()
@@ -376,7 +387,7 @@ func on_zombie_killed(kind: int, info: Dictionary) -> Array:
 	if info.get("perfect", false):
 		on_style("perfect", 15)
 	var src: String = info.get("source", "")
-	if src == "barrel" or src == "car" or src == "bloater":
+	if src == "barrel" or src == "car" or src == "bloater" or src == "jet" or src == "mech":
 		bonuses.append(["BOOM", 75])
 	if src == "fire":
 		bonuses.append(["ROASTED", 40])
