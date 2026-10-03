@@ -174,7 +174,7 @@ func _ready() -> void:
 	collision_mask = 1    # מתנגש רק בעולם
 	_shape = CollisionShape2D.new()
 	var r := RectangleShape2D.new()
-	r.size = Vector2(20.0 * wf, 56.0 * sc)
+	r.size = Vector2(30.0 * wf, 56.0 * sc)
 	_shape.shape = r
 	_shape.position = Vector2(0.0, -28.0 * sc)
 	add_child(_shape)
@@ -695,7 +695,7 @@ func _wake() -> void:
 	dormant = false
 	_rise_t = RISE_TIME
 	var r := _shape.shape as RectangleShape2D
-	r.size = Vector2(20.0 * wf, 56.0 * sc)
+	r.size = Vector2(30.0 * wf, 56.0 * sc)
 	_shape.position = Vector2(0.0, -28.0 * sc)
 	if Art.on_screen(self, global_position):
 		_popup("!", Color("ff5040"), 22, -80.0)

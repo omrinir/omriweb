@@ -28,7 +28,7 @@ var gravity := 1500.0
 var accel := 1800.0
 
 # ---- נשק ----
-var bullet_speed := 1300.0
+var bullet_speed := 2600.0   # מהיר = פחות זמן לזומבי לזוז לפני הפגיעה
 var fire_delay := 1.0            # שניות בין יריות (1 = כדור אחד בשנייה)
 var grenade_speed := 620.0
 var grenade_delay := 0.7
@@ -352,7 +352,7 @@ func _fire() -> void:
 		_eject_casing(sh)
 		var b = BulletScript.new()
 		get_parent().add_child(b)
-		var spread := randf_range(-0.025, 0.025)
+		var spread := 0.0   # בלי פיזור אקראי - הקליע הולך בדיוק לאן שמכוונים
 		if boosts.has(PickupScript.PIERCING):
 			b.pierce = 3
 		b.incendiary = boosts.has(PickupScript.INCENDIARY)
