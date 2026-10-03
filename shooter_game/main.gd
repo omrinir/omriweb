@@ -16,6 +16,7 @@ const CameraScript := preload("res://shake_camera.gd")
 const PropScript := preload("res://prop.gd")
 const StreetPropScript := preload("res://street_prop.gd")
 const RoadDecorScript := preload("res://road_decor.gd")
+const ManholeScript := preload("res://manhole.gd")
 const FogScript := preload("res://fog.gd")
 const PauseScript := preload("res://pause_menu.gd")
 const SurvivorScript := preload("res://survivor.gd")
@@ -213,6 +214,15 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 		d.seed_value = rng.randi()
 		add_child(d)
 		cx += 1024.0
+	# מכסי ביוב עם אדים (לפעמים)
+	var mx := rng.randf_range(500.0, 1200.0)
+	while mx < level_w - 300.0:
+		if rng.randf() < 0.55 and not _in_pit(mx - 30.0, mx + 30.0, 30.0):
+			var mh = ManholeScript.new()
+			mh.position = Vector2(mx, floor_y)
+			add_child(mh)
+			_rects.append(Rect2(mx - 30.0, floor_y - 60.0, 60.0, 60.0))   # שלא יהיה מכשול מעליו
+		mx += rng.randf_range(900.0, 1700.0)
 
 
 # ביצועים: הכביש בנוי מחתיכות של עד 1024 פיקסלים - כתם דם מצייר מחדש רק חתיכה אחת,
