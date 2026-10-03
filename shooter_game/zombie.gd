@@ -174,9 +174,9 @@ func _ready() -> void:
 	collision_mask = 1    # מתנגש רק בעולם
 	_shape = CollisionShape2D.new()
 	var r := RectangleShape2D.new()
-	r.size = Vector2(30.0 * wf, 56.0 * sc)
+	r.size = Vector2(38.0 * wf, 66.0 * sc)   # אזור פגיעה גדול מהציור - כדי שכל ירייה על הזומבי תיתפס
 	_shape.shape = r
-	_shape.position = Vector2(0.0, -28.0 * sc)
+	_shape.position = Vector2(0.0, -33.0 * sc)
 	add_child(_shape)
 	if dormant:
 		r.size = Vector2(18, 18) * sc
@@ -356,7 +356,7 @@ func _set_crouch(on: bool) -> void:
 		return
 	_crouched_shape = on
 	var r := _shape.shape as RectangleShape2D
-	r.size.y = (42.0 if on else 56.0) * sc
+	r.size.y = (50.0 if on else 66.0) * sc
 	_shape.position.y = -r.size.y / 2.0
 
 
@@ -695,8 +695,8 @@ func _wake() -> void:
 	dormant = false
 	_rise_t = RISE_TIME
 	var r := _shape.shape as RectangleShape2D
-	r.size = Vector2(30.0 * wf, 56.0 * sc)
-	_shape.position = Vector2(0.0, -28.0 * sc)
+	r.size = Vector2(38.0 * wf, 66.0 * sc)   # אזור פגיעה גדול מהציור - כדי שכל ירייה על הזומבי תיתפס
+	_shape.position = Vector2(0.0, -33.0 * sc)
 	if Art.on_screen(self, global_position):
 		_popup("!", Color("ff5040"), 22, -80.0)
 
