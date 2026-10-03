@@ -35,11 +35,13 @@ const UPGRADES := [
 ]
 
 # ---------------- ניקוד ----------------
-const KILL_POINTS := [100, 120, 200, 150, 150, 2000, 160]   # לפי סוג זומבי
+const KILL_POINTS := [100, 120, 200, 150, 150, 2000, 160, 3000, 140, 180, 20, 120]   # לפי סוג זומבי
 const COMBO_WINDOW := 4.0                               # שניות בין הריגות כדי שהקומבו ימשיך
 
 # מצב הריצה (נשמר בין שלבים, מתאפס במשחק חדש)
 var level := 1
+var weapons_owned := [true, false, false, false]   # רובה, שוטגאן, צלף, טייזר (נשמר לאורך הריצה)
+var player_dark := false   # השחקן בחושך (ברכבת התחתית) - זומבים רואים אותו פחות
 var run_score := 0
 var scrap := 0
 var upgrades := {}
@@ -95,8 +97,14 @@ func _process(delta: float) -> void:
 # ============================================================
 #  ריצה / שלב
 # ============================================================
+# שלבים זוגיים = רכבת תחתית
+func is_subway() -> bool:
+	return level % 2 == 0
+
+
 func new_run() -> void:
 	level = 1
+	weapons_owned = [true, false, false, false]
 	run_score = 0
 	scrap = 0
 	for u in UPGRADES:

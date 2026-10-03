@@ -60,6 +60,21 @@ var eye_color := Color("ff3030")
 
 var world_w := 100000.0          # רוחב העולם (main.gd קובע)
 var weapon := GUN
+var gun := 0                     # 0 רובה, 1 שוטגאן, 2 צלף, 3 טייזר (מקשים 1-4)
+const GUN_DELAY := [0.7, 1.0, 1.5, 0.9]
+var _scoping := false            # צלף: לחצן ימני = כוונת, הזמן מאט
+var _bolts := []                 # טייזר: [נקודות, זמן]
+# ---- וו קרס (E) ----
+var hook_range := 380.0
+var _hook_state := 0             # 0 = אין, 1 = נזרק ופספס, 2 = תפוס
+var _hook_pt := Vector2.ZERO
+var _hook_len := 0.0
+var _hook_t := 0.0
+var _e_was := false
+var in_water := false            # רכבת תחתית: מים עד הקרסול (subway.gd קובע)
+var grabbed_by: Node = null      # יד מהביוב תופסת את הרגל
+var _mash := 0
+var _mash_last := 0
 var dead := false
 
 const W := 22.0
@@ -178,6 +193,12 @@ func _physics_process(delta: float) -> void:
 	_recoil = move_toward(_recoil, 0.0, delta * 12.0)
 	_push_t -= delta
 	_heal_flash = move_toward(_heal_flash, 0.0, delta * 0.8)
+	_hook_t -= delta
+	if _hook_state == 1 and _hook_t < -0.15:
+		_hook_state = 0
+	for b in _bolts:
+		b[1] -= delta
+	_bolts = _bolts.filter(func(b): return b[1] > 0.0)
 
 	if not is_on_floor():
 		velocity.y += gravity * delta
@@ -202,7 +223,7 @@ func _physics_process(delta: float) -> void:
 	_crouch_was = want_crouch
 	# גלגול התחמקות: Q
 	var q := controllable and Input.is_physical_key_pressed(KEY_Q)
-	if q and not _q_was and _roll_cd <= 0.0 and is_on_floor():
+	if q and not _q_was and _roll_cd <= 0.0 and is_on_floor() and grabbed_by == null:
 		_roll_t = 0.35
 		_roll_cd = 0.9
 		var dd := 0.0
@@ -225,6 +246,18 @@ func _physics_process(delta: float) -> void:
 		dir -= 1.0
 	if controllable and Input.is_physical_key_pressed(KEY_D):
 		dir += 1.0
+	if grabbed_by != null:   # יד מהביוב: לוחצים A/D לסירוגין כדי להשתחרר
+		if not is_instance_valid(grabbed_by) or grabbed_by.dead:
+			grabbed_by = null
+		else:
+			var mk := 1 if Input.is_physical_key_pressed(KEY_A) else (2 if Input.is_physical_key_pressed(KEY_D) else 0)
+			if mk != 0 and mk != _mash_last:
+				_mash += 1
+			_mash_last = mk
+			dir = 0.0
+			if _mash >= 8:
+				grabbed_by.release_grab()
+				grabbed_by = null
 	var speed := walk_speed
 	if _crouching:
 		speed = crouch_speed
@@ -232,6 +265,8 @@ func _physics_process(delta: float) -> void:
 		speed = run_speed
 	if boosts.has(PickupScript.ADRENALINE):
 		speed *= 1.4
+	if in_water and is_on_floor():   # מים מאטים
+		speed *= 0.78
 	var acc := accel if is_on_floor() else accel * air_control
 	if _push_t > 0.0:   # רגע אחרי ירייה - הדחיפה גוברת על ההליכה
 		acc *= 0.25
@@ -239,6 +274,8 @@ func _physics_process(delta: float) -> void:
 		velocity.x = _roll_dir * roll_speed
 	elif _slide_t > 0.0:
 		velocity.x = move_toward(velocity.x, 0.0, 500.0 * delta)
+	elif _hook_state == 2 and not is_on_floor():   # מתנדנדים על החבל: A/D מוסיפים תנופה
+		velocity.x += dir * 520.0 * delta
 	else:
 		velocity.x = move_toward(velocity.x, dir * speed, acc * delta)
 
@@ -246,14 +283,30 @@ func _physics_process(delta: float) -> void:
 	var jump := controllable and (Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_SPACE))
 	if is_on_floor():
 		_air_jumps = 1
+	jump = jump and grabbed_by == null
 	if jump and not _jump_was:
-		if is_on_floor() and not _crouching:
+		if _hook_state == 2:   # עוזבים את החבל = זינוק
+			_hook_state = 0
+			velocity.y = minf(velocity.y, 0.0) - 330.0
+			_air_jumps = 1
+		elif is_on_floor() and not _crouching:
 			velocity.y = jump_velocity
 		elif not is_on_floor() and _air_jumps > 0:   # קפיצה כפולה
 			_air_jumps -= 1
 			velocity.y = jump_velocity * 0.85
 			preload("res://particles.gd").burst(get_parent(), global_position, "smoke", Vector2.DOWN, 6)
 	_jump_was = jump
+
+	# וו קרס: E זורק / משחרר
+	var e := controllable and Input.is_physical_key_pressed(KEY_E)
+	if e and not _e_was and not dead:
+		if _hook_state == 2:
+			_hook_state = 0
+		else:
+			_throw_hook()
+	_e_was = e
+	if _hook_state == 2:
+		_hook_process(delta)
 
 	var fall_v := velocity.y
 	_move()
@@ -288,6 +341,14 @@ func _physics_process(delta: float) -> void:
 	elif to_mouse.length() > 4.0 and not _fire_test:
 		_aim = to_mouse.normalized()
 	var trigger := controllable and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not get_tree().paused
+	# צלף: לחצן ימני = כוונת והזמן מאט
+	var scope := controllable and weapon == GUN and gun == 2 and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not get_tree().paused
+	if scope != _scoping:
+		_scoping = scope
+		if scope:
+			Engine.time_scale = 0.5
+		elif not boosts.has(PickupScript.BULLET_TIME) and _dodge_slow <= 0.0:
+			Engine.time_scale = 1.0
 	if (trigger or _fire_test) and _cooldown <= 0.0:
 		_fire()
 	_fire_test = false
@@ -352,6 +413,12 @@ func collect(p: Node) -> bool:
 			grenades += 1
 		PickupScript.BOOST:
 			activate_boost(p.boost)
+		PickupScript.WEAPON:
+			Game.weapons_owned[p.weapon_id] = true
+			gun = p.weapon_id
+			weapon = GUN
+			weapon_changed.emit(weapon)
+			ammo += 10
 	_say(p.label(), p.color())
 	return true
 
@@ -371,7 +438,7 @@ func has_boost(b: int) -> bool:
 
 # קו לייזר (שדרוג): עד הפגיעה הראשונה
 func _update_laser(sh: Vector2) -> void:
-	if Game.upgrade_level("laser") == 0 or not controllable:
+	if (Game.upgrade_level("laser") == 0 and not _scoping) or not controllable:
 		return
 	var from := sh + _aim * 40.0
 	var to := from + _aim * 650.0
@@ -410,25 +477,40 @@ func _fire() -> void:
 		ammo -= 1
 		Game.on_shot()
 		Game.make_noise(global_position, 380.0)   # יריות מעירות זומבים מסביב
-		_cooldown = fire_delay * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
+		_cooldown = (fire_delay if gun == 0 else GUN_DELAY[gun]) * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
 		_muzzle_flash = 0.05
 		_recoil = 1.0
 		# רתיעה: הירייה דוחפת את הדמות הפוך לכיוון הקנה
 		if is_on_floor():
-			velocity.x -= _aim.x * recoil_push
+			velocity.x -= _aim.x * recoil_push * (2.2 if gun == 1 else 1.0)
 		else:
 			velocity -= _aim * air_recoil_push
 			velocity.y = maxf(velocity.y, -700.0)
 		_push_t = 0.12
 		get_tree().call_group("zombies", "on_player_fired", sh, _aim)
 		_eject_casing(sh)
-		var b = BulletScript.new()
-		get_parent().add_child(b)
-		var spread := 0.0   # בלי פיזור אקראי - הקליע הולך בדיוק לאן שמכוונים
-		if boosts.has(PickupScript.PIERCING):
-			b.pierce = 3
-		b.incendiary = boosts.has(PickupScript.INCENDIARY)
-		b.setup(sh + _aim * 40.0, _aim.rotated(spread) * bullet_speed, sh)
+		if gun == 3:
+			_taser(sh)
+			return
+		var n := 6 if gun == 1 else 1   # שוטגאן: 6 כדורים בפיזור
+		for i in n:
+			var b = BulletScript.new()
+			get_parent().add_child(b)
+			var spread := randf_range(-0.16, 0.16) if gun == 1 else 0.0   # רובה וצלף: בלי פיזור
+			if boosts.has(PickupScript.PIERCING):
+				b.pierce = 3
+			b.incendiary = boosts.has(PickupScript.INCENDIARY)
+			var spd := bullet_speed
+			if gun == 1:
+				b.falloff = true
+				b.life_time = 0.35
+				b.count_hit = i == 0
+				spd *= randf_range(0.85, 1.0)
+			elif gun == 2:
+				b.sniper = true
+				b.pierce += 3
+				spd = 4200.0
+			b.setup(sh + _aim * 40.0, _aim.rotated(spread) * spd, sh)
 	else:
 		if grenades <= 0:
 			_cooldown = 0.3
@@ -441,6 +523,97 @@ func _fire() -> void:
 		var g = GrenadeScript.new()
 		get_parent().add_child(g)
 		g.setup(sh + _aim * 14.0, _aim * grenade_speed + velocity * 0.3)
+
+
+# ---- טייזר: ברק שקופץ מזומבי לזומבי (פי 3 במים) ----
+func _taser(sh: Vector2) -> void:
+	var from := sh + _aim * 30.0
+	var pts := PackedVector2Array([from])
+	var best: Node = null
+	var bd := 330.0
+	for z in get_tree().get_nodes_in_group("zombies"):
+		if z.dead:
+			continue
+		var d: Vector2 = z.global_position + Vector2(0.0, -30.0 * z.sc) - from
+		if d.length() < bd and absf(d.angle_to(_aim)) < 0.4:
+			bd = d.length()
+			best = z
+	if best == null:   # אין מטרה: ניצוץ קצר באוויר
+		pts.append(from + _aim.rotated(randf_range(-0.2, 0.2)) * 110.0)
+		_bolts.append([pts, 0.12])
+		return
+	var hit := []
+	var cur := from
+	var z: Node = best
+	for k in 4:
+		hit.append(z)
+		var zc: Vector2 = z.global_position + Vector2(0.0, -30.0 * z.sc)
+		pts.append(zc)
+		var wet: bool = in_water and z.is_on_floor()
+		z.take_damage(24 if wet else 8, zc, (zc - cur).normalized(), true, {"source": "taser"})
+		cur = zc
+		var nxt: Node = null
+		var nd := 150.0
+		for o in get_tree().get_nodes_in_group("zombies"):
+			if o.dead or o in hit:
+				continue
+			var od: float = (o.global_position + Vector2(0.0, -30.0 * o.sc)).distance_to(cur)
+			if od < nd:
+				nd = od
+				nxt = o
+		if nxt == null:
+			break
+		z = nxt
+	_bolts.append([pts, 0.15])
+
+
+# ---- וו קרס ----
+func _throw_hook() -> void:
+	var sh := global_position + _front_shoulder()
+	var to := sh + _aim * hook_range
+	var hit := get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(sh, to, 1))
+	var pt := Vector2.INF
+	if hit:
+		pt = hit.position
+	for lp in get_tree().get_nodes_in_group("lamps"):   # אפשר להיתפס גם בפנס
+		var hp: Vector2 = lp.global_position + lp.head()
+		if Geometry2D.get_closest_point_to_segment(hp, sh, to).distance_to(hp) < 16.0 and (pt == Vector2.INF or sh.distance_to(hp) < sh.distance_to(pt)):
+			pt = hp
+	_hook_t = 0.12
+	if pt == Vector2.INF:
+		_hook_state = 1
+		_hook_pt = to
+		return
+	_hook_state = 2
+	_hook_pt = pt
+	_hook_len = maxf((global_position + Vector2(0.0, -30.0)).distance_to(pt) * 0.85, 50.0)
+	if is_on_floor():
+		velocity.y = -220.0   # קופץ מהריצפה אל החבל
+
+
+func _hook_process(delta: float) -> void:
+	var c := global_position + Vector2(0.0, -30.0)
+	var r := c - _hook_pt
+	var dist := r.length()
+	if dist > hook_range * 1.5 or dist < 1.0:
+		_hook_state = 0
+		return
+	_hook_len = maxf(_hook_len - 90.0 * delta, 45.0)   # מושך קצת למעלה
+	if dist > _hook_len:
+		var n := r / dist
+		var vr := velocity.dot(n)
+		if vr > 0.0:
+			velocity -= n * vr
+		global_position -= n * minf(dist - _hook_len, 400.0 * delta)
+
+
+# יד מהביוב תפסה את הרגל
+func grab(by: Node) -> void:
+	grabbed_by = by
+	_mash = 0
+	_mash_last = 0
+	_hook_state = 0
+	_say("SHAKE FREE!  A / D", Color("ff6050"))
 
 
 # זומבי צמוד מלפנים? במקום לירות - מכה עם הקת
@@ -486,6 +659,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.physical_keycode == KEY_T and not dead:
 		weapon = GRENADE if weapon == GUN else GUN
 		weapon_changed.emit(weapon)
+	elif event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_4 and not dead:
+		var g: int = event.physical_keycode - KEY_1
+		if Game.weapons_owned[g]:
+			gun = g
+			weapon = GUN
+			weapon_changed.emit(weapon)
+			_say(PickupScript.WEAPON_NAMES[g], PickupScript.WEAPON_COLORS[g])
 	elif event.physical_keycode == KEY_K:
 		_invuln = 0.0
 		hurt(health, Vector2.ZERO)
@@ -638,7 +818,28 @@ func _draw() -> void:
 		draw_arc(Vector2(10, -24), 22.0, -0.9 + mk * 0.6, 0.5 + mk * 0.6, 10, Color(1, 1, 1, 0.5 * sin(mk * PI)), 3.0, true)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 	# לייזר (שדרוג)
-	if Game.upgrade_level("laser") > 0 and controllable and _drain_target == null and weapon == GUN:
+	# טייזר: ברקים
+	for b in _bolts:
+		var pts: PackedVector2Array = b[0]
+		for i in pts.size() - 1:
+			var a := pts[i] - global_position
+			var c := pts[i + 1] - global_position
+			var line := PackedVector2Array([a])
+			for j in range(1, 6):
+				line.append(a.lerp(c, float(j) / 6.0) + Vector2(randf_range(-6, 6), randf_range(-6, 6)))
+			line.append(c)
+			draw_polyline(line, Color(0.75, 0.55, 1.0, 0.85), 3.0, true)
+			draw_polyline(line, Color(1, 1, 1, 0.95), 1.0, true)
+	# וו קרס: חבל
+	if _hook_state != 0:
+		var hand := _front_shoulder() + _aim * 12.0
+		var end := _hook_pt - global_position
+		if _hook_state == 1:   # פספוס: החבל נזרק וחוזר
+			var tt := 0.12 - _hook_t
+			end = hand.lerp(end, clampf(tt / 0.12 if tt < 0.12 else (0.27 - tt) / 0.15, 0.0, 1.0))
+		draw_line(hand, end, Color("8a7a60"), 1.6, true)
+		draw_circle(end, 2.5, Color("b0b0b8"))
+	if (Game.upgrade_level("laser") > 0 or _scoping) and controllable and _drain_target == null and weapon == GUN:
 		var from := _front_shoulder() + _aim * 40.0
 		var to := _laser_end - global_position
 		draw_line(from, to, Color(1.0, 0.1, 0.1, 0.35), 1.0, true)
@@ -882,7 +1083,18 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 		g.call(2.6, 6.4), g.call(-0.6, 6.4), g.call(-1.0, 2.2),
 	]), metal, Art.OUTLINE, 1.0)
 	Art.fill(self, PackedVector2Array([g.call(5.0, 1.6), g.call(13.0, 1.6), g.call(12.0, 3.6), g.call(6.0, 3.6)]), wood, Art.OUTLINE, 0.9)   # ידית קדמית
-	Art.limb(self, PackedVector2Array([g.call(14.0, -0.4), g.call(25.0, -0.4)]), 2.0, Color("2c2c34"), Art.OUTLINE)   # קנה
+	var bl: float = [25.0, 22.0, 35.0, 20.0][gun]   # אורך הקנה לפי הנשק
+	Art.limb(self, PackedVector2Array([g.call(14.0, -0.4), g.call(bl, -0.4)]), [2.0, 3.4, 1.8, 2.4][gun], Color("2c2c34"), Art.OUTLINE)   # קנה
+	match gun:
+		1:   # שוטגאן: ידית משאבה
+			Art.fill(self, PackedVector2Array([g.call(15.0, 1.2), g.call(21.0, 1.2), g.call(21.0, 3.6), g.call(15.0, 3.6)]), Color("5a3a24"), Art.OUTLINE, 0.9)
+		2:   # צלף: כוונת טלסקופית
+			Art.fill(self, PackedVector2Array([g.call(0.0, -3.4), g.call(11.0, -3.4), g.call(11.0, -6.4), g.call(0.0, -6.4)]), Color("16161a"), Art.OUTLINE, 0.9)
+			draw_circle(g.call(11.2, -4.9), 1.2, Color(0.5, 0.8, 1.0, 0.8))
+		3:   # טייזר: סליל סגול זוהר
+			for k in 3:
+				draw_circle(g.call(16.0 + float(k) * 2.0, -0.4), 2.2, Color(0.7, 0.5, 1.0, 0.5 + 0.3 * sin(_time * 20.0 + float(k))))
+			draw_circle(g.call(bl, -0.4), 1.8, Color(0.85, 0.75, 1.0))
 	Art.fill(self, PackedVector2Array([g.call(1.0, -1.6), g.call(9.0, -1.6), g.call(9.0, -3.8), g.call(1.0, -3.8)]), Color("101014"), Art.OUTLINE, 0.9)   # כוונת
 	draw_line(g.call(-1.0, -1.0), g.call(13.0, -1.0), Color(1, 1, 1, 0.12), 0.8, true)
 	if _muzzle_flash > 0.0:

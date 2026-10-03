@@ -18,6 +18,11 @@ const StreetPropScript := preload("res://street_prop.gd")
 const RoadDecorScript := preload("res://road_decor.gd")
 const ManholeScript := preload("res://manhole.gd")
 const LampScript := preload("res://street_lamp.gd")
+const SubwayScript := preload("res://subway.gd")
+const CEIL_Y := 250.0   # רכבת תחתית: גובה התקרה
+# רכבת תחתית: [רגיל, רץ, ענק, יורק, צורח, בוס, נפוח, מוליך, זוחל, שוטר, חולדות, יד]
+const SUBWAY_WEIGHTS := [0.25, 0.14, 0.08, 0.08, 0.05, 0.0, 0.07, 0.0, 0.1, 0.1, 0.12, 0.07]
+const SUBWAY_GENS := [["train", 3.0], ["crates", 1.5], ["barrels", 1.5], ["barrier", 1.0], ["rubble", 1.0], ["block", 1.0], ["sandbags", 1.0]]
 const FogScript := preload("res://fog.gd")
 const PauseScript := preload("res://pause_menu.gd")
 const SurvivorScript := preload("res://survivor.gd")
@@ -77,6 +82,7 @@ var _time := 0.0
 var _player: Node
 var _pause: Node
 var _finished := false
+var _gens: Array = GENERATORS
 
 
 func _ready() -> void:
@@ -87,6 +93,10 @@ func _ready() -> void:
 	dormant_chance = diff.dormant
 	# כל שלב קשה יותר: יותר זומבים ויותר ענקים
 	Game.reset_level()
+	if Game.is_subway():   # שלב רכבת תחתית
+		zombie_weights = SUBWAY_WEIGHTS.duplicate()
+		_gens = SUBWAY_GENS
+		pits = 2
 	zombies_per_screen *= 1.0 + 0.15 * float(Game.level - 1)
 	zombie_weights[2] += 0.04 * float(Game.level - 1)
 	var vp := get_viewport_rect().size
@@ -96,13 +106,14 @@ func _ready() -> void:
 	var bg_layer := CanvasLayer.new()
 	bg_layer.layer = -10
 	add_child(bg_layer)
-	var bg = BackgroundScript.new()
+	var bg = SubwayScript.TunnelBg.new() if Game.is_subway() else BackgroundScript.new()
 	bg.level_w = level_w
 	bg_layer.add_child(bg)
-	var leaf_layer := CanvasLayer.new()
-	leaf_layer.layer = -5
-	add_child(leaf_layer)
-	leaf_layer.add_child(LeavesScript.new())
+	if not Game.is_subway():
+		var leaf_layer := CanvasLayer.new()
+		leaf_layer.layer = -5
+		add_child(leaf_layer)
+		leaf_layer.add_child(LeavesScript.new())
 
 	var rng := RandomNumberGenerator.new()
 	if level_seed == 0:
@@ -113,6 +124,13 @@ func _ready() -> void:
 	# כביש לכל אורך הרמה, עם בורות
 	var floor_y := vp.y - floor_thickness
 	_make_road(rng, floor_y)
+	if Game.is_subway():
+		var sub = SubwayScript.new()
+		sub.floor_y = floor_y
+		sub.ceil_y = CEIL_Y
+		sub.level_w = level_w
+		sub.make_rails(rng, _pits, safe_zone)
+		add_child(sub)
 
 	# שחקן (נוצר קודם כדי לחשב מה גובה המכשול המקסימלי שהוא מסוגל לעבור)
 	var player = PlayerScript.new()
@@ -158,7 +176,7 @@ func _ready() -> void:
 	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
-	label.text = "A/D move   SHIFT run   W/SPACE jump   S/CTRL crouch   MOUSE aim   LMB fire   T gun/grenade   Q roll   SHIFT+S slide   W x2 double jump   ESC pause"
+	label.text = "A/D move  SHIFT run  W jump (x2)  S crouch  LMB fire  1-4 weapons  T grenade  Q roll  SHIFT+S slide  E grapple  RMB scope  ESC pause"
 	label.position = Vector2(12, 8)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
@@ -205,7 +223,7 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 	_road_segment(x, level_w, floor_y)
 	# קישוטים על הכביש
 	var cx := 0.0
-	while cx < level_w:
+	while cx < level_w and not Game.is_subway():   # ברכבת התחתית אין סימוני כביש
 		var d = RoadDecorScript.new()
 		d.position = Vector2(cx, 0.0)
 		d.width = 1024.0
@@ -217,7 +235,7 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 		cx += 1024.0
 	# מכסי ביוב עם אדים (לפעמים)
 	var mx := rng.randf_range(500.0, 1200.0)
-	while mx < level_w - 300.0:
+	while mx < level_w - 300.0 and not Game.is_subway():
 		if rng.randf() < 0.55 and not _in_pit(mx - 30.0, mx + 30.0, 30.0):
 			var mh = ManholeScript.new()
 			mh.position = Vector2(mx, floor_y)
@@ -225,13 +243,18 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 			_rects.append(Rect2(mx - 30.0, floor_y - 60.0, 60.0, 60.0))   # שלא יהיה מכשול מעליו
 		mx += rng.randf_range(900.0, 1700.0)
 	# פנסי רחוב שעובדים (מדי פעם)
-	var lx := rng.randf_range(700.0, 1400.0)
+	var sub := Game.is_subway()   # רכבת תחתית: מנורות תקרה, צפופות יותר
+	var lx := rng.randf_range(400.0, 700.0) if sub else rng.randf_range(700.0, 1400.0)
 	while lx < level_w - 300.0:
-		if rng.randf() < 0.6 and not _in_pit(lx - 40.0, lx + 40.0, 20.0):
+		if rng.randf() < (0.85 if sub else 0.6) and not _in_pit(lx - 40.0, lx + 40.0, 20.0):
 			var lamp = LampScript.new()
+			if sub:
+				lamp.ceiling = true
+				lamp.height = floor_y - CEIL_Y - 34.0
+				lamp.light_color = Color(0.8, 0.95, 0.85)
 			lamp.position = Vector2(lx, floor_y)
 			add_child(lamp)
-		lx += rng.randf_range(800.0, 1500.0)
+		lx += rng.randf_range(450.0, 750.0) if sub else rng.randf_range(800.0, 1500.0)
 
 
 # ביצועים: הכביש בנוי מחתיכות של עד 1024 פיקסלים - כתם דם מצייר מחדש רק חתיכה אחת,
@@ -253,6 +276,8 @@ func _in_pit(x0: float, x1: float, margin := 60.0) -> bool:
 
 # קישוטי רחוב ברקע: רמזורים, עמודי תאורה, גדרות, פחים בוערים
 func _place_street_props(rng: RandomNumberGenerator, floor_y: float) -> void:
+	if Game.is_subway():
+		return
 	var x := 300.0
 	while x < level_w - 200.0:
 		var kind := rng.randi_range(0, 3)
@@ -276,7 +301,7 @@ const GENERATORS := [["car", 3.0], ["barrels", 2.0], ["barrier", 2.0], ["crates"
 
 func _generate_level(rng: RandomNumberGenerator, floor_y: float) -> void:
 	var total := 0.0
-	for g in GENERATORS:
+	for g in _gens:
 		total += float(g[1])
 	var x := safe_zone
 	while x < level_w - end_margin:
@@ -285,7 +310,7 @@ func _generate_level(rng: RandomNumberGenerator, floor_y: float) -> void:
 			continue
 		var r := rng.randf() * total
 		var pick := ""
-		for g in GENERATORS:
+		for g in _gens:
 			r -= float(g[1])
 			if r <= 0.0:
 				pick = g[0]
@@ -298,6 +323,7 @@ func _generate_level(rng: RandomNumberGenerator, floor_y: float) -> void:
 			"crates": used = _gen_crates(rng, x, floor_y)
 			"rubble": used = _gen_pyramid(rng, x, floor_y)
 			"bus": used = _gen_bus(rng, x, floor_y)
+			"train": used = _gen_prop_simple(rng, x, floor_y, PropScript.TRAIN)
 			"tires": used = _gen_prop_simple(rng, x, floor_y, PropScript.TIRES)
 			"sandbags": used = _gen_prop_simple(rng, x, floor_y, PropScript.SANDBAGS)
 			"block": used = _gen_block(rng, x, floor_y)
@@ -431,12 +457,18 @@ func _spawn_zombies(rng: RandomNumberGenerator, floor_y: float) -> void:
 		if _near_brick(zx):
 			continue
 		var group := 1
-		if rng.randf() < zombie_cluster_chance:
+		var k0 := _pick_kind(rng)
+		if k0 == 10:   # חולדות: להקה
+			group = rng.randi_range(5, 7)
+		elif rng.randf() < zombie_cluster_chance:
 			group = rng.randi_range(2, 3)
 		for g in group:
-			var gx := zx + float(g) * rng.randf_range(34.0, 60.0)
+			var gx := zx + float(g) * (rng.randf_range(16.0, 26.0) if k0 == 10 else rng.randf_range(34.0, 60.0))
 			if gx < level_w - 80.0 and not _near_brick(gx):
-				_spawn_zombie(gx, floor_y, _pick_kind(rng), rng)
+				var kk := k0 if (g == 0 or k0 == 10) else _pick_kind(rng)
+				if kk == 10 and k0 != 10:
+					kk = 0
+				_spawn_zombie(gx, floor_y, kk, rng)
 				spawned += 1
 
 
@@ -487,6 +519,23 @@ func _spawn_supplies(rng: RandomNumberGenerator, floor_y: float) -> void:
 		p.life = 100000.0
 		add_child(p)
 		p.setup(Vector2(x, floor_y - 30.0), Vector2.ZERO)
+	# רכבת תחתית: נשקים חדשים (שוטגאן בהתחלה, צלף וטייזר בהמשך)
+	if Game.is_subway():
+		var spots := [safe_zone * 0.75, level_w * 0.3, level_w * 0.55]
+		for i in 3:
+			if Game.weapons_owned[i + 1]:
+				continue
+			var x: float = spots[i]
+			var tries := 0
+			while _near_brick(x) and tries < 60:
+				x += 41.0
+				tries += 1
+			var p = PickupScript.new()
+			p.kind = PickupScript.WEAPON
+			p.weapon_id = i + 1
+			p.life = 100000.0
+			add_child(p)
+			p.setup(Vector2(x, floor_y - 30.0), Vector2.ZERO)
 
 
 # היציאה + הבוס ששומר עליה
@@ -496,7 +545,7 @@ func _make_exit(floor_y: float) -> void:
 	add_child(ex)
 	ex.reached.connect(_level_complete)
 	var boss = ZombieScene.instantiate()
-	boss.kind = 5
+	boss.kind = 7 if Game.is_subway() else 5   # רכבת תחתית: המוליך
 	boss.position = Vector2(level_w - 480.0, floor_y)
 	boss.chase_range = 650.0
 	var diff: Dictionary = Settings.preset()
@@ -528,13 +577,16 @@ func _exit_tree() -> void:
 
 func _spawn_zombie(x: float, floor_y: float, kind := 0, rng: RandomNumberGenerator = null) -> void:
 	var z = ZombieScene.instantiate()
-	z.kind = kind   # 0 = רגיל, 1 = רץ, 2 = ענק, 3 = יורק, 4 = צורח
+	z.kind = kind   # 0 = רגיל, 1 = רץ, 2 = ענק, 3 = יורק, 4 = צורח ... (ראה zombie.gd)
 	var diff: Dictionary = Settings.preset()
 	z.speed_mult = diff.zombie_speed
 	z.smart_mult = diff.smart
-	if rng != null and rng.randf() < dormant_chance:
+	if rng != null and rng.randf() < dormant_chance and kind < 7:
 		z.dormant = true   # שוכב על הריצפה וקם כשמתקרבים
 	z.position = Vector2(x, floor_y)   # (0,0) של הזומבי = כפות הרגליים
+	if kind == 8:   # זוחל: מתחיל על התקרה
+		z.on_ceiling = true
+		z.position.y = CEIL_Y
 	add_child(z)
 	z.world_w = level_w
 

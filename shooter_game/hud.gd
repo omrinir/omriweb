@@ -99,10 +99,10 @@ func _draw() -> void:
 	if player != null:
 		if _weapon == 0:
 			var low: bool = player.ammo <= 5
-			_text(Vector2(x, wy), "RIFLE  %d" % player.ammo, 16, Color("ff6050") if low else Color.WHITE)
+			_text(Vector2(x, wy), "%s  %d" % [["RIFLE", "SHOTGUN", "SNIPER", "TASER"][player.gun], player.ammo], 16, Color("ff6050") if low else Color.WHITE)
 		else:
 			_text(Vector2(x, wy), "GRENADE  x%d" % player.grenades, 16, Color("ff6050") if player.grenades == 0 else Color.WHITE)
-		_text(Vector2(x + 130.0, wy), "G x%d" % player.grenades if _weapon == 0 else "A %d" % player.ammo, 13, Color(1, 1, 1, 0.6))
+		_text(Vector2(x + 160.0, wy), "G x%d" % player.grenades if _weapon == 0 else "A %d" % player.ammo, 13, Color(1, 1, 1, 0.6))
 	if difficulty != "":
 		_text(Vector2(x + 190.0, wy), difficulty, 16, difficulty_color)
 	# ---- בוסטים פעילים ----
@@ -143,7 +143,7 @@ func _draw() -> void:
 			if z.is_boss() and absf(z.global_position.x - player.global_position.x) < 900.0:
 				var w := 420.0
 				var bp := Vector2((vp.x - w) / 2.0, 108)
-				_text(Vector2(0, bp.y - 6), "THE GATEKEEPER", 16, Color("ff7060"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+				_text(Vector2(0, bp.y - 6), ("THE CONDUCTOR" if z.kind == 7 else "THE GATEKEEPER") + ("" if z.kind != 7 or z._transformer == 0 else "   - SHOOT THE TRANSFORMER ON HIS BACK"), 16, Color("ff7060"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 				draw_rect(Rect2(bp - Vector2(2, 2), Vector2(w + 4, 14)), Color(0, 0, 0, 0.7))
 				var k := clampf(float(z.hp) / float(z.max_hp), 0.0, 1.0)
 				draw_rect(Rect2(bp, Vector2(w * k, 10)), Color("c0201c"))

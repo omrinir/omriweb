@@ -15,7 +15,7 @@ const FireScript := preload("res://fire.gd")
 const DebrisScript := preload("res://debris.gd")
 const PickupScript := preload("res://pickup.gd")
 
-enum { CAR, BUS, BARRIER, BARREL, TIRES, SANDBAGS }
+enum { CAR, BUS, BARRIER, BARREL, TIRES, SANDBAGS, TRAIN }
 
 @export_enum("Car", "Bus", "Barrier", "Barrel", "Tires", "Sandbags") var kind := 0
 ## מכונית הפוכה (על הגג)
@@ -75,9 +75,12 @@ func _ready() -> void:
 		SANDBAGS:
 			size = Vector2(72, 26)
 			_box(Rect2(0, -26, 72, 26))
+		TRAIN:   # קרון רכבת תחתית תקוע (אפשר לעלות עליו)
+			size = Vector2(300, minf(76.0, max_height))
+			_box(Rect2(0, -size.y, size.x, size.y))
 	z_index = 1
 	set_process(false)
-	if kind in [CAR, BUS, BARRIER, SANDBAGS, TIRES]:
+	if kind in [CAR, BUS, BARRIER, SANDBAGS, TIRES, TRAIN]:
 		add_to_group("cover")   # זומבים יכולים להתחבא מאחוריו   # מופעל רק כשיש פתיל דולק (חוסך ביצועים)
 
 
@@ -231,6 +234,30 @@ func _draw() -> void:
 			_draw_tires()
 		SANDBAGS:
 			_draw_sandbags()
+		TRAIN:
+			_draw_train()
+
+
+func _draw_train() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = _seed
+	var w := size.x
+	var h := size.y
+	var body := PackedVector2Array([Vector2(0, -4), Vector2(0, -h + 8), Vector2(8, -h), Vector2(w - 8, -h), Vector2(w, -h + 8), Vector2(w, -4)])
+	Art.fill_shaded(self, body, Color("8a8e94"), 0.15, 0.35, Art.OUTLINE, 1.8)
+	draw_rect(Rect2(2, -h * 0.42, w - 4, 7), Color("2a5aa0"))   # פס כחול
+	var x := 18.0
+	while x < w - 30.0:   # חלונות חשוכים, חלקם עם אור עמום
+		var lit := rng.randf() < 0.25
+		Art.fill(self, PackedVector2Array([Vector2(x, -h + 10), Vector2(x + 30, -h + 10), Vector2(x + 30, -h + 30), Vector2(x, -h + 30)]), Color(0.7, 0.85, 0.6, 0.5) if lit else Color("101214"), Art.OUTLINE, 1.0)
+		x += 42.0
+	for dx in [w * 0.33, w * 0.66]:   # דלתות
+		draw_rect(Rect2(dx - 12, -h + 8, 24, h - 12), Color("6a6e74"))
+		draw_line(Vector2(dx, -h + 8), Vector2(dx, -4), Color(0, 0, 0, 0.6), 1.5)
+	for i in 3:   # גרפיטי
+		var gx := rng.randf_range(10.0, w - 60.0)
+		draw_line(Vector2(gx, -14), Vector2(gx + rng.randf_range(20, 50), -h * 0.3), Color.from_hsv(rng.randf(), 0.7, 0.8, 0.6), 3.0, true)
+	draw_rect(Rect2(0, -4, w, 4), Color("1a1a1c"))
 
 
 func _draw_car() -> void:

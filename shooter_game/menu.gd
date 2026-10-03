@@ -147,6 +147,10 @@ func _build_ui(vp: Vector2) -> void:
 	var play := _button(root, "PLAY", Vector2(70, 250), Vector2(310, 66), 40, 0.15)
 	play.pressed.connect(_start_game)
 
+	var lv2 := _button(root, "LEVEL 2", Vector2(394, 262), Vector2(130, 44), 20, 0.25)   # בדיקה מהירה של השלב השני
+	lv2.accent = Color("3a8acc")
+	lv2.pressed.connect(_start_game.bind(2))
+
 	var lbl := Caption.new()
 	lbl.text = "DIFFICULTY"
 	lbl.position = Vector2(72, 360)
@@ -177,7 +181,7 @@ func _build_ui(vp: Vector2) -> void:
 	var hint := Caption.new()
 	hint.size = 15
 	hint.color = Color(1, 1, 1, 0.55)
-	hint.text = "A/D move   W jump   S crouch   MOUSE aim   LMB fire   T grenade   ESC pause"
+	hint.text = "A/D move   W jump   S crouch   MOUSE aim   LMB fire   1-4 weapons   T grenade   E grapple   ESC pause"
 	hint.position = Vector2(20, vp.y - 18.0)
 	ui.add_child(hint)
 
@@ -211,11 +215,12 @@ func _set_difficulty(i: int) -> void:
 	_desc.flash()
 
 
-func _start_game() -> void:
+func _start_game(start_level := 1) -> void:
 	if _leaving:
 		return
 	_leaving = true
 	Game.new_run()
+	Game.level = start_level
 	var tw := create_tween()
 	tw.tween_interval(0.15)
 	tw.tween_property(_fade, "color:a", 1.0, 0.6)

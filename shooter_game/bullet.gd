@@ -16,6 +16,10 @@ var damage := 0                            # הנזק נקבע בזומבי לפ
 
 var pierce := 0                            # בוסט: כמה זומבים נוספים הקליע עובר דרכם
 var incendiary := false                    # בוסט: הקליע מצית זומבים
+var falloff := false                       # שוטגאן: הנזק יורד עם המרחק
+var sniper := false                        # צלף: נזק כפול בראש, פי 1.5 בגוף
+var count_hit := true                      # false = לא נספר לדיוק (כדורי שוטגאן נוספים)
+var _dist := 0.0
 var velocity := Vector2.ZERO
 var _exclude: Array[RID] = []
 var _cast_from := Vector2.ZERO
@@ -60,7 +64,9 @@ func _physics_process(delta: float) -> void:
 	for mh in get_tree().get_nodes_in_group("manholes"):   # מכסה ביוב קופץ
 		if mh.hit_test(from, to):
 			mh.pop(velocity.normalized())
-	var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary}
+	_dist += from.distance_to(to)
+	var mult := clampf(1.0 - (_dist - 110.0) / 380.0, 0.25, 1.0) if falloff else 1.0
+	var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary, "mult": mult, "sniper": sniper, "counted": not count_hit}
 	while true:
 		var query := PhysicsRayQueryParameters2D.create(from, to, collision_mask, _exclude)
 		var hit := get_world_2d().direct_space_state.intersect_ray(query)
@@ -110,6 +116,8 @@ func _draw() -> void:
 	])
 	var light := Color("e0a060")
 	var dark := Color("8a4a20")
+	if sniper:   # צלף: שובל ארוך ובהיר
+		draw_line(Vector2(-90.0, 0.0), Vector2(-6.0, 0.0), Color(0.6, 0.85, 1.0, 0.35), 2.0, true)
 	if pierce > 0:   # קליע חודר - כחול
 		light = Color("90c8ff")
 		dark = Color("2a5a9a")

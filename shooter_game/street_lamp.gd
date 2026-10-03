@@ -14,6 +14,7 @@ var light_color := Color(1.0, 0.82, 0.5)
 var strength := 1.0                      # עוצמת האור על הדמויות
 var cone_w := 120.0                      # חצי רוחב הקונוס בריצפה
 var reach := 150.0                       # עד כמה רחוק (לצדדים) הדמויות עוד מקבלות אור
+var ceiling := false                     # מנורת תקרה (רכבת תחתית): תלויה על כבל, בלי עמוד
 
 const SHADER_CODE := """
 shader_type canvas_item;
@@ -55,6 +56,8 @@ func _ready() -> void:
 	add_to_group("lamps")
 	z_index = -1
 	_arm = 1.0 if randf() < 0.5 else -1.0
+	if ceiling:
+		_arm = 0.0
 	_next_flicker = randf_range(3.0, 10.0)
 	_cone = ConeFx.new()
 	_cone.lamp = self
@@ -162,13 +165,12 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var hd := head()
 	var metal := Color("2a2a30")
-	# עמוד + זרוע
-	draw_rect(Rect2(-5.0, -10.0, 10.0, 10.0), Color("1e1e22"))
-	draw_line(Vector2(0.0, -4.0), Vector2(0.0, -height + 12.0), metal, 4.0)
-	draw_line(Vector2(1.2, -4.0), Vector2(1.2, -height + 12.0), Color(1, 1, 1, 0.08), 1.0)
-	draw_polyline(PackedVector2Array([Vector2(0.0, -height + 12.0), Vector2(_arm * 6.0, -height - 2.0), hd + Vector2(-_arm * 6.0, -6.0), hd + Vector2(0.0, -6.0)]), metal, 3.0, true)
-	# ראש הפנס
-	draw_colored_polygon(PackedVector2Array([hd + Vector2(-11.0, -2.0), hd + Vector2(-7.0, -8.0), hd + Vector2(7.0, -8.0), hd + Vector2(11.0, -2.0)]), Color("34343a"))
+	if ceiling:   # כבל מהתקרה + מנורת פלורסנט
+		draw_line(hd + Vector2(-8.0, -36.0), hd + Vector2(-8.0, -7.0), Color("2a2a30"), 1.2)
+		draw_line(hd + Vector2(8.0, -36.0), hd + Vector2(8.0, -7.0), Color("2a2a30"), 1.2)
+		draw_rect(Rect2(hd + Vector2(-16.0, -8.0), Vector2(32.0, 6.0)), Color("34343a"))
+	else:
+		_draw_pole(hd, metal)
 	if _broken:   # נורה שבורה: שאריות זכוכית
 		draw_colored_polygon(PackedVector2Array([hd + Vector2(-8.0, -2.0), hd + Vector2(-5.0, 2.0), hd + Vector2(-2.0, -1.0), hd + Vector2(2.0, 1.5), hd + Vector2(5.0, -1.0), hd + Vector2(8.0, -2.0)]), Color("3a3830"))
 	else:
@@ -181,6 +183,16 @@ func _draw() -> void:
 			draw_line(s[0], s[0] - s[1] * 0.025, Color(1.0, 0.85, 0.4, a), 1.5, true)
 		else:
 			draw_rect(Rect2(s[0], Vector2(2, 2)), Color(0.75, 0.85, 0.9, a))
+
+
+func _draw_pole(hd: Vector2, metal: Color) -> void:
+	# עמוד + זרוע
+	draw_rect(Rect2(-5.0, -10.0, 10.0, 10.0), Color("1e1e22"))
+	draw_line(Vector2(0.0, -4.0), Vector2(0.0, -height + 12.0), metal, 4.0)
+	draw_line(Vector2(1.2, -4.0), Vector2(1.2, -height + 12.0), Color(1, 1, 1, 0.08), 1.0)
+	draw_polyline(PackedVector2Array([Vector2(0.0, -height + 12.0), Vector2(_arm * 6.0, -height - 2.0), hd + Vector2(-_arm * 6.0, -6.0), hd + Vector2(0.0, -6.0)]), metal, 3.0, true)
+	# ראש הפנס
+	draw_colored_polygon(PackedVector2Array([hd + Vector2(-11.0, -2.0), hd + Vector2(-7.0, -8.0), hd + Vector2(7.0, -8.0), hd + Vector2(11.0, -2.0)]), Color("34343a"))
 
 
 # קונוס אור באוויר + עיגול אור על הריצפה (מצויר חיבורי, מעל הכל)
