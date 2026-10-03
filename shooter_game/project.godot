@@ -5,7 +5,7 @@ config_version=5
 
 [application]
 
-config/name="Shooter Game"
+config/name="Dead Zone"
 run/main_scene="res://menu.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
