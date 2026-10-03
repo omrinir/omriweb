@@ -15,7 +15,7 @@ const FireScript := preload("res://fire.gd")
 const DebrisScript := preload("res://debris.gd")
 const PickupScript := preload("res://pickup.gd")
 
-enum { CAR, BUS, BARRIER, BARREL, TIRES, SANDBAGS, TRAIN }
+enum { CAR, BUS, BARRIER, BARREL, TIRES, SANDBAGS, TRAIN, CONTAINER }
 
 @export_enum("Car", "Bus", "Barrier", "Barrel", "Tires", "Sandbags") var kind := 0
 ## מכונית הפוכה (על הגג)
@@ -75,12 +75,15 @@ func _ready() -> void:
 		SANDBAGS:
 			size = Vector2(72, 26)
 			_box(Rect2(0, -26, 72, 26))
+		CONTAINER:   # מכולת משלוח (מפעל)
+			size = Vector2(170, minf(76.0, max_height))
+			_box(Rect2(0, -size.y, size.x, size.y))
 		TRAIN:   # קרון רכבת תחתית תקוע (אפשר לעלות עליו)
 			size = Vector2(300, minf(76.0, max_height))
 			_box(Rect2(0, -size.y, size.x, size.y))
 	z_index = 1
 	set_process(false)
-	if kind in [CAR, BUS, BARRIER, SANDBAGS, TIRES, TRAIN]:
+	if kind in [CAR, BUS, BARRIER, SANDBAGS, TIRES, TRAIN, CONTAINER]:
 		add_to_group("cover")   # זומבים יכולים להתחבא מאחוריו   # מופעל רק כשיש פתיל דולק (חוסך ביצועים)
 
 
@@ -236,6 +239,31 @@ func _draw() -> void:
 			_draw_sandbags()
 		TRAIN:
 			_draw_train()
+		CONTAINER:
+			_draw_container()
+
+
+func _draw_container() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = _seed
+	var w := size.x
+	var h := size.y
+	var cols := [Color("7a2e22"), Color("2a4a6a"), Color("3a5a32"), Color("8a6a2a")]
+	var c: Color = cols[rng.randi() % cols.size()]
+	Art.fill_shaded(self, PackedVector2Array([Vector2(0, 0), Vector2(0, -h), Vector2(w, -h), Vector2(w, 0)]), c, 0.12, 0.35, Art.OUTLINE, 1.8)
+	var x := 6.0
+	while x < w - 4.0:   # פח גלי
+		draw_line(Vector2(x, -h + 4), Vector2(x, -4), Color(0, 0, 0, 0.25), 2.0)
+		draw_line(Vector2(x + 2, -h + 4), Vector2(x + 2, -4), Color(1, 1, 1, 0.06), 1.0)
+		x += 8.0
+	draw_rect(Rect2(0, -h, w, 5), Art.shade(c, 0.3))
+	draw_rect(Rect2(0, -5, w, 5), Art.shade(c, 0.3))
+	for dx in [w - 26.0, w - 14.0]:   # מוטות נעילה
+		draw_line(Vector2(dx, -h + 6), Vector2(dx, -6), Color("2a2a2a"), 2.0)
+	for i in 4:   # חלודה
+		var p := Vector2(rng.randf_range(10.0, w - 10.0), rng.randf_range(-h + 8.0, -8.0))
+		Art.oval(self, p, rng.randf_range(6.0, 16.0), rng.randf_range(3.0, 8.0), Color(0.45, 0.22, 0.1, 0.5), 0.0, Art.NONE)
+	draw_string(ThemeDB.fallback_font, Vector2(14, -h * 0.45), "Z-CORP", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.35))
 
 
 func _draw_train() -> void:

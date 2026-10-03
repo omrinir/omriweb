@@ -151,6 +151,9 @@ func _build_ui(vp: Vector2) -> void:
 	var lv2 := _button(root, "LEVEL 2", Vector2(394, 262), Vector2(130, 44), 20, 0.25)   # בדיקה מהירה של השלב השני
 	lv2.accent = Color("3a8acc")
 	lv2.pressed.connect(_start_game.bind(2))
+	var lv3 := _button(root, "LEVEL 3", Vector2(534, 262), Vector2(130, 44), 20, 0.3)   # בדיקה מהירה של השלב השלישי
+	lv3.accent = Color("d8902a")
+	lv3.pressed.connect(_start_game.bind(3))
 
 	var lbl := Caption.new()
 	lbl.text = "DIFFICULTY"
@@ -279,8 +282,8 @@ class Caption extends Node2D:
 
 # ---- כותרת המשחק: אותיות עם דם שמטפטף ומהבהב ----
 class Title extends Node2D:
-	var text := "DEAD ZONE"
-	var sub := "SURVIVE THE FALLEN CITY"
+	var text := "THEY LEARN"
+	var sub := "EVERY NIGHT THE DEAD GET SMARTER"
 	var _t := 0.0
 	var _drips := []
 

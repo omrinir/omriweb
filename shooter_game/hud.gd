@@ -39,7 +39,11 @@ func show_game_over() -> void:
 	_game_over = true
 
 
+var _intro_t := 0.0   # כותרת השלב (THEY LEARN)
+
+
 func _process(delta: float) -> void:
+	_intro_t += delta / maxf(Engine.time_scale, 0.05)
 	_pulse = maxf(_pulse - delta, 0.0)
 	_combo_pop = maxf(_combo_pop - delta * 3.0, 0.0)
 	_score_shown = move_toward(_score_shown, float(Game.run_score + Game.level_score), maxf(400.0 * delta, absf(float(Game.run_score + Game.level_score) - _score_shown) * 6.0 * delta))
@@ -61,6 +65,27 @@ func _heart(c: Vector2, s: float) -> PackedVector2Array:
 	return pts
 
 
+# כותרת בתחילת השלב: מה הזומבים למדו הפעם
+func _draw_intro(vp: Vector2) -> void:
+	if _intro_t > 5.0:
+		return
+	var a := clampf(_intro_t / 0.6, 0.0, 1.0) * clampf((5.0 - _intro_t) / 1.2, 0.0, 1.0)
+	var t: Array = Game.level_title()
+	var y := vp.y * 0.36
+	for i in 8:   # פס כהה רך
+		var h := 120.0 - float(i) * 12.0
+		draw_rect(Rect2(0, y - h * 0.5, vp.x, h), Color(0, 0, 0, 0.09 * a))
+	var spread := 1.0 + 0.04 * _intro_t   # הכותרת "נפתחת" לאט
+	_text(Vector2(0, y - 34), "LEVEL %d" % Game.level, 18, Color(1, 1, 1, 0.7 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+	var f := ThemeDB.fallback_font
+	var title: String = t[0]
+	var fs := int(54.0 * spread)
+	var w := f.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	draw_string_outline(f, Vector2((vp.x - w) * 0.5, y + 22), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 6, Color(0, 0, 0, 0.8 * a))
+	draw_string(f, Vector2((vp.x - w) * 0.5, y + 22), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.85, 0.12, 0.1, a))
+	_text(Vector2(0, y + 52), t[1], 18, Color(0.9, 0.85, 0.8, 0.85 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+
+
 func _text(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
 	var f := ThemeDB.fallback_font
 	draw_string_outline(f, pos, t, align, width, size, 4, Color(0, 0, 0, 0.75))
@@ -69,6 +94,7 @@ func _text(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_A
 
 func _draw() -> void:
 	var vp := get_viewport_rect().size
+	_draw_intro(vp)
 	# BULLET TIME: המסך כחלחל-אפור
 	if Engine.time_scale < 0.99 and not _game_over:
 		draw_rect(Rect2(Vector2.ZERO, vp), Color(0.55, 0.62, 0.8, 0.13))

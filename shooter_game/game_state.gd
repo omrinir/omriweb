@@ -35,7 +35,7 @@ const UPGRADES := [
 ]
 
 # ---------------- ניקוד ----------------
-const KILL_POINTS := [100, 120, 200, 150, 150, 2000, 160, 3000, 140, 180, 20, 120]   # לפי סוג זומבי
+const KILL_POINTS := [100, 120, 200, 150, 150, 2000, 160, 3000, 140, 180, 20, 120, 250, 300, 80]   # לפי סוג זומבי
 const COMBO_WINDOW := 4.0                               # שניות בין הריגות כדי שהקומבו ימשיך
 
 # מצב הריצה (נשמר בין שלבים, מתאפס במשחק חדש)
@@ -105,8 +105,35 @@ func _process(delta: float) -> void:
 #  ריצה / שלב
 # ============================================================
 # שלבים זוגיים = רכבת תחתית
+# העולמות מתחלפים: 0 = רחוב, 1 = רכבת תחתית, 2 = מפעל
+func world() -> int:
+	return (level - 1) % 3
+
+
 func is_subway() -> bool:
-	return level % 2 == 0
+	return world() == 1
+
+
+func is_factory() -> bool:
+	return world() == 2
+
+
+# THEY LEARN: בכל שלב הזומבים לומדים משהו חדש
+const LEVEL_TITLES := [
+	["THEY HUNGER", "They only want to eat. For now."],
+	["THEY HIDE", "They learned the dark. They learned to wait."],
+	["THEY BUILD", "They learned to use machines. And each other."],
+]
+func level_title() -> Array:
+	var t: Array = LEVEL_TITLES[(level - 1) % LEVEL_TITLES.size()].duplicate()
+	if level > LEVEL_TITLES.size():
+		t[0] += " " + ["II", "III", "IV", "V"][mini((level - 1) / LEVEL_TITLES.size() - 1, 3)]
+	return t
+
+
+# כמה הזומבים "חכמים" בשלב הזה (מתכופפים, מתחבאים, מכוונים לאן שאתה הולך)
+func intelligence() -> float:
+	return 1.0 + 0.25 * float(level - 1)
 
 
 func new_run() -> void:
