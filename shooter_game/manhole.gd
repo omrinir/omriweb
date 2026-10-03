@@ -1,4 +1,5 @@
 extends Node2D
+const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  מכסה ביוב (תפאורה בלבד). יוצאים ממנו אדים.
 #  קליע שפוגע בו מקפיץ את המכסה באוויר והוא נופל חזרה למקום.
@@ -33,6 +34,7 @@ func hit_test(from: Vector2, to: Vector2) -> bool:
 
 
 func pop(dir: Vector2) -> void:
+	Sfx.play("clang", global_position)
 	_flying = true
 	_vel = Vector2(dir.x * randf_range(20.0, 70.0), -randf_range(300.0, 420.0))
 	_spin = randf_range(9.0, 15.0) * (1.0 if randf() < 0.5 else -1.0)

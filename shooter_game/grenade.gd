@@ -1,4 +1,5 @@
 extends Node2D
+const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  רימון. נזרק ע"י player.gd, קופץ על הריצפה ומתפוצץ אחרי fuse שניות.
 #  הפיצוץ: שובר לבנים קרובות, סודק רחוקות יותר, הורג זומבים
@@ -39,6 +40,8 @@ func _physics_process(delta: float) -> void:
 	if hit and hit.normal != Vector2.ZERO:   # normal = 0 כשמתחילים בתוך לבנה
 		global_position = hit.position + hit.normal * 4.0
 		velocity = velocity.bounce(hit.normal) * bounce
+		if velocity.length() > 80.0:
+			Sfx.play("clink", global_position, -6.0, 0.15, 3)
 		velocity.x *= 0.8
 		_spin *= 0.6
 		if velocity.length() < 30.0:

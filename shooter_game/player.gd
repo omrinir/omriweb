@@ -1,4 +1,5 @@
 extends CharacterBody2D
+const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  השחקן: דמות עם מעיל ארוך שחור וכובע שחור. נוצר ע"י main.gd.
 #  נקודת ה-(0,0) של השחקן היא כפות הרגליים.
@@ -137,6 +138,8 @@ var _tap_key := 0
 var _tap_t := 0.0
 var _a_was := false
 var _d_was := false
+var _step_t := 0.0               # צעדים (צליל)
+var _was_floor := true
 var _dodge_slow := 0.0
 var _fire_test := false   # לבדיקות אוטומטיות בלבד
 # ---- מכשיר שאיבת כוח חיים ----
@@ -244,6 +247,7 @@ func _physics_process(delta: float) -> void:
 	# החלקה: רצים (SHIFT) ולוחצים כריעה
 	if want_crouch and not _crouch_was and is_on_floor() and absf(velocity.x) > 250.0 and _slide_t <= 0.0:
 		_slide_t = 0.55
+		Sfx.play("roll", global_position)
 		velocity.x = signf(velocity.x) * 470.0
 	_crouch_was = want_crouch
 	# גלגול התחמקות: SHIFT
@@ -251,6 +255,7 @@ func _physics_process(delta: float) -> void:
 	if q and not _q_was and _roll_cd <= 0.0 and is_on_floor() and grabbed_by == null:
 		_roll_t = 0.35
 		_roll_cd = 0.9
+		Sfx.play("roll", global_position)
 		var dd := 0.0
 		if Input.is_physical_key_pressed(KEY_A): dd -= 1.0
 		if Input.is_physical_key_pressed(KEY_D): dd += 1.0
@@ -329,9 +334,11 @@ func _physics_process(delta: float) -> void:
 			_air_jumps = 1
 		elif is_on_floor() and not _crouching:
 			velocity.y = jump_velocity
+			Sfx.play("jump", global_position, -4.0)
 		elif not is_on_floor() and _air_jumps > 0:   # קפיצה כפולה
 			_air_jumps -= 1
 			velocity.y = jump_velocity * 0.85
+			Sfx.play("whoosh", global_position, -2.0)
 			preload("res://particles.gd").burst(get_parent(), global_position, "smoke", Vector2.DOWN, 6)
 	_jump_was = jump
 
@@ -351,6 +358,15 @@ func _physics_process(delta: float) -> void:
 	global_position.x = clampf(global_position.x, W, world_w - W)
 	if fall_v > 120.0:
 		_try_stomp()
+	# צלילי צעדים (מים ברכבת התחתית) ונחיתה
+	if is_on_floor() and absf(velocity.x) > 40.0 and _roll_t <= 0.0 and _slide_t <= 0.0:
+		_step_t -= delta * absf(velocity.x) / 190.0
+		if _step_t <= 0.0:
+			_step_t = 0.36
+			Sfx.play("step_water" if in_water else "step", global_position, -3.0 if _running else -7.0, 0.15, 3)
+	if is_on_floor() and not _was_floor and fall_v > 350.0:
+		Sfx.play("step_water" if in_water else "land", global_position, -2.0)
+	_was_floor = is_on_floor()
 
 	if is_on_floor() and absf(velocity.x) > 10.0:
 		_walk_phase += delta * absf(velocity.x) * 0.055
@@ -403,6 +419,7 @@ func _try_stomp() -> void:
 		var top: float = z.global_position.y - 60.0 * z.sc
 		if absf(z.global_position.x - global_position.x) < 18.0 * z.wf and absf(global_position.y - top) < 16.0:
 			z.take_damage(20, global_position, Vector2(_face(), 0.4), true, {"source": "stomp"})
+			Sfx.play("land", global_position, 3.0)
 			velocity.y = jump_velocity * 0.8
 			_air_jumps = 1
 			_say("STOMP", Color("ffd34a"))
@@ -444,13 +461,17 @@ func collect(p: Node) -> bool:
 	match p.kind:
 		PickupScript.AMMO:
 			_ammo_box(1)
+			Sfx.play("pickup", null)
 		PickupScript.GRENADE:
 			grenades += 1
+			Sfx.play("pickup", null)
 		PickupScript.SUPPLY:
 			_ammo_box(2)
 			grenades += 1
+			Sfx.play("pickup", null)
 		PickupScript.BOOST:
 			activate_boost(p.boost)
+			Sfx.play("boost", null)
 		PickupScript.WEAPON:
 			return _take_weapon(p)
 	_say(p.label(), p.color())
@@ -504,11 +525,13 @@ func _fire() -> void:
 	if weapon == GUN:
 		if ammo <= 0:
 			_cooldown = 0.3
+			Sfx.play("empty", global_position)
 			if _empty_t <= 0.0:
 				_empty_t = 1.0
 				_say("NO AMMO", Color("ff6050"))
 			return
 		ammo -= 1
+		Sfx.play(["rifle", "shotgun", "bow", "sniper", "taser"][gun], global_position, [0.0, 2.0, -2.0, 1.0, -2.0][gun])
 		Game.on_shot()
 		Game.make_noise(global_position, 380.0)   # יריות מעירות זומבים מסביב
 		_cooldown = (fire_delay if gun == 0 else GUN_DELAY[gun]) * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
@@ -559,6 +582,7 @@ func _fire() -> void:
 				_say("NO GRENADES", Color("ff6050"))
 			return
 		grenades -= 1
+		Sfx.play("throw", global_position)
 		_cooldown = grenade_delay
 		var g = GrenadeScript.new()
 		get_parent().add_child(g)
@@ -574,6 +598,7 @@ func select_slot(i: int) -> void:
 	cur_slot = i
 	weapon = GUN
 	weapon_changed.emit(weapon)
+	Sfx.play("weapon", null, -6.0)
 	_say(Game.WEAPON_NAMES[gun], Game.WEAPON_COLORS[gun])
 
 
@@ -599,10 +624,12 @@ func _take_weapon(p: Node) -> bool:
 		if s != null and s.id == p.weapon_id:
 			s.ammo = mini(s.ammo + amt, Game.AMMO_MAX[s.id])
 			_say("+%d %s" % [amt, Game.WEAPON_NAMES[s.id]], p.color())
+			Sfx.play("pickup", null)
 			return true
 	for i in slots.size():
 		if slots[i] == null:
 			slots[i] = {"id": p.weapon_id, "ammo": amt}
+			Sfx.play("weapon", null)
 			select_slot(i)
 			_say(p.label(), p.color())
 			return true
@@ -631,6 +658,7 @@ func drop_weapon(i: int) -> void:
 	p.life = 60.0
 	get_parent().add_child(p)
 	p.setup(global_position + Vector2(0.0, -30.0), Vector2(_face() * 170.0, -260.0))
+	Sfx.play("throw", global_position)
 	slots[i] = null
 	if i == cur_slot:
 		for j in slots.size():
@@ -694,6 +722,7 @@ func _throw_hook() -> void:
 		if Geometry2D.get_closest_point_to_segment(hp, sh, to).distance_to(hp) < 16.0 and (pt == Vector2.INF or sh.distance_to(hp) < sh.distance_to(pt)):
 			pt = hp
 	_hook_t = 0.12
+	Sfx.play("hook", global_position)
 	if pt == Vector2.INF:
 		_hook_state = 1
 		_hook_pt = to
@@ -750,6 +779,7 @@ func _try_melee() -> bool:
 	var dir := Vector2(face, -0.2).normalized()
 	var hp_pos: Vector2 = target.global_position + Vector2(-face * 8.0, -36.0 * target.sc)
 	target.take_damage(melee_damage, hp_pos, dir, true, {"source": "melee"})
+	Sfx.play("melee", global_position)
 	if not target.dead and not target.is_boss():
 		target.velocity.x += face * 220.0
 	Game.make_noise(global_position, 120.0)
@@ -823,6 +853,7 @@ func _drain_process(delta: float) -> void:
 		health = max_health
 		health_changed.emit(health, max_health)
 		_heal_flash = 1.0
+		Sfx.play("heal", null)
 		Game.on_drain()
 		var siphon := Game.upgrade_level("siphon")
 		if siphon > 0:   # שדרוג: השאיבה נותנת גם מגן
@@ -850,6 +881,7 @@ func hurt(amount: int, knock_dir: Vector2) -> void:
 			_dodge_slow = 0.6
 			Engine.time_scale = 0.45
 			_say("PERFECT DODGE", Color("80d0ff"))
+			Sfx.play("whoosh", null, 2.0)
 			Game.on_style("dodge", 20)
 		return
 	if shield_hits > 0:   # המגן סופג את הפגיעה
@@ -857,8 +889,10 @@ func hurt(amount: int, knock_dir: Vector2) -> void:
 		_invuln = 0.5
 		_heal_flash = 0.4
 		_say("BLOCKED", Color("40e0e8"))
+		Sfx.play("shield", global_position)
 		return
 	Game.on_player_hurt(amount)
+	Sfx.play("hurt", global_position, 0.0, 0.1, 2)
 	preload("res://particles.gd").burst(get_parent(), global_position + Vector2(0, -30), "hit", Vector2(knock_dir.x, -0.3) if knock_dir != Vector2.ZERO else Vector2.ZERO, 14)
 	_invuln = invuln_time
 	health = maxi(health - amount, 0)

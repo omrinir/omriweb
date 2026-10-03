@@ -1,4 +1,5 @@
 extends RefCounted
+const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  פיצוץ משותף: רימון, חביות נפץ ומכוניות משתמשים באותו פיצוץ.
 #  Boom.blast(...) פוגע בכל מה שבטווח, מרעיד את המצלמה
@@ -17,6 +18,7 @@ static func blast(parent: Node2D, center: Vector2, radius := 120.0, break_radius
 	_next_blast += 1
 	var src := {"source": source, "blast": _next_blast}
 	Game.make_noise(center, 700.0)   # פיצוץ מעיר את כל הזומבים מסביב
+	Sfx.play("explosion", center, 3.0, 0.12, 4)
 	# לבנים, מכוניות, חביות...
 	for b in tree.get_nodes_in_group("blastable"):
 		if b.has_method("hit_by_blast") and b.has_method("blast_rect"):

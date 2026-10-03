@@ -1,4 +1,5 @@
 extends Control
+const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  כפתור מונפש בסגנון המשחק: לוח כהה עם קצוות קרועים,
 #  שמתמלא בדם כשהעכבר עליו (עם טפטופים), גדל קצת, ומהבהב בלחיצה.
@@ -28,7 +29,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	mouse_entered.connect(func(): _mouse_in = true; grab_focus())
+	mouse_entered.connect(func(): _mouse_in = true; grab_focus(); Sfx.play("ui", null, -10.0))
 	mouse_exited.connect(func(): _mouse_in = false)
 	_seed = hash(text)
 	process_mode = Node.PROCESS_MODE_ALWAYS   # עובד גם כשהמשחק בהשהיה
@@ -61,6 +62,7 @@ func _click() -> void:
 	_press = 1.0
 	_shake = 1.0
 	pressed.emit()
+	Sfx.play("weapon", null, -4.0)
 
 
 # צורת הלוח: מלבן עם קצוות קרועים ופינה חתוכה

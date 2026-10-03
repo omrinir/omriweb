@@ -1,4 +1,5 @@
 extends Node2D
+const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  עולם הרכבת התחתית (שלבים זוגיים). main.gd יוצר אותו.
 #  * תקרה (אפשר להיתפס בה עם וו הקרס, זוחלים הולכים עליה)
@@ -154,6 +155,7 @@ func _physics_process(delta: float) -> void:
 			if z.global_position.x > rl[0] and z.global_position.x < rl[1] and _time - float(_zap_t.get(z, -9.0)) > 0.5:
 				_zap_t[z] = _time
 				z._popup("ZAP", Color("a0c8ff"), 16, -90.0)
+				Sfx.play("zap", z.global_position, -2.0, 0.15, 3)
 				z.take_damage(10, z.global_position + Vector2(0, -20), Vector2.UP, true, {"source": "rail"})
 				Particles.burst(get_parent(), z.global_position, "fire", Vector2.UP, 6)
 
@@ -162,11 +164,13 @@ func _physics_process(delta: float) -> void:
 		_train_t -= delta
 		if _train_t <= 0.0 and _warn_t <= 0.0:
 			_warn_t = 2.2
+			Sfx.play("horn", null, 2.0, 0.0)
 			_train_t = randf_range(train_every.x, train_every.y)
 		if _warn_t > 0.0:
 			_warn_t -= delta
 			if _warn_t <= 0.0:
 				_train_x = view.end.x + 80.0
+				Sfx.play("train", null, 4.0, 0.0)
 				_train_hit = false
 				var cam := vp.get_camera_2d()
 				if cam != null and cam.has_method("shake"):

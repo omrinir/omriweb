@@ -1,4 +1,5 @@
 extends CharacterBody2D
+const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  זומבי. יש 3 סוגים (kind):
 #    0 = WALKER  - זומבי רגיל
@@ -133,6 +134,7 @@ var _stun_t := 0.0
 var _grab_state := 0             # יד: 0 = מחכה מתחת למים, 1 = תופסת, 2 = נסוגה
 var _grab_t := 0.0
 var _charge_t := 0.0
+var _groan_t := randf_range(1.0, 6.0)   # צליל אנקה
 var _charge_cd := 3.0
 var _swell := 0.0                # נפוח: כמה הוא התנפח (0..1)
 var _fuse_t := -1.0              # נפוח: עומד להתפוצץ
@@ -308,6 +310,11 @@ func _physics_process(delta: float) -> void:
 	elif player != null and not player.dead and (global_position.distance_to(player.global_position) < chase_range * (0.45 if Game.player_dark and not is_boss() else 1.0) or _alert_t > 0.0):   # בחושך רואים פחות
 		_chasing = true
 		_dir = signf(player.global_position.x - global_position.x)
+		_groan_t -= delta
+		if _groan_t <= 0.0:
+			_groan_t = randf_range(4.0, 9.0)
+			if kind != RAT and Art.on_screen(self, global_position):
+				Sfx.play("roar" if is_boss() else "groan", global_position, -9.0 if not is_boss() else -2.0, 0.25, 2)
 		if _dir == 0.0:
 			_dir = 1.0
 		target_speed = chase_speed
@@ -558,6 +565,7 @@ func _spit(player: Node) -> void:
 	var t := clampf(absf(target.x - from.x) / 380.0, 0.5, 1.1)
 	var g := 900.0
 	var v := Vector2((target.x - from.x) / t, (target.y - from.y - 0.5 * g * t * t) / t)
+	Sfx.play("spit", global_position)
 	var a = AcidScript.new()
 	get_parent().add_child(a)
 	a.setup(from, v)
@@ -565,6 +573,7 @@ func _spit(player: Node) -> void:
 
 # ---- SCREAMER: צורח ומזעיק את כולם ----
 func _scream() -> void:
+	Sfx.play("scream", global_position, 2.0)
 	_screamed = true
 	_scream_t = 1.2
 	_popup("SCREAM!", Color("e8e0ff"), 18, -84.0)
@@ -610,12 +619,14 @@ func _boss_logic(player: Node, d: Vector2, delta: float) -> float:
 		_slam_t = 2.4
 		_roar_cd = randf_range(4.5, 6.0)
 		_popup("ROAR!", Color("ffb040"), 20, -110.0)
+		Sfx.play("roar", global_position, 3.0)
 		_boss_grenades()
 		return 0.0
 	if absf(d.x) > 220.0 and _charge_cd <= 0.0:
 		_charge_t = 1.1
 		_charge_cd = randf_range(5.0, 7.0)
 		_popup("CHARGE!", Color("ff5030"), 20, -110.0)
+		Sfx.play("roar", global_position, 3.0)
 		return chase_speed * 2.6
 	return chase_speed
 
@@ -654,6 +665,7 @@ func _bloat_pop() -> void:
 	if _carry != null and is_instance_valid(_carry):
 		_carry.drop(Vector2(0.0, -150.0))
 	_spray_blood(global_position + Vector2(0, -30) * sc, Vector2.UP, 18, 420.0)
+	Sfx.play("splat", global_position, 2.0)
 	Boom.blast(get_parent(), global_position + Vector2(0.0, -30.0 * sc), 110.0 + 30.0 * _swell, 50.0, 40, 2, "bloater")
 	queue_free()
 
@@ -733,12 +745,14 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 				_popup("TRANSFORMER %d/3" % (3 - _transformer), Color("80c0ff"), 17, -125.0)
 			return
 		_popup("NO EFFECT", Color("c0c0c8"), 14, -120.0)
+		Sfx.play("shield", hit_pos)
 		return
 	# שוטר: המגן חוסם מלפנים (חוץ מהרגליים)
 	if kind == COP and (source == "bullet" or source == "melee") and dir.x * _dir < 0.0 and not _lying():
 		var cly := (hit_pos.y - global_position.y) / sc
 		if cly < (-12.0 if _crouched_shape else -20.0) or source == "melee":
 			_popup("BLOCKED", Color("8ab0e0"), 14, -95.0)
+			Sfx.play("shield", hit_pos, -3.0)
 			for i in 3:
 				var c = DebrisScript.new()
 				get_parent().add_child(c)
@@ -753,6 +767,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		return
 	if kind == BOSS and source == "bullet" and _slam_t <= 0.0 and dir.x * _dir < 0.0:
 		_popup("BLOCKED", Color("c0c0c8"), 15, -120.0)
+		Sfx.play("shield", hit_pos)
 		for i in 4:
 			var c = DebrisScript.new()
 			get_parent().add_child(c)
@@ -801,6 +816,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	_last_info = {"zone": zone, "source": source, "perfect": perfect, "bullet": src.get("bullet", 0), "blast": src.get("blast", 0),
 		"hidden": _cover_state == 2}
 	Game.on_zombie_hit(_last_info)
+	Sfx.play("headshot" if zone == "head" else "hit", hit_pos, -4.0, 0.15, 4)
 	hp -= dmg
 	_damage_number(dmg, zone)
 
@@ -880,6 +896,7 @@ func _lose_leg(dir: Vector2) -> void:
 
 func _die(dir: Vector2) -> void:
 	dead = true
+	Sfx.play("zdeath", global_position, -6.0 if kind != RAT else -14.0, 0.2, 3)
 	on_ceiling = false
 	if kind == HAND:   # היד נעלמת בחזרה למים
 		remove_from_group("zombies")
@@ -1432,6 +1449,8 @@ func _conductor_logic(player: Node, d: Vector2, delta: float) -> float:
 		_windup_t = 0.9
 		_train_cd = randf_range(6.0, 8.0)
 		_popup("ALL ABOARD!", Color("ff6040"), 22, -125.0)
+		Sfx.play("horn", global_position, 4.0)
+		Sfx.play("roar", global_position, 2.0)
 		return 0.0
 	if _orb_cd <= 0.0:
 		_orb_cd = randf_range(3.0, 4.5)
@@ -1540,6 +1559,7 @@ class Orb extends Node2D:
 			bounces += 1
 			if bounces >= 2:
 				zap_t = 1.2
+				preload("res://sfx.gd").play("zap", global_position, 0.0, 0.15, 3)
 			else:
 				velocity = Vector2(velocity.x * 0.7, -velocity.y * 0.5)
 		queue_redraw()

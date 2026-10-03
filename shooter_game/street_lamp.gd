@@ -1,4 +1,5 @@
 extends Node2D
+const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  פנס רחוב שעובד.
 #  * דמות (שחקן / זומבי / ניצולה) שעוברת מתחתיו מוארת - והצד שלה
@@ -84,6 +85,7 @@ func hit_test(from: Vector2, to: Vector2) -> bool:
 
 
 func shatter(dir: Vector2) -> void:
+	Sfx.play("glass", global_position + head())
 	_broken = true
 	_on = 0.0
 	for i in 26:   # ניצוצות וזכוכית

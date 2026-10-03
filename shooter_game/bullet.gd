@@ -1,4 +1,5 @@
 extends Node2D
+const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  קליע. נוצר ע"י player.gd בכל ירייה.
 #  הקליע בודק התנגשות עם קרניים (Raycast) כדי שלא יעבור דרך
@@ -104,7 +105,10 @@ func _physics_process(delta: float) -> void:
 			if arrow:   # החץ ננעץ ונשאר (אפשר לאסוף)
 				global_position = hit.position - velocity.normalized() * 4.0
 				_stuck = 8.0
+				Sfx.play("arrow_hit", global_position, -4.0)
 				return
+			if randf() < 0.35:
+				Sfx.play("ricochet", hit.position, -8.0, 0.25, 2)
 			var fx := Impact.new()   # ניצוצות רק על לבנים
 			get_parent().add_child(fx)
 			fx.global_position = hit.position

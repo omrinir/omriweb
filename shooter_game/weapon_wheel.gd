@@ -1,4 +1,5 @@
 extends Node2D
+const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  גלגל נשקים / יכולות (מחזיקים Q). הזמן מאט.
 #  שני עמודים נפרדים: WEAPONS / ABILITIES (5 מקומות בכל אחד).
@@ -41,6 +42,7 @@ func _process(delta: float) -> void:
 	if want and not _open:
 		_open = true
 		Engine.time_scale = slow
+		Sfx.play("whoosh", null, -4.0)
 	elif not want and _open:
 		_open = false
 		if _page == 0 and _hover >= 0 and player != null:
@@ -60,6 +62,7 @@ func _process(delta: float) -> void:
 		var tab := Input.is_physical_key_pressed(KEY_TAB)
 		if tab and not _tab_was:
 			_page = 1 - _page
+			Sfx.play("ui", null)
 		_tab_was = tab
 		var g := Input.is_physical_key_pressed(KEY_G)
 		if g and not _g_was:
@@ -87,6 +90,7 @@ func _input(event: InputEvent) -> void:
 	match event.button_index:
 		MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
 			_page = 1 - _page
+			Sfx.play("ui", null)
 		MOUSE_BUTTON_RIGHT:
 			_drop_hovered()
 		MOUSE_BUTTON_LEFT:

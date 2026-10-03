@@ -55,6 +55,7 @@ func _show_trophies() -> void:
 
 
 func _ready() -> void:
+	preload("res://sfx.gd").warm_up()   # מייצר את הצלילים כבר בתפריט
 	get_tree().paused = false
 	var vp := get_viewport_rect().size
 	var world_w := vp.x / ZOOM

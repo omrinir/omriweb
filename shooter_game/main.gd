@@ -1,4 +1,5 @@
 extends Node2D
+const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  הסצנה הראשית: בונה רמה ארוכה ואקראית עם רקעים, לבנים, זומבים ושחקן.
 #  מקשים:  A/D הליכה | SHIFT ריצה | W/רווח קפיצה | S/CTRL כריעה
@@ -88,6 +89,7 @@ var _gens: Array = GENERATORS
 
 func _ready() -> void:
 	get_tree().paused = false
+	Sfx.warm_up()   # מייצר את כל הצלילים פעם אחת
 	# רמת הקושי מהתפריט
 	var diff: Dictionary = Settings.preset()
 	zombies_per_screen = diff.zombies_per_screen
