@@ -1140,6 +1140,8 @@ func _dead_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, 900.0 * delta)
 		_spin = move_toward(_spin, 0.0, 30.0 * delta)
 		var rest := PI / 2.0 if fposmod(_angle, TAU) < PI else PI * 1.5
+		if kind == DOG or kind == HOUND:
+			rest = 0.0   # כלב: נוחת על הבטן ומתמוטט (לא על הגב)
 		_angle = lerp_angle(_angle, rest, 8.0 * delta)
 	if is_on_wall():
 		velocity.x *= -0.3
@@ -2204,8 +2206,10 @@ func _draw_canine(S: float, hound: bool) -> void:
 	else:
 		Art.ground_shadow(self, Vector2.ZERO, 26.0 * S)
 	draw_set_transform_matrix(base)
-	var bob := absf(sin(ph)) * 2.0 if run else 0.0
+	var bob := absf(sin(ph)) * 2.0 if run and not dead else 0.0
 	var nk := Vector2(23.0, -36.0)
+	# מת על הריצפה: הגוף צונח לקרקע והרגליים נשמטות לצדדים
+	var dk := clampf(1.0 - absf(wrapf(_angle, -PI, PI)) / 1.2, 0.0, 1.0) if dead and is_on_floor() else 0.0
 	# ---- שרשרת קוצים (מאחורה) ----
 	if hound and not dead:
 		var pts := []
@@ -2242,6 +2246,9 @@ func _draw_canine(S: float, hound: bool) -> void:
 		sq *= Vector2(1.0 + crouch * 0.06, 1.0 - crouch * 0.16)
 		if _bite_anim > 0.0 or (hound and _hstate == 2):
 			rot -= 0.08
+	if dead:
+		rot = 0.08 * dk
+		bob = -15.0 * dk
 	var bm := base * Transform2D(rot, sq, 0.0, Vector2(0.0, -bob))
 	var mod := Color(4, 4, 4) if white else Color.WHITE
 	var k := Vector2(76.0 / 186.0, 50.0 / 123.0)   # פיקסל בתמונה -> יחידה מקומית
@@ -2252,6 +2259,8 @@ func _draw_canine(S: float, hound: bool) -> void:
 		var src := Rect2(192.0 + lg[0], lg[1] - 2.0, lg[2] - lg[0], 125.0 - lg[1])
 		var pv := Vector2(-36.0, -50.0) + Vector2(lg[3], lg[1]) * k
 		var la: float = lg[5] if air else sin(ph + lg[4]) * amp
+		if dead:
+			la = (-1.35 if lg[0] > 80.0 else 1.35) * dk
 		draw_set_transform_matrix(bm * Transform2D(la, pv) * Transform2D(0.0, -pv))
 		draw_texture_rect_region(DOG_TEX, Rect2(Vector2(-36.0, -50.0) + Vector2(lg[0], lg[1] - 2.0) * k, src.size * k), src, mod)
 	draw_set_transform_matrix(bm)
