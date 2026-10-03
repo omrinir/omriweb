@@ -52,6 +52,11 @@ func _physics_process(delta: float) -> void:
 		if leg.state == 2 and Geometry2D.get_closest_point_to_segment(leg.global_position, from, to).distance_to(leg.global_position) < 16.0:
 			leg.shot_down(velocity.normalized())
 			Game.on_leg_shot()
+	for lp in get_tree().get_nodes_in_group("lamps"):   # נורה של פנס רחוב
+		if lp.hit_test(from, to):
+			lp.shatter(velocity.normalized())
+			queue_free()
+			return
 	for mh in get_tree().get_nodes_in_group("manholes"):   # מכסה ביוב קופץ
 		if mh.hit_test(from, to):
 			mh.pop(velocity.normalized())
