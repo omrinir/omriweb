@@ -460,6 +460,7 @@ func hurt(amount: int, knock_dir: Vector2) -> void:
 		_say("BLOCKED", Color("40e0e8"))
 		return
 	Game.on_player_hurt(amount)
+	preload("res://particles.gd").burst(get_parent(), global_position + Vector2(0, -30), "hit", Vector2(knock_dir.x, -0.3) if knock_dir != Vector2.ZERO else Vector2.ZERO, 14)
 	_invuln = invuln_time
 	health = maxi(health - amount, 0)
 	health_changed.emit(health, max_health)

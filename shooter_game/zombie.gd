@@ -20,6 +20,7 @@ const AcidScript := preload("res://acid.gd")
 const FireScript := preload("res://fire.gd")
 const PickupScript := preload("res://pickup.gd")
 const DebrisScript := preload("res://debris.gd")
+const Particles := preload("res://particles.gd")
 
 enum { WALKER, RUNNER, BRUTE, SPITTER, SCREAMER, BOSS }
 
@@ -217,6 +218,10 @@ func _physics_process(delta: float) -> void:
 	if _burn_t > 0.0:
 		_burn_t -= delta
 		_burn_acc += 7.0 * delta
+		if Engine.get_physics_frames() % 12 == 0 and Art.on_screen(self, global_position):
+			var bc := global_position + Vector2(randf_range(-6, 6), -randf_range(10, 45) * sc)
+			Particles.burst(get_parent(), bc, "fire", Vector2.ZERO, 4)
+			Particles.burst(get_parent(), bc, "smoke", Vector2.ZERO, 2)
 		if _burn_acc >= 3.0:
 			var d := int(_burn_acc)
 			_burn_acc -= float(d)
@@ -467,13 +472,9 @@ func ignite(t: float) -> void:
 	if dead:
 		return
 	_burn_t = maxf(_burn_t, t)
-	if not is_instance_valid(_fire):
-		_fire = FireScript.new()
-		_fire.width = 16.0 * wf * sc
-		_fire.height = 26.0 * sc
-		_fire.smoke = false
-		_fire.position = Vector2(0, -20.0 * sc)
-		add_child(_fire)
+	var c := global_position + Vector2(0, -30.0 * sc)
+	Particles.burst(get_parent(), c, "fire", Vector2.ZERO, 16)
+	Particles.burst(get_parent(), c, "smoke", Vector2.ZERO, 8)
 
 
 # ---- SPITTER: שומר מרחק ויורק חומצה ----
@@ -637,6 +638,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		dmg = randi_range(body_damage.x, body_damage.y)
 	if kind == BOSS and zone == "head":
 		dmg = head_damage * 2
+	Particles.burst(get_parent(), hit_pos, "hit", dir if dir != Vector2.ZERO else Vector2.UP, 10)
 	_last_info = {"zone": zone, "source": source, "bullet": src.get("bullet", 0), "blast": src.get("blast", 0),
 		"hidden": _cover_state == 2}
 	Game.on_zombie_hit(_last_info)
