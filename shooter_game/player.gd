@@ -17,6 +17,9 @@ const GrenadeScript := preload("res://grenade.gd")
 const DebrisScript := preload("res://debris.gd")
 const PickupScript := preload("res://pickup.gd")
 const TextScript := preload("res://zombie.gd")
+const HeroAnim := preload("res://hero_anim.gd")       # אנימציות הדמות (SPRITE SHEET)
+const HERO_TEX := preload("res://sprites/hero.png")
+const SPRITE_SCALE := 0.44                             # גודל הדמות במשחק (52 פיקסלים = גובה הדמות)
 
 enum { GUN, GRENADE }
 
@@ -139,6 +142,11 @@ var _tap_t := 0.0
 var _a_was := false
 var _d_was := false
 var _step_t := 0.0               # צעדים (צליל)
+var _dist := 0.0                 # כמה הלכנו (לקצב פריימי ההליכה / הריצה)
+var _air_t := 0.0
+var _land_t := 0.0
+var _hurt_t := 0.0
+var _anim := "idle"
 var _was_floor := true
 var _dodge_slow := 0.0
 var _fire_test := false   # לבדיקות אוטומטיות בלבד
@@ -152,6 +160,7 @@ var _device_tip := Vector2.ZERO   # קצה המכשיר (בקואורדינטו�
 
 func _ready() -> void:
 	add_to_group("player")
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # הספרייט מוקטן - חלק ונקי
 	collision_layer = 2   # שכבה 2 = שחקן
 	collision_mask = 1    # מתנגש רק בעולם (ריצפה ולבנים)
 	_shape = CollisionShape2D.new()
@@ -196,7 +205,7 @@ func _face() -> float:
 # הכתף הקדמית (ממנה יוצא הנשק), בקואורדינטות מקומיות
 func _front_shoulder() -> Vector2:
 	var c := _crouch_k
-	return Vector2((3.0 * c + 2.0) * _face(), -40.0 + 17.0 * c)
+	return Vector2((3.0 * c + 1.0) * _face(), -37.0 + 15.0 * c)
 
 
 func _physics_process(delta: float) -> void:
@@ -358,13 +367,22 @@ func _physics_process(delta: float) -> void:
 	global_position.x = clampf(global_position.x, W, world_w - W)
 	if fall_v > 120.0:
 		_try_stomp()
+	# קצב האנימציה
+	_hurt_t -= delta
+	_land_t -= delta
+	if is_on_floor():
+		_dist += absf(velocity.x) * delta
+		_air_t = 0.0
+	else:
+		_air_t += delta
 	# צלילי צעדים (מים ברכבת התחתית) ונחיתה
 	if is_on_floor() and absf(velocity.x) > 40.0 and _roll_t <= 0.0 and _slide_t <= 0.0:
 		_step_t -= delta * absf(velocity.x) / 190.0
 		if _step_t <= 0.0:
 			_step_t = 0.36
 			Sfx.play("step_water" if in_water else "step", global_position, (-1.0 if _running else -5.0) if in_water else (-3.0 if _running else -7.0), 0.15, 3)
-	if is_on_floor() and not _was_floor and fall_v > 350.0:
+	if is_on_floor() and not _was_floor and fall_v > 250.0:
+		_land_t = 0.12   # פריים נחיתה
 		Sfx.play("splash" if in_water else "land", global_position, -2.0)
 	_was_floor = is_on_floor()
 
@@ -495,7 +513,7 @@ func has_boost(b: int) -> bool:
 func _update_laser(sh: Vector2) -> void:
 	if (Game.upgrade_level("laser") == 0 and not _scoping) or not controllable:
 		return
-	var from := sh + _aim * 40.0
+	var from := sh + _aim * 30.0
 	var to := from + _aim * 650.0
 	var q := PhysicsRayQueryParameters2D.create(from, to, 5)
 	var hit := get_world_2d().direct_space_state.intersect_ray(q)
@@ -573,7 +591,7 @@ func _fire() -> void:
 				b.sniper = true
 				b.pierce += 3
 				spd = 4200.0
-			b.setup(sh + _aim * 40.0, _aim.rotated(spread) * spd, sh)
+			b.setup(sh + _aim * 30.0, _aim.rotated(spread) * spd, sh)
 	else:
 		if grenades <= 0:
 			_cooldown = 0.3
@@ -892,6 +910,7 @@ func hurt(amount: int, knock_dir: Vector2) -> void:
 		Sfx.play("shield", global_position)
 		return
 	Game.on_player_hurt(amount)
+	_hurt_t = 0.3
 	Sfx.play("hurt", global_position, 0.0, 0.1, 2)
 	preload("res://particles.gd").burst(get_parent(), global_position + Vector2(0, -30), "hit", Vector2(knock_dir.x, -0.3) if knock_dir != Vector2.ZERO else Vector2.ZERO, 14)
 	_invuln = invuln_time
@@ -917,10 +936,9 @@ func _draw() -> void:
 		var pool := clampf(_dead_t / 3.0, 0.0, 1.0)
 		if pool > 0.0:   # שלולית דם
 			Art.oval(self, Vector2(-face * 22.0, -1.0), 26.0 * pool, 3.0 * pool, Color("6a0a0a"), 0.0, Art.NONE)
-		var outer := Transform2D(-PI / 2.0 * k * face, Vector2(0.0, -9.0 * k))
-		_base_xf = outer * Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2.ZERO)
+		_base_xf = Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2.ZERO)
 		draw_set_transform_matrix(_base_xf)
-		_draw_body(Vector2(1.0, 0.25), true)
+		_draw_hero(Vector2.RIGHT)
 		draw_set_transform_matrix(Transform2D.IDENTITY)
 		return
 
@@ -934,7 +952,7 @@ func _draw() -> void:
 		var ang := (1.0 - _roll_t / 0.35) * TAU * _roll_dir * face
 		_base_xf = Transform2D(ang, Vector2(0, -16)) * Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2(0, 16))
 	draw_set_transform_matrix(_base_xf)
-	_draw_body(la, false)
+	_draw_hero(la)
 	# קרן כוח החיים: מהניצולה אל המכשיר
 	if _drain_target != null and is_instance_valid(_drain_target):
 		var tgt: Vector2 = _drain_target.chest() - global_position
@@ -965,7 +983,7 @@ func _draw() -> void:
 	# לייזר (שדרוג)
 	# קשת: קו נקודות שמראה לאן החץ יעוף
 	if weapon == GUN and gun == BOW and controllable and _drain_target == null and not dead:
-		var p0 := _front_shoulder() + _aim * 40.0
+		var p0 := _front_shoulder() + _aim * 30.0
 		var v := _aim * 1150.0
 		for i in 14:
 			var tt := 0.045 * float(i + 1)
@@ -993,7 +1011,7 @@ func _draw() -> void:
 		draw_line(hand, end, Color("8a7a60"), 1.6, true)
 		draw_circle(end, 2.5, Color("b0b0b8"))
 	if (Game.upgrade_level("laser") > 0 or _scoping) and controllable and _drain_target == null and weapon == GUN:
-		var from := _front_shoulder() + _aim * 40.0
+		var from := _front_shoulder() + _aim * 30.0
 		var to := _laser_end - global_position
 		draw_line(from, to, Color(1.0, 0.1, 0.1, 0.35), 1.0, true)
 		draw_circle(to, 2.0, Color(1.0, 0.2, 0.2, 0.9))
@@ -1002,6 +1020,74 @@ func _draw() -> void:
 # הגוף מצויר צר יותר (רזה), הידיים והנשק ברוחב רגיל
 func _slim(on: bool) -> void:
 	draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(slim, 1.0), 0.0, Vector2.ZERO) if on else _base_xf)
+
+
+# ============================================================
+#  הדמות מה-SPRITE SHEET: בוחרים פריים לפי המצב, ומעליו ידיים + נשק שמכוון לעכבר
+# ============================================================
+func _hero_frame() -> Array:
+	if dead:
+		return ["death", mini(int(_dead_t * 7.0), 3)]
+	if _melee_t > 0.0:
+		return ["melee", clampi(int((1.0 - _melee_t / MELEE_TIME) * 3.0), 0, 2)]
+	if _roll_t > 0.0:
+		return ["crouch", 1]
+	if _slide_t > 0.0:
+		return ["slide", clampi(int((1.0 - _slide_t / 0.55) * 3.0), 0, 2)]
+	if _hurt_t > 0.0:
+		return ["hurt", clampi(int((0.3 - _hurt_t) / 0.1), 0, 2)]
+	if not is_on_floor() and _air_t > 0.05:
+		if velocity.y < -250.0:
+			return ["jump", 2]
+		if velocity.y < 80.0:
+			return ["jump", 3]
+		return ["fall", mini(int((_air_t) * 4.0), 2)]
+	if _land_t > 0.0:
+		return ["jump", 4]
+	if _crouching:
+		if absf(velocity.x) > 20.0:
+			return ["crouch", [0, 4][int(_dist / 22.0) % 2]]
+		return ["crouch", 1]
+	if absf(velocity.x) > 30.0:
+		if _running:
+			return ["run", int(_dist / 26.0) % 6]
+		return ["walk", int(_dist / 17.0) % 8]
+	return ["idle", int(_time * 7.0) % 8]
+
+
+func _draw_hero(la: Vector2) -> void:
+	var fi := _hero_frame()
+	_anim = fi[0]
+	var fr: Array = HeroAnim.FRAMES[fi[0]][fi[1]]
+	var s := SPRITE_SCALE
+	draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s), Rect2(fr[0], fr[1], fr[2], fr[3]))
+	if dead or _melee_t > 0.0 or _roll_t > 0.0 or _slide_t > 0.0:
+		return
+	# ידיים + נשק מעל הספרייט (מכוונים לעכבר)
+	var c := _crouch_k
+	var sh := Vector2(3.0 * c + 1.0, -37.0 + 15.0 * c)
+	# הנשק והידיים קטנים יותר (מתאים לדמות הרזה מהספרייט), סביב הכתף
+	var ws := 0.72
+	draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(ws, ws), 0.0, sh * (1.0 - ws)))
+	if _anim == "run":
+		sh += Vector2(5.0, 2.0)
+	elif _anim == "hurt":
+		sh += Vector2(-2.0, 4.0)
+	var hand := sh + la * 15.0 - la * 2.5 * _recoil
+	if _drain_target != null:
+		_draw_device(hand, la)
+		_arm(sh, hand, false)
+		draw_set_transform_matrix(_base_xf)
+		return
+	if weapon == GUN:
+		_arm(sh + Vector2(-3.0, 1.5), hand + la * 9.0 + la.rotated(PI / 2.0) * 2.0, true)
+		_draw_rifle(hand, la)
+	else:
+		var g := hand + la * 3.0
+		Art.disc(self, g, 4.3, Color("4a5a2c"))
+		draw_line(g + Vector2(-1.5, -4.0), g + Vector2(2.5, -5.0), Color("9a9a9a"), 1.4, true)
+	_arm(sh + Vector2(1.0, 1.5), hand, false)
+	draw_set_transform_matrix(_base_xf)
 
 
 func _draw_body(la: Vector2, limp: bool) -> void:
