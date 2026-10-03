@@ -17,6 +17,7 @@ const PropScript := preload("res://prop.gd")
 const StreetPropScript := preload("res://street_prop.gd")
 const RoadDecorScript := preload("res://road_decor.gd")
 const ManholeScript := preload("res://manhole.gd")
+const LampScript := preload("res://street_lamp.gd")
 const FogScript := preload("res://fog.gd")
 const PauseScript := preload("res://pause_menu.gd")
 const SurvivorScript := preload("res://survivor.gd")
@@ -223,6 +224,14 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 			add_child(mh)
 			_rects.append(Rect2(mx - 30.0, floor_y - 60.0, 60.0, 60.0))   # שלא יהיה מכשול מעליו
 		mx += rng.randf_range(900.0, 1700.0)
+	# פנסי רחוב שעובדים (מדי פעם)
+	var lx := rng.randf_range(700.0, 1400.0)
+	while lx < level_w - 300.0:
+		if rng.randf() < 0.6 and not _in_pit(lx - 40.0, lx + 40.0, 20.0):
+			var lamp = LampScript.new()
+			lamp.position = Vector2(lx, floor_y)
+			add_child(lamp)
+		lx += rng.randf_range(800.0, 1500.0)
 
 
 # ביצועים: הכביש בנוי מחתיכות של עד 1024 פיקסלים - כתם דם מצייר מחדש רק חתיכה אחת,
