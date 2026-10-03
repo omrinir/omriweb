@@ -15,12 +15,12 @@ var floor_y := 630.0
 var ceil_y := 250.0                 # התחתית של התקרה
 var level_w := 10240.0
 var darkness := 0.62                # כמה חשוך (0 = בכלל לא)
-var train_every := Vector2(22.0, 32.0)
+var train_every := Vector2(70.0, 110.0)   # רכבת רפאים: נדיר
 var train_speed := 1700.0
 var train_len := 1100.0
 
 var rails := []                     # קטעים מחושמלים [x0, x1]
-var _train_t := 16.0                # שניות עד הרכבת הבאה
+var _train_t := 45.0                # שניות עד הרכבת הבאה
 var _warn_t := 0.0                  # אזהרה לפני הרכבת
 var _train_x := INF                 # קצה שמאל של הרכבת (INF = אין רכבת)
 var _train_hit := false
@@ -176,7 +176,10 @@ func _physics_process(delta: float) -> void:
 		var x0 := _train_x
 		var x1 := _train_x + train_len
 		for z in tree.get_nodes_in_group("zombies"):
-			if not z.dead and z.global_position.y > floor_y - 6.0 and z.global_position.x > x0 and z.global_position.x < x1 and not z.is_boss():
+			# הרכבת פוגעת רק בזוחלים שעל התקרה: נופלים עליה ומתים
+			if not z.dead and z.on_ceiling and z.global_position.x > x0 and z.global_position.x < x1:
+				z._drop_down()
+				z._popup("SPLAT", Color("ff5040"), 18, -70.0)
 				z.take_damage(999, z.global_position + Vector2(0, -30), Vector2.LEFT, true, {"source": "train"})
 		if x1 < view.position.x - 100.0:
 			_train_x = INF

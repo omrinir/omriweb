@@ -132,6 +132,11 @@ var _air_jumps := 1              # קפיצה כפולה
 var _jump_was := false
 var _crouch_was := false
 var _q_was := false
+var _running := false            # ריצה: לחיצה כפולה על A / D
+var _tap_key := 0
+var _tap_t := 0.0
+var _a_was := false
+var _d_was := false
 var _dodge_slow := 0.0
 var _fire_test := false   # לבדיקות אוטומטיות בלבד
 # ---- מכשיר שאיבת כוח חיים ----
@@ -241,8 +246,8 @@ func _physics_process(delta: float) -> void:
 		_slide_t = 0.55
 		velocity.x = signf(velocity.x) * 470.0
 	_crouch_was = want_crouch
-	# גלגול התחמקות: Q
-	var q := controllable and Input.is_physical_key_pressed(KEY_Q)
+	# גלגול התחמקות: SHIFT
+	var q := controllable and Input.is_physical_key_pressed(KEY_SHIFT)
 	if q and not _q_was and _roll_cd <= 0.0 and is_on_floor() and grabbed_by == null:
 		_roll_t = 0.35
 		_roll_cd = 0.9
@@ -266,6 +271,19 @@ func _physics_process(delta: float) -> void:
 		dir -= 1.0
 	if controllable and Input.is_physical_key_pressed(KEY_D):
 		dir += 1.0
+	# ריצה: לחיצה כפולה מהירה על אותו כיוון. נגמרת כשעוזבים את המקש
+	var ka := controllable and Input.is_physical_key_pressed(KEY_A)
+	var kd := controllable and Input.is_physical_key_pressed(KEY_D)
+	_tap_t -= delta
+	for k in [[ka, _a_was, -1], [kd, _d_was, 1]]:
+		if k[0] and not k[1]:
+			_running = _tap_key == k[2] and _tap_t > 0.0
+			_tap_key = k[2]
+			_tap_t = 0.28
+	_a_was = ka
+	_d_was = kd
+	if dir == 0.0 or (dir < 0.0 and not ka) or (dir > 0.0 and not kd):
+		_running = false
 	if grabbed_by != null:   # יד מהביוב: לוחצים A/D לסירוגין כדי להשתחרר
 		if not is_instance_valid(grabbed_by) or grabbed_by.dead:
 			grabbed_by = null
@@ -281,7 +299,7 @@ func _physics_process(delta: float) -> void:
 	var speed := walk_speed
 	if _crouching:
 		speed = crouch_speed
-	elif controllable and Input.is_physical_key_pressed(KEY_SHIFT):
+	elif _running:
 		speed = run_speed
 	if boosts.has(PickupScript.ADRENALINE):
 		speed *= 1.4
@@ -318,7 +336,7 @@ func _physics_process(delta: float) -> void:
 	_jump_was = jump
 
 	# וו קרס: E זורק / משחרר
-	var e := controllable and Input.is_physical_key_pressed(KEY_E)
+	var e := controllable and Input.is_physical_key_pressed(KEY_F)   # וו קרס: F
 	if e and not _e_was and not dead:
 		if _hook_state == 2:
 			_hook_state = 0
@@ -362,7 +380,7 @@ func _physics_process(delta: float) -> void:
 		_aim = to_mouse.normalized()
 	var trigger := controllable and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not get_tree().paused and not wheel_open
 	# צלף: לחצן ימני = כוונת והזמן מאט
-	var scope := controllable and weapon == GUN and gun == SNIPER and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not get_tree().paused
+	var scope := controllable and weapon == GUN and gun == SNIPER and not wheel_open and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not get_tree().paused
 	if scope != _scoping:
 		_scoping = scope
 		if scope:
@@ -752,7 +770,7 @@ func _eject_casing(sh: Vector2) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not controllable or not (event is InputEventKey and event.pressed and not event.echo):
 		return
-	if event.physical_keycode == KEY_T and not dead:
+	if event.physical_keycode == KEY_E and not dead:   # E = רובה / רימון
 		weapon = GRENADE if weapon == GUN else GUN
 		weapon_changed.emit(weapon)
 	elif event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_5 and not dead:

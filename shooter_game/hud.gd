@@ -105,15 +105,7 @@ func _draw() -> void:
 		_text(Vector2(x + 160.0, wy), "G x%d" % player.grenades if _weapon == 0 else "A %d" % player.ammo, 13, Color(1, 1, 1, 0.6))
 	if difficulty != "":
 		_text(Vector2(x + 230.0, wy), difficulty, 16, difficulty_color)
-	# 5 מקומות לנשקים (מתחת לתחמושת)
-	if player != null:
-		for i in 5:
-			var r := Rect2(Vector2(x + float(i) * 22.0, wy + 8.0), Vector2(18.0, 6.0))
-			var s = player.slots[i] if i < player.slots.size() else null
-			var c := Color(1, 1, 1, 0.12) if s == null else Color(Game.WEAPON_COLORS[s.id], 0.9 if i == player.cur_slot else 0.4)
-			draw_rect(r, c)
-			if i == player.cur_slot and _weapon == 0:
-				draw_rect(r.grow(1.5), Color.WHITE, false, 1.0)
+	# בר הנשקים מצויר ב-weapon_wheel.gd
 	# ---- בוסטים פעילים ----
 	if player != null:
 		var bx := hearts_pos.x - 10.0
