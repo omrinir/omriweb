@@ -16,6 +16,7 @@ const RoadDecorScript := preload("res://road_decor.gd")
 const ButtonScript := preload("res://menu_button.gd")
 
 const GAME_SCENE := "res://main.tscn"
+const MAP_SCENE := "res://map.tscn"
 const ZOOM := 2.0
 const FLOOR_Y := 300.0
 
@@ -146,7 +147,7 @@ func _build_ui(vp: Vector2) -> void:
 	ui.add_child(root)
 
 	var play := _button(root, "PLAY", Vector2(70, 250), Vector2(310, 66), 40, 0.15)
-	play.pressed.connect(_start_game)
+	play.pressed.connect(_open_map)   # PLAY = מפת היבשת
 
 	var lv2 := _button(root, "LEVEL 2", Vector2(394, 262), Vector2(130, 44), 20, 0.25)   # בדיקה מהירה של השלב השני
 	lv2.accent = Color("3a8acc")
@@ -217,6 +218,16 @@ func _set_difficulty(i: int) -> void:
 		_diff_buttons[j].selected = j == i
 	_desc.text = _desc_text()
 	_desc.flash()
+
+
+func _open_map() -> void:
+	if _leaving:
+		return
+	_leaving = true
+	var tw := create_tween()
+	tw.tween_interval(0.15)
+	tw.tween_property(_fade, "color:a", 1.0, 0.6)
+	tw.tween_callback(func(): get_tree().change_scene_to_file(MAP_SCENE))
 
 
 func _start_game(start_level := 1) -> void:

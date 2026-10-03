@@ -118,6 +118,134 @@ func is_factory() -> bool:
 	return world() == 2
 
 
+# ============================================================
+#  מפה: 7 אזורים, 9 שלבים בכל אזור (כרגע 3 השלבים הראשונים קיימים)
+# ============================================================
+const LEVELS_PER_REGION := 9
+const IMPLEMENTED := 3            # כמה שלבים כבר בנויים
+const REGIONS := [
+	{"name": "NORTHERN AMAZON", "color": Color(0.45, 0.85, 0.3), "desc": "Where it started. The first ones only hunger.",
+		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Canopy of Whispers", "The Drowned Port", "Fever Hospital", "Mangrove Hive", "Heart of the Swarm"]},
+	{"name": "NORTHEAST", "color": Color(1.0, 0.8, 0.25), "desc": "Sun, salt and sand. They learned to wait in the heat.",
+		"levels": ["Salt Flats", "Sun-Bleached Town", "The Lighthouse", "Dunes of Bone", "Fishermen's Grave", "Carnival of the Dead", "Old Fort", "The Dry River", "Cathedral of Ash"]},
+	{"name": "CENTRAL PLATEAU", "color": Color(0.35, 0.65, 1.0), "desc": "Endless roads. They learned to hunt in packs.",
+		"levels": ["Savanna Road", "Cattle Ghosts", "Glass Capital", "The Dam", "Highway 7", "Burning Fields", "Radio Tower", "The Bunker", "Plateau Gate"]},
+	{"name": "ANDES", "color": Color(0.78, 0.5, 1.0), "desc": "Thin air, deep mines. They learned to climb.",
+		"levels": ["Cloud Pass", "Mine of Echoes", "Frozen Village", "Condor Peak", "Lost Temple", "Avalanche Road", "Observatory", "Skull Glacier", "The Summit"]},
+	{"name": "SOUTHEAST", "color": Color(1.0, 0.55, 0.2), "desc": "The megacities. They learned to use our machines.",
+		"levels": ["Favela Heights", "Megacity Core", "The Stadium", "Harbor Cranes", "Neon District", "Metro Labyrinth", "The Skyscraper", "The Lab", "Patient Zero"]},
+	{"name": "SOUTHERN CONE", "color": Color(0.25, 0.9, 0.75), "desc": "Plains and old cities. They learned to plan.",
+		"levels": ["Wine Valley", "Pampas Storm", "Old Quarter", "River Delta", "Tango Cemetery", "The Ranch", "Rail Yard", "Capital Siege", "Last Bridge"]},
+	{"name": "PATAGONIA", "color": Color(1.0, 0.4, 0.35), "desc": "The end of the world. They learned to think.",
+		"levels": ["Wind Steppe", "Ice Fjord", "Penguin Coast", "Whale Graveyard", "Black Forest", "Glacier Lab", "End of the World", "The Hive Mind", "They Learned"]},
+]
+var completed := {}               # שלב -> כוכבים (1-3)
+var level_best := {}              # שלב -> ניקוד הכי טוב
+
+
+func region_of(lv: int) -> int:
+	return (lv - 1) / LEVELS_PER_REGION
+
+
+func level_name(lv: int) -> String:
+	var r := region_of(lv)
+	if r < 0 or r >= REGIONS.size():
+		return "LEVEL %d" % lv
+	return REGIONS[r].levels[(lv - 1) % LEVELS_PER_REGION]
+
+
+func region_done(r: int) -> int:
+	var n := 0
+	for i in LEVELS_PER_REGION:
+		if completed.has(r * LEVELS_PER_REGION + i + 1):
+			n += 1
+	return n
+
+
+# אזור נפתח רק אחרי שמסיימים את כל השלבים של האזור הקודם
+func region_unlocked(r: int) -> bool:
+	return r == 0 or (r < REGIONS.size() and region_done(r - 1) >= LEVELS_PER_REGION)
+
+
+func level_unlocked(lv: int) -> bool:
+	return region_unlocked(region_of(lv)) and ((lv - 1) % LEVELS_PER_REGION == 0 or completed.has(lv - 1))
+
+
+func level_playable(lv: int) -> bool:
+	return level_unlocked(lv) and lv <= IMPLEMENTED
+
+
+# מתחילים שלב מהמפה (הנשקים, השדרוגים והגרוטאות נשמרים)
+func start_level(lv: int) -> void:
+	level = lv
+	run_score = 0
+	level_score = 0
+	combo = 0
+	_level_start_score = 0
+	_level_start_scrap = scrap
+
+
+# ---- שמירה לקובץ (אפשר להוריד למחשב ולטעון בחזרה) ----
+func save_dict() -> Dictionary:
+	var comp := {}
+	for k in completed:
+		comp[str(k)] = completed[k]
+	var best := {}
+	for k in level_best:
+		best[str(k)] = level_best[k]
+	return {"game": "THEY LEARN", "version": 1, "completed": comp, "level_best": best, "weapon_slots": weapon_slots,
+		"scrap": scrap, "upgrades": upgrades, "trophies": trophies, "high_scores": high_scores, "lifetime": lifetime,
+		"difficulty": Settings.difficulty}
+
+
+func load_dict(d: Dictionary) -> bool:
+	if d.get("game", "") != "THEY LEARN":
+		return false
+	completed.clear()
+	for k in d.get("completed", {}):
+		completed[int(k)] = int(d.completed[k])
+	level_best.clear()
+	for k in d.get("level_best", {}):
+		level_best[int(k)] = int(d.level_best[k])
+	var ws = d.get("weapon_slots", null)
+	if ws is Array and ws.size() == 5:
+		weapon_slots = []
+		for s in ws:
+			weapon_slots.append(null if s == null else {"id": int(s.id), "ammo": int(s.ammo)})
+	scrap = int(d.get("scrap", scrap))
+	var up = d.get("upgrades", {})
+	for k in up:
+		upgrades[k] = int(up[k])
+	var tr = d.get("trophies", {})
+	if tr is Dictionary:
+		trophies = tr
+	var hs = d.get("high_scores", [])
+	if hs is Array and hs.size() == 3:
+		high_scores = [int(hs[0]), int(hs[1]), int(hs[2])]
+	var lt = d.get("lifetime", {})
+	for k in lt:
+		lifetime[k] = int(lt[k])
+	Settings.difficulty = int(d.get("difficulty", Settings.difficulty))
+	_save()
+	return true
+
+
+func export_save(path: String) -> bool:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		return false
+	f.store_string(JSON.stringify(save_dict(), "  "))
+	return true
+
+
+func import_save(path: String) -> bool:
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return false
+	var d = JSON.parse_string(f.get_as_text())
+	return d is Dictionary and load_dict(d)
+
+
 # THEY LEARN: בכל שלב הזומבים לומדים משהו חדש
 const LEVEL_TITLES := [
 	["THEY HUNGER", "They only want to eat. For now."],
@@ -335,6 +463,8 @@ func finish_level(time_sec: float) -> Dictionary:
 	if Settings.difficulty == Settings.HARD:
 		unlock("hard_boiled")
 	var best := _update_high_score(run_score)
+	completed[level] = maxi(int(completed.get(level, 0)), stars)   # התקדמות במפה
+	level_best[level] = maxi(int(level_best.get(level, 0)), level_score)
 	var result := {"stars": stars, "accuracy": acc, "bonus": bonus, "scrap": earned, "best": best,
 		"level_score": level_score, "run_score": run_score, "stats": stats.duplicate()}
 	level += 1
@@ -391,6 +521,7 @@ func _save() -> void:
 	cfg.set_value("progress", "trophies", trophies)
 	cfg.set_value("progress", "high_scores", high_scores)
 	cfg.set_value("progress", "lifetime", lifetime)
+	cfg.set_value("progress", "campaign", save_dict())   # התקדמות במפה, נשקים, שדרוגים
 	cfg.save(SAVE_PATH)
 
 
@@ -406,6 +537,20 @@ func _load() -> void:
 	if lt is Dictionary:
 		for k in lt:
 			lifetime[k] = lt[k]
+	var camp = cfg.get_value("progress", "campaign", {})
+	if camp is Dictionary:
+		var d: Dictionary = camp
+		completed.clear()
+		for k in d.get("completed", {}):
+			completed[int(k)] = int(d.completed[k])
+		for k in d.get("level_best", {}):
+			level_best[int(k)] = int(d.level_best[k])
+		var ws = d.get("weapon_slots", null)
+		if ws is Array and ws.size() == 5:
+			weapon_slots = ws
+		scrap = int(d.get("scrap", 0))
+		for k in d.get("upgrades", {}):
+			upgrades[k] = int(d.upgrades[k])
 
 
 # ---- באנר שיורד מלמעלה כשפותחים גביע ----

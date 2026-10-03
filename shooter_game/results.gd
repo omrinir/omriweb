@@ -6,6 +6,7 @@ extends CanvasLayer
 
 const ButtonScript := preload("res://menu_button.gd")
 const MENU_SCENE := "res://menu.tscn"
+const MAP_SCENE := "res://map.tscn"
 
 var _r: Dictionary
 var _root: Control
@@ -68,7 +69,7 @@ func _results_buttons(first := false) -> void:
 	var next := _btn("NEXT LEVEL", Vector2(vp.x / 2.0 - 330.0, y), Vector2(220, 56), Color("b3121a"), 26, d)
 	next.pressed.connect(_next)
 	_btn("UPGRADES", Vector2(vp.x / 2.0 - 100.0, y), Vector2(200, 56), Color("d8a033"), 26, d + 0.1).pressed.connect(_shop)
-	_btn("MAIN MENU", Vector2(vp.x / 2.0 + 120.0, y), Vector2(210, 56), Color("5a5a62"), 26, d + 0.2).pressed.connect(_menu)
+	_btn("MAP", Vector2(vp.x / 2.0 + 120.0, y), Vector2(210, 56), Color("5a5a62"), 26, d + 0.2).pressed.connect(_map)
 	next.call_deferred("grab_focus")
 
 
@@ -96,7 +97,15 @@ func _buy(id: String) -> void:
 
 
 func _next() -> void:
-	_leave(func(): get_tree().reload_current_scene())
+	if Game.level_playable(Game.level):   # השלב הבא כבר בנוי ופתוח
+		Game.start_level(Game.level)
+		_leave(func(): get_tree().reload_current_scene())
+	else:
+		_map()
+
+
+func _map() -> void:
+	_leave(func(): get_tree().change_scene_to_file(MAP_SCENE))
 
 
 func _menu() -> void:

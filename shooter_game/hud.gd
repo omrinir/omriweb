@@ -76,7 +76,7 @@ func _draw_intro(vp: Vector2) -> void:
 		var h := 120.0 - float(i) * 12.0
 		draw_rect(Rect2(0, y - h * 0.5, vp.x, h), Color(0, 0, 0, 0.09 * a))
 	var spread := 1.0 + 0.04 * _intro_t   # הכותרת "נפתחת" לאט
-	_text(Vector2(0, y - 34), "LEVEL %d" % Game.level, 18, Color(1, 1, 1, 0.7 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+	_text(Vector2(0, y - 34), "LEVEL %d  ·  %s" % [Game.level, Game.level_name(Game.level).to_upper()], 18, Color(1, 1, 1, 0.7 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 	var f := ThemeDB.fallback_font
 	var title: String = t[0]
 	var fs := int(54.0 * spread)
