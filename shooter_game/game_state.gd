@@ -25,14 +25,14 @@ const TROPHIES := [
 ]
 
 # ---------------- שדרוגים ----------------
-const UPGRADES := [
-	{"id": "fire_rate", "name": "QUICK HANDS", "desc": "Shoot 15% faster", "costs": [40, 80, 140]},
-	{"id": "ammo", "name": "BANDOLIER", "desc": "+10 bullets at start", "costs": [40, 70, 110]},
-	{"id": "grenades", "name": "GRENADE BELT", "desc": "+1 grenade at start", "costs": [60, 120]},
-	{"id": "siphon", "name": "SIPHON SHIELD", "desc": "Draining also gives a shield", "costs": [80, 150]},
-	{"id": "boost_time", "name": "LONG BOOSTS", "desc": "Boosts last 30% longer", "costs": [50, 100]},
-	{"id": "laser", "name": "LASER SIGHT", "desc": "A laser line shows your aim", "costs": [70]},
-]
+# השדרוגים עצמם: progression/upgrade_db.gd (נשקים, יכולות, PERKS). כאן רק המצב השמור:
+#   upgrades = {"w.<weapon id>.<track>": רמה, "a.<ability id>.<track>": רמה, "p.<perk>": רמה}
+#   seen_weapons = נשקים שהשחקן מצא פעם (רק אותם אפשר לשדרג)
+const Upgrades := preload("res://progression/upgrade_db.gd")
+var seen_weapons := [0]
+# השדרוגים הישנים (הוסרו) - מי שקנה אותם מקבל את הגרוטאות בחזרה
+const OLD_UPGRADES := {"fire_rate": [40, 80, 140], "ammo": [40, 70, 110], "grenades": [60, 120], "siphon": [80, 150], "boost_time": [50, 100], "laser": [70]}
+
 
 # ---------------- ניקוד ----------------
 const KILL_POINTS := [100, 120, 200, 150, 150, 2000, 160, 3000, 140, 180, 20, 120, 250, 300, 80, 120, 150, 220, 260, 4000]   # לפי סוג זומבי
@@ -83,8 +83,7 @@ var _banner: Node2D
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_load()
-	for u in UPGRADES:
-		upgrades[u.id] = 0
+	_migrate_old_upgrades()
 	var layer := CanvasLayer.new()
 	layer.layer = 20
 	add_child(layer)
@@ -207,7 +206,7 @@ func save_dict() -> Dictionary:
 	for k in level_best:
 		best[str(k)] = level_best[k]
 	return {"game": "THEY LEARN", "version": 1, "completed": comp, "level_best": best, "weapon_slots": weapon_slots,
-		"scrap": scrap, "upgrades": upgrades, "trophies": trophies, "high_scores": high_scores, "lifetime": lifetime,
+		"scrap": scrap, "upgrades": upgrades, "seen_weapons": seen_weapons, "ability_slots": ability_slots, "trophies": trophies, "high_scores": high_scores, "lifetime": lifetime,
 		"difficulty": Settings.difficulty}
 
 
@@ -229,6 +228,12 @@ func load_dict(d: Dictionary) -> bool:
 	var up = d.get("upgrades", {})
 	for k in up:
 		upgrades[k] = int(up[k])
+	var sw = d.get("seen_weapons", [])
+	for w in sw:
+		mark_weapon_seen(int(w))
+	var asl = d.get("ability_slots", [])
+	if asl is Array and asl.size() == 5:
+		ability_slots = asl.duplicate()
 	var tr = d.get("trophies", {})
 	if tr is Dictionary:
 		trophies = tr
@@ -289,8 +294,9 @@ func new_run() -> void:
 	weapon_slots = [{"id": 0, "ammo": 30}, null, null, null, null]
 	run_score = 0
 	scrap = 0
-	for u in UPGRADES:
-		upgrades[u.id] = 0
+	upgrades.clear()
+	seen_weapons = [0]
+	ability_slots = [null, null, null, null, null]
 	_level_start_score = 0
 	_level_start_scrap = 0
 
@@ -317,6 +323,26 @@ func restart_level() -> void:
 
 func upgrade_level(id: String) -> int:
 	return int(upgrades.get(id, 0))
+
+
+# שדרוגים ישנים -> החזר גרוטאות (פעם אחת)
+func _migrate_old_upgrades() -> void:
+	var refund := 0
+	for k in upgrades.keys():
+		if OLD_UPGRADES.has(k):
+			var costs: Array = OLD_UPGRADES[k]
+			for i in mini(int(upgrades[k]), costs.size()):
+				refund += int(costs[i])
+			upgrades.erase(k)
+	if refund > 0:
+		scrap += refund
+		_save()
+
+
+# הנשק נמצא (נפתח לשדרוג בחנות)
+func mark_weapon_seen(id: int) -> void:
+	if not id in seen_weapons:
+		seen_weapons.append(id)
 
 
 func style_rank() -> int:
@@ -474,7 +500,7 @@ func finish_level(time_sec: float) -> Dictionary:
 			stars = 3
 	var bonus := stars * 250
 	level_score += bonus
-	var earned := level_score / 20 + stars * 20
+	var earned := Upgrades.level_income(level, stars, level_score)   # כלכלה מאוזנת ל-70 שלבים
 	scrap += earned
 	run_score += level_score
 	if stats.drained == 0:
@@ -507,19 +533,6 @@ func _update_high_score(score: int) -> bool:
 		high_scores[d] = score
 		_save()
 		return true
-	return false
-
-
-func buy(id: String) -> bool:
-	for u in UPGRADES:
-		if u.id == id:
-			var lvl := upgrade_level(id)
-			if lvl >= u.costs.size() or scrap < int(u.costs[lvl]):
-				return false
-			scrap -= int(u.costs[lvl])
-			upgrades[id] = lvl + 1
-			_level_start_scrap = scrap
-			return true
 	return false
 
 
@@ -572,6 +585,11 @@ func _load() -> void:
 		scrap = int(d.get("scrap", 0))
 		for k in d.get("upgrades", {}):
 			upgrades[k] = int(d.upgrades[k])
+		for w in d.get("seen_weapons", []):
+			mark_weapon_seen(int(w))
+		var asl = d.get("ability_slots", [])
+		if asl is Array and asl.size() == 5:
+			ability_slots = asl.duplicate()
 
 
 # ---- באנר שיורד מלמעלה כשפותחים גביע ----

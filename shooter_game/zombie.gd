@@ -216,6 +216,9 @@ var _last_info := {}
 var brain = null                 # ai/zombie_brain.gd
 var type_mod = null              # enemies/types/*.gd (סוגים 20+)
 var _drop_t := 0.0               # יורד דרך קומה (one-way)
+var _stagger_t := 0.0
+var _decoy_id := 0               # איזה עותק רפאים בדקנו
+var _decoy_fooled := true
 var _mod_boss := false           # סוג חדש שהוא בוס (stats()["boss"])
 
 var sc := 1.0      # גודל
@@ -387,6 +390,14 @@ func _physics_process(delta: float) -> void:
 	if kind == JETPACK:
 		_jet_logic(player, delta)
 		return
+	if _stagger_t > 0.0:   # הדף (DARK PULSE): מתנדנד, לא תוקף
+		_stagger_t -= delta
+		if not is_on_floor():
+			velocity.y += gravity * delta
+		velocity.x = move_toward(velocity.x, 0.0, 500.0 * delta)
+		move_and_slide()
+		_maybe_redraw()
+		return
 	if _rise_t > 0.0:   # קם לאט
 		_rise_t -= delta
 		if Art.on_screen(self, global_position):
@@ -446,7 +457,8 @@ func _physics_process(delta: float) -> void:
 		target_speed = _cover_process(delta, player)
 	elif player != null and not player.dead and (global_position.distance_to(player.global_position) < chase_range * (0.45 if Game.player_dark and not is_boss() else 1.0) or _alert_t > 0.0):   # בחושך רואים פחות
 		_chasing = true
-		_dir = signf(player.global_position.x - global_position.x)
+		var tp: Node = _target_for_brain(player)   # DECOY ECHO: אולי הולך אחרי עותק הרפאים
+		_dir = signf(tp.global_position.x - global_position.x)
 		if not _noticed:   # ראה את השחקן: זעקה
 			_noticed = true
 			_voice("zscream", 0.9, 3.0)
@@ -460,10 +472,10 @@ func _physics_process(delta: float) -> void:
 		target_speed = chase_speed
 		if _rush_t > 0.0:
 			target_speed *= 1.35
-		var d: Vector2 = player.global_position - global_position
+		var d: Vector2 = tp.global_position - global_position
 		# המוח: תורות התקפה, איגוף, המתנה, נסיגה, גבהים (ai/zombie_brain.gd)
 		if brain != null:
-			var bs: float = brain.steer(self, player, d, delta, target_speed)
+			var bs: float = brain.steer(self, tp, d, delta, target_speed)
 			if brain.steer_movement:
 				target_speed = bs
 		if type_mod != null:
@@ -506,7 +518,7 @@ func _physics_process(delta: float) -> void:
 			_attack_t = bite_delay
 			_bite_anim = 0.25
 			var charging: bool = brain != null and brain.is_charging()
-			player.hurt(damage + (1 if charging else 0), Vector2(_dir * (2.0 if charging else 1.0), 0.0))
+			tp.hurt(damage + (1 if charging else 0), Vector2(_dir * (2.0 if charging else 1.0), 0.0))
 			if brain != null:
 				brain.on_bite(self)
 			if type_mod != null:
@@ -854,6 +866,26 @@ func _voice(name: String, chance: float, vol: float) -> void:
 
 func is_boss() -> bool:
 	return kind == BOSS or kind == CONDUCTOR or kind == HOUND or _mod_boss
+
+
+# הדף מיכולת: לא זז ולא תוקף לרגע
+func stagger(t: float) -> void:
+	if not is_boss():
+		_stagger_t = maxf(_stagger_t, t)
+
+
+# DECOY ECHO (abilities/types/decoy.gd): זומבים שהמוח מזיז הולכים אחרי עותק הרפאים אם הוא קרוב.
+# משלב 8 חלק מהם "מזהים" את הטריק (adaptation_level)
+func _target_for_brain(player: Node) -> Node:
+	if brain == null or not brain.steer_movement:
+		return player
+	var dc := get_tree().get_first_node_in_group("decoys")
+	if dc == null or dc.dead or dc.global_position.distance_to(global_position) > 560.0:
+		return player
+	if dc.get_instance_id() != _decoy_id:
+		_decoy_id = dc.get_instance_id()
+		_decoy_fooled = randf() > float(brain.p.get("adaptation_level", 0.0)) * 0.35
+	return dc if _decoy_fooled else player
 
 
 # ---- קומות (one-way, שכבה 16): קפיצה למעלה לקומה / ירידה דרכה ----

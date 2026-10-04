@@ -70,3 +70,12 @@ xvfb-run godot --path . -s res://t_stage.gd -- 6 0.4 x # runs stage 6 at 40% of 
 A/D move (double-tap = run) · W jump / climb ladder · S crouch (S+W = drop through a floor) · LMB fire ·
 R reload · Q weapon wheel · 1-5 weapons · G drop weapon · E grenade · SHIFT roll · F grapple ·
 RMB sniper scope · ESC pause.
+
+## Abilities, upgrades and the 70-level economy
+
+* **Abilities** → `abilities/ability_db.gd` (list) + `abilities/types/<id>.gd` (behavior) + `abilities/ability_runner.gd`
+  (5 equipped slots, C = use, 6-0 = select). Add a dictionary + a script and it appears in the wheel, HUD and shop.
+* **Shop / upgrades** → `progression/upgrade_db.gd` (tracks, prices, income) and `ui/upgrade_shop.gd` (screen).
+  Every weapon gets DAMAGE / FIRE RATE / MAGAZINE / RELOAD (or CAPACITY), every ability POWER / COOLDOWN, plus PERKS.
+  Price = base × (1 + unlock_level / 12) × 1.55^level; income per stage grows with the stage number, so the
+  economy stays even from stage 1 to 70. Give new weapons an `"unlock_level"` in `weapon_db.gd`.

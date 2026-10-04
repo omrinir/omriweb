@@ -216,8 +216,9 @@ func _ready() -> void:
 	_spawn_supplies(rng, floor_y)
 	_make_exit(floor_y)
 
-	player.max_health = diff.player_hp
-	player.health = diff.player_hp
+	var hp: int = int(diff.player_hp) + preload("res://progression/upgrade_db.gd").perk("vitality")   # PERK: VITALITY
+	player.max_health = hp
+	player.health = hp
 	player.position = Vector2(vp.x * 0.12, floor_y)   # (0,0) של השחקן = כפות הרגליים
 	player.set_meta("ground_y", floor_y)   # PlayerMemory: מתי השחקן "גבוה"
 	add_child(player)
@@ -253,7 +254,7 @@ func _ready() -> void:
 	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
-	label.text = "A/D move (x2 run)  W jump/climb  S crouch (+W drop)  LMB fire  R reload  Q wheel  1-5  G drop  E grenade  SHIFT roll  F hook  RMB scope"
+	label.text = "A/D move (x2 run)  W jump/climb  S crouch (+W drop)  LMB fire  R reload  Q wheel  1-5  C ability (6-0)  G drop  E grenade  SHIFT roll  F hook  RMB scope"
 	label.position = Vector2(12, 8)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))

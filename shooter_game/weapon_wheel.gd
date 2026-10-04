@@ -1,5 +1,7 @@
 extends Node2D
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
+const AbilityDB := preload("res://abilities/ability_db.gd")
+const Upgrades := preload("res://progression/upgrade_db.gd")
 # ============================================================
 #  גלגל נשקים / יכולות (מחזיקים Q). הזמן מאט.
 #  שני עמודים נפרדים: WEAPONS / ABILITIES (5 מקומות בכל אחד).
@@ -47,6 +49,8 @@ func _process(delta: float) -> void:
 		_open = false
 		if _page == 0 and _hover >= 0 and player != null:
 			player.select_slot(_hover)
+		elif _page == 1 and _hover >= 0 and player != null and player.abilities != null:
+			player.abilities.select(_hover)
 		if player == null or not player.boosts.has(player.PickupScript.BULLET_TIME):
 			Engine.time_scale = 1.0
 	if player != null:
@@ -101,6 +105,8 @@ func _input(event: InputEvent) -> void:
 					return
 			if _page == 0 and _hover >= 0:
 				player.select_slot(_hover)
+			elif _page == 1 and _hover >= 0 and player.abilities != null:
+				player.abilities.select(_hover)
 	get_viewport().set_input_as_handled()
 
 
@@ -181,16 +187,23 @@ func _draw() -> void:
 		if _page == 0:
 			if s != null:
 				draw_weapon(self, ic + Vector2(0, -6), s.id, sc * (1.25 if hov else 1.05), a)
-				var low: bool = s.ammo <= Game.AMMO_MAX[s.id] / 5
+				var low: bool = s.ammo <= Upgrades.ammo_max(s.id) / 5
 				draw_string(f, ic + Vector2(-30, 24), str(s.ammo), HORIZONTAL_ALIGNMENT_CENTER, 60, 15, Color(1.0, 0.4, 0.3, a) if low else Color(1, 1, 1, 0.85 * a))
 				if hov:   # כפתור זריקה
 					draw_string(f, ic + Vector2(-40, 40), "RMB/G: DROP", HORIZONTAL_ALIGNMENT_CENTER, 80, 10, Color(1.0, 0.5, 0.4, 0.9 * a))
 			else:
 				draw_string(f, ic + Vector2(-30, 5), "EMPTY", HORIZONTAL_ALIGNMENT_CENTER, 60, 12, Color(1, 1, 1, 0.25 * a))
-		else:   # יכולות: נעול
-			draw_arc(ic + Vector2(0, -8), 5.5, PI, TAU, 10, Color(acc_page, 0.4 * a), 2.0, true)
-			draw_rect(Rect2(ic + Vector2(-7, -8), Vector2(14, 11)), Color(acc_page, 0.4 * a))
-			draw_string(f, ic + Vector2(-30, 18), "LOCKED", HORIZONTAL_ALIGNMENT_CENTER, 60, 11, Color(1, 1, 1, 0.3 * a))
+		else:   # יכולות
+			var ab: String = player.abilities.slot(i) if player != null and player.abilities != null else ""
+			if ab != "":
+				AbilityDB.draw_icon(self, ic + Vector2(0, -4), ab, sc * (1.35 if hov else 1.1), a)
+				var ck: float = player.abilities.cooldown_k(ab)
+				if ck > 0.0:
+					draw_arc(ic + Vector2(0, -4), 17.0 * sc, -PI / 2.0, -PI / 2.0 + TAU * ck, 20, Color(1, 1, 1, 0.5 * a), 3.0, true)
+				if i == player.abilities.cur:
+					draw_arc(c + off, (r_out + pop + 6.0) * sc, a0, a1, 16, Color(1, 1, 1, 0.95 * a), 3.0, true)
+			else:
+				draw_string(f, ic + Vector2(-30, 5), "EMPTY", HORIZONTAL_ALIGNMENT_CENTER, 60, 12, Color(1, 1, 1, 0.25 * a))
 	# מרכז
 	draw_circle(c, (r_in - 6.0) * sc, Color(0.03, 0.03, 0.04, 0.96 * a))
 	draw_arc(c, (r_in - 6.0) * sc, 0.0, TAU, 40, Color(acc_page, 0.35 * a), 1.5, true)
@@ -201,14 +214,20 @@ func _draw() -> void:
 		var s = player.slots[_hover]
 		if s != null:
 			title = Game.WEAPON_NAMES[s.id]
-			sub = "%d / %d" % [s.ammo, Game.AMMO_MAX[s.id]]
+			sub = "%d / %d" % [s.ammo, Upgrades.ammo_max(s.id)]
 			tcol = Color(Game.WEAPON_COLORS[s.id], a)
 		else:
 			title = "EMPTY"
 			sub = "SLOT %d" % (_hover + 1)
-	elif _hover >= 0:
-		title = "LOCKED"
-		sub = "COMING SOON"
+	elif _hover >= 0 and player != null and player.abilities != null:
+		var ab: String = player.abilities.slot(_hover)
+		if ab != "":
+			title = str(AbilityDB.val(ab, "name", ""))
+			sub = "PASSIVE" if AbilityDB.val(ab, "passive", false) else ("READY  [C]" if player.abilities.cooldown_left(ab) <= 0.0 else "%.1fs" % player.abilities.cooldown_left(ab))
+			tcol = Color(AbilityDB.val(ab, "color", Color.WHITE), a)
+		else:
+			title = "EMPTY"
+			sub = "UNLOCK IN LATER STAGES"
 	draw_string(f, c + Vector2(-60, -2), title, HORIZONTAL_ALIGNMENT_CENTER, 120, 16, tcol)
 	draw_string(f, c + Vector2(-60, 17), sub, HORIZONTAL_ALIGNMENT_CENTER, 120, 12, Color(1, 1, 1, 0.6 * a))
 	draw_string(f, c + Vector2(-200, (r_out + 42.0) * sc), "RELEASE Q = EQUIP      RMB / G = DROP", HORIZONTAL_ALIGNMENT_CENTER, 400, 13, Color(1, 1, 1, 0.5 * a))
@@ -261,7 +280,7 @@ func _draw_bar() -> void:
 			draw_weapon(self, Vector2.ZERO, s.id, (0.62 + 0.12 * _pop) if cur else 0.55, 1.0 if cur else 0.6)
 			draw_set_transform_matrix(Transform2D.IDENTITY)
 			# פס תחמושת
-			var k := float(s.ammo) / float(Game.AMMO_MAX[s.id])
+			var k := float(s.ammo) / float(Upgrades.ammo_max(s.id))
 			draw_rect(Rect2(r.position + Vector2(5, bh - 6), Vector2(bw - 10, 3)), Color(0, 0, 0, 0.5))
 			draw_rect(Rect2(r.position + Vector2(5, bh - 6), Vector2((bw - 10) * k, 3)), Color(1.0, 0.35, 0.3) if k < 0.2 else Color(Game.WEAPON_COLORS[s.id], 0.9))
 			draw_string(f, r.position + Vector2(0, 11), str(s.ammo), HORIZONTAL_ALIGNMENT_RIGHT, bw - 4, 10, Color(1, 1, 1, 0.8 if cur else 0.45))
@@ -281,6 +300,7 @@ func _draw_bar() -> void:
 	draw_rect(Rect2(gr.get_center() + Vector2(-8, -9), Vector2(4, 4)), Color("9a9aa2"))
 	draw_string(f, gr.position + Vector2(0, 24), "x%d" % player.grenades, HORIZONTAL_ALIGNMENT_RIGHT, 40, 13, Color.WHITE)
 	draw_string(f, gr.position + Vector2(3, 11), "E", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1, 1, 1, 0.45))
+	_draw_ability_bar(Vector2(org.x, org.y + bh + 30.0))
 	# שם הנשק קופץ אחרי החלפה
 	if _name_t > 0.0 and gun_on and player.slots[player.cur_slot] != null:
 		var id: int = player.slots[player.cur_slot].id
@@ -412,3 +432,43 @@ static func draw_weapon(ci: CanvasItem, p: Vector2, id: int, s: float, alpha := 
 			ci.draw_circle(p + Vector2(-2, 10) * s, 2.5 * s, steel)
 			poly.call([Vector2(-11, 4), Vector2(-7, 4), Vector2(-9, 11), Vector2(-13, 10)], metal)
 			ln.call(Vector2(10, -4.5), Vector2(34, -4.5), Color(1.0, 0.35, 0.2, 0.7 * alpha), 0.8)
+
+
+# ---- בר היכולות (מתחת לבר הנשקים): 5 קופסאות קטנות, טעינה מסתובבת, C = הפעלה ----
+func _draw_ability_bar(org: Vector2) -> void:
+	if player == null or player.abilities == null:
+		return
+	var ab = player.abilities
+	var any := false
+	for i in 5:
+		if ab.slot(i) != "":
+			any = true
+	if not any:
+		return
+	var f := ThemeDB.fallback_font
+	var bs := 30.0
+	for i in 5:
+		var id: String = ab.slot(i)
+		var r := Rect2(org + Vector2(float(i) * (bs + 5.0), 0.0), Vector2(bs, bs))
+		var sb := StyleBoxFlat.new()
+		sb.set_corner_radius_all(6)
+		var cur: bool = i == ab.cur
+		if id == "":
+			sb.bg_color = Color(1, 1, 1, 0.03)
+			sb.border_color = Color(1, 1, 1, 0.08)
+			sb.set_border_width_all(1)
+			draw_style_box(sb, r)
+			continue
+		var col: Color = AbilityDB.val(id, "color", Color.WHITE)
+		sb.bg_color = Color(0.08, 0.08, 0.1, 0.9).lerp(col, 0.15 if cur else 0.04)
+		sb.border_color = Color(col, 0.95 if cur else 0.35)
+		sb.set_border_width_all(2 if cur else 1)
+		draw_style_box(sb, r)
+		var ck: float = ab.cooldown_k(id)
+		AbilityDB.draw_icon(self, r.get_center(), id, 0.75, 1.0 if ck <= 0.0 else 0.35)
+		if ck > 0.0:   # טעינה: חלק כהה שיורד
+			draw_rect(Rect2(r.position, Vector2(bs, bs * ck)), Color(0, 0, 0, 0.55))
+		if ab.is_active(id):
+			draw_rect(r.grow(2.0), Color(col, 0.6 + 0.3 * sin(_t * 10.0)), false, 2.0)
+		draw_string(f, r.position + Vector2(2, 9), str((i + 6) % 10), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 1, 1, 0.4))
+	draw_string(f, org + Vector2(5.0 * (bs + 5.0) + 4.0, 20.0), "C", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.6))

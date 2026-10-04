@@ -5,6 +5,7 @@ extends CanvasLayer
 # ============================================================
 
 const ButtonScript := preload("res://menu_button.gd")
+const ShopScript := preload("res://ui/upgrade_shop.gd")
 const MENU_SCENE := "res://menu.tscn"
 const MAP_SCENE := "res://map.tscn"
 
@@ -73,27 +74,16 @@ func _results_buttons(first := false) -> void:
 	next.call_deferred("grab_focus")
 
 
+# החנות החדשה (ui/upgrade_shop.gd): נשקים / יכולות / PERKS
 func _shop() -> void:
 	_clear()
-	_panel.mode = 1
-	var vp := get_viewport().get_visible_rect().size
-	for i in Game.UPGRADES.size():
-		var u: Dictionary = Game.UPGRADES[i]
-		var lvl := Game.upgrade_level(u.id)
-		var maxed: bool = lvl >= u.costs.size()
-		var cost: int = 0 if maxed else int(u.costs[lvl])
-		var label := "MAX" if maxed else "BUY %d" % cost
-		var accent := Color("5a5a62") if maxed or Game.scrap < cost else Color("d8a033")
-		var b := _btn(label, Vector2(vp.x / 2.0 + 150.0, 176.0 + float(i) * 58.0), Vector2(130, 42), accent, 18, 0.05 * float(i))
-		if not maxed:
-			b.pressed.connect(_buy.bind(u.id))
-	_btn("BACK", Vector2(vp.x / 2.0 - 100.0, 560.0), Vector2(200, 56), Color("b3121a"), 26, 0.3).pressed.connect(_results_buttons)
-
-
-func _buy(id: String) -> void:
-	if Game.buy(id):
-		_panel.flash()
-	_shop()
+	_panel.visible = false
+	var shop = ShopScript.new()
+	_root.add_child(shop)
+	shop.closed.connect(func():
+		shop.queue_free()
+		_panel.visible = true
+		_results_buttons())
 
 
 func _next() -> void:
@@ -150,10 +140,7 @@ class ResultsPanel extends Node2D:
 		var px := (vp.x - pw) / 2.0
 		draw_rect(Rect2(Vector2(px, 60), Vector2(pw, 480)), Color(0.07, 0.06, 0.07, 0.94))
 		draw_rect(Rect2(Vector2(px, 60), Vector2(pw, 480)), Color("8a1a1a"), false, 2.0)
-		if mode == 0:
-			_results(vp, px, pw)
-		else:
-			_upgrades(vp, px, pw)
+		_results(vp, px, pw)
 
 	func _results(vp: Vector2, px: float, pw: float) -> void:
 		var st: Dictionary = r.stats
@@ -191,20 +178,6 @@ class ResultsPanel extends Node2D:
 			if r.best:
 				var pulse := 0.7 + 0.3 * sin(_t * 6.0)
 				_txt(Vector2(0, 512), "NEW BEST SCORE!", 22, Color(1.0, 0.85, 0.3, pulse), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
-
-	func _upgrades(vp: Vector2, px: float, pw: float) -> void:
-		_txt(Vector2(0, 112), "UPGRADES", 40, Color("d8a033"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
-		_txt(Vector2(0, 146), "SCRAP: %d" % Game.scrap, 22, Color(1, 1, 1).lerp(Color("ffd34a"), _flash), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
-		for i in Game.UPGRADES.size():
-			var u: Dictionary = Game.UPGRADES[i]
-			var y := 192.0 + float(i) * 58.0
-			_txt(Vector2(px + 40, y), u.name, 20, Color.WHITE)
-			_txt(Vector2(px + 40, y + 20), u.desc, 14, Color(0.75, 0.72, 0.7))
-			var lvl := Game.upgrade_level(u.id)
-			for k in u.costs.size():   # נקודות שמראות כמה שדרגנו
-				var c := Vector2(px + 300 + float(k) * 18.0, y - 5.0)
-				draw_circle(c, 6.0, Color(0, 0, 0, 0.6))
-				draw_circle(c, 4.5, Color("d8a033") if k < lvl else Color(0.25, 0.22, 0.2))
 
 	func _star(c: Vector2, r_: float, col: Color) -> void:
 		if r_ <= 0.5:

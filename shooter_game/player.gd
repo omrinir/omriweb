@@ -68,6 +68,9 @@ var weapon := GUN
 # ---- נשקים: 5 מקומות (גלגל נשקים = TAB, מקשים 1-5, G = לזרוק). לכל נשק תחמושת משלו ----
 # הנשקים עצמם מוגדרים ב-weapons/weapon_db.gd (נזק, קצב, מחסנית, טעינה, פיזור...)
 const WeaponDB := preload("res://weapons/weapon_db.gd")
+const Upgrades := preload("res://progression/upgrade_db.gd")        # שדרוגים שנקנו בחנות (נשקים / יכולות / PERKS)
+const AbilityRunnerScript := preload("res://abilities/ability_runner.gd")
+var abilities: Node = null       # היכולות (C = הפעלה, 6-0 = בחירה)
 enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, GRENADE_LAUNCHER, ASSAULT_SHOTGUN }
 var slots := []                  # 5 מקומות: {"id", "ammo", "mag"} או null (ammo = הכל, mag = מה שבמחסנית)
 var _reload_t := 0.0             # טוען (R / מחסנית ריקה). זומבים חכמים מנצלים את הרגע הזה!
@@ -127,14 +130,14 @@ var ammo: int:                   # התחמושת של הנשק שביד
 		return slots[cur_slot].ammo if cur_slot < slots.size() and slots[cur_slot] != null else 0
 	set(v):
 		if cur_slot < slots.size() and slots[cur_slot] != null:
-			slots[cur_slot].ammo = clampi(v, 0, Game.AMMO_MAX[slots[cur_slot].id])
+			slots[cur_slot].ammo = clampi(v, 0, Upgrades.ammo_max(slots[cur_slot].id))
 var mag: int:                    # כמה כדורים במחסנית של הנשק שביד
 	get:
 		if cur_slot >= slots.size() or slots[cur_slot] == null:
 			return 0
 		var s: Dictionary = slots[cur_slot]
 		if not s.has("mag"):
-			s["mag"] = mini(int(s.ammo), int(WeaponDB.val(s.id, "magazine_size", 0)))
+			s["mag"] = mini(int(s.ammo), int(Upgrades.wval(s.id, "magazine_size", 0)))
 		return mini(int(s.mag), int(s.ammo))
 	set(v):
 		if cur_slot < slots.size() and slots[cur_slot] != null:
@@ -190,7 +193,7 @@ func _ready() -> void:
 	z_index = 4
 	# תחמושת לפי קושי + שדרוגים
 	slots = Game.weapon_slots.duplicate(true)
-	var start: int = [40, 30, 22][Settings.difficulty] + 10 * Game.upgrade_level("ammo")
+	var start: int = [40, 30, 22][Settings.difficulty]
 	for s in slots:   # בתחילת כל שלב: לרובה יש לפחות את תחמושת ההתחלה
 		if s != null and s.id == RIFLE:
 			s.ammo = maxi(s.ammo, start)
@@ -198,9 +201,14 @@ func _ready() -> void:
 		if slots[i] != null:
 			cur_slot = i
 			break
-	grenades = [3, 2, 1][Settings.difficulty] + Game.upgrade_level("grenades")
-	fire_delay *= pow(0.85, Game.upgrade_level("fire_rate"))
-	boost_time *= 1.0 + 0.3 * Game.upgrade_level("boost_time")
+	for sl in slots:
+		if sl != null:
+			Game.mark_weapon_seen(int(sl.id))
+	grenades = [3, 2, 1][Settings.difficulty] + Upgrades.perk("grenade_pouch")
+	boost_time *= 1.0 + 0.3 * Upgrades.perk("long_boosts")
+	abilities = AbilityRunnerScript.new()
+	abilities.player = self
+	add_child(abilities)
 
 
 func _set_height(h: float) -> void:
@@ -598,7 +606,7 @@ func has_boost(b: int) -> bool:
 
 # קו לייזר (שדרוג): עד הפגיעה הראשונה
 func _update_laser(sh: Vector2) -> void:
-	if (Game.upgrade_level("laser") == 0 and not _scoping) or not controllable:
+	if (Upgrades.perk("laser_sight") == 0 and not _scoping) or not controllable:
 		return
 	var from := sh + _aim * 30.0
 	var to := from + _aim * 650.0
@@ -628,7 +636,7 @@ func _fire() -> void:
 	if weapon == GUN and _try_melee():
 		return
 	if weapon == GUN:
-		var w: Dictionary = WeaponDB.get_def(gun)
+		var w: Dictionary = Upgrades.weapon_def(gun)   # הנשק אחרי השדרוגים
 		var msize: int = w.get("magazine_size", 0)
 		if _reload_t > 0.0:
 			return
@@ -651,7 +659,7 @@ func _fire() -> void:
 		PlayerMemory.on_shot(gun)
 		Game.make_noise(global_position, 380.0)   # יריות מעירות זומבים מסביב
 		# שדרוג קצב אש (בחנות) משפיע על כל הנשקים
-		_cooldown = float(w.fire_rate) * (fire_delay / 0.7) * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
+		_cooldown = float(w.fire_rate) * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
 		_muzzle_flash = 0.0 if proj == "arrow" or proj == "molotov" else 0.05
 		_recoil = 1.0
 		# רתיעה: הירייה דוחפת את הדמות הפוך לכיוון הקנה
@@ -671,6 +679,7 @@ func _fire() -> void:
 				return
 			"molotov":   # בקבוק תבערה: נשבר ומשאיר שטח בוער
 				var mo = MolotovScript.new()
+				mo.burn_time *= float(w.get("damage", 1.0))   # שדרוג DAMAGE = שורף יותר זמן
 				get_parent().add_child(mo)
 				mo.setup(sh + _aim * 12.0, _aim * float(w.bullet_speed) + Vector2(0.0, -120.0) + velocity * 0.3)
 				return
@@ -679,7 +688,7 @@ func _fire() -> void:
 				gl.impact = true
 				gl.gravity = 650.0
 				gl.radius = 110.0
-				gl.damage = 45
+				gl.damage = int(45.0 * float(w.get("damage", 1.0)))   # שדרוג DAMAGE
 				get_parent().add_child(gl)
 				gl.setup(sh + _aim * float(w.barrel), _aim * float(w.bullet_speed))
 				return
@@ -734,10 +743,10 @@ func _fire() -> void:
 func reload() -> void:
 	if weapon != GUN or _reload_t > 0.0 or dead:
 		return
-	var msize: int = WeaponDB.val(gun, "magazine_size", 0)
+	var msize: int = Upgrades.wval(gun, "magazine_size", 0)
 	if msize <= 0 or mag >= mini(msize, ammo):
 		return
-	_reload_total = float(WeaponDB.val(gun, "reload_time", 1.5)) * (0.6 if boosts.has(PickupScript.ADRENALINE) else 1.0)
+	_reload_total = float(Upgrades.wval(gun, "reload_time", 1.5)) * (0.6 if boosts.has(PickupScript.ADRENALINE) else 1.0)
 	_reload_t = _reload_total
 	_play_reload_sound()
 	PlayerMemory.on_reload()
@@ -756,7 +765,7 @@ func _play_reload_sound() -> void:
 
 
 func _finish_reload() -> void:
-	mag = mini(int(WeaponDB.val(gun, "magazine_size", 0)), ammo)
+	mag = mini(int(Upgrades.wval(gun, "magazine_size", 0)), ammo)
 
 
 func is_reloading() -> bool:
@@ -786,13 +795,14 @@ func select_slot(i: int) -> void:
 func _ammo_box(mult: int) -> void:
 	for s in slots:
 		if s != null:
-			s.ammo = mini(s.ammo + Game.AMMO_BOX[s.id] * mult, Game.AMMO_MAX[s.id])
+			var box := int(round(float(Game.AMMO_BOX[s.id] * mult) * (1.0 + 0.25 * Upgrades.perk("scavenger"))))
+			s.ammo = mini(s.ammo + box, Upgrades.ammo_max(s.id))
 
 
 # מוסיף תחמושת לנשק מסוים (למשל חץ שנאסף). false = אין את הנשק / מלא
 func add_ammo(id: int, n: int) -> bool:
 	for s in slots:
-		if s != null and s.id == id and s.ammo < Game.AMMO_MAX[id]:
+		if s != null and s.id == id and s.ammo < Upgrades.ammo_max(id):
 			s.ammo += n
 			return true
 	return false
@@ -802,13 +812,14 @@ func _take_weapon(p: Node) -> bool:
 	var amt: int = p.ammo_amount if p.ammo_amount >= 0 else Game.AMMO_START[p.weapon_id]
 	for s in slots:   # כבר יש את הנשק: רק תחמושת
 		if s != null and s.id == p.weapon_id:
-			s.ammo = mini(s.ammo + amt, Game.AMMO_MAX[s.id])
+			s.ammo = mini(s.ammo + amt, Upgrades.ammo_max(s.id))
 			_say("+%d %s" % [amt, Game.WEAPON_NAMES[s.id]], p.color())
 			Sfx.play("pickup", null)
 			return true
 	for i in slots.size():
 		if slots[i] == null:
 			slots[i] = {"id": p.weapon_id, "ammo": amt}
+			Game.mark_weapon_seen(p.weapon_id)
 			Sfx.play("weapon", null)
 			select_slot(i)
 			_say(p.label(), p.color())
@@ -872,7 +883,7 @@ func _taser(sh: Vector2) -> void:
 		var zc: Vector2 = z.global_position + Vector2(0.0, -30.0 * z.sc)
 		pts.append(zc)
 		var wet: bool = in_water and z.is_on_floor()
-		z.take_damage(24 if wet else 8, zc, (zc - cur).normalized(), true, {"source": "taser"})
+		z.take_damage(int(round((24.0 if wet else 8.0) * float(Upgrades.wval(TASER, "damage", 1.0)))), zc, (zc - cur).normalized(), true, {"source": "taser"})
 		cur = zc
 		var nxt: Node = null
 		var nd := 150.0
@@ -1037,7 +1048,7 @@ func _drain_process(delta: float) -> void:
 		_heal_flash = 1.0
 		Sfx.play("heal", null)
 		Game.on_drain()
-		var siphon := Game.upgrade_level("siphon")
+		var siphon := Upgrades.perk("siphon")
 		if siphon > 0:   # שדרוג: השאיבה נותנת גם מגן
 			shield_hits += siphon + 1
 		var p = preload("res://zombie.gd").HitText.new()
@@ -1078,6 +1089,9 @@ func hurt(amount: int, knock_dir: Vector2) -> void:
 	Sfx.play("hurt", global_position, 0.0, 0.1, 2)
 	preload("res://particles.gd").burst(get_parent(), global_position + Vector2(0, -30), "hit", Vector2(knock_dir.x, -0.3) if knock_dir != Vector2.ZERO else Vector2.ZERO, 14)
 	_invuln = invuln_time
+	if health - amount <= 0 and abilities != null and abilities.on_lethal_hit():   # LAST BREATH
+		health_changed.emit(health, max_health)
+		return
 	health = maxi(health - amount, 0)
 	health_changed.emit(health, max_health)
 	velocity += Vector2(knock_dir.x * 260.0, -180.0)
@@ -1175,7 +1189,7 @@ func _draw() -> void:
 			end = hand.lerp(end, clampf(tt / 0.12 if tt < 0.12 else (0.27 - tt) / 0.15, 0.0, 1.0))
 		draw_line(hand, end, Color("8a7a60"), 1.6, true)
 		draw_circle(end, 2.5, Color("b0b0b8"))
-	if (Game.upgrade_level("laser") > 0 or _scoping) and controllable and _drain_target == null and weapon == GUN:
+	if (Upgrades.perk("laser_sight") > 0 or _scoping) and controllable and _drain_target == null and weapon == GUN:
 		var from := _front_shoulder() + _aim * 30.0
 		var to := _laser_end - global_position
 		draw_line(from, to, Color(1.0, 0.1, 0.1, 0.35), 1.0, true)

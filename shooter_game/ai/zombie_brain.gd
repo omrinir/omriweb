@@ -397,6 +397,11 @@ func _decide(z: Node, player: Node, d: Vector2) -> void:
 	var dr := director()
 	if dr != null:
 		leader_boost = dr.leader_boost_at(z.global_position)
+		if dr.has_method("is_silenced") and dr.is_silenced(z.global_position):   # SILENCE: בלי תיאום - תוקף בצורה בסיסית
+			leader_boost = 0.0
+			forced_t = 0.0
+			role = ATTACK
+			return
 	if forced_t > 0.0:
 		role = forced_role
 		if role == ATTACK and dr != null:

@@ -31,6 +31,9 @@ var _wave_cd := 6.0
 var _wave_t := 0.0
 var _flank_cd := 0.0
 var commands_issued := 0  # לבדיקות
+var _sil_node: Node2D = null   # SILENCE: מרכז השדה (השחקן)
+var _sil_r := 0.0
+var _sil_t := 0.0
 var calls_made := 0
 
 
@@ -43,6 +46,17 @@ func setup(level: int, smart: float) -> void:
 
 func _ready() -> void:
 	add_to_group("squad_director")
+
+
+# יכולת SILENCE: שדה שקט סביב node (זז איתו)
+func silence(node: Node2D, radius: float, seconds: float) -> void:
+	_sil_node = node
+	_sil_r = radius
+	_sil_t = seconds
+
+
+func is_silenced(pos: Vector2) -> bool:
+	return _sil_t > 0.0 and _sil_node != null and is_instance_valid(_sil_node) and pos.distance_to(_sil_node.global_position) < _sil_r
 
 
 func uses_slots() -> bool:
@@ -152,12 +166,12 @@ func pick_flank_side(_z: Node, player: Node) -> float:
 
 # ---- תקשורת ----
 func broadcast(from_z: Node, pos: Vector2) -> void:
-	if int(profile.get("communication", 0)) <= 0:
+	if int(profile.get("communication", 0)) <= 0 or is_silenced(from_z.global_position):
 		return
 	var radius := 260.0 + 280.0 * coordination()
 	var n := 0
 	for o in get_tree().get_nodes_in_group("zombies"):
-		if o == from_z or o.dead or o.brain == null:
+		if o == from_z or o.dead or o.brain == null or is_silenced(o.global_position):
 			continue
 		var dd: float = o.global_position.distance_to(from_z.global_position)
 		if dd < radius:
@@ -210,12 +224,12 @@ func disorganize(pos: Vector2, radius: float, seconds: float) -> void:
 # ---- פקודות (COMMANDER / PACK LEADER) ----
 func command(from_z: Node, cmd: String, radius: float, seconds: float) -> int:
 	var map := {"ATTACK": Brain.ATTACK, "RETREAT": Brain.RETREAT, "FLANK": Brain.FLANK, "HOLD": Brain.HOLD, "AMBUSH": Brain.AMBUSH}
-	if not map.has(cmd):
+	if not map.has(cmd) or is_silenced(from_z.global_position):
 		return 0
 	var n := 0
 	var p := _player()
 	for o in get_tree().get_nodes_in_group("zombies"):
-		if o == from_z or o.dead or o.brain == null or not o.brain.steer_movement:
+		if o == from_z or o.dead or o.brain == null or not o.brain.steer_movement or is_silenced(o.global_position):
 			continue
 		if o.global_position.distance_to(from_z.global_position) < radius:
 			if cmd == "FLANK" and p != null:
@@ -254,6 +268,7 @@ func order_flank(from_z: Node, player: Node) -> int:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_sil_t -= delta
 	_wave_t -= delta
 	_wave_cd -= delta
 	_flank_cd -= delta
@@ -275,7 +290,7 @@ func _process(delta: float) -> void:
 	for o in get_tree().get_nodes_in_group("zombies"):
 		if o.dead or o.brain == null or not o.brain.steer_movement:
 			continue
-		if o.brain.role == Brain.HOLD and absf(o.global_position.x - p.global_position.x) < 420.0:
+		if o.brain.role == Brain.HOLD and absf(o.global_position.x - p.global_position.x) < 420.0 and not is_silenced(o.global_position):
 			waiting.append(o)
 			sides[signf(o.global_position.x - p.global_position.x)] = true
 	if waiting.size() >= 3 and randf() < ga * 0.35:

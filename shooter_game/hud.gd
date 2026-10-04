@@ -8,6 +8,7 @@ extends Node2D
 const Art := preload("res://art.gd")
 const PickupScript := preload("res://pickup.gd")
 const WeaponDB := preload("res://weapons/weapon_db.gd")
+const Upgrades := preload("res://progression/upgrade_db.gd")
 
 var hearts_pos := Vector2(24, 46)
 var heart_gap := 30.0
@@ -160,7 +161,7 @@ func _draw() -> void:
 	var wy := hearts_pos.y + 6.0
 	if player != null:
 		if _weapon == 0:
-			var msize: int = WeaponDB.val(player.gun, "magazine_size", 0)
+			var msize: int = Upgrades.wval(player.gun, "magazine_size", 0)
 			var low: bool = player.ammo <= 5 or (msize > 0 and player.mag <= maxi(1, msize / 5))
 			var at := "%d / %d" % [player.mag, player.ammo - player.mag] if msize > 0 else str(player.ammo)
 			_text(Vector2(x, wy), "%s  %s" % [Game.WEAPON_NAMES[player.gun], at], 16, Color("ff6050") if low else Color.WHITE)
