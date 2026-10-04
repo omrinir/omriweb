@@ -15,7 +15,7 @@ const SOUNDS := {
 
 enum { GROUND, CLIMB, WALL, POUNCE }
 var state := GROUND
-var _cd := 2.5
+var _cd := 0.8
 var _target_y := 0.0
 var _scrape := 0.0
 
@@ -38,9 +38,10 @@ func physics(pl: Node, delta: float) -> bool:
 	match state:
 		GROUND:
 			# מחליט לטפס: השחקן למעלה, או סתם כדי להגיע מעליו
-			if _cd <= 0.0 and z.is_on_floor() and absf(d.x) < 420.0 and absf(d.x) > 90.0 and z._chasing:
-				_cd = randf_range(4.0, 7.0)
-				if d.y < -60.0 or randf() < 0.55:
+			if _cd <= 0.0 and z.is_on_floor() and absf(d.x) < 420.0 and z._chasing:
+				_cd = 1.5
+				if d.y < -60.0 or randf() < (0.55 if absf(d.x) > 60.0 else 0.3):   # גם צמוד לשחקן: מטפס מעליו ונוחת עליו
+					_cd = randf_range(4.0, 7.0)
 					state = CLIMB
 					_target_y = minf(pl.global_position.y - 130.0, z.global_position.y - 120.0)
 					z.collision_mask &= ~16   # עובר דרך קומות בזמן טיפוס
