@@ -1239,6 +1239,8 @@ func _drop(pk: int) -> void:
 func _dead_process(delta: float) -> void:
 	_dead_t += delta
 	if _dead_t > corpse_time:
+		if _rag != null:
+			_rag.release()
 		queue_free()
 		return
 	modulate.a = clampf(corpse_time - _dead_t, 0.0, 1.0)

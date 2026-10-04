@@ -14,7 +14,7 @@ const Art := preload("res://art.gd")
 
 const GRAV := 1300.0
 const ITER := 4
-const FRICTION := 0.62        # כמה מהירות נשארת לאורך הקרקע במגע
+const FRICTION := 0.93        # כמה מהירות נשארת לאורך הקרקע במגע (גופה מחליקה)
 const BOUNCE := 0.22
 const SIM_MAX := 4.0
 enum { HEAD, NECK, PELVIS, KNEE_B, FOOT_B, KNEE_F, FOOT_F, ELBOW_B, HAND_B, ELBOW_F, HAND_F }
@@ -27,6 +27,8 @@ var ground_t := PackedFloat32Array() # כמה זמן עוד זוכרים את ה
 var rad := PackedFloat32Array()     # עובי כל מפרק (נח על הריצפה בלי לשקוע בה)
 var bones := []                     # [a, b, אורך, סוג: 0 = קבוע, 1 = רק מינימום]
 var asleep := false
+static var active := 0              # כמה גופות מדומות עכשיו (הרבה ביחד = הדמיה זולה יותר)
+var _counted := false
 var t := 0.0
 var _still := 0
 var _blood_cd := 0.0
@@ -68,7 +70,9 @@ func setup(zz: Node2D, vel: Vector2, dir: Vector2, hit: Vector2, boom: bool) -> 
 	var dt := 1.0 / 60.0
 	var lh: Vector2 = z.to_local(hit)
 	var collapse := not boom and randf() < 0.3   # מתקפל במקום
-	var base := vel * (0.15 if collapse else 0.38)
+	var base := vel * (0.2 if collapse else 0.8)
+	if not collapse:   # עף מהרצפה (אחרת הרגליים "נדבקות" לקרקע והגוף רק מתקפל במקום)
+		base.y = minf(base.y, -240.0)
 	q.resize(p.size())
 	for i in p.size():
 		var v := base
@@ -81,6 +85,8 @@ func setup(zz: Node2D, vel: Vector2, dir: Vector2, hit: Vector2, boom: bool) -> 
 		if collapse and (i == KNEE_B or i == KNEE_F):   # הברכיים נשברות קדימה
 			v += Vector2(float(z._dir) * 140.0, 60.0)
 		q[i] = p[i] - v * dt
+		p[i].y -= 1.5   # מתחיל טיפה מעל הקרקע
+		q[i].y -= 1.5
 	if lh.y < -40.0 * float(z.sc) and not boom:   # ירייה בראש: הראש נזרק אחורה
 		q[HEAD] = p[HEAD] - (dir.normalized() * 420.0 + base * 0.5) * dt
 
@@ -89,6 +95,10 @@ func setup(zz: Node2D, vel: Vector2, dir: Vector2, hit: Vector2, boom: bool) -> 
 func step(delta: float) -> bool:
 	if asleep:
 		return false
+	if not _counted:
+		_counted = true
+		active += 1
+	var busy := active > 12
 	t += delta
 	_blood_cd -= delta
 	var dt := clampf(delta, 1.0 / 240.0, 1.0 / 30.0)
@@ -100,7 +110,8 @@ func step(delta: float) -> bool:
 		ground_t[i] -= delta
 		if ground_t[i] <= 0.0:
 			ground[i] = INF
-		var v := (p[i] - q[i]) * (0.82 if ground[i] != INF else 0.995)   # על הקרקע: חיכוך חזק
+		var v := p[i] - q[i]
+		v *= 0.8 if ground[i] != INF and v.length() < 2.5 else 0.995   # על הקרקע וכמעט עוצר: חיכוך חזק (נרגע)
 		q[i] = p[i]
 		var to := p[i] + v + g
 		var from_g := origin + p[i]
@@ -128,7 +139,7 @@ func step(delta: float) -> bool:
 		else:
 			p[i] = to
 		maxv = maxf(maxv, (p[i] - q[i]).length())
-	for k in ITER:
+	for k in (2 if busy else ITER):
 		for b in bones:
 			var a: int = b[0]
 			var c: int = b[1]
@@ -144,9 +155,7 @@ func step(delta: float) -> bool:
 				p[i].y = ground[i]
 	# אף מפרק לא עובר דרך קיר/ריצפה ביחס לאגן (העצמות יכולות "לדחוף" מפרק פנימה)
 	var core := origin + p[PELVIS]
-	for i in p.size():
-		if i == PELVIS:
-			continue
+	for i in ([] if busy else [HEAD, HAND_B, HAND_F, FOOT_B, FOOT_F]):
 		var hit := space.intersect_ray(PhysicsRayQueryParameters2D.create(core, origin + p[i] + Vector2(0.0, rad[i]), 1))
 		if not hit.is_empty() and hit.normal != Vector2.ZERO:
 			p[i] = hit.position - origin + (hit.normal as Vector2) * rad[i]
@@ -156,12 +165,30 @@ func step(delta: float) -> bool:
 	if maxv < 0.6 and t > 0.4:
 		_still += 1
 		if _still > 12:
-			asleep = true
+			_sleep()
 	else:
 		_still = 0
-	if t > SIM_MAX:
-		asleep = true
+	if t > SIM_MAX or (busy and t > SIM_MAX * 0.5):
+		_sleep()
 	return true
+
+
+func _sleep() -> void:
+	if not asleep:
+		asleep = true
+		if _counted:
+			active -= 1
+
+
+# הזומבי נמחק לפני שהגופה נרגעה
+func release() -> void:
+	_sleep()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and _counted and not asleep:   # שלב נגמר / הזומבי נמחק באמצע
+		asleep = true
+		active -= 1
 
 
 # ============================================================
