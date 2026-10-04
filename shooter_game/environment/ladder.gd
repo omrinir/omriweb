@@ -13,7 +13,7 @@ func _ready() -> void:
 
 
 func world_rect() -> Rect2:
-	return Rect2(global_position + Vector2(-12.0, -height - 8.0), Vector2(24.0, height + 8.0))
+	return Rect2(global_position + Vector2(-12.0, -height - 30.0), Vector2(24.0, height + 30.0))
 
 
 func top_y() -> float:
