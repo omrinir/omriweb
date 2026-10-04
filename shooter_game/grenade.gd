@@ -18,12 +18,14 @@ var bounce := 0.45
 
 var velocity := Vector2.ZERO
 var source := "grenade"   # "boss_grenade" = נזרק ע"י הבוס (לא פוגע בו)
+var impact := false       # משגר רימונים: מתפוצץ ברגע שהוא נוגע במשהו
 var _spin := 0.0
 
 
 func setup(pos: Vector2, vel: Vector2) -> void:
 	global_position = pos
 	velocity = vel
+	add_to_group("grenades")   # זומבים חכמים בורחים מרימונים שנחתו לידם
 	_spin = randf_range(-10.0, 10.0)
 	z_index = 9
 
@@ -35,8 +37,18 @@ func _physics_process(delta: float) -> void:
 		return
 	velocity.y += gravity * delta
 	var to := global_position + velocity * delta
-	var query := PhysicsRayQueryParameters2D.create(global_position, to, 1)   # שכבה 1 = ריצפה ולבנים
+	if impact:   # פוגע בזומבי = בום
+		for z in get_tree().get_nodes_in_group("zombies"):
+			if not z.dead and (z.global_position + Vector2(0, -28)).distance_to(to) < 26.0:
+				global_position = to
+				_explode()
+				return
+	var query := PhysicsRayQueryParameters2D.create(global_position, to, 1 | 16)   # 1 = ריצפה ולבנים, 16 = קומות
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if hit and impact:
+		global_position = hit.position
+		_explode()
+		return
 	if hit and hit.normal != Vector2.ZERO:   # normal = 0 כשמתחילים בתוך לבנה
 		global_position = hit.position + hit.normal * 4.0
 		velocity = velocity.bounce(hit.normal) * bounce

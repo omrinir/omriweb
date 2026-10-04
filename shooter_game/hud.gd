@@ -7,6 +7,7 @@ extends Node2D
 
 const Art := preload("res://art.gd")
 const PickupScript := preload("res://pickup.gd")
+const WeaponDB := preload("res://weapons/weapon_db.gd")
 
 var hearts_pos := Vector2(24, 46)
 var heart_gap := 30.0
@@ -76,7 +77,7 @@ func _draw_intro(vp: Vector2) -> void:
 		var h := 120.0 - float(i) * 12.0
 		draw_rect(Rect2(0, y - h * 0.5, vp.x, h), Color(0, 0, 0, 0.09 * a))
 	var spread := 1.0 + 0.04 * _intro_t   # הכותרת "נפתחת" לאט
-	_text(Vector2(0, y - 34), "LEVEL %d  ·  %s" % [Game.level, Game.level_name(Game.level).to_upper()], 18, Color(1, 1, 1, 0.7 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+	_text(Vector2(0, y - 34), "STAGE %d  ·  %s" % [Game.level, Game.level_name(Game.level).to_upper()], 18, Color(1, 1, 1, 0.7 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 	var f := ThemeDB.fallback_font
 	var title: String = t[0]
 	var fs := int(54.0 * spread)
@@ -84,6 +85,39 @@ func _draw_intro(vp: Vector2) -> void:
 	draw_string_outline(f, Vector2((vp.x - w) * 0.5, y + 22), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 6, Color(0, 0, 0, 0.8 * a))
 	draw_string(f, Vector2((vp.x - w) * 0.5, y + 22), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.85, 0.12, 0.1, a))
 	_text(Vector2(0, y + 52), t[1], 18, Color(0.9, 0.85, 0.8, 0.85 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+
+
+# "העין": סמל עדין של כמה הזומבים "ערים" בשלב הזה. בלי מספרים - נפתחת יותר בכל שלב,
+# ומהבהבת באדום כשהם מתקשרים / מקבלים פקודות (ai/squad_director.gd)
+var _eye_flash := 0.0
+var _last_calls := 0
+func _draw_eye(c: Vector2) -> void:
+	var sd := get_tree().get_first_node_in_group("squad_director")
+	if sd != null:
+		var calls: int = sd.calls_made + sd.commands_issued
+		if calls != _last_calls:
+			_last_calls = calls
+			_eye_flash = 1.0
+	_eye_flash = maxf(_eye_flash - get_process_delta_time() * 1.2, 0.0)
+	var open := clampf(float(Game.level - 1) / 8.0, 0.08, 1.0)
+	var w := 13.0
+	var h := 7.5 * open
+	var lid := PackedVector2Array()
+	for i in 17:
+		var t := PI * float(i) / 16.0
+		lid.append(c + Vector2(-cos(t) * w, -sin(t) * h))
+	for i in range(1, 16):
+		var t := PI * float(i) / 16.0
+		lid.append(c + Vector2(cos(t) * w, sin(t) * h))
+	draw_colored_polygon(lid, Color(0.05, 0.02, 0.02, 0.8))
+	var ic := Color(0.75, 0.15, 0.1).lerp(Color(1.0, 0.35, 0.2), _eye_flash)
+	if h > 1.5:
+		draw_circle(c, minf(h, 5.0), Color(ic, 0.9))
+		draw_circle(c, minf(h, 5.0) * 0.4, Color(0, 0, 0, 0.9))
+	lid.append(lid[0])
+	draw_polyline(lid, Color(0.85, 0.8, 0.75, 0.6), 1.2, true)
+	if _eye_flash > 0.0:
+		draw_circle(c, 18.0, Color(1.0, 0.2, 0.1, 0.12 * _eye_flash))
 
 
 func _text(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
@@ -95,6 +129,8 @@ func _text(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_A
 func _draw() -> void:
 	var vp := get_viewport_rect().size
 	_draw_intro(vp)
+	if _intro_t < 1.0:   # מעבר שלב: נכנסים מתוך שחור
+		draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 1.0 - _intro_t))
 	# BULLET TIME: המסך כחלחל-אפור
 	if Engine.time_scale < 0.99 and not _game_over:
 		draw_rect(Rect2(Vector2.ZERO, vp), Color(0.55, 0.62, 0.8, 0.13))
@@ -124,13 +160,22 @@ func _draw() -> void:
 	var wy := hearts_pos.y + 6.0
 	if player != null:
 		if _weapon == 0:
-			var low: bool = player.ammo <= 5
-			_text(Vector2(x, wy), "%s  %d" % [Game.WEAPON_NAMES[player.gun], player.ammo], 16, Color("ff6050") if low else Color.WHITE)
+			var msize: int = WeaponDB.val(player.gun, "magazine_size", 0)
+			var low: bool = player.ammo <= 5 or (msize > 0 and player.mag <= maxi(1, msize / 5))
+			var at := "%d / %d" % [player.mag, player.ammo - player.mag] if msize > 0 else str(player.ammo)
+			_text(Vector2(x, wy), "%s  %s" % [Game.WEAPON_NAMES[player.gun], at], 16, Color("ff6050") if low else Color.WHITE)
+			if player.is_reloading():   # בר טעינה
+				var k: float = 1.0 - player._reload_t / maxf(player._reload_total, 0.01)
+				draw_rect(Rect2(x, wy + 6.0, 120.0, 4.0), Color(0, 0, 0, 0.5))
+				draw_rect(Rect2(x, wy + 6.0, 120.0 * k, 4.0), Color(1.0, 0.85, 0.4))
+				_text(Vector2(x + 126.0, wy + 12.0), "RELOADING", 11, Color(1.0, 0.85, 0.4, 0.8))
+			elif msize > 0 and player.mag == 0 and player.ammo > 0:
+				_text(Vector2(x, wy + 16.0), "R  RELOAD", 12, Color(1.0, 0.5, 0.4, 0.6 + 0.4 * sin(_intro_t * 8.0)))
 		else:
 			_text(Vector2(x, wy), "GRENADE  x%d" % player.grenades, 16, Color("ff6050") if player.grenades == 0 else Color.WHITE)
-		_text(Vector2(x + 160.0, wy), "G x%d" % player.grenades if _weapon == 0 else "A %d" % player.ammo, 13, Color(1, 1, 1, 0.6))
+		_text(Vector2(x + 210.0, wy), "G x%d" % player.grenades if _weapon == 0 else "A %d" % player.ammo, 13, Color(1, 1, 1, 0.6))
 	if difficulty != "":
-		_text(Vector2(x + 230.0, wy), difficulty, 16, difficulty_color)
+		_text(Vector2(x + 280.0, wy), difficulty, 16, difficulty_color)
 	# בר הנשקים מצויר ב-weapon_wheel.gd
 	# ---- בוסטים פעילים ----
 	if player != null:
@@ -146,7 +191,8 @@ func _draw() -> void:
 			bx += 36.0
 	# ---- שלב, ניקוד, קומבו (ימין למעלה) ----
 	var rx := vp.x - 20.0
-	_text(Vector2(rx - 300, 30), "LEVEL %d" % Game.level, 16, Color(0.85, 0.8, 0.75), HORIZONTAL_ALIGNMENT_RIGHT, 300)
+	_text(Vector2(rx - 300, 30), "STAGE %d" % Game.level, 16, Color(0.85, 0.8, 0.75), HORIZONTAL_ALIGNMENT_RIGHT, 300)
+	_draw_eye(Vector2(rx - 92.0, 25.0))
 	_text(Vector2(rx - 300, 58), "%d" % int(_score_shown), 26, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, 300)
 	var m := Game.multiplier()
 	if Game.combo > 0:

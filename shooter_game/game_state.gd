@@ -41,11 +41,14 @@ const COMBO_WINDOW := 4.0                               # שניות בין הר
 # מצב הריצה (נשמר בין שלבים, מתאפס במשחק חדש)
 var level := 1
 # ---- נשקים: 5 מקומות, לכל נשק תחמושת משלו (נשמר בין שלבים) ----
-const WEAPON_NAMES := ["RIFLE", "SHOTGUN", "BOW", "SNIPER", "TASER"]
-const WEAPON_COLORS := [Color("d8c070"), Color("e07a3a"), Color("8ac060"), Color("7ad0ff"), Color("b080ff")]
-const AMMO_START := [30, 8, 12, 5, 6]    # תחמושת כשמוצאים את הנשק
-const AMMO_BOX := [10, 3, 4, 2, 2]       # כמה כל קופסת תחמושת נותנת לכל נשק
-const AMMO_MAX := [60, 16, 20, 10, 12]
+# הנשקים מוגדרים ב-weapons/weapon_db.gd. כאן רק עמודות נוחות (Game.WEAPON_NAMES[id] וכו')
+const WeaponDB := preload("res://weapons/weapon_db.gd")
+const Registry := preload("res://enemies/zombie_registry.gd")
+var WEAPON_NAMES: Array = WeaponDB.column("name")
+var WEAPON_COLORS: Array = WeaponDB.column("color")
+var AMMO_START: Array = WeaponDB.column("ammo_start", 10)   # תחמושת כשמוצאים את הנשק
+var AMMO_BOX: Array = WeaponDB.column("ammo_box", 2)        # כמה כל קופסת תחמושת נותנת לכל נשק
+var AMMO_MAX: Array = WeaponDB.column("ammo_max", 20)
 var weapon_slots := [{"id": 0, "ammo": 30}, null, null, null, null]
 var ability_slots := [null, null, null, null, null]   # בקרוב
 var player_dark := false   # השחקן בחושך (ברכבת התחתית) - זומבים רואים אותו פחות
@@ -107,7 +110,7 @@ func _process(delta: float) -> void:
 # שלבים זוגיים = רכבת תחתית
 # העולמות מתחלפים: 0 = רחוב, 1 = רכבת תחתית, 2 = מפעל
 # איזה עולם בכל שלב: 0 רחוב, 1 רכבת תחתית, 2 מפעל, 3 רחוב בלילה עם גשם
-const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3}
+const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
 func world() -> int:
 	return LEVEL_WORLD.get(level, (level - 1) % 4)
 
@@ -132,10 +135,10 @@ func is_factory() -> bool:
 #  מפה: 7 אזורים, 9 שלבים בכל אזור (כרגע 3 השלבים הראשונים קיימים)
 # ============================================================
 const LEVELS_PER_REGION := 9
-const IMPLEMENTED := 4            # כמה שלבים כבר בנויים
+const IMPLEMENTED := 9            # כמה שלבים כבר בנויים
 const REGIONS := [
 	{"name": "NORTHERN AMAZON", "color": Color(0.45, 0.85, 0.3), "desc": "Where it started. The first ones only hunger.",
-		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Canopy of Whispers", "The Drowned Port", "Fever Hospital", "Mangrove Hive", "Heart of the Swarm"]},
+		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Ruined District", "Highrise", "The Works", "Research Site", "Zone Zero"]},
 	{"name": "NORTHEAST", "color": Color(1.0, 0.8, 0.25), "desc": "Sun, salt and sand. They learned to wait in the heat.",
 		"levels": ["Salt Flats", "Sun-Bleached Town", "The Lighthouse", "Dunes of Bone", "Fishermen's Grave", "Carnival of the Dead", "Old Fort", "The Dry River", "Cathedral of Ash"]},
 	{"name": "CENTRAL PLATEAU", "color": Color(0.35, 0.65, 1.0), "desc": "Endless roads. They learned to hunt in packs.",
@@ -262,6 +265,11 @@ const LEVEL_TITLES := [
 	["THEY HIDE", "They learned the dark. They learned to wait."],
 	["THEY BUILD", "They learned to use machines. And each other."],
 	["THEY HUNT", "They learned to hunt in packs. And to shoot back."],
+	["THE CITY REMEMBERS", "They learned to call each other."],
+	["NO SAFE FLOOR", "They learned to hide. And to climb."],
+	["THEY WATCH", "They learned the machines. They learned your habits."],
+	["THEY ADAPT", "They learned your weapons."],
+	["THEY LEARN", "At first I was fighting zombies. Now the zombies are fighting ME."],
 ]
 func level_title() -> Array:
 	var t: Array = LEVEL_TITLES[(level - 1) % LEVEL_TITLES.size()].duplicate()
@@ -277,6 +285,7 @@ func intelligence() -> float:
 
 func new_run() -> void:
 	level = 1
+	PlayerMemory.new_run()   # ריצה חדשה: הזומבים "שוכחים" את השחקן
 	weapon_slots = [{"id": 0, "ammo": 30}, null, null, null, null]
 	run_score = 0
 	scrap = 0
@@ -287,6 +296,7 @@ func new_run() -> void:
 
 
 func reset_level() -> void:
+	PlayerMemory.on_level_start()
 	level_score = 0
 	combo = 0
 	combo_t = 0.0
@@ -362,7 +372,7 @@ func on_zombie_killed(kind: int, info: Dictionary) -> Array:
 	combo_t = COMBO_WINDOW
 	stats.kills += 1
 	lifetime.kills += 1
-	var pts: int = KILL_POINTS[clampi(kind, 0, KILL_POINTS.size() - 1)]
+	var pts: int = Registry.points(kind) if kind >= Registry.FIRST else KILL_POINTS[clampi(kind, 0, KILL_POINTS.size() - 1)]
 	if info.get("zone", "") == "head":
 		stats.headshots += 1
 		lifetime.headshots += 1

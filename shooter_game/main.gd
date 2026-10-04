@@ -38,6 +38,9 @@ const SurvivorScript := preload("res://survivor.gd")
 const PickupScript := preload("res://pickup.gd")
 const ExitScript := preload("res://exit.gd")
 const ResultsScript := preload("res://results.gd")
+const SquadScript := preload("res://ai/squad_director.gd")
+const StageRegistry := preload("res://levels/stage_registry.gd")   # שלבים 5-9: levels/stage_N.gd
+var _stage: Node = null
 
 @export_group("Level")
 ## אורך הרמה במסכים (רוחב מסך = 1280). המינימום הוא 8 מסכים
@@ -97,7 +100,6 @@ var _gens: Array = GENERATORS
 func _ready() -> void:
 	get_tree().paused = false
 	Sfx.warm_up()   # מייצר את כל הצלילים פעם אחת
-	_start_music()
 	# רמת הקושי מהתפריט
 	var diff: Dictionary = Settings.preset()
 	zombies_per_screen = diff.zombies_per_screen
@@ -113,18 +115,36 @@ func _ready() -> void:
 		zombie_weights = SUBWAY_WEIGHTS.duplicate()
 		_gens = SUBWAY_GENS
 		pits = 2
-	zombies_per_screen *= 1.0 + 0.15 * float(Game.level - 1)
-	zombie_weights[2] += 0.04 * float(Game.level - 1)
+	# שלבים 5-9: השלב עצמו מחליט (levels/stage_N.gd). הם לא "יותר חזקים" - הם חכמים יותר (ai/)
+	_stage = StageRegistry.make(Game.level)
+	if _stage != null:
+		_stage.main = self
+		zombie_weights = _weights_array(_stage.zombie_weights())
+		_gens = _stage.generators()
+		pits = _stage.pits()
+		zombies_per_screen *= _stage.zombie_density()
+	_start_music()
+	zombies_per_screen *= 1.0 + 0.15 * float(mini(Game.level, 5) - 1)
+	if _stage == null:
+		zombie_weights[2] += 0.04 * float(Game.level - 1)
 	var vp := get_viewport_rect().size
 	level_w = vp.x * float(maxi(level_screens, 8))
+	if _stage != null:
+		_stage.level_w = level_w
+		_stage.vp = vp
+		_stage.floor_y = vp.y - floor_thickness
 
 	# רקע: עיר הרוסה (פרלקסה), ועיתונים ואפר באוויר
 	var bg_layer := CanvasLayer.new()
 	bg_layer.layer = -10
 	add_child(bg_layer)
-	var bg = SubwayScript.TunnelBg.new() if Game.is_subway() else (FactoryScript.FactoryBg.new() if Game.is_factory() else BackgroundScript.new())
-	bg.level_w = level_w
-	bg_layer.add_child(bg)
+	var bg
+	if _stage != null:
+		bg = _stage.build_background(bg_layer)
+	else:
+		bg = SubwayScript.TunnelBg.new() if Game.is_subway() else (FactoryScript.FactoryBg.new() if Game.is_factory() else BackgroundScript.new())
+		bg.level_w = level_w
+		bg_layer.add_child(bg)
 	if Game.world() == 0:   # עיתונים ואפר רק ברחוב ביום
 		var leaf_layer := CanvasLayer.new()
 		leaf_layer.layer = -5
@@ -136,10 +156,25 @@ func _ready() -> void:
 		rng.randomize()
 	else:
 		rng.seed = level_seed
+	if _stage != null:
+		_stage.rng = rng
 
 	# כביש לכל אורך הרמה, עם בורות
 	var floor_y := vp.y - floor_thickness
 	_make_road(rng, floor_y)
+	if _stage != null:   # שלבים 5-9: גוון, קומות, סולמות, סכנות ואפקטים
+		var tint: Color = _stage.world_tint()
+		if tint != Color.WHITE:
+			var stm := CanvasModulate.new()
+			stm.color = tint
+			add_child(stm)
+		var sl := CanvasLayer.new()
+		sl.layer = 1
+		add_child(sl)
+		_stage.screen_layer = sl
+		add_child(_stage)
+		_stage.build_world()
+		_stage.build_effects()
 	if Game.is_night():   # לילה: חושך, גשם וברקים
 		var cm := CanvasModulate.new()
 		cm.color = Color(0.5, 0.56, 0.75)
@@ -162,6 +197,11 @@ func _ready() -> void:
 		sub.make_rails(rng, _pits, safe_zone)
 		add_child(sub)
 
+	# "המפקד הנסתר": תורות התקפה, תקשורת, פקודות (ai/squad_director.gd)
+	var squad = SquadScript.new()
+	squad.setup(Game.level, float(diff.smart))
+	add_child(squad)
+
 	# שחקן (נוצר קודם כדי לחשב מה גובה המכשול המקסימלי שהוא מסוגל לעבור)
 	var player = PlayerScript.new()
 	var apex: float = (player.jump_velocity * player.jump_velocity) / (2.0 * player.gravity)
@@ -170,6 +210,8 @@ func _ready() -> void:
 	_place_street_props(rng, floor_y)
 	_generate_level(rng, floor_y)
 	_spawn_zombies(rng, floor_y)
+	if _stage != null:
+		_stage.extra_spawns()
 	_spawn_survivors(rng, floor_y)
 	_spawn_supplies(rng, floor_y)
 	_make_exit(floor_y)
@@ -177,6 +219,7 @@ func _ready() -> void:
 	player.max_health = diff.player_hp
 	player.health = diff.player_hp
 	player.position = Vector2(vp.x * 0.12, floor_y)   # (0,0) של השחקן = כפות הרגליים
+	player.set_meta("ground_y", floor_y)   # PlayerMemory: מתי השחקן "גבוה"
 	add_child(player)
 	player.world_w = level_w
 
@@ -189,12 +232,19 @@ func _ready() -> void:
 	cam.position_smoothing_enabled = true
 	cam.position_smoothing_speed = 8.0
 	cam.zoom = Vector2(camera_zoom, camera_zoom)
+	if _stage != null and _stage.underground_depth() > 0.0:   # שלב עם תת-קרקע: המצלמה יורדת אחרי השחקן
+		cam.limit_bottom = int(vp.y + _stage.underground_depth())
+		cam.offset = Vector2(0.0, -(floor_y - vp.y * 0.5))
+		cam.drag_vertical_enabled = true
+		cam.drag_top_margin = 0.3
+		cam.drag_bottom_margin = 0.3
 	player.add_child(cam)
 	cam.make_current()
 	cam.reset_smoothing()
 
 	# ערפל נמוך מעל הכביש
 	var fog_layer := CanvasLayer.new()
+	fog_layer.visible = _stage == null or (_stage.fog() and _stage.underground_depth() <= 0.0)
 	fog_layer.layer = 1
 	add_child(fog_layer)
 	var fog = FogScript.new()
@@ -206,7 +256,7 @@ func _ready() -> void:
 	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
-	label.text = "A/D move (x2 = run)  W jump (x2)  S crouch  LMB fire  Q weapon wheel  1-5 weapons  G drop  E grenade  SHIFT roll  run+S slide  F grapple  RMB scope  ESC"
+	label.text = "A/D move (x2 run)  W jump/climb  S crouch (+W drop)  LMB fire  R reload  Q wheel  1-5  G drop  E grenade  SHIFT roll  F hook  RMB scope"
 	label.position = Vector2(12, 8)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
@@ -246,17 +296,21 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 		var pw := rng.randf_range(64.0, 90.0)
 		_pits.append([px, pw])
 		_rects.append(Rect2(px - 40.0, floor_y - PIT_DEPTH, pw + 80.0, PIT_DEPTH))   # שלא יופיעו זומבים/מכשולים בבור
+	if _stage != null:   # חורים בכביש לתת-קרקע (בלי תחתית)
+		for h in _stage.road_holes():
+			_pits.append([float(h[0]), float(h[1]), true])
+			_rects.append(Rect2(float(h[0]) - 40.0, floor_y - PIT_DEPTH, float(h[1]) + 80.0, PIT_DEPTH))
 	_pits.sort_custom(func(a, b): return a[0] < b[0])
 	var x := 0.0
 	for p in _pits:
 		_road_segment(x, float(p[0]), floor_y)
-		# תחתית הבור
-		_make_brick(Vector2(p[0], floor_y + PIT_DEPTH), Vector2(p[1], floor_thickness - PIT_DEPTH), 3, Color("38383d"), false)
+		if p.size() < 3:   # תחתית הבור
+			_make_brick(Vector2(p[0], floor_y + PIT_DEPTH), Vector2(p[1], floor_thickness - PIT_DEPTH), 3, Color("38383d"), false)
 		x = float(p[0]) + float(p[1])
 	_road_segment(x, level_w, floor_y)
 	# קישוטים על הכביש
 	var cx := 0.0
-	while cx < level_w and Game.is_street():   # סימוני כביש רק ברחוב
+	while cx < level_w and _streety():   # סימוני כביש רק ברחוב
 		var d = RoadDecorScript.new()
 		d.position = Vector2(cx, 0.0)
 		d.width = 1024.0
@@ -268,7 +322,7 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 		cx += 1024.0
 	# מכסי ביוב עם אדים (לפעמים)
 	var mx := rng.randf_range(500.0, 1200.0)
-	while mx < level_w - 300.0 and Game.is_street():
+	while mx < level_w - 300.0 and _streety():
 		if rng.randf() < 0.55 and not _in_pit(mx - 30.0, mx + 30.0, 30.0):
 			var mh = ManholeScript.new()
 			mh.position = Vector2(mx, floor_y)
@@ -278,7 +332,7 @@ func _make_road(rng: RandomNumberGenerator, floor_y: float) -> void:
 	# פנסי רחוב שעובדים (מדי פעם)
 	var sub := Game.is_subway()   # רכבת תחתית: מנורות תקרה, צפופות יותר
 	var lx := rng.randf_range(400.0, 700.0) if sub else rng.randf_range(700.0, 1400.0)
-	while lx < level_w - 300.0:
+	while lx < level_w - 300.0 and (_stage == null or _stage.street_lamps()):
 		if rng.randf() < (0.85 if sub else 0.6) and not _in_pit(lx - 40.0, lx + 40.0, 20.0):
 			var lamp = LampScript.new()
 			if sub:
@@ -309,7 +363,7 @@ func _in_pit(x0: float, x1: float, margin := 60.0) -> bool:
 
 # קישוטי רחוב ברקע: רמזורים, עמודי תאורה, גדרות, פחים בוערים
 func _place_street_props(rng: RandomNumberGenerator, floor_y: float) -> void:
-	if not Game.is_street():
+	if not _streety():
 		return
 	var x := 300.0
 	while x < level_w - 200.0:
@@ -361,7 +415,11 @@ func _generate_level(rng: RandomNumberGenerator, floor_y: float) -> void:
 			"tires": used = _gen_prop_simple(rng, x, floor_y, PropScript.TIRES)
 			"sandbags": used = _gen_prop_simple(rng, x, floor_y, PropScript.SANDBAGS)
 			"block": used = _gen_block(rng, x, floor_y)
-			_: used = _gen_low_wall(rng, x, floor_y)
+			"wall": used = _gen_low_wall(rng, x, floor_y)
+			_:
+				used = _stage.custom_gen(pick, x) if _stage != null else 0.0
+				if used <= 0.0:
+					used = _gen_low_wall(rng, x, floor_y)
 		x += used + rng.randf_range(gap_min, gap_max)
 
 
@@ -527,6 +585,24 @@ func _spawn_survivors(rng: RandomNumberGenerator, floor_y: float) -> void:
 		s.world_w = level_w
 
 
+# רחוב: שלבים 1, 4 ושלבים חדשים שמבקשים (stage.street_props)
+func _streety() -> bool:
+	return Game.is_street() or (_stage != null and _stage.street_props())
+
+
+# {kind: weight} -> מערך לפי מספר סוג (כמו zombie_weights)
+func _weights_array(d: Dictionary) -> Array:
+	var mx := 0
+	for k in d:
+		mx = maxi(mx, int(k))
+	var arr := []
+	arr.resize(mx + 1)
+	arr.fill(0.0)
+	for k in d:
+		arr[int(k)] = float(d[k])
+	return arr
+
+
 func _near_brick(x: float) -> bool:
 	for r in _rects:
 		if x > r.position.x - 40.0 and x < r.end.x + 40.0:
@@ -548,14 +624,14 @@ func _pick_kind(rng: RandomNumberGenerator) -> int:
 
 # קופסאות תחמושת ורימונים פזורות בשלב
 func _spawn_supplies(rng: RandomNumberGenerator, floor_y: float) -> void:
-	for i in 3:
+	for i in (5 if _stage != null else 3):   # שלבים 5-9: יותר נשקים = יותר קופסאות
 		var x := rng.randf_range(safe_zone, level_w - end_margin)
 		var tries := 0
 		while _near_brick(x) and tries < 60:
 			x += 41.0
 			tries += 1
 		var p = PickupScript.new()
-		p.kind = PickupScript.GRENADE if i == 2 else PickupScript.AMMO
+		p.kind = PickupScript.GRENADE if i == 2 or i == 4 else PickupScript.AMMO
 		p.life = 100000.0
 		add_child(p)
 		p.setup(Vector2(x, floor_y - 30.0), Vector2.ZERO)
@@ -565,11 +641,13 @@ func _spawn_supplies(rng: RandomNumberGenerator, floor_y: float) -> void:
 		if s != null:
 			owned.append(s.id)
 	var offer := [3, 4, 1, 2] if Game.is_subway() else ([1, 2, 3, 4] if Game.is_factory() else [1, 2])
+	if _stage != null:
+		offer = _stage.weapon_offers()
 	var n := 0
 	for wid in offer:
-		if wid in owned or n >= 2:
+		if wid in owned or n >= 3:
 			continue
-		var spots := [safe_zone * 0.75, level_w * 0.4]
+		var spots := [safe_zone * 0.75, level_w * 0.3, level_w * 0.55]
 		var x: float = spots[n]
 		n += 1
 		var tries := 0
@@ -590,8 +668,12 @@ func _make_exit(floor_y: float) -> void:
 	ex.position = Vector2(level_w - 230.0, floor_y)
 	add_child(ex)
 	ex.reached.connect(_level_complete)
+	if _stage != null and _stage.boss_kind() < 0:
+		return
 	var boss = ZombieScene.instantiate()
 	boss.kind = 7 if Game.is_subway() else (19 if Game.is_night() else 5)   # רכבת תחתית: המוליך, לילה: הכלב
+	if _stage != null:
+		boss.kind = _stage.boss_kind()
 	boss.position = Vector2(level_w - 480.0, floor_y)
 	boss.chase_range = 650.0
 	var diff: Dictionary = Settings.preset()
@@ -605,6 +687,8 @@ func _make_exit(floor_y: float) -> void:
 @export var music_volume_db := -14.0
 func _start_music() -> void:
 	var path := "res://music/level2_suspense.mp3" if Game.is_subway() or Game.is_night() else "res://music/level1_total_war.mp3"
+	if _stage != null:
+		path = _stage.music()
 	if not ResourceLoader.exists(path):
 		return
 	var stream = load(path)
@@ -640,7 +724,7 @@ func _exit_tree() -> void:
 	Engine.time_scale = 1.0
 
 
-func _spawn_zombie(x: float, floor_y: float, kind := 0, rng: RandomNumberGenerator = null) -> void:
+func _spawn_zombie(x: float, floor_y: float, kind := 0, rng: RandomNumberGenerator = null) -> Node:
 	var z = ZombieScene.instantiate()
 	z.kind = kind   # 0 = רגיל, 1 = רץ, 2 = ענק, 3 = יורק, 4 = צורח ... (ראה zombie.gd)
 	var diff: Dictionary = Settings.preset()
@@ -654,6 +738,7 @@ func _spawn_zombie(x: float, floor_y: float, kind := 0, rng: RandomNumberGenerat
 		z.position.y = CEIL_Y
 	add_child(z)
 	z.world_w = level_w
+	return z
 
 
 func _make_brick(pos: Vector2, sz: Vector2, style := 0, col := Color("9a4f3a"), is_breakable := true) -> void:
@@ -671,5 +756,4 @@ func _make_brick(pos: Vector2, sz: Vector2, style := 0, col := Color("9a4f3a"), 
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_R and not get_tree().paused:
-		get_tree().reload_current_scene()
+	pass   # R = טעינה (player.gd). התחלה מחדש: ESC -> RESTART

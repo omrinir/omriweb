@@ -38,6 +38,10 @@ const DebrisScript := preload("res://debris.gd")
 const Particles := preload("res://particles.gd")
 const GrenadeScript := preload("res://grenade.gd")
 const Boom := preload("res://explosion.gd")
+const Brain := preload("res://ai/zombie_brain.gd")             # המוח (טקטיקה, תורות, איגוף) - ai/zombie_brain.gd
+const Registry := preload("res://enemies/zombie_registry.gd")  # סוגי זומבים חדשים (20+) - enemies/types/*.gd
+# סוגים שהמוח מזיז (לשאר יש לוגיקת תנועה משלהם)
+const BRAIN_KINDS := [0, 1, 2, 4, 9, 14, 16]
 const DOG_TEX := preload("res://sprites/dog.png")   # ספרייט כלב זומבי
 
 enum { WALKER, RUNNER, BRUTE, SPITTER, SCREAMER, BOSS, BLOATER, CONDUCTOR, CRAWLER, COP, RAT, HAND, MECH, HURLER, IMP, DOG, DRUNK, GUNNER, JETPACK, HOUND }
@@ -209,6 +213,9 @@ var _fuse_t := -1.0              # נפוח: עומד להתפוצץ
 const SWELL_TIME := 7.0
 var _roar_cd := 3.0              # בוס: שואג ומרים את הדלת - חלון לירות בו מרחוק
 var _last_info := {}
+var brain = null                 # ai/zombie_brain.gd
+var type_mod = null              # enemies/types/*.gd (סוגים 20+)
+var _drop_t := 0.0               # יורד דרך קומה (one-way)
 
 var sc := 1.0      # גודל
 var wf := 1.0      # רוחב
@@ -268,7 +275,13 @@ func _ready() -> void:
 	add_to_group("zombies")
 	if kind == DOG or kind == HOUND:   # ספרייט מוקטן - חלק בלי ריצוד
 		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	var k: Dictionary = KINDS[clampi(kind, 0, KINDS.size() - 1)]
+	var k: Dictionary
+	if kind >= Registry.FIRST and Registry.has(kind):   # סוג חדש: הנתונים מהמודול שלו
+		type_mod = Registry.make(kind)
+		type_mod.z = self
+		k = type_mod.stats()
+	else:
+		k = KINDS[clampi(kind, 0, KINDS.size() - 1)]
 	hp = k.hp + (100 * (Game.level - 1) if is_boss() else 0)
 	max_hp = hp
 	walk_speed = k.walk
@@ -303,7 +316,7 @@ func _ready() -> void:
 	pants = k.pants
 	shoe = k.shoe
 	collision_layer = 4   # שכבה 3 (ערך 4) = זומבים. הקליעים פוגעים בה
-	collision_mask = 1    # מתנגש רק בעולם
+	collision_mask = 1 | 16   # מתנגש בעולם (1) ובקומות (16, one-way)
 	_shape = CollisionShape2D.new()
 	var r := RectangleShape2D.new()
 	r.size = Vector2(38.0 * wf, 66.0 * sc)   # אזור פגיעה גדול מהציור - כדי שכל ירייה על הזומבי תיתפס
@@ -327,6 +340,13 @@ func _ready() -> void:
 	_walk_phase = randf() * TAU
 	_time = randf() * 10.0
 	z_index = 3
+	# המוח: כמה חכם הזומבי בשלב הזה (ai/intelligence_profile.gd)
+	brain = Brain.new()
+	var smart := smart_mult / maxf(Game.intelligence(), 0.01)   # רמת הקושי (בלי תוספת השלב)
+	brain.setup(self, Game.level, smart, type_mod.brain_overrides() if type_mod != null else {})
+	brain.steer_movement = type_mod.use_brain_movement() if type_mod != null else kind in BRAIN_KINDS
+	if type_mod != null:
+		type_mod.setup()
 
 
 func _physics_process(delta: float) -> void:
@@ -399,6 +419,14 @@ func _physics_process(delta: float) -> void:
 	# רחוק מאוד מהשחקן: הזומבי "ישן" (חוסך המון ביצועים)
 	if player != null and absf(player.global_position.x - global_position.x) > 1400.0 and is_on_floor() and _carry == null:
 		return
+	if _drop_t > 0.0:   # ירד דרך קומה: חוזר להתנגש בקומות
+		_drop_t -= delta
+		if _drop_t <= 0.0:
+			collision_mask |= 16
+	# סוג חדש עם תנועה מיוחדת (מטפס / זוחל על קירות / קופץ...)
+	if type_mod != null and type_mod.physics(player, delta):
+		_maybe_redraw()
+		return
 
 	if not is_on_floor():
 		velocity.y += gravity * delta
@@ -420,6 +448,8 @@ func _physics_process(delta: float) -> void:
 		if not _noticed:   # ראה את השחקן: זעקה
 			_noticed = true
 			_voice("zscream", 0.9, 3.0)
+			if brain != null:   # משלב 5: מזעיק חברים
+				brain.on_notice(self, player)
 		if not _close_yell and global_position.distance_to(player.global_position) < 130.0:   # מתקרב
 			_close_yell = true
 			_voice("zscream", 0.8, 4.0)
@@ -429,6 +459,13 @@ func _physics_process(delta: float) -> void:
 		if _rush_t > 0.0:
 			target_speed *= 1.35
 		var d: Vector2 = player.global_position - global_position
+		# המוח: תורות התקפה, איגוף, המתנה, נסיגה, גבהים (ai/zombie_brain.gd)
+		if brain != null:
+			var bs: float = brain.steer(self, player, d, delta, target_speed)
+			if brain.steer_movement:
+				target_speed = bs
+		if type_mod != null:
+			target_speed = type_mod.logic(player, d, delta, target_speed)
 		match kind:
 			SPITTER:
 				target_speed = _spitter_logic(player, d)
@@ -462,10 +499,16 @@ func _physics_process(delta: float) -> void:
 				if dead:
 					return
 		# נשיכה
-		if kind != BOSS and kind != BLOATER and kind != MECH and kind != HOUND and kind != GUNNER and _charge_t <= 0.0 and absf(d.x) < 16.0 + 10.0 * wf and absf(d.y) < 50.0 and _attack_t <= 0.0:
+		if kind != BOSS and kind != BLOATER and kind != MECH and kind != HOUND and kind != GUNNER and _charge_t <= 0.0 and absf(d.x) < 16.0 + 10.0 * wf and absf(d.y) < 50.0 and _attack_t <= 0.0 \
+				and (type_mod == null or type_mod.can_bite()):
 			_attack_t = bite_delay
 			_bite_anim = 0.25
-			player.hurt(damage, Vector2(_dir, 0.0))
+			var charging: bool = brain != null and brain.is_charging()
+			player.hurt(damage + (1 if charging else 0), Vector2(_dir * (2.0 if charging else 1.0), 0.0))
+			if brain != null:
+				brain.on_bite(self)
+			if type_mod != null:
+				type_mod.on_bite(player)
 		# לפעמים, כשהשחקן מכוון אליו מרחוק, הוא מתקדם ממחסה למחסה
 		_think_t -= delta
 		if _think_t <= 0.0:
@@ -808,7 +851,23 @@ func _voice(name: String, chance: float, vol: float) -> void:
 
 
 func is_boss() -> bool:
-	return kind == BOSS or kind == CONDUCTOR or kind == HOUND
+	return kind == BOSS or kind == CONDUCTOR or kind == HOUND or (type_mod != null and type_mod.stats().get("boss", false))
+
+
+# ---- קומות (one-way, שכבה 16): קפיצה למעלה לקומה / ירידה דרכה ----
+func hop_up(height: float) -> void:
+	if not is_on_floor() or dead:
+		return
+	velocity.y = -sqrt(2.0 * gravity * maxf(height, 40.0))
+	velocity.x = _dir * maxf(absf(velocity.x), 60.0)
+
+
+func drop_through() -> void:
+	if not is_on_floor() or dead:
+		return
+	collision_mask &= ~16
+	_drop_t = 0.3
+	velocity.y = 60.0
 
 
 # ============================================================
@@ -858,6 +917,8 @@ func _hand_world() -> Vector2:
 # explosive = true (רימון): amount הוא הנזק, בלי קשר למקום הפגיעה
 func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false, src := {}) -> void:
 	if dead:
+		return
+	if type_mod != null and not type_mod.on_damage(amount, hit_pos, dir, src):   # מגן / חסימה של סוג חדש
 		return
 	var source: String = src.get("source", "grenade" if explosive else "bullet")
 	# מוליך: מלפנים אי אפשר לפגוע בו. השנאי בגב = נקודת התורפה
@@ -942,6 +1003,8 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		dmg = dmg * 2 if zone == "head" else int(dmg * 1.5)
 	if src.has("fixed"):   # שוטגאן (לפי מרחק) / חץ (13-19)
 		dmg = int(src.fixed)
+	elif src.has("dmg_mult") and zone != "head":   # נשק חלש/חזק יותר (weapons/weapon_db.gd). ירייה בראש נשארת קטלנית
+		dmg = maxi(1, int(round(float(dmg) * float(src.dmg_mult))))
 	if kind == GUNNER and dir.x * _dir < 0.0 and zone != "head" and not explosive and source != "taser":   # מגן הפלדה
 		_popup("BLOCKED", Color("c0c8d0"), 14, -80.0)
 		Sfx.play("shield", hit_pos, -2.0, 0.15, 3)
@@ -950,6 +1013,8 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	if kind == MECH and zone != "head" and not explosive:   # שריון: רק הנהג פגיע באמת
 		dmg = maxi(1, int(dmg * 0.3))
 		Sfx.play("shield", hit_pos, -6.0, 0.15, 2)
+	if type_mod != null:
+		dmg = maxi(0, int(round(float(dmg) * type_mod.damage_mult(zone, src))))
 	Particles.burst(get_parent(), hit_pos, "hit", dir if dir != Vector2.ZERO else Vector2.UP, 10)
 	# PERFECT: פגיעה בדיוק במרכז הראש
 	var perfect := false
@@ -988,7 +1053,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	else:
 		if on_ceiling:   # נפגע על התקרה: נופל
 			_drop_down()
-		velocity.x += dir.x * 110.0
+		velocity.x += dir.x * (110.0 + (float(src.get("knockback", 0.0)) if not is_boss() else 0.0))   # הדיפה לפי הנשק
 		# לפעמים הוא בורח ומתחבא מאחורי מכונית / מחסום (אם יש אחד קרוב)
 		if _cover_state == 0 and not was_lying and not is_boss() and randf() < cover_chance:
 			_try_cover(get_tree().get_first_node_in_group("player"))
@@ -1044,6 +1109,12 @@ func _lose_leg(dir: Vector2) -> void:
 
 func _die(dir: Vector2) -> void:
 	dead = true
+	collision_mask |= 16
+	var sd := get_tree().get_first_node_in_group("squad_director")
+	if sd != null:
+		sd.on_death(self)   # משחרר תור התקפה. מנהיג מת = בלבול
+	if type_mod != null:
+		type_mod.on_death()
 	_carrier = null
 	_thrown = false
 	if _imp != null and is_instance_valid(_imp):   # זורק מת: הקטן נופל
@@ -1171,6 +1242,8 @@ func _popup(text: String, col: Color, size := 18, y := -80.0) -> void:
 #  ואז מגדילים / מרחיבים / משקפים לפי הסוג והכיוון.
 # ============================================================
 func _draw() -> void:
+	if type_mod != null and type_mod.draw():   # סוג חדש מצייר את עצמו (enemies/types/*.gd)
+		return
 	if kind == RAT:
 		_draw_rat()
 		return
@@ -1647,6 +1720,9 @@ func _hand_logic(player: Node, delta: float) -> void:
 
 
 func release_grab() -> void:
+	if type_mod != null:   # סוג חדש שתופס (GRABBER...): מטפל בעצמו
+		type_mod.on_release()
+		return
 	_grab_state = 2
 	_grab_t = 3.5
 	collision_layer = 0

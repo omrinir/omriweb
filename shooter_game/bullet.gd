@@ -17,7 +17,11 @@ var damage := 0                            # הנזק נקבע בזומבי לפ
 
 var pierce := 0                            # בוסט: כמה זומבים נוספים הקליע עובר דרכם
 var incendiary := false                    # בוסט: הקליע מצית זומבים
-var falloff := false                       # שוטגאן: הנזק יורד עם המרחק (9 מקרוב עד 1 מרחוק)
+var falloff := []                          # שוטגאן: [נזק קרוב, נזק רחוק, מרחק] - הנזק יורד עם המרחק
+var fixed_damage := []                     # [min, max] נזק קבוע (חץ)
+var dmg_mult := 1.0                        # מכפיל נזק של הנשק (weapon_db.gd)
+var knockback := 60.0                      # כמה הזומבי נהדף
+var weapon_id := 0
 var arrow := false                         # חץ: עף בקשת (כבידה), נזק 13-19, ננעץ בריצפה ואפשר לאסוף
 var gravity := 0.0
 var _stuck := -1.0                         # חץ שננעץ: כמה זמן נשאר
@@ -82,8 +86,13 @@ func _physics_process(delta: float) -> void:
 			mh.pop(velocity.normalized())
 	_dist += from.distance_to(to)
 	var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary, "sniper": sniper, "counted": not count_hit}
-	if falloff:   # שוטגאן: 9 נזק מקרוב, יורד עד 1 במרחק 420
-		src["fixed"] = int(round(lerpf(9.0, 1.0, clampf((_dist - 50.0) / 370.0, 0.0, 1.0))))
+	src["dmg_mult"] = dmg_mult
+	src["knockback"] = knockback
+	src["weapon"] = weapon_id
+	if falloff.size() == 3:   # שוטגאן: הרבה נזק מקרוב, יורד עם המרחק
+		src["fixed"] = int(round(lerpf(float(falloff[0]), float(falloff[1]), clampf((_dist - 50.0) / (float(falloff[2]) - 50.0), 0.0, 1.0))))
+	elif fixed_damage.size() == 2:
+		src["fixed"] = randi_range(int(fixed_damage[0]), int(fixed_damage[1]))
 	elif arrow:
 		src["fixed"] = randi_range(13, 19)
 	while true:

@@ -11,8 +11,6 @@ extends Node2D
 const Art := preload("res://art.gd")
 
 enum { AMMO, GRENADE, SUPPLY, BOOST, WEAPON }
-const WEAPON_NAMES := ["RIFLE", "SHOTGUN", "BOW", "SNIPER", "TASER"]
-const WEAPON_COLORS := [Color("d8c070"), Color("e07a3a"), Color("8ac060"), Color("7ad0ff"), Color("b080ff")]
 enum { ADRENALINE, PIERCING, BULLET_TIME, SHIELD, INCENDIARY }
 
 const BOOST_NAMES := ["ADRENALINE", "PIERCING ROUNDS", "BULLET TIME", "SHIELD", "INCENDIARY"]
@@ -46,7 +44,7 @@ func _physics_process(delta: float) -> void:
 	if not _resting:
 		velocity.y += gravity * delta
 		var to := global_position + velocity * delta
-		var q := PhysicsRayQueryParameters2D.create(global_position, to + Vector2(0, 8), 1)
+		var q := PhysicsRayQueryParameters2D.create(global_position, to + Vector2(0, 8), 1 | 16)
 		var hit := get_world_2d().direct_space_state.intersect_ray(q)
 		if hit and hit.normal.y < -0.5:
 			global_position = hit.position + Vector2(0, -8)
@@ -69,7 +67,7 @@ func label() -> String:
 		AMMO: return "+AMMO"
 		GRENADE: return "+1 GRENADE"
 		SUPPLY: return "SUPPLIES"
-		WEAPON: return WEAPON_NAMES[weapon_id] + "!"
+		WEAPON: return str(Game.WEAPON_NAMES[weapon_id]) + "!"
 		_: return BOOST_NAMES[boost]
 
 
@@ -78,7 +76,7 @@ func color() -> Color:
 		AMMO: return Color("d8c070")
 		GRENADE: return Color("8aa040")
 		SUPPLY: return Color("e8e0d0")
-		WEAPON: return WEAPON_COLORS[weapon_id]
+		WEAPON: return Game.WEAPON_COLORS[weapon_id]
 		_: return BOOST_COLORS[boost]
 
 
@@ -103,10 +101,7 @@ func _draw() -> void:
 			draw_rect(Rect2(bob + Vector2(-3, -6), Vector2(6, 12)), Color("e8e0d0"))
 			draw_rect(Rect2(bob + Vector2(-8, -1.5), Vector2(16, 3)), Color("e8e0d0"))
 		WEAPON:   # צללית של הנשק
-			var ln: float = [0.0, 26.0, 26.0, 34.0, 20.0][weapon_id]
-			Art.fill_shaded(self, PackedVector2Array([bob + Vector2(-ln * 0.5, -3), bob + Vector2(ln * 0.5, -3), bob + Vector2(ln * 0.5, 0), bob + Vector2(-ln * 0.5, 1)]), Color("2a2a30"), 0.2, 0.3, Art.OUTLINE, 1.0)
-			Art.fill(self, PackedVector2Array([bob + Vector2(-ln * 0.5, -2), bob + Vector2(-ln * 0.5 + 9, -1), bob + Vector2(-ln * 0.5 + 7, 6), bob + Vector2(-ln * 0.5 - 1, 5)]), Color("5a3a24"), Art.OUTLINE, 1.0)
-			draw_rect(Rect2(bob + Vector2(-ln * 0.5 + 10, -5), Vector2(ln * 0.4, 2)), col)
+			load("res://weapon_wheel.gd").draw_weapon(self, bob, weapon_id, 0.62)   # אותו ציור כמו בגלגל הנשקים
 		BOOST:
 			# יהלום זוהר עם סמל
 			var d := PackedVector2Array([bob + Vector2(0, -11), bob + Vector2(9, 0), bob + Vector2(0, 11), bob + Vector2(-9, 0)])

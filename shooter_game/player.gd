@@ -14,6 +14,7 @@ signal died
 const Art := preload("res://art.gd")
 const BulletScript := preload("res://bullet.gd")
 const GrenadeScript := preload("res://grenade.gd")
+const MolotovScript := preload("res://weapons/molotov.gd")
 const DebrisScript := preload("res://debris.gd")
 const PickupScript := preload("res://pickup.gd")
 const TextScript := preload("res://zombie.gd")
@@ -65,9 +66,15 @@ var eye_color := Color("ff3030")
 var world_w := 100000.0          # רוחב העולם (main.gd קובע)
 var weapon := GUN
 # ---- נשקים: 5 מקומות (גלגל נשקים = TAB, מקשים 1-5, G = לזרוק). לכל נשק תחמושת משלו ----
-enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER }
-const GUN_DELAY := [0.7, 1.0, 0.8, 1.5, 0.9]
-var slots := []                  # 5 מקומות: {"id", "ammo"} או null
+# הנשקים עצמם מוגדרים ב-weapons/weapon_db.gd (נזק, קצב, מחסנית, טעינה, פיזור...)
+const WeaponDB := preload("res://weapons/weapon_db.gd")
+enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, GRENADE_LAUNCHER, ASSAULT_SHOTGUN }
+var slots := []                  # 5 מקומות: {"id", "ammo", "mag"} או null (ammo = הכל, mag = מה שבמחסנית)
+var _reload_t := 0.0             # טוען (R / מחסנית ריקה). זומבים חכמים מנצלים את הרגע הזה!
+var _reload_total := 1.0
+var _kick := 0.0                 # SMG: הקנה עולה מירייה לירייה
+var _climbing := false           # על סולם (environment/ladder.gd)
+var _drop_t := 0.0               # יורד דרך קומה (S + קפיצה)
 var cur_slot := 0
 var wheel_open := false          # גלגל הנשקים פתוח: לא יורים
 var gun: int:
@@ -121,6 +128,17 @@ var ammo: int:                   # התחמושת של הנשק שביד
 	set(v):
 		if cur_slot < slots.size() and slots[cur_slot] != null:
 			slots[cur_slot].ammo = clampi(v, 0, Game.AMMO_MAX[slots[cur_slot].id])
+var mag: int:                    # כמה כדורים במחסנית של הנשק שביד
+	get:
+		if cur_slot >= slots.size() or slots[cur_slot] == null:
+			return 0
+		var s: Dictionary = slots[cur_slot]
+		if not s.has("mag"):
+			s["mag"] = mini(int(s.ammo), int(WeaponDB.val(s.id, "magazine_size", 0)))
+		return mini(int(s.mag), int(s.ammo))
+	set(v):
+		if cur_slot < slots.size() and slots[cur_slot] != null:
+			slots[cur_slot]["mag"] = maxi(v, 0)
 var grenades := 2
 var shield_hits := 0             # כמה פגיעות המגן עוד יספוג
 var boosts := {}                 # סוג בוסט -> כמה שניות נשארו
@@ -164,7 +182,7 @@ func _ready() -> void:
 	add_to_group("player")
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # הספרייט מוקטן - חלק ונקי
 	collision_layer = 2   # שכבה 2 = שחקן
-	collision_mask = 1    # מתנגש רק בעולם (ריצפה ולבנים)
+	collision_mask = 1 | 16   # מתנגש בעולם (1) ובקומות (16, one-way - S+קפיצה = ירידה)
 	_shape = CollisionShape2D.new()
 	_shape.shape = RectangleShape2D.new()
 	add_child(_shape)
@@ -192,6 +210,23 @@ func _set_height(h: float) -> void:
 
 func _height() -> float:
 	return H_CROUCH if _crouching else H_STAND
+
+
+# עומד על קומה (one-way)?
+func _on_platform() -> bool:
+	for pl in get_tree().get_nodes_in_group("platforms"):
+		var r: Rect2 = pl.world_rect()
+		if absf(global_position.y - r.position.y) < 4.0 and global_position.x > r.position.x - 4.0 and global_position.x < r.end.x + 4.0:
+			return true
+	return false
+
+
+func _ladder_at() -> Node:
+	var c := global_position + Vector2(0.0, -14.0)
+	for l in get_tree().get_nodes_in_group("ladders"):
+		if l.world_rect().has_point(c):
+			return l
+	return null
 
 
 # המלבן של הגוף בעולם (משמש לבדיקה אם רגל שנזרקה פגעה בשחקן)
@@ -226,6 +261,11 @@ func _physics_process(delta: float) -> void:
 	Game.player_move = "roll" if _roll_t > 0.0 else ("slide" if _slide_t > 0.0 else ("air" if not is_on_floor() else "ground"))
 	_time += delta
 	_cooldown -= delta
+	_kick = move_toward(_kick, 0.0, delta * 0.5)
+	if _reload_t > 0.0:
+		_reload_t -= delta
+		if _reload_t <= 0.0:
+			_finish_reload()
 	_melee_t = maxf(_melee_t - delta, 0.0)
 	_invuln -= delta
 	_muzzle_flash -= delta
@@ -333,8 +373,49 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, dir * speed, acc * delta)
 
+	# ---- סולם: W / S = טיפוס, SPACE = קפיצה מהסולם ----
+	if _drop_t > 0.0:
+		_drop_t -= delta
+		if _drop_t <= 0.0 and not _climbing:
+			collision_mask |= 16
+	var lad := _ladder_at()
+	var kw := controllable and Input.is_physical_key_pressed(KEY_W)
+	var ks := controllable and Input.is_physical_key_pressed(KEY_S)
+	if lad != null and not _climbing and grabbed_by == null and _hook_state != 2 and (kw or (ks and _on_platform())):
+		_climbing = true
+		_jump_was = true
+	if _climbing:
+		if lad == null or (controllable and Input.is_physical_key_pressed(KEY_SPACE) and not _jump_was):
+			_climbing = false
+			collision_mask |= 16
+			if lad != null:
+				velocity.y = jump_velocity * 0.8
+		else:
+			collision_mask &= ~16
+			var cdir := (-1.0 if kw else 0.0) + (1.0 if ks else 0.0)
+			velocity = Vector2(dir * 50.0, cdir * 170.0)
+			global_position.x = move_toward(global_position.x, lad.global_position.x, 220.0 * delta)
+			if kw and global_position.y <= lad.top_y() + 2.0:   # הגיע למעלה: עולה על הקומה
+				global_position.y = lad.top_y()
+				velocity.y = 0.0
+				_climbing = false
+				collision_mask |= 16
+			elif ks and is_on_floor() and global_position.y >= lad.global_position.y - 2.0:
+				_climbing = false
+				collision_mask |= 16
+			_jump_was = Input.is_physical_key_pressed(KEY_SPACE)
+			_move()
+			queue_redraw()
+			return
 	# קפיצה
 	var jump := controllable and (Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_SPACE))
+	# S + קפיצה על קומה = יורדים דרכה
+	if jump and not _jump_was and _crouching and is_on_floor() and _on_platform():
+		collision_mask &= ~16
+		_drop_t = 0.25
+		velocity.y = 80.0
+		_jump_was = true
+		jump = false
 	if is_on_floor():
 		_air_jumps = 1
 	jump = jump and grabbed_by == null
@@ -547,6 +628,10 @@ func _fire() -> void:
 	if weapon == GUN and _try_melee():
 		return
 	if weapon == GUN:
+		var w: Dictionary = WeaponDB.get_def(gun)
+		var msize: int = w.get("magazine_size", 0)
+		if _reload_t > 0.0:
+			return
 		if ammo <= 0:
 			_cooldown = 0.3
 			Sfx.play("empty", global_position)
@@ -554,50 +639,79 @@ func _fire() -> void:
 				_empty_t = 1.0
 				_say("NO AMMO", Color("ff6050"))
 			return
+		if msize > 0 and mag <= 0:   # מחסנית ריקה: טוענים
+			reload()
+			return
 		ammo -= 1
-		Sfx.play(["rifle", "shotgun", "bow", "sniper", "taser"][gun], global_position, [0.0, 2.0, -2.0, 1.0, -2.0][gun])
+		if msize > 0:
+			mag -= 1
+		var proj: String = w.get("projectile", "bullet")
+		Sfx.play(w.get("sound", "rifle"), global_position, w.get("sound_db", 0.0))
 		Game.on_shot()
+		PlayerMemory.on_shot(gun)
 		Game.make_noise(global_position, 380.0)   # יריות מעירות זומבים מסביב
-		_cooldown = (fire_delay if gun == 0 else GUN_DELAY[gun]) * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
-		_muzzle_flash = 0.0 if gun == BOW else 0.05
+		# שדרוג קצב אש (בחנות) משפיע על כל הנשקים
+		_cooldown = float(w.fire_rate) * (fire_delay / 0.7) * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
+		_muzzle_flash = 0.0 if proj == "arrow" or proj == "molotov" else 0.05
 		_recoil = 1.0
 		# רתיעה: הירייה דוחפת את הדמות הפוך לכיוון הקנה
+		var rk: float = w.get("recoil", 1.0)
 		if is_on_floor():
-			velocity.x -= _aim.x * recoil_push * [1.0, 2.2, 0.0, 1.4, 0.3][gun]
-		else:
-			velocity -= _aim * air_recoil_push
+			velocity.x -= _aim.x * recoil_push * rk
+		elif rk > 0.0:
+			velocity -= _aim * air_recoil_push * minf(rk, 1.2)
 			velocity.y = maxf(velocity.y, -700.0)
 		_push_t = 0.12
 		get_tree().call_group("zombies", "on_player_fired", sh, _aim)
-		if gun == RIFLE or gun == SHOTGUN or gun == SNIPER:
+		if proj == "bullet":
 			_eject_casing(sh)
-		if gun == TASER:
-			_taser(sh)
-			return
-		var n := 6 if gun == SHOTGUN else 1   # שוטגאן: 6 כדורים בפיזור
+		match proj:
+			"taser":
+				_taser(sh)
+				return
+			"molotov":   # בקבוק תבערה: נשבר ומשאיר שטח בוער
+				var mo = MolotovScript.new()
+				get_parent().add_child(mo)
+				mo.setup(sh + _aim * 12.0, _aim * float(w.bullet_speed) + Vector2(0.0, -120.0) + velocity * 0.3)
+				return
+			"launcher":   # משגר רימונים: מתפוצץ במגע
+				var gl = GrenadeScript.new()
+				gl.impact = true
+				gl.gravity = 650.0
+				gl.radius = 110.0
+				gl.damage = 45
+				get_parent().add_child(gl)
+				gl.setup(sh + _aim * float(w.barrel), _aim * float(w.bullet_speed))
+				return
+		# קליעים: רובה / שוטגאן / צלף / SMG / קשת...
+		var kick: float = w.get("kick", 0.0)
+		var aim := _aim.rotated(-_face() * _kick) if kick > 0.0 else _aim   # SMG: הקנה מטפס
+		_kick = minf(_kick + kick, 0.22)
+		var n: int = w.get("pellets", 1)
+		var sp: float = w.get("spread", 0.0)
 		for i in n:
 			var b = BulletScript.new()
 			get_parent().add_child(b)
-			var spread := randf_range(-0.16, 0.16) if gun == SHOTGUN else 0.0   # רובה וצלף: בלי פיזור
-			if boosts.has(PickupScript.PIERCING):
-				b.pierce = 3
+			var spread := randf_range(-sp, sp)
+			b.pierce = int(w.get("pierce", 0)) + (3 if boosts.has(PickupScript.PIERCING) else 0)
 			b.incendiary = boosts.has(PickupScript.INCENDIARY)
-			var spd := bullet_speed
-			if gun == SHOTGUN:
-				b.falloff = true
-				b.life_time = 0.35
-				b.count_hit = i == 0
+			b.dmg_mult = w.get("damage", 1.0)
+			b.knockback = w.get("knockback", 60.0)
+			b.weapon_id = gun
+			b.sniper = w.get("sniper", false)
+			var spd: float = w.get("bullet_speed", bullet_speed)
+			if w.has("falloff"):
+				b.falloff = w.falloff
 				spd *= randf_range(0.85, 1.0)
-			elif gun == BOW:   # חץ: עף בקשת
+			if n > 1:
+				b.count_hit = i == 0
+			if proj == "arrow":   # חץ: עף בקשת
 				b.arrow = true
 				b.gravity = 900.0
-				b.life_time = 3.0
-				spd = 1150.0
-			elif gun == SNIPER:
-				b.sniper = true
-				b.pierce += 3
-				spd = 4200.0
-			b.setup(sh + _aim * 30.0, _aim.rotated(spread) * spd, sh)
+			if w.has("fixed_damage"):
+				b.fixed_damage = w.fixed_damage
+			b.life_time = float(w.get("range", 1800.0)) / spd
+			b.setup(sh + aim * 30.0, aim.rotated(spread) * spd, sh)
 	else:
 		if grenades <= 0:
 			_cooldown = 0.3
@@ -606,11 +720,41 @@ func _fire() -> void:
 				_say("NO GRENADES", Color("ff6050"))
 			return
 		grenades -= 1
+		PlayerMemory.on_explosive()
 		Sfx.play("throw", global_position)
 		_cooldown = grenade_delay
 		var g = GrenadeScript.new()
 		get_parent().add_child(g)
 		g.setup(sh + _aim * 14.0, _aim * grenade_speed + velocity * 0.3)
+
+
+# ============================================================
+#  טעינה (R, או אוטומטית כשהמחסנית ריקה). זמן הטעינה ב-weapon_db.gd
+# ============================================================
+func reload() -> void:
+	if weapon != GUN or _reload_t > 0.0 or dead:
+		return
+	var msize: int = WeaponDB.val(gun, "magazine_size", 0)
+	if msize <= 0 or mag >= mini(msize, ammo):
+		return
+	_reload_total = float(WeaponDB.val(gun, "reload_time", 1.5)) * (0.6 if boosts.has(PickupScript.ADRENALINE) else 1.0)
+	_reload_t = _reload_total
+	Sfx.play("reload", global_position, -4.0)
+	PlayerMemory.on_reload()
+
+
+func _finish_reload() -> void:
+	mag = mini(int(WeaponDB.val(gun, "magazine_size", 0)), ammo)
+	Sfx.play("reload_done", global_position, -5.0)
+
+
+func is_reloading() -> bool:
+	return _reload_t > 0.0
+
+
+# רגע פגיע: טוען, נתפס, נפגע הרגע, או נוחת (זומבים חכמים מחכים לרגעים האלה)
+func is_vulnerable() -> bool:
+	return _reload_t > 0.0 or grabbed_by != null or _hurt_t > 0.0 or (_land_t > 0.0) or (ammo <= 0 and weapon == GUN)
 
 
 # ============================================================
@@ -621,6 +765,7 @@ func select_slot(i: int) -> void:
 		return
 	cur_slot = i
 	weapon = GUN
+	_reload_t = 0.0   # החלפת נשק מבטלת טעינה
 	weapon_changed.emit(weapon)
 	Sfx.play("weapon", null, -6.0)
 	_say(Game.WEAPON_NAMES[gun], Game.WEAPON_COLORS[gun])
@@ -831,6 +976,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		select_slot(event.physical_keycode - KEY_1)
 	elif event.physical_keycode == KEY_G and not dead and not wheel_open:
 		drop_weapon(cur_slot)
+	elif event.physical_keycode == KEY_R and not dead:   # R = טעינה
+		reload()
 	elif event.physical_keycode == KEY_K:
 		_invuln = 0.0
 		hurt(health, Vector2.ZERO)
@@ -1342,6 +1489,8 @@ func _draw_beam(from: Vector2, to: Vector2, k: float) -> void:
 
 
 func _draw_rifle(hand: Vector2, la: Vector2) -> void:
+	if _reload_t > 0.0:   # טעינה: הנשק יורד ומתנדנד
+		la = la.rotated(0.6 * sin(PI * clampf(1.0 - _reload_t / _reload_total, 0.0, 1.0)))
 	var n := la.rotated(PI / 2.0)
 	var g := func(x: float, y: float) -> Vector2: return hand + la * x + n * y
 	var metal := Color("1d1d23")
@@ -1359,27 +1508,53 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 			draw_line(g.call(-pull, 0.0), g.call(20.0, 0.0), Color("8a6a40"), 1.4, true)
 			draw_colored_polygon(PackedVector2Array([g.call(20.0, -2.0), g.call(25.0, 0.0), g.call(20.0, 2.0)]), Color("b8b8c0"))
 		return
+	if gun == MOLOTOV:   # בקבוק עם סמרטוט בוער
+		Art.fill(self, PackedVector2Array([g.call(-2.0, -3.0), g.call(7.0, -3.0), g.call(9.0, -1.5), g.call(14.0, -1.2), g.call(14.0, 1.2), g.call(9.0, 1.5), g.call(7.0, 3.0), g.call(-2.0, 3.0)]), Color(0.35, 0.55, 0.3, 0.9), Art.OUTLINE, 0.9)
+		Art.fill(self, PackedVector2Array([g.call(-1.0, 0.4), g.call(6.0, 0.4), g.call(6.0, 2.6), g.call(-1.0, 2.6)]), Color(0.9, 0.55, 0.15, 0.8), Art.NONE)
+		draw_line(g.call(14.0, 0.0), g.call(17.0, -1.5), Color("d8c8a0"), 1.6)
+		if ammo > 0:
+			Art.glow(self, g.call(18.0, -2.5), 5.0 + sin(_time * 25.0), Color(1.0, 0.6, 0.15, 0.8))
+		return
+	if gun == PISTOL:   # אקדח: קטן, ביד אחת
+		Art.fill(self, PackedVector2Array([g.call(-1.0, -1.8), g.call(13.0, -1.8), g.call(13.0, 1.4), g.call(3.5, 1.4), g.call(2.5, 7.0), g.call(-1.5, 6.5), g.call(-1.0, 1.4)]), Color("1d1d23"), Art.OUTLINE, 1.0)
+		draw_line(g.call(0.0, -1.0), g.call(12.0, -1.0), Color(1, 1, 1, 0.15), 0.8, true)
+		if _muzzle_flash > 0.0:
+			var pm: Vector2 = g.call(15.0, -0.2)
+			Art.glow(self, pm, 7.0, Color(1.0, 0.75, 0.3, 0.9))
+		return
 	Art.fill(self, PackedVector2Array([g.call(-11.0, -0.5), g.call(-2.0, -1.6), g.call(-1.0, 2.2), g.call(-11.0, 4.2)]), wood, Art.OUTLINE, 1.0)
 	Art.fill(self, PackedVector2Array([
 		g.call(-2.0, -1.6), g.call(14.0, -1.6), g.call(14.0, 1.6), g.call(4.0, 1.6),
 		g.call(2.6, 6.4), g.call(-0.6, 6.4), g.call(-1.0, 2.2),
 	]), metal, Art.OUTLINE, 1.0)
 	Art.fill(self, PackedVector2Array([g.call(5.0, 1.6), g.call(13.0, 1.6), g.call(12.0, 3.6), g.call(6.0, 3.6)]), wood, Art.OUTLINE, 0.9)   # ידית קדמית
-	var bl: float = [25.0, 22.0, 0.0, 35.0, 20.0][gun]   # אורך הקנה לפי הנשק
-	Art.limb(self, PackedVector2Array([g.call(14.0, -0.4), g.call(bl, -0.4)]), [2.0, 3.4, 0.0, 1.8, 2.4][gun], Color("2c2c34"), Art.OUTLINE)   # קנה
-	match gun:
-		SHOTGUN:   # שוטגאן: ידית משאבה
+	var style: String = WeaponDB.val(gun, "style", "rifle")
+	var bl: float = WeaponDB.val(gun, "barrel", 25.0)   # אורך הקנה לפי הנשק
+	var bw: float = {"shotgun": 3.4, "ashotgun": 3.8, "launcher": 5.0, "sniper": 1.8, "taser": 2.4, "pistol": 2.0, "smg": 2.2}.get(style, 2.0)
+	Art.limb(self, PackedVector2Array([g.call(14.0, -0.4), g.call(bl, -0.4)]), bw, Color("2c2c34"), Art.OUTLINE)   # קנה
+	match style:
+		"shotgun", "ashotgun":   # שוטגאן: ידית משאבה (אוטומטי: תוף מחסנית)
 			Art.fill(self, PackedVector2Array([g.call(15.0, 1.2), g.call(21.0, 1.2), g.call(21.0, 3.6), g.call(15.0, 3.6)]), Color("5a3a24"), Art.OUTLINE, 0.9)
-		SNIPER:   # צלף: כוונת טלסקופית
+			if style == "ashotgun":
+				Art.disc(self, g.call(4.0, 6.0), 3.6, Color("3a3a42"), Art.OUTLINE, 0.9)
+		"sniper":   # צלף: כוונת טלסקופית
 			Art.fill(self, PackedVector2Array([g.call(0.0, -3.4), g.call(11.0, -3.4), g.call(11.0, -6.4), g.call(0.0, -6.4)]), Color("16161a"), Art.OUTLINE, 0.9)
 			draw_circle(g.call(11.2, -4.9), 1.2, Color(0.5, 0.8, 1.0, 0.8))
-		TASER:   # טייזר: סליל סגול זוהר
+		"taser":   # טייזר: סליל סגול זוהר
 			for k in 3:
 				draw_circle(g.call(16.0 + float(k) * 2.0, -0.4), 2.2, Color(0.7, 0.5, 1.0, 0.5 + 0.3 * sin(_time * 20.0 + float(k))))
 			draw_circle(g.call(bl, -0.4), 1.8, Color(0.85, 0.75, 1.0))
+		"smg":   # SMG: מחסנית ארוכה ישרה
+			Art.fill(self, PackedVector2Array([g.call(6.0, 1.6), g.call(9.0, 1.6), g.call(9.0, 11.0), g.call(6.0, 11.0)]), Color("18181c"), Art.OUTLINE, 0.9)
+		"ar":   # רובה סער: מחסנית מעוקלת + ידית נשיאה
+			Art.fill(self, PackedVector2Array([g.call(5.0, 1.6), g.call(9.0, 1.6), g.call(11.0, 9.0), g.call(7.0, 10.0)]), Color("18181c"), Art.OUTLINE, 0.9)
+			draw_line(g.call(18.0, -1.4), g.call(18.0, -4.0), Color("2c2c34"), 1.4)
+		"launcher":   # משגר: קנה עבה ותוף
+			Art.disc(self, g.call(6.0, 3.0), 4.6, Color("4a5a3a"), Art.OUTLINE, 0.9)
+			Art.disc(self, g.call(6.0, 3.0), 1.4, Color("1a1a1a"), Art.NONE)
 	Art.fill(self, PackedVector2Array([g.call(1.0, -1.6), g.call(9.0, -1.6), g.call(9.0, -3.8), g.call(1.0, -3.8)]), Color("101014"), Art.OUTLINE, 0.9)   # כוונת
 	draw_line(g.call(-1.0, -1.0), g.call(13.0, -1.0), Color(1, 1, 1, 0.12), 0.8, true)
 	if _muzzle_flash > 0.0:
-		var m: Vector2 = g.call(28.0, -0.4)
+		var m: Vector2 = g.call(bl + 3.0, -0.4)
 		Art.glow(self, m, 9.0, Color(1.0, 0.75, 0.3, 0.9))
 		Art.fill(self, PackedVector2Array([m + la * -2.0 + n * -2.5, m + la * 8.0, m + la * -2.0 + n * 2.5]), Color(1.0, 0.95, 0.7), Art.NONE)

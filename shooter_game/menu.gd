@@ -149,15 +149,12 @@ func _build_ui(vp: Vector2) -> void:
 	var play := _button(root, "PLAY", Vector2(70, 250), Vector2(310, 66), 40, 0.15)
 	play.pressed.connect(_open_map)   # PLAY = מפת היבשת
 
-	var lv2 := _button(root, "LEVEL 2", Vector2(394, 262), Vector2(130, 44), 20, 0.25)   # בדיקה מהירה של השלב השני
-	lv2.accent = Color("3a8acc")
-	lv2.pressed.connect(_start_game.bind(2))
-	var lv3 := _button(root, "LEVEL 3", Vector2(534, 262), Vector2(130, 44), 20, 0.3)   # בדיקה מהירה של השלב השלישי
-	lv3.accent = Color("d8902a")
-	lv3.pressed.connect(_start_game.bind(3))
-	var lv4 := _button(root, "LEVEL 4", Vector2(674, 262), Vector2(130, 44), 20, 0.35)   # בדיקה מהירה של השלב הרביעי
-	lv4.accent = Color("6a5acd")
-	lv4.pressed.connect(_start_game.bind(4))
+	# בדיקה מהירה: קפיצה ישר לשלב 2-9
+	var accents := [Color("3a8acc"), Color("d8902a"), Color("6a5acd"), Color("c04a3a"), Color("4a90a0"), Color("c0a030"), Color("40b0a0"), Color("d02040")]
+	for i in 8:
+		var lb := _button(root, str(i + 2), Vector2(394 + i * 56, 262), Vector2(50, 44), 20, 0.25 + 0.03 * float(i))
+		lb.accent = accents[i]
+		lb.pressed.connect(_start_game.bind(i + 2))
 
 	var lbl := Caption.new()
 	lbl.text = "DIFFICULTY"

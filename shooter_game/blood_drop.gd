@@ -26,7 +26,7 @@ func _physics_process(delta: float) -> void:
 		return
 	velocity.y += gravity * delta
 	var to := global_position + velocity * delta
-	var query := PhysicsRayQueryParameters2D.create(global_position, to, 1)   # שכבה 1 = ריצפה ולבנים
+	var query := PhysicsRayQueryParameters2D.create(global_position, to, 1 | 16)   # 1 = ריצפה ולבנים, 16 = קומות
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
 	if hit:
 		if hit.collider.has_method("add_blood"):

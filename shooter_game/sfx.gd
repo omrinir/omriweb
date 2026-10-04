@@ -14,6 +14,11 @@ static var volume_db := -4.0          # עוצמה כללית
 static var _cache := {}
 static var _active := {}
 static var played := {}           # כמה פעמים כל צליל התנגן (לבדיקות)
+# צלילים נוספים מקבצים אחרים (נשקים חדשים, זומבים חדשים, סביבה). כל קובץ = const SOUNDS := {...}
+# כדי להוסיף קובץ צלילים חדש - מוסיפים את הנתיב שלו כאן
+const BANKS := ["res://weapons/weapon_sounds.gd", "res://enemies/enemy_sounds.gd", "res://effects/env_sounds.gd"]
+static var EXTRA := {}
+static var _banks_loaded := false
 
 const R := {
 	"rifle": {"rev": 0.22, "drive": 2.6, "layers": [["N", 0, 0, 0.0, 0.006, 0.0, 500.0, 1.6, 1.0, 0], ["N", 0, 0, 0.0, 0.16, 0.0, 26.0, 1.2, 0.35, 0], ["S", 125, 42, 0.0, 0.12, 0.0, 26.0, 1.1, 1.0, 0], ["N", 0, 0, 0.07, 0.02, 0.0, 200.0, 0.35, 1.0, 0, 0.35], ["S", 3100, 3000, 0.07, 0.03, 0.0, 120.0, 0.12, 1.0, 0]]},
@@ -78,14 +83,48 @@ const R := {
 
 # יוצר את כל הצלילים מראש (main.gd קורא לזה)
 static func warm_up() -> void:
+	_load_banks()
 	for k in R:
 		_stream(k)
+	for k in EXTRA:
+		_stream(k)
+
+
+static func _load_banks() -> void:
+	if _banks_loaded:
+		return
+	_banks_loaded = true
+	for path in BANKS:
+		if ResourceLoader.exists(path):
+			register(load(path).SOUNDS)
+	# כל זומבי חדש / שלב יכול להגדיר const SOUNDS := {...} בקובץ שלו - נרשם כאן אוטומטית
+	for list_path in ["res://enemies/zombie_registry.gd", "res://levels/stage_registry.gd"]:
+		if not ResourceLoader.exists(list_path):
+			continue
+		var reg = load(list_path)
+		var paths: Dictionary = reg.TYPES if list_path.contains("zombie") else reg.STAGES
+		for sp in paths.values():
+			if ResourceLoader.exists(sp):
+				var consts: Dictionary = load(sp).get_script_constant_map()
+				if consts.has("SOUNDS"):
+					register(consts.SOUNDS)
+
+
+# מוסיף "מתכוני" צליל (אותו פורמט כמו R)
+static func register(bank: Dictionary) -> void:
+	for k in bank:
+		EXTRA[k] = bank[k]
+
+
+static func has_sound(name: String) -> bool:
+	_load_banks()
+	return R.has(name) or EXTRA.has(name)
 
 
 static func _stream(name: String) -> AudioStreamWAV:
 	if _cache.has(name):
 		return _cache[name]
-	var rec = R[name]
+	var rec = R[name] if R.has(name) else EXTRA[name]
 	var fx: Dictionary = rec if rec is Dictionary else {}
 	var layers: Array = rec.layers if rec is Dictionary else rec
 	var total := 0.0
@@ -231,12 +270,12 @@ static func _reverb(buf: PackedFloat32Array, wet: float) -> void:
 
 # מנגן צליל. pos = מיקום בעולם (צליל נחלש עם המרחק), null = צליל "על המסך"
 static func play(name: String, pos: Variant = null, vol := 0.0, pitch_var := 0.08, max_same := 5) -> void:
-	if not R.has(name):
+	if not has_sound(name):
 		return
 	var base := name
 	var vars := [name]
 	for k in [2, 3, 4]:   # גרסאות שונות של אותו צליל (step_water2...)
-		if R.has(name + str(k)):
+		if has_sound(name + str(k)):
 			vars.append(name + str(k))
 	name = vars[randi() % vars.size()]
 	played[base] = int(played.get(base, 0)) + 1

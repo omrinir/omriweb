@@ -13,6 +13,7 @@ config/features=PackedStringArray("4.3", "GL Compatibility")
 
 Settings="*res://game_settings.gd"
 Game="*res://game_state.gd"
+PlayerMemory="*res://ai/player_memory.gd"
 
 [display]
 

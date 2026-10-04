@@ -363,3 +363,52 @@ static func draw_weapon(ci: CanvasItem, p: Vector2, id: int, s: float, alpha := 
 			for k in 2:
 				ci.draw_circle(p + Vector2(25, -3 + k * 4) * s, 1.4 * s, Color(0.75, 0.6, 1.0, alpha))
 			ci.draw_circle(p + Vector2(10, -1.5) * s, 1.6 * s, Color(1.0, 0.25, 0.2, alpha))           # נורית
+		5:   # אקדח: מחליק, ידית וקנה קצר
+			poly.call([Vector2(-12, -6), Vector2(14, -6), Vector2(14, 0), Vector2(-12, 0)], metal)
+			poly.call([Vector2(-11, 0), Vector2(-2, 0), Vector2(-5, 14), Vector2(-14, 13)], Color(0.22, 0.18, 0.16, alpha))   # ידית
+			ln.call(Vector2(-2, 0), Vector2(1, 5), metal, 1.4)
+			for k in 4:
+				ln.call(Vector2(-8 + k * 3, -6), Vector2(-8 + k * 3, -2), Color(0, 0, 0, 0.45 * alpha), 0.7)
+			ln.call(Vector2(-10, -5), Vector2(12, -5), hi, 0.8)
+		6:   # SMG: גוף קצר, מחסנית ישרה ארוכה, קת מתקפלת
+			poly.call([Vector2(-14, -5), Vector2(14, -5), Vector2(14, 2), Vector2(-14, 2)], metal)
+			ln.call(Vector2(14, -2), Vector2(24, -2), steel, 2.4)
+			poly.call([Vector2(2, 2), Vector2(7, 2), Vector2(7, 18), Vector2(2, 18)], metal)       # מחסנית
+			poly.call([Vector2(-9, 2), Vector2(-4, 2), Vector2(-6, 10), Vector2(-11, 9)], metal)   # ידית
+			ln.call(Vector2(-14, -3), Vector2(-28, -3), steel, 1.4)                                  # קת
+			ln.call(Vector2(-28, -3), Vector2(-28, 4), steel, 1.4)
+			ln.call(Vector2(-12, -4), Vector2(12, -4), hi, 0.8)
+		7:   # רובה סער: גוף ארוך, מחסנית מעוקלת, ידית נשיאה, קת סינתטית
+			poly.call([Vector2(-34, -3), Vector2(-14, -4), Vector2(-14, 3), Vector2(-33, 7)], Color(0.2, 0.22, 0.18, alpha))
+			poly.call([Vector2(-14, -5), Vector2(12, -5), Vector2(12, 2), Vector2(-14, 3)], metal)
+			poly.call([Vector2(12, -4), Vector2(24, -4), Vector2(24, 1), Vector2(12, 1)], Color(0.2, 0.22, 0.18, alpha))
+			ln.call(Vector2(24, -2.5), Vector2(36, -2.5), steel, 2.0)
+			poly.call([Vector2(-2, 2), Vector2(4, 2), Vector2(9, 14), Vector2(3, 15)], metal)         # מחסנית
+			poly.call([Vector2(-10, -5), Vector2(4, -5), Vector2(4, -9), Vector2(-10, -9)], metal)   # ידית נשיאה
+			poly.call([Vector2(-10, 2), Vector2(-6, 2), Vector2(-8, 9), Vector2(-12, 8)], metal)
+			ln.call(Vector2(-12, -4), Vector2(10, -4), hi, 0.8)
+		8:   # בקבוק תבערה: בקבוק ירוק, נוזל כתום, סמרטוט בוער
+			poly.call([Vector2(-8, -12), Vector2(8, -12), Vector2(9, 14), Vector2(-9, 14)], Color(0.3, 0.5, 0.28, 0.85 * alpha))
+			poly.call([Vector2(-8, 0), Vector2(8, 0), Vector2(9, 14), Vector2(-9, 14)], Color(0.95, 0.55, 0.12, 0.8 * alpha))
+			poly.call([Vector2(-3, -20), Vector2(3, -20), Vector2(3, -12), Vector2(-3, -12)], Color(0.3, 0.5, 0.28, 0.85 * alpha))
+			ln.call(Vector2(0, -20), Vector2(4, -27), Color(0.85, 0.78, 0.6, alpha), 2.0)
+			ci.draw_circle(p + Vector2(5, -29) * s, 4.0 * s, Color(1.0, 0.55, 0.15, 0.85 * alpha))
+			ci.draw_circle(p + Vector2(5, -30) * s, 2.0 * s, Color(1.0, 0.9, 0.5, alpha))
+		9:   # משגר רימונים: קנה עבה, תוף מסתובב, קת
+			poly.call([Vector2(-30, -2), Vector2(-14, -4), Vector2(-14, 4), Vector2(-28, 8)], Color(0.24, 0.27, 0.2, alpha))
+			poly.call([Vector2(-14, -7), Vector2(30, -7), Vector2(30, 3), Vector2(-14, 3)], Color(0.3, 0.36, 0.24, alpha))
+			ci.draw_circle(p + Vector2(-4, 4) * s, 8.0 * s, metal)
+			for k in 6:
+				var an := TAU * float(k) / 6.0
+				ci.draw_circle(p + (Vector2(-4, 4) + Vector2.from_angle(an) * 5.0) * s, 1.6 * s, Color(0.5, 0.55, 0.4, alpha))
+			ci.draw_circle(p + Vector2(30, -2) * s, 3.0 * s, Color(0, 0, 0, 0.8 * alpha))
+			ln.call(Vector2(-12, -6), Vector2(28, -6), hi, 0.8)
+		10:   # שוטגאן אוטומטי: גוף מרובע, מחסנית תוף, קנה עבה
+			poly.call([Vector2(-32, -2), Vector2(-14, -5), Vector2(-14, 3), Vector2(-30, 8)], Color(0.2, 0.2, 0.22, alpha))
+			poly.call([Vector2(-14, -6), Vector2(10, -6), Vector2(10, 4), Vector2(-14, 4)], metal)
+			ln.call(Vector2(10, -3), Vector2(36, -3), steel, 3.6)
+			ln.call(Vector2(10, 2), Vector2(28, 2), metal, 2.6)
+			ci.draw_circle(p + Vector2(-2, 10) * s, 7.0 * s, metal)                                    # תוף
+			ci.draw_circle(p + Vector2(-2, 10) * s, 2.5 * s, steel)
+			poly.call([Vector2(-11, 4), Vector2(-7, 4), Vector2(-9, 11), Vector2(-13, 10)], metal)
+			ln.call(Vector2(10, -4.5), Vector2(34, -4.5), Color(1.0, 0.35, 0.2, 0.7 * alpha), 0.8)

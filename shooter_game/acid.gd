@@ -35,11 +35,17 @@ func _physics_process(delta: float) -> void:
 				p.hurt(damage, Vector2(signf(velocity.x), 0.0))
 				_splash = 0.0
 				return
-	var q := PhysicsRayQueryParameters2D.create(global_position, to, 1)
+	var q := PhysicsRayQueryParameters2D.create(global_position, to, 1 | 16)
 	var hit := get_world_2d().direct_space_state.intersect_ray(q)
 	if hit:
 		global_position = hit.position
 		_splash = 0.0
+		# משלב 6: החומצה נשארת על הריצפה כשלולית שורפת
+		if Game.level >= 6 and hit.normal.y < -0.5:
+			var pool = load("res://environment/acid_pool.gd").new()
+			pool.setup(randf_range(40.0, 56.0), 4.0)
+			get_parent().add_child(pool)
+			pool.global_position = hit.position
 		return
 	global_position = to
 	if _t > 4.0:
