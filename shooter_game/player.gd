@@ -752,11 +752,32 @@ func reload() -> void:
 	PlayerMemory.on_reload()
 
 
-# צליל הטעינה: קובץ אמיתי (sounds/reload.mp3, ~1 שנייה). להחלפה: לשים קובץ אחר באותו שם
-const RELOAD_SFX := preload("res://sounds/reload.mp3")
+# צליל הטעינה: קובץ אמיתי (sounds/reload.mp3, ~1 שנייה). להחלפה: לשים קובץ אחר באותו שם.
+# נטען בזמן ריצה (לא preload) כדי שהמשחק ייפתח גם אם הקובץ חסר / עוד לא יובא ע"י העורך:
+# קודם משאב מיובא, אחרת קריאת בתים ישירה של ה-MP3, ואם אין קובץ בכלל - צליל סינתטי.
+const RELOAD_PATH := "res://sounds/reload.mp3"
+static var _reload_stream: AudioStream = null
+static var _reload_tried := false
+
+static func _reload_sfx() -> AudioStream:
+	if _reload_tried:
+		return _reload_stream
+	_reload_tried = true
+	if ResourceLoader.exists(RELOAD_PATH):
+		_reload_stream = load(RELOAD_PATH) as AudioStream
+	if _reload_stream == null and FileAccess.file_exists(RELOAD_PATH):
+		var mp3 := AudioStreamMP3.new()
+		mp3.data = FileAccess.get_file_as_bytes(RELOAD_PATH)
+		_reload_stream = mp3
+	return _reload_stream
+
 func _play_reload_sound() -> void:
+	var st := _reload_sfx()
+	if st == null:
+		Sfx.play("reload", global_position)
+		return
 	var a := AudioStreamPlayer2D.new()
-	a.stream = RELOAD_SFX
+	a.stream = st
 	a.bus = "SFX"
 	a.volume_db = Sfx.volume_db - 2.0
 	a.max_distance = 1500.0
