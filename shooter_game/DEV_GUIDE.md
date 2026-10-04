@@ -59,11 +59,11 @@ zig-zag, SMG → rush, grenades → spread out, high ground → climb, retreat s
 
 ## Testing from the command line
 
+Test scripts (`t_*.gd`, extending SceneTree) are NOT part of the game folder — the editor would report
+parse errors for them. Copy one into the project root temporarily, run it, then delete it:
 ```
 godot --headless --path . -s res://t_parse.gd          # compiles every script, prints FAIL lines
-xvfb-run godot --path . -s res://t_stage.gd -- 6 0.4 x # runs stage 6 at 40% of its length, saves a screenshot
 ```
-(`t_*.gd` test scripts are kept out of the shipped game.)
 
 ## Controls
 
