@@ -36,7 +36,7 @@ extends RefCounted
 # ============================================================
 
 const WEAPONS := [
-	{"name": "RIFLE", "color": Color("d8c070"), "damage": 1.0, "fire_rate": 0.7, "magazine_size": 10, "reload_time": 1.4,
+	{"name": "RIFLE", "color": Color("d8c070"), "damage": 1.0, "fire_rate": 0.7, "magazine_size": 8, "reload_time": 1.0,
 		"range": 1800.0, "spread": 0.0, "recoil": 1.0, "bullet_speed": 2600.0, "knockback": 60.0, "projectile": "bullet",
 		"ammo_type": "rifle", "ammo_start": 30, "ammo_box": 10, "ammo_max": 60, "sound": "rifle", "style": "rifle", "barrel": 25.0, "category": "precision"},
 	{"name": "SHOTGUN", "color": Color("e07a3a"), "falloff": [9.0, 1.0, 420.0], "fire_rate": 1.0, "magazine_size": 6, "reload_time": 2.4,

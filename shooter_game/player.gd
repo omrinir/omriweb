@@ -739,13 +739,24 @@ func reload() -> void:
 		return
 	_reload_total = float(WeaponDB.val(gun, "reload_time", 1.5)) * (0.6 if boosts.has(PickupScript.ADRENALINE) else 1.0)
 	_reload_t = _reload_total
-	Sfx.play("reload", global_position, -4.0)
+	_play_reload_sound()
 	PlayerMemory.on_reload()
+
+
+# צליל הטעינה: קובץ אמיתי (sounds/reload.mp3, ~1 שנייה). להחלפה: לשים קובץ אחר באותו שם
+const RELOAD_SFX := preload("res://sounds/reload.mp3")
+func _play_reload_sound() -> void:
+	var a := AudioStreamPlayer2D.new()
+	a.stream = RELOAD_SFX
+	a.volume_db = Sfx.volume_db - 2.0
+	a.max_distance = 1500.0
+	add_child(a)
+	a.play()
+	a.finished.connect(a.queue_free)
 
 
 func _finish_reload() -> void:
 	mag = mini(int(WeaponDB.val(gun, "magazine_size", 0)), ammo)
-	Sfx.play("reload_done", global_position, -5.0)
 
 
 func is_reloading() -> bool:
