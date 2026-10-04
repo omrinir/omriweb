@@ -4,6 +4,7 @@ extends CanvasLayer
 # ============================================================
 
 const ButtonScript := preload("res://menu_button.gd")
+const VolumeScript := preload("res://ui/volume_sliders.gd")
 const MENU_SCENE := "res://menu.tscn"
 
 var _root: Control
@@ -81,6 +82,10 @@ func _show(title: String, buttons: Array, y0 := 300.0) -> void:
 		_root.add_child(b)
 		if first == null:
 			first = b
+	if title == "PAUSED":   # סרגלי עוצמה (מוזיקה / אפקטים)
+		var vs = VolumeScript.new()
+		vs.position = Vector2((vp.x - 280.0) / 2.0, y0 + float(buttons.size()) * 72.0 + 8.0)
+		_root.add_child(vs)
 	first.call_deferred("grab_focus")
 
 

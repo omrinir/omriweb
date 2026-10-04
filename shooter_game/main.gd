@@ -693,6 +693,7 @@ func _start_music() -> void:
 	if stream is AudioStreamMP3:
 		stream.loop = true
 	var mp := AudioStreamPlayer.new()
+	mp.bus = "Music"   # עוצמה: Settings.music_volume
 	mp.stream = stream
 	mp.volume_db = -40.0
 	mp.process_mode = Node.PROCESS_MODE_ALWAYS   # ממשיכה גם בהשהיה

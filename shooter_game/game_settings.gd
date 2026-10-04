@@ -33,10 +33,47 @@ var difficulty := NORMAL:
 		_save()
 
 
+# ---- עוצמת שמע (0..1). ערוצים נפרדים: "Music" (מוזיקה) ו-"SFX" (אפקטים) ----
+var music_volume := 0.8
+var sfx_volume := 0.9
+
+
 func _ready() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SAVE_PATH) == OK:
 		difficulty = clampi(int(cfg.get_value("game", "difficulty", NORMAL)), 0, 2)
+		music_volume = clampf(float(cfg.get_value("audio", "music", 0.8)), 0.0, 1.0)
+		sfx_volume = clampf(float(cfg.get_value("audio", "sfx", 0.9)), 0.0, 1.0)
+	_ensure_buses()
+	apply_volumes()
+
+
+# יוצר את ערוצי השמע אם הם לא קיימים
+func _ensure_buses() -> void:
+	for b in ["Music", "SFX"]:
+		if AudioServer.get_bus_index(b) < 0:
+			AudioServer.add_bus()
+			var i := AudioServer.bus_count - 1
+			AudioServer.set_bus_name(i, b)
+			AudioServer.set_bus_send(i, "Master")
+
+
+func apply_volumes() -> void:
+	for pair in [["Music", music_volume], ["SFX", sfx_volume]]:
+		var i := AudioServer.get_bus_index(pair[0])
+		if i >= 0:
+			var v: float = pair[1]
+			AudioServer.set_bus_mute(i, v <= 0.001)
+			AudioServer.set_bus_volume_db(i, linear_to_db(maxf(v, 0.001)))
+
+
+func set_volume(kind: String, v: float) -> void:
+	if kind == "music":
+		music_volume = clampf(v, 0.0, 1.0)
+	else:
+		sfx_volume = clampf(v, 0.0, 1.0)
+	apply_volumes()
+	_save()
 
 
 func preset() -> Dictionary:
@@ -50,4 +87,6 @@ func difficulty_name() -> String:
 func _save() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("game", "difficulty", difficulty)
+	cfg.set_value("audio", "music", music_volume)
+	cfg.set_value("audio", "sfx", sfx_volume)
 	cfg.save(SAVE_PATH)

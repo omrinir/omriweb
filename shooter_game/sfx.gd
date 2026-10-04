@@ -294,12 +294,14 @@ static func play(name: String, pos: Variant = null, vol := 0.0, pitch_var := 0.0
 		p2.volume_db = volume_db + vol
 		p2.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
 		p2.stream = _stream(name)
+		p2.bus = "SFX"
 		p = p2
 	else:
 		var p1 := AudioStreamPlayer.new()
 		p1.volume_db = volume_db + vol
 		p1.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
 		p1.stream = _stream(name)
+		p1.bus = "SFX"
 		p = p1
 	_active[base] = int(_active.get(base, 0)) + 1
 	p.finished.connect(func():

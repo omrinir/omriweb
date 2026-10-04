@@ -757,6 +757,7 @@ const RELOAD_SFX := preload("res://sounds/reload.mp3")
 func _play_reload_sound() -> void:
 	var a := AudioStreamPlayer2D.new()
 	a.stream = RELOAD_SFX
+	a.bus = "SFX"
 	a.volume_db = Sfx.volume_db - 2.0
 	a.max_distance = 1500.0
 	add_child(a)

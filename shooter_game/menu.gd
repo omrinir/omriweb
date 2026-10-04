@@ -183,6 +183,10 @@ func _build_ui(vp: Vector2) -> void:
 	quit.accent = Color("5a5a62")
 	quit.pressed.connect(_quit)
 
+	var vol = load("res://ui/volume_sliders.gd").new()   # סרגלי עוצמה: מוזיקה / אפקטים
+	vol.position = Vector2(350, 490)
+	ui.add_child(vol)
+
 	var hint := Caption.new()
 	hint.size = 15
 	hint.color = Color(1, 1, 1, 0.55)
