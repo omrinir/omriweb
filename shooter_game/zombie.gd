@@ -216,6 +216,7 @@ var _last_info := {}
 var brain = null                 # ai/zombie_brain.gd
 var type_mod = null              # enemies/types/*.gd (סוגים 20+)
 var _drop_t := 0.0               # יורד דרך קומה (one-way)
+var _mod_boss := false           # סוג חדש שהוא בוס (stats()["boss"])
 
 var sc := 1.0      # גודל
 var wf := 1.0      # רוחב
@@ -280,9 +281,10 @@ func _ready() -> void:
 		type_mod = Registry.make(kind)
 		type_mod.z = self
 		k = type_mod.stats()
+		_mod_boss = k.get("boss", false)
 	else:
 		k = KINDS[clampi(kind, 0, KINDS.size() - 1)]
-	hp = k.hp + (100 * (Game.level - 1) if is_boss() else 0)
+	hp = k.hp + (100 * (mini(Game.level, 5) - 1) if is_boss() else 0)   # שלבים מאוחרים: הבוס לא "ספוג" יותר - הוא חכם יותר
 	max_hp = hp
 	walk_speed = k.walk
 	chase_speed = k.chase
@@ -851,7 +853,7 @@ func _voice(name: String, chance: float, vol: float) -> void:
 
 
 func is_boss() -> bool:
-	return kind == BOSS or kind == CONDUCTOR or kind == HOUND or (type_mod != null and type_mod.stats().get("boss", false))
+	return kind == BOSS or kind == CONDUCTOR or kind == HOUND or _mod_boss
 
 
 # ---- קומות (one-way, שכבה 16): קפיצה למעלה לקומה / ירידה דרכה ----

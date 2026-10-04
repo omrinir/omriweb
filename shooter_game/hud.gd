@@ -216,7 +216,10 @@ func _draw() -> void:
 			if z.is_boss() and absf(z.global_position.x - player.global_position.x) < 900.0:
 				var w := 420.0
 				var bp := Vector2((vp.x - w) / 2.0, 108)
-				_text(Vector2(0, bp.y - 6), ({7: "THE CONDUCTOR", 19: "THE HOUND"}.get(z.kind, "THE GATEKEEPER")) + ("" if z.kind != 7 or z._transformer == 0 else "   - SHOOT THE TRANSFORMER ON HIS BACK"), 16, Color("ff7060"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+				var bname: String = {7: "THE CONDUCTOR", 19: "THE HOUND"}.get(z.kind, "THE GATEKEEPER")
+				if z.type_mod != null:   # בוס חדש (enemies/types): השם מ-stats()["boss_name"]
+					bname = str(z.type_mod.stats().get("boss_name", bname))
+				_text(Vector2(0, bp.y - 6), bname + ("" if z.kind != 7 or z._transformer == 0 else "   - SHOOT THE TRANSFORMER ON HIS BACK"), 16, Color("ff7060"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 				draw_rect(Rect2(bp - Vector2(2, 2), Vector2(w + 4, 14)), Color(0, 0, 0, 0.7))
 				var k := clampf(float(z.hp) / float(z.max_hp), 0.0, 1.0)
 				draw_rect(Rect2(bp, Vector2(w * k, 10)), Color("c0201c"))
