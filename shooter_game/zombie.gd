@@ -30,6 +30,7 @@ const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 
 const Art := preload("res://art.gd")
 const BloodScript := preload("res://blood_drop.gd")
+const RagdollScript := preload("res://effects/ragdoll.gd")   # גופה רכה
 const LegScript := preload("res://severed_leg.gd")
 const AcidScript := preload("res://acid.gd")
 const FireScript := preload("res://fire.gd")
@@ -255,6 +256,9 @@ var _throw_cd := 0.0
 var _throw_anim := 0.0
 # אחרי המוות
 var _spin := 0.0
+var _rag: RefCounted = null      # גופה רכה (effects/ragdoll.gd). null = גופה "קשיחה" רגילה
+var _last_hit := Vector2.ZERO    # איפה הפגיעה האחרונה (קובע איך הגופה נופלת)
+var _last_boom := false
 var _angle := 0.0
 var _dead_t := 0.0
 var _bled_on: Dictionary = {}
@@ -1061,6 +1065,8 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		"hidden": _cover_state == 2}
 	Game.on_zombie_hit(_last_info)
 	Sfx.play("headshot" if zone == "head" else "hit", hit_pos, -4.0, 0.15, 4)
+	_last_hit = hit_pos
+	_last_boom = explosive
 	hp -= dmg
 	if hp > 0 and (source == "bullet" or source == "melee" or source == "taser"):
 		_voice("zhit", 0.85, 3.0)
@@ -1188,6 +1194,9 @@ func _die(dir: Vector2) -> void:
 		var t_fall := (-vy0 + sqrt(vy0 * vy0 + 2.0 * 650.0 * h)) / 650.0
 		velocity = Vector2(clampf((tx - global_position.x) / t_fall, -900.0, 900.0), vy0)
 	_spin = randf_range(8.0, 14.0) * signf(velocity.x if velocity.x != 0.0 else 1.0)
+	if _ragdoll_kind():   # זומבי אנושי: גופה רכה שנופלת לפי המכה
+		_rag = RagdollScript.new()
+		_rag.setup(self, velocity, dir, _last_hit if _last_hit != Vector2.ZERO else global_position + Vector2(0, -30) * sc, _last_boom)
 	_spray_blood(global_position + Vector2(0, -30) * sc, dir, 14, 380.0)
 	if is_instance_valid(_fire):
 		_fire.queue_free()
@@ -1233,6 +1242,10 @@ func _dead_process(delta: float) -> void:
 		queue_free()
 		return
 	modulate.a = clampf(corpse_time - _dead_t, 0.0, 1.0)
+	if _rag != null:   # גופה רכה: מדמה עד שהיא נרגעת, ואז רק מצוירת
+		if _rag.step(delta) and Art.on_screen(self, global_position, 400.0):
+			queue_redraw()
+		return
 	velocity.y += gravity * delta
 	var impact_speed := velocity.length()
 	move_and_slide()
@@ -1280,7 +1293,17 @@ func _popup(text: String, col: Color, size := 18, y := -80.0) -> void:
 #  ציור. מציירים זומבי בגובה "רגיל" (56) שפונה ימינה,
 #  ואז מגדילים / מרחיבים / משקפים לפי הסוג והכיוון.
 # ============================================================
+# אילו זומבים נופלים כגופה רכה (לא: חיות, יד, רובוט, ג'טפאק שמתרסק, נפוח שמתפוצץ, תותחן)
+func _ragdoll_kind() -> bool:
+	if kind in [RAT, HAND, MECH, DOG, HOUND, JETPACK, BLOATER, GUNNER]:
+		return false
+	return type_mod == null or bool(type_mod.stats().get("ragdoll", true))
+
+
 func _draw() -> void:
+	if dead and _rag != null:
+		_rag.draw(self)
+		return
 	if type_mod != null and type_mod.draw():   # סוג חדש מצייר את עצמו (enemies/types/*.gd)
 		return
 	if kind == RAT:

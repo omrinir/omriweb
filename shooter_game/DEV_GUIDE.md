@@ -86,3 +86,10 @@ RMB sniper scope · ESC pause.
 * New zombies (kinds 41-43): `blood_gate.gd` (shot from far -> its blood lands near you and becomes a portal it jumps through),
   `kraken.gd` (squid tentacles: low SWEEP = jump, overhead SLAM = step aside; also the stage boss "THE DROWNED FISHERMAN"),
   `live_wire.gd` (charges and shoots electric bolts from its mouth; leashed by a live cable to a power pole - the cable on the floor shocks you).
+
+## Ragdoll corpses
+
+`effects/ragdoll.gd`: humanoid zombies die as a soft body (11 joints, Verlet physics, one ray per joint).
+How it falls depends on the hit (headshot snaps the head back, explosions launch, weak hits sometimes crumple in place).
+It simulates only until it settles (~1-2 s, max 4 s), then freezes. Animals, the hand, the mech, jetpack, bloater and gunner
+keep their old death. A zombie type can opt out with `"ragdoll": false` in `stats()`.
