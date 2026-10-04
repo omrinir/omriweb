@@ -234,10 +234,7 @@ func _ready() -> void:
 	cam.zoom = Vector2(camera_zoom, camera_zoom)
 	if _stage != null and _stage.underground_depth() > 0.0:   # שלב עם תת-קרקע: המצלמה יורדת אחרי השחקן
 		cam.limit_bottom = int(vp.y + _stage.underground_depth())
-		cam.offset = Vector2(0.0, -(floor_y - vp.y * 0.5))
-		cam.drag_vertical_enabled = true
-		cam.drag_top_margin = 0.3
-		cam.drag_bottom_margin = 0.3
+		cam.position = Vector2(0.0, -(floor_y - (vp.y - vp.y * 0.5 / camera_zoom)))   # על הכביש: אותה תמונה כמו תמיד. במנהרה: יורדת
 	player.add_child(cam)
 	cam.make_current()
 	cam.reset_smoothing()
