@@ -793,8 +793,8 @@ func _finish_reload() -> void:
 
 
 # זום קטן של המצלמה בקפיצה (ויותר בקפיצה כפולה). 0 = לבטל
-const JUMP_ZOOM := 0.035
-const DOUBLE_JUMP_ZOOM := 0.07
+const JUMP_ZOOM := 0.07
+const DOUBLE_JUMP_ZOOM := 0.14
 func _jump_zoom(amount: float) -> void:
 	var cam := get_viewport().get_camera_2d()
 	if cam != null and cam.has_method("punch_zoom"):

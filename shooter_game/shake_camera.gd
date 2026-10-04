@@ -8,7 +8,7 @@ extends Camera2D
 # ============================================================
 
 ## כמה מהר הזום הקטן נכנס / דועך חזרה
-@export var punch_in_speed := 18.0
+@export var punch_in_speed := 26.0
 @export var punch_out_speed := 3.0
 # ============================================================
 
@@ -21,6 +21,7 @@ var _duration := 0.0
 var _base_zoom := Vector2.ONE
 var _punch_target := 0.0
 var _punch := 0.0
+var _anchor_off := Vector2.ZERO   # הזזה שמשאירה את השחקן במקום על המסך בזמן הזום
 
 
 func _ready() -> void:
@@ -49,11 +50,19 @@ func _process(delta: float) -> void:
 		_punch_target = 0.0
 	if _punch > 0.0005 or _punch_target > 0.0:
 		zoom = _base_zoom * (1.0 + _punch)
-	elif zoom != _base_zoom:
-		zoom = _base_zoom
-	if _time_left <= 0.0:
-		offset = Vector2.ZERO
-		return
-	_time_left -= delta
-	var k := pow(clampf(_time_left / _duration, 0.0, 1.0), decay)
-	offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _strength * k
+		# הזום "נכנס" אל השחקן (לא אל מרכז המסך): מזיזים את המצלמה כך שהשחקן נשאר באותה נקודה במסך
+		var p := get_parent() as Node2D
+		if p != null:
+			var center := get_screen_center_position() - offset
+			var focus := p.global_position + Vector2(0.0, -40.0)
+			_anchor_off = (focus - center) * (1.0 - 1.0 / (1.0 + _punch))
+	else:
+		_anchor_off = Vector2.ZERO
+		if zoom != _base_zoom:
+			zoom = _base_zoom
+	var shake_off := Vector2.ZERO
+	if _time_left > 0.0:
+		_time_left -= delta
+		var k := pow(clampf(_time_left / _duration, 0.0, 1.0), decay)
+		shake_off = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _strength * k
+	offset = _anchor_off + shake_off
