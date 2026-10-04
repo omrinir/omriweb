@@ -435,10 +435,12 @@ func _physics_process(delta: float) -> void:
 		elif is_on_floor() and not _crouching:
 			velocity.y = jump_velocity
 			Sfx.play("jump", global_position, -4.0)
+			_jump_zoom(JUMP_ZOOM)
 		elif not is_on_floor() and _air_jumps > 0:   # קפיצה כפולה
 			_air_jumps -= 1
 			velocity.y = jump_velocity * 0.85
 			Sfx.play("whoosh", global_position, -2.0)
+			_jump_zoom(DOUBLE_JUMP_ZOOM)
 			preload("res://particles.gd").burst(get_parent(), global_position, "smoke", Vector2.DOWN, 6)
 	_jump_was = jump
 
@@ -788,6 +790,15 @@ func _play_reload_sound() -> void:
 
 func _finish_reload() -> void:
 	mag = mini(int(Upgrades.wval(gun, "magazine_size", 0)), ammo)
+
+
+# זום קטן של המצלמה בקפיצה (ויותר בקפיצה כפולה). 0 = לבטל
+const JUMP_ZOOM := 0.035
+const DOUBLE_JUMP_ZOOM := 0.07
+func _jump_zoom(amount: float) -> void:
+	var cam := get_viewport().get_camera_2d()
+	if cam != null and cam.has_method("punch_zoom"):
+		cam.punch_zoom(amount)
 
 
 func is_reloading() -> bool:
