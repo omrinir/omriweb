@@ -9,6 +9,7 @@ const STAGES := {
 	7: "res://levels/stage_7.gd",
 	8: "res://levels/stage_8.gd",
 	9: "res://levels/stage_9.gd",
+	10: "res://levels/stage_10.gd",   # אזור צפון-מזרח, שלב 1
 }
 
 

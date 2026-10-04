@@ -14,7 +14,7 @@ All sound effects are synthesized in code (`sfx.gd`).
 | `ai/` | **Zombie intelligence**: `player_memory.gd` (autoload `PlayerMemory`), `intelligence_profile.gd`, `zombie_brain.gd`, `squad_director.gd`. |
 | `enemies/` | `zombie_type.gd` (base class for new zombie types), `zombie_registry.gd` (kind → file), `types/*.gd`, `enemy_sounds.gd`. |
 | `weapons/` | `weapon_db.gd` (every weapon's stats), `weapon_sounds.gd`, `molotov.gd`. |
-| `levels/` | `stage_base.gd` (base class), `stage_registry.gd` (level → file), `stage_5.gd` … `stage_9.gd`. |
+| `levels/` | `stage_base.gd` (base class), `stage_registry.gd` (level → file), `stage_5.gd` … `stage_10.gd` (stage 10 = NORTHEAST region, level 1: Salt Flats). |
 | `environment/` | `platform.gd` (one-way floors), `ladder.gd`, `hazard.gd` (base for traps), `fire_zone.gd`, `acid_pool.gd`, plus stage-specific machines. |
 | `effects/` | `parallax_backdrop.gd` (layered background), `backdrop_kit.gd` (skyline, smoke, clouds, helicopters, lightning…), `ambient.gd` (ash, embers, steam vents, sparks, drips, flicker lights, screens, falling debris), `signal_fx.gd`. |
 
@@ -79,3 +79,10 @@ RMB sniper scope · ESC pause.
   Every weapon gets DAMAGE / FIRE RATE / MAGAZINE / RELOAD (or CAPACITY), every ability POWER / COOLDOWN, plus PERKS.
   Price = base × (1 + unlock_level / 12) × 1.55^level; income per stage grows with the stage number, so the
   economy stays even from stage 1 to 70. Give new weapons an `"unlock_level"` in `weapon_db.gd`.
+
+## Stage 10 - Salt Flats (NORTHEAST region, level 1)
+
+* `levels/stage_10.gd`, art in `effects/s10_decor.gd`, shared objects in `environment/s10_hazards.gd`.
+* New zombies (kinds 41-43): `blood_gate.gd` (shot from far -> its blood lands near you and becomes a portal it jumps through),
+  `kraken.gd` (squid tentacles: low SWEEP = jump, overhead SLAM = step aside; also the stage boss "THE DROWNED FISHERMAN"),
+  `live_wire.gd` (charges and shoots electric bolts from its mouth; leashed by a live cable to a power pole - the cable on the floor shocks you).

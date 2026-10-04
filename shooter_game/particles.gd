@@ -24,6 +24,10 @@ static func burst(parent: Node, pos: Vector2, kind: String, dir := Vector2.ZERO,
 				b.gravity = -150.0
 				var c := Color(1.0, randf_range(0.3, 0.85), 0.1)
 				b._p.append([Vector2(randf_range(-6, 6), randf_range(-6, 6)), Vector2.from_angle(a) * randf_range(30, 140) + Vector2(0, -60), 0.0, randf_range(0.25, 0.55), randf_range(1.5, 3.5), c])
+			"spark":   # ניצוצות חשמל כחולים-לבנים (שלב 10)
+				b.gravity = 260.0
+				var c := Color(0.55, 0.8, 1.0).lerp(Color.WHITE, randf())
+				b._p.append([Vector2.ZERO, Vector2.from_angle(a) * randf_range(90, 260), 0.0, randf_range(0.15, 0.35), randf_range(1.0, 2.2), c])
 			"smoke":   # עשן אפור שעולה וגדל
 				b.gravity = -60.0
 				b.grow = 10.0

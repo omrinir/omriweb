@@ -9,6 +9,7 @@ extends RefCounted
 enum {
 	CLIMBER = 20, SCOUT, STALKER, WALL_CRAWLER, GRABBER, PACK_LEADER, AMBUSHER, TACTICIAN, SHIELDED, LEAPER,
 	ENGINEER, ADAPTOR, DODGER, TANK, HUNTER, COMMANDER, HUNTER_ELITE, SHIELD_ELITE, INFECTOR, EVOLVED, SIREN,
+	BLOODGATE, KRAKEN, LIVEWIRE,   # שלב 10 (צפון-מזרח)
 }
 
 const FIRST := 20
@@ -34,6 +35,9 @@ const TYPES := {
 	INFECTOR: "res://enemies/types/infector.gd",
 	EVOLVED: "res://enemies/types/evolved.gd",
 	SIREN: "res://enemies/types/siren.gd",
+	BLOODGATE: "res://enemies/types/blood_gate.gd",
+	KRAKEN: "res://enemies/types/kraken.gd",
+	LIVEWIRE: "res://enemies/types/live_wire.gd",
 }
 
 static var _stats_cache := {}
