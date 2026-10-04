@@ -38,11 +38,8 @@ func _ready() -> void:
 	_rebuild()
 
 
-func _reached() -> int:   # השלב הכי רחוק שהגעת אליו
-	var r := Game.level
-	for k in Game.completed:
-		r = maxi(r, int(k) + 1)
-	return r
+func _reached() -> int:   # השלב הכי רחוק שהגעת אליו (אותו כלל כמו במשחק)
+	return Game.reached_level()
 
 
 # ---- הפריטים בלשונית: [מפתח, שם, נעול?, טקסט נעילה] ----

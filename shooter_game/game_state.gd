@@ -339,6 +339,14 @@ func _migrate_old_upgrades() -> void:
 		_save()
 
 
+# השלב הכי רחוק שהשחקן הגיע אליו (יכולות נפתחות לפי זה - גם כשמשחקים שוב שלב מוקדם)
+func reached_level() -> int:
+	var r := level
+	for k in completed:
+		r = maxi(r, int(k) + 1)
+	return r
+
+
 # הנשק נמצא (נפתח לשדרוג בחנות)
 func mark_weapon_seen(id: int) -> void:
 	if not id in seen_weapons:

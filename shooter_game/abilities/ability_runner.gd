@@ -33,7 +33,7 @@ func _ready() -> void:
 func _fill_slots() -> void:
 	while Game.ability_slots.size() < 5:
 		Game.ability_slots.append(null)
-	for id in AbilityDB.unlocked(Game.level):
+	for id in AbilityDB.unlocked(Game.reached_level()):
 		if id in Game.ability_slots:
 			continue
 		var placed := false
@@ -43,7 +43,7 @@ func _fill_slots() -> void:
 				placed = true
 				break
 		# המקומות מלאים: יכולת שנפתחה בשלב הזה מחליפה את הכי ישנה (בחנות אפשר לבחור אחרת)
-		if not placed and int(AbilityDB.val(id, "unlock_level", 1)) == Game.level:
+		if not placed and int(AbilityDB.val(id, "unlock_level", 1)) == Game.reached_level():
 			var oldest := 0
 			for i in 5:
 				if int(AbilityDB.val(str(Game.ability_slots[i]), "unlock_level", 99)) < int(AbilityDB.val(str(Game.ability_slots[oldest]), "unlock_level", 99)):
