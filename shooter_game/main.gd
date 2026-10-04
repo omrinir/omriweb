@@ -197,6 +197,9 @@ func _ready() -> void:
 		sub.make_rails(rng, _pits, safe_zone)
 		add_child(sub)
 
+	# מסגרת כהה סביב כל מה שהשחקן מתנגש בו (effects/collision_outlines.gd)
+	add_child(preload("res://effects/collision_outlines.gd").new())
+
 	# "המפקד הנסתר": תורות התקפה, תקשורת, פקודות (ai/squad_director.gd)
 	var squad = SquadScript.new()
 	squad.setup(Game.level, float(diff.smart))
