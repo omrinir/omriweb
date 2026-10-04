@@ -1197,6 +1197,11 @@ func _die(dir: Vector2) -> void:
 		var b: Array = bonuses[i]
 		var txt: String = b[0] + (" +%d" % b[1] if int(b[1]) > 0 else "")
 		_popup(txt, Color("ffd34a"), 15, -96.0 - float(i) * 17.0)
+	# בוס מסוג חדש (enemies/types, למשל TANK בשלב 8): פותח את השער + שלל של בוס
+	if _mod_boss:
+		_drop(PickupScript.BOOST)
+		_drop(PickupScript.SUPPLY)
+		get_tree().call_group("level_exit", "on_boss_dead")
 	# שלל: ענק = בוסט, בוס = הרבה, אחרים = לפעמים תחמושת
 	match kind:
 		BRUTE:
