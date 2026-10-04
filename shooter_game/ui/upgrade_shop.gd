@@ -24,7 +24,15 @@ var _tab := 0
 var _page := 0
 var _sel := 0          # אינדקס בתוך הרשימה של הלשונית
 var _flash := 0.0
-var _btns: Control
+var _btns: Control      # לשוניות + BACK (לא זזים)
+var _content: Control   # הרשימה, הפאנל באמצע וכפתורי הקנייה - מחליקים יחד כשמחליפים לשונית
+var _detail: Control    # מצייר את הפאנל באמצע
+var _clip: Control
+var _ci: CanvasItem     # על מה _txt מצייר כרגע
+var _slide := 0.0       # היסט ההחלקה (פיקסלים). חיובי = נכנס מימין
+
+const SLIDE_DIST := 420.0
+var _built := false    # אחרי הבנייה הראשונה הלשוניות ו-BACK כבר לא עושים אנימציית כניסה
 
 
 func _ready() -> void:
@@ -35,6 +43,24 @@ func _ready() -> void:
 	_btns.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_btns.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_btns)
+	var vp := get_viewport_rect().size
+	_clip = Control.new()   # חותך את התוכן למסגרת בזמן ההחלקה
+	_clip.position = Vector2(vp.x * 0.5 - 520.0, 90.0)
+	_clip.size = Vector2(1040.0, 480.0)
+	_clip.clip_contents = true
+	_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_clip)
+	_content = Control.new()
+	_content.size = vp
+	_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_clip.add_child(_content)
+	_detail = Control.new()
+	_detail.size = vp
+	_detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_detail.draw.connect(_draw_detail)
+	_content.add_child(_detail)
+	_ci = self
+	_slide = SLIDE_DIST   # בפתיחה: נכנס מימין
 	_rebuild()
 
 
@@ -85,7 +111,7 @@ func _tracks(it: Dictionary) -> Array:
 	return out
 
 
-func _btn(text: String, pos: Vector2, sz: Vector2, accent: Color, fs := 18, delay := 0.0) -> Control:
+func _btn(text: String, pos: Vector2, sz: Vector2, accent: Color, fs := 18, delay := 0.0, slides := true) -> Control:
 	var b := ButtonScript.new()
 	b.text = text
 	b.font_size = fs
@@ -93,17 +119,26 @@ func _btn(text: String, pos: Vector2, sz: Vector2, accent: Color, fs := 18, dela
 	b.position = pos
 	b.size = sz
 	b.appear_delay = delay
-	_btns.add_child(b)
+	if slides:   # חלק מהתוכן: בלי אנימציית הכניסה של הכפתור עצמו - כל התוכן מחליק יחד
+		b._appear = 1.0
+		_content.add_child(b)
+	else:
+		if _built:
+			b._appear = 1.0
+		_btns.add_child(b)
 	return b
 
 
 func _rebuild() -> void:
 	for c in _btns.get_children():
 		c.queue_free()
+	for c in _content.get_children():
+		if c != _detail:
+			c.queue_free()
 	var vp := get_viewport_rect().size
 	var x0 := vp.x * 0.5 - 520.0
 	for i in TABS.size():   # לשוניות
-		var b := _btn(TABS[i], Vector2(x0 + 30.0 + float(i) * 170.0, 150.0), Vector2(160, 40), TAB_COLS[i] if i == _tab else Color("4a4a52"), 18)
+		var b := _btn(TABS[i], Vector2(x0 + 30.0 + float(i) * 170.0, 150.0), Vector2(160, 40), TAB_COLS[i] if i == _tab else Color("4a4a52"), 18, 0.0, false)
 		b.pressed.connect(_set_tab.bind(i))
 	var items := _items()
 	var pages := maxi(1, int(ceil(float(items.size()) / float(PER_PAGE))))
@@ -137,7 +172,8 @@ func _rebuild() -> void:
 			var here: bool = k < Game.ability_slots.size() and Game.ability_slots[k] == aid
 			var b := _btn(str(k + 1), Vector2(x0 + 560.0 + float(k) * 52.0, 500.0), Vector2(46, 40), Color("8a7aff") if here else Color("4a4a52"), 18)
 			b.pressed.connect(_equip.bind(aid, k))
-	_btn("BACK", Vector2(vp.x * 0.5 - 100.0, 580.0), Vector2(200, 56), Color("b3121a"), 26).pressed.connect(func(): closed.emit())
+	_btn("BACK", Vector2(vp.x * 0.5 - 100.0, 580.0), Vector2(200, 56), Color("b3121a"), 26, 0.0, false).pressed.connect(func(): closed.emit())
+	_built = true
 
 
 func _equip(aid: String, k: int) -> void:
@@ -153,6 +189,9 @@ func _equip(aid: String, k: int) -> void:
 
 
 func _set_tab(i: int) -> void:
+	if i == _tab:
+		return
+	_slide = SLIDE_DIST * signf(float(i - _tab))   # לשונית ימינה -> נכנס מימין, שמאלה -> משמאל
 	_tab = i
 	_page = 0
 	_sel = 0
@@ -183,13 +222,19 @@ func _buy(t: Array) -> void:
 
 func _process(delta: float) -> void:
 	_flash = maxf(_flash - delta * 2.0, 0.0)
+	_slide = lerpf(_slide, 0.0, 1.0 - exp(-11.0 * delta))
+	if absf(_slide) < 0.5:
+		_slide = 0.0
+	_content.position = Vector2(_slide, 0.0) - _clip.position
+	_content.modulate.a = 1.0 - clampf(absf(_slide) / SLIDE_DIST, 0.0, 1.0) * 0.9
 	queue_redraw()
+	_detail.queue_redraw()
 
 
 func _txt(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
 	var f := ThemeDB.fallback_font
-	draw_string_outline(f, pos, t, align, width, size, 4, Color(0, 0, 0, 0.75))
-	draw_string(f, pos, t, align, width, size, col)
+	_ci.draw_string_outline(f, pos, t, align, width, size, 4, Color(0, 0, 0, 0.75))
+	_ci.draw_string(f, pos, t, align, width, size, col)
 
 
 func _draw() -> void:
@@ -199,6 +244,18 @@ func _draw() -> void:
 	draw_rect(Rect2(x0, 90, 1040, 480), Color(TAB_COLS[_tab], 0.5), false, 2.0)
 	_txt(Vector2(x0, 128), "UPGRADES", 34, Color("d8a033"), HORIZONTAL_ALIGNMENT_CENTER, 1040)
 	_txt(Vector2(x0 + 700, 128), "SCRAP: %d" % Game.scrap, 22, Color(1, 1, 1).lerp(Color("ffd34a"), _flash), HORIZONTAL_ALIGNMENT_RIGHT, 320)
+
+
+# הפאנל שזז עם הלשונית (רשימה/דפים, אייקון, שם, תיאור, מסלולי שדרוג)
+func _draw_detail() -> void:
+	_ci = _detail
+	_draw_detail_body()
+	_ci = self
+
+
+func _draw_detail_body() -> void:
+	var vp := get_viewport_rect().size
+	var x0 := vp.x * 0.5 - 520.0
 	var items := _items()
 	var pages := maxi(1, int(ceil(float(items.size()) / float(PER_PAGE))))
 	if pages > 1:
@@ -207,7 +264,7 @@ func _draw() -> void:
 		return
 	var it: Dictionary = items[_sel]
 	var px := x0 + 360.0
-	draw_rect(Rect2(px, 196, 660, 360), Color(1, 1, 1, 0.03))
+	_ci.draw_rect(Rect2(px, 196, 660, 360), Color(1, 1, 1, 0.03))
 	# אייקון + שם + תיאור
 	var ic := Vector2(px + 60, 240)
 	if it.locked:
@@ -216,11 +273,11 @@ func _draw() -> void:
 		return
 	match it.kind:
 		"w":
-			load("res://weapon_wheel.gd").draw_weapon(self, ic, it.id, 1.2)
+			load("res://weapon_wheel.gd").draw_weapon(_ci, ic, it.id, 1.2)
 		"a":
-			AbilityDB.draw_icon(self, ic, it.id, 1.6)
+			AbilityDB.draw_icon(_ci, ic, it.id, 1.6)
 		"p":
-			draw_circle(ic, 14, Color(0.35, 0.8, 0.5, 0.8))
+			_ci.draw_circle(ic, 14, Color(0.35, 0.8, 0.5, 0.8))
 	_txt(Vector2(px + 120, 230), str(it.name), 24, it.color)
 	var desc := ""
 	if it.kind == "a":
@@ -241,5 +298,5 @@ func _draw() -> void:
 		var lvl := Upgrades.level_of(t[0])
 		for k in int(t[5]):
 			var c := Vector2(px + 330 + float(k) * 22.0, y - 4.0)
-			draw_circle(c, 7.0, Color(0, 0, 0, 0.6))
-			draw_circle(c, 5.5, Color("d8a033") if k < lvl else Color(0.25, 0.22, 0.2))
+			_ci.draw_circle(c, 7.0, Color(0, 0, 0, 0.6))
+			_ci.draw_circle(c, 5.5, Color("d8a033") if k < lvl else Color(0.25, 0.22, 0.2))
