@@ -17,6 +17,8 @@ extends RefCounted
 #    unlock_level          - מאיזה שלב היכולת נפתחת (חינם, נכנסת אוטומטית למקום פנוי)
 #    passive               - true = עובדת לבד (לא צריך ללחוץ)
 #    icon                  - איזה ציור (draw_icon)
+#    cd_after              - true = ה-cooldown מתחיל כשהאפקט נגמר (לא בהפעלה). C בזמן שפועל = stop()
+#    power_desc/power_base - תיאור ומחיר בסיס מיוחדים למסלול POWER בחנות
 # ============================================================
 
 const ABILITIES := [
@@ -34,6 +36,9 @@ const ABILITIES := [
 		"desc": "A ghost copy draws their attacks, flanks and orders. Smart ones may see through it."},
 	{"id": "silence", "name": "SILENCE", "color": Color("9ad0c0"), "cooldown": 20.0, "duration": 6.0, "unlock_level": 9, "icon": "silence",
 		"desc": "Around you zombies can't call each other or receive orders."},
+	{"id": "jetpack", "name": "JETPACK", "color": Color("ff9a3a"), "cooldown": 40.0, "unlock_level": 2, "icon": "jet", "cd_after": true,
+		"power_desc": "More flight time (20s -> 32s max)", "power_base": 110,
+		"desc": "Fly! Hold W/SPACE to thrust, fire while flying. 20s of fuel, burns only in the air. C again = land."},
 ]
 
 
@@ -107,6 +112,12 @@ static func draw_icon(ci: CanvasItem, c: Vector2, id: String, s: float, alpha :=
 				var a := alpha * (0.45 if k == 0 else 1.0)
 				ci.draw_circle(c + o + Vector2(0, -6) * s, 3.0 * s, Color(col, a))
 				ci.draw_line(c + o + Vector2(0, -3) * s, c + o + Vector2(0, 7) * s, Color(col, a), w * 1.4)
+		"jet":
+			ci.draw_rect(Rect2(c + Vector2(-7, -9) * s, Vector2(14, 12) * s), col)
+			ci.draw_rect(Rect2(c + Vector2(-5, 3) * s, Vector2(3, 3) * s), col)
+			ci.draw_rect(Rect2(c + Vector2(2, 3) * s, Vector2(3, 3) * s), col)
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-5, 7) * s, c + Vector2(-2, 7) * s, c + Vector2(-3.5, 12) * s]), Color(1.0, 0.85, 0.3, alpha))
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(2, 7) * s, c + Vector2(5, 7) * s, c + Vector2(3.5, 12) * s]), Color(1.0, 0.85, 0.3, alpha))
 		"silence":
 			ci.draw_arc(c, 9.0 * s, 0.0, TAU, 20, col, w, true)
 			ci.draw_line(c + Vector2(-6, -6) * s, c + Vector2(6, 6) * s, col, w, true)

@@ -14,6 +14,7 @@ var cur := 0
 var _inst := {}        # id -> מופע של היכולת
 var _cd := {}          # id -> כמה שניות נשארו
 var _c_was := false
+var _was_on := {}      # יכולות "cd_after": היו פעילות בפריים הקודם
 var uses := 0          # לבדיקות
 
 
@@ -109,14 +110,18 @@ func use_current() -> bool:
 	if AbilityDB.val(id, "passive", false):
 		player._say("PASSIVE", Color(1, 1, 1, 0.7))
 		return false
+	var a := _ability(id)
+	if a != null and a.active() and AbilityDB.val(id, "cd_after", false) and a.has_method("stop"):   # C שוב = כיבוי
+		a.stop()
+		return true
 	if cooldown_left(id) > 0.0:
 		Sfx.play("empty", null, -6.0)
 		return false
-	var a := _ability(id)
 	if a == null or not a.activate():
 		Sfx.play("empty", null, -6.0)
 		return false
-	_cd[id] = Upgrades.ability_cooldown(id)
+	if not AbilityDB.val(id, "cd_after", false):
+		_cd[id] = Upgrades.ability_cooldown(id)
 	uses += 1
 	return true
 
@@ -137,6 +142,12 @@ func _process(delta: float) -> void:
 		_cd[id] = float(_cd[id]) - delta
 	for id in _inst:
 		_inst[id].process(delta)
+		if AbilityDB.val(id, "cd_after", false):   # נגמר האפקט -> מתחיל ה-cooldown
+			var on: bool = _inst[id].active()
+			if _was_on.get(id, false) and not on:
+				var k: float = _inst[id].cooldown_scale() if _inst[id].has_method("cooldown_scale") else 1.0
+				_cd[id] = Upgrades.ability_cooldown(id) * k
+			_was_on[id] = on
 	var c: bool = player.controllable and not player.wheel_open and not get_tree().paused and Input.is_physical_key_pressed(KEY_C)
 	if c and not _c_was:
 		use_current()

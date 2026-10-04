@@ -93,3 +93,10 @@ RMB sniper scope · ESC pause.
 How it falls depends on the hit (headshot snaps the head back, explosions launch, weak hits sometimes crumple in place).
 It simulates only until it settles (~1-2 s, max 4 s), then freezes. Animals, the hand, the mech, jetpack, bloater and gunner
 keep their old death. A zombie type can opt out with `"ragdoll": false` in `stats()`.
+
+## JETPACK ability
+
+`abilities/types/jetpack.gd` (unlocks at stage 2). C = take off, hold W/SPACE = thrust, release = slow hover-fall, C again = land/turn off.
+Fuel burns only in the air. Flight time by POWER level: `FUEL = [20, 24, 27, 29, 31, 32]` seconds (max 32).
+POWER upgrades use `power_base` 110 in `ability_db.gd` (130, 200, 310, 480, 740 scrap = 1860 total).
+`"cd_after": true` = the 40 s cooldown starts when the flight ends (shorter if you land early with fuel left).

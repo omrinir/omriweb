@@ -104,7 +104,12 @@ func _tracks(it: Dictionary) -> Array:
 				if passive and t == "cooldown":
 					continue
 				var d: Dictionary = Upgrades.ABILITY_TRACKS[t]
-				out.append([Upgrades.ability_key(it.id, t), d.name, d.desc, int(d.base), tier, Upgrades.MAX_LEVEL])
+				var desc: String = d.desc
+				var base: int = int(d.base)
+				if t == "power":   # יכולת יכולה להגדיר תיאור/מחיר משלה (למשל JETPACK: זמן טיסה)
+					desc = str(AbilityDB.val(it.id, "power_desc", desc))
+					base = int(AbilityDB.val(it.id, "power_base", base))
+				out.append([Upgrades.ability_key(it.id, t), d.name, desc, base, tier, Upgrades.MAX_LEVEL])
 		"p":
 			var p := Upgrades.perk_def(it.id)
 			out.append([Upgrades.perk_key(it.id), p.name, p.desc, int(p.base), int(p.tier), int(p.max)])

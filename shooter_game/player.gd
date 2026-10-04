@@ -71,6 +71,7 @@ const WeaponDB := preload("res://weapons/weapon_db.gd")
 const Upgrades := preload("res://progression/upgrade_db.gd")        # שדרוגים שנקנו בחנות (נשקים / יכולות / PERKS)
 const AbilityRunnerScript := preload("res://abilities/ability_runner.gd")
 var abilities: Node = null       # היכולות (C = הפעלה, 6-0 = בחירה)
+var jetpack: RefCounted = null   # abilities/types/jetpack.gd כשהוא דולק
 enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, GRENADE_LAUNCHER, ASSAULT_SHOTGUN }
 var slots := []                  # 5 מקומות: {"id", "ammo", "mag"} או null (ammo = הכל, mag = מה שבמחסנית)
 var _reload_t := 0.0             # טוען (R / מחסנית ריקה). זומבים חכמים מנצלים את הרגע הזה!
@@ -455,6 +456,8 @@ func _physics_process(delta: float) -> void:
 	if _hook_state == 2:
 		_hook_process(delta)
 
+	if jetpack != null and not dead and _drain_target == null:   # JETPACK: דחף / ריחוף
+		jetpack.fly(delta)
 	var fall_v := velocity.y
 	_move()
 	global_position.x = clampf(global_position.x, W, world_w - W)
@@ -1163,6 +1166,8 @@ func _draw() -> void:
 		var ang := (1.0 - _roll_t / 0.35) * TAU * _roll_dir * face
 		_base_xf = Transform2D(ang, Vector2(0, -16)) * Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2(0, 16))
 	draw_set_transform_matrix(_base_xf)
+	if jetpack != null:   # על הגב, מאחורי הגוף
+		jetpack.draw_pack(self)
 	_draw_hero(la)
 	# קרן כוח החיים: מהניצולה אל המכשיר
 	if _drain_target != null and is_instance_valid(_drain_target):
