@@ -99,6 +99,19 @@ func _input(event: InputEvent) -> void:
 			_drop_hovered()
 		MOUSE_BUTTON_LEFT:
 			var c := get_viewport().get_visible_rect().size * 0.5
+			if _page == 1:   # מיני-תפריט: יכולת מהמאגר -> למקום הנבחר
+				var res := _reserve()
+				for k in mini(res.size(), RES_MAX):
+					if _res_rect(c, k, mini(res.size(), RES_MAX)).has_point(event.position):
+						_swap_in(str(res[_res_page * RES_MAX + k]) if _res_page * RES_MAX + k < res.size() else "")
+						get_viewport().set_input_as_handled()
+						return
+				if res.size() > RES_MAX:
+					var n := mini(res.size(), RES_MAX)
+					if _res_rect(c, -1, n).has_point(event.position) or _res_rect(c, n, n).has_point(event.position):
+						_res_page = (_res_page + 1) % int(ceil(float(res.size()) / float(RES_MAX)))
+						get_viewport().set_input_as_handled()
+						return
 			for i in 2:   # לחיצה על לשונית
 				if _tab_rect(c, i).has_point(event.position):
 					_page = i
@@ -230,7 +243,9 @@ func _draw() -> void:
 			sub = "UNLOCK IN LATER STAGES"
 	draw_string(f, c + Vector2(-60, -2), title, HORIZONTAL_ALIGNMENT_CENTER, 120, 16, tcol)
 	draw_string(f, c + Vector2(-60, 17), sub, HORIZONTAL_ALIGNMENT_CENTER, 120, 12, Color(1, 1, 1, 0.6 * a))
-	draw_string(f, c + Vector2(-200, (r_out + 42.0) * sc), "RELEASE Q = EQUIP      RMB / G = DROP", HORIZONTAL_ALIGNMENT_CENTER, 400, 13, Color(1, 1, 1, 0.5 * a))
+	if _page == 1:
+		_draw_reserve(c, a)
+	draw_string(f, c + Vector2(-200, (r_out + 42.0) * sc), ("RELEASE Q = SELECT      CLICK BELOW = SWAP IN" if _page == 1 else "RELEASE Q = EQUIP      RMB / G = DROP"), HORIZONTAL_ALIGNMENT_CENTER, 400, 13, Color(1, 1, 1, 0.5 * a))
 
 
 # ---- בר הנשקים בפינה: 5 קופסאות, הנבחר מורם וזוהר ----
@@ -472,3 +487,82 @@ func _draw_ability_bar(org: Vector2) -> void:
 			draw_rect(r.grow(2.0), Color(col, 0.6 + 0.3 * sin(_t * 10.0)), false, 2.0)
 		draw_string(f, r.position + Vector2(2, 9), str((i + 6) % 10), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 1, 1, 0.4))
 	draw_string(f, org + Vector2(5.0 * (bs + 5.0) + 4.0, 20.0), "C", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.6))
+
+
+# ============================================================
+#  מיני-תפריט יכולות (עמוד ABILITIES): כל היכולות שנפתחו ולא נמצאות ב-5 המקומות.
+#  לחיצה על יכולת = נכנסת למקום הנבחר (המסומן בגלגל), והיכולת שהייתה שם חוזרת למאגר.
+#  יותר מ-8 יכולות? החיצים בצדדים מחליפים דף (מוכן ל-24 יכולות).
+# ============================================================
+const RES_MAX := 8
+var _res_page := 0
+
+
+func _reserve() -> Array:
+	var out := []
+	for id in AbilityDB.unlocked(Game.reached_level()):
+		if not id in Game.ability_slots:
+			out.append(id)
+	return out
+
+
+# k = מקום בשורה (-1 / n = חיצי דפים)
+func _res_rect(c: Vector2, k: int, n: int) -> Rect2:
+	var w := 46.0
+	var gap := 8.0
+	var total := float(n) * (w + gap) - gap
+	return Rect2(Vector2(c.x - total * 0.5 + float(k) * (w + gap), c.y + r_out + 82.0), Vector2(w, w))
+
+
+func _swap_in(id: String) -> void:
+	if id == "" or player == null or player.abilities == null:
+		return
+	var ab = player.abilities
+	while Game.ability_slots.size() < 5:
+		Game.ability_slots.append(null)
+	var slot_i: int = ab.cur
+	if Game.ability_slots[slot_i] != null:   # המקום הנבחר תפוס -> אם יש מקום ריק, משתמשים בו
+		for i in 5:
+			if Game.ability_slots[i] == null:
+				slot_i = i
+				break
+	Game.ability_slots[slot_i] = id
+	ab.cur = slot_i
+	Sfx.play("weapon", null, -4.0)
+	player._say(str(AbilityDB.val(id, "name", "")), AbilityDB.val(id, "color", Color.WHITE))
+
+
+func _draw_reserve(c: Vector2, a: float) -> void:
+	var res := _reserve()
+	var f := ThemeDB.fallback_font
+	var y0 := c.y + r_out + 74.0
+	if res.is_empty():
+		draw_string(f, Vector2(c.x - 200, y0 + 30), "NO OTHER ABILITIES YET", HORIZONTAL_ALIGNMENT_CENTER, 400, 12, Color(1, 1, 1, 0.3 * a))
+		return
+	var pages := int(ceil(float(res.size()) / float(RES_MAX)))
+	_res_page = clampi(_res_page, 0, pages - 1)
+	var n := mini(res.size(), RES_MAX)
+	draw_string(f, Vector2(c.x - 250, y0 - 2), "OTHER ABILITIES  -  CLICK TO PUT IN SLOT %d" % (player.abilities.cur + 1), HORIZONTAL_ALIGNMENT_CENTER, 500, 12, Color(0.75, 0.8, 1.0, 0.8 * a))
+	var mouse := get_viewport().get_mouse_position()
+	for k in n:
+		var i := _res_page * RES_MAX + k
+		if i >= res.size():
+			break
+		var id: String = res[i]
+		var r := _res_rect(c, k, n)
+		var hov := r.has_point(mouse)
+		var col: Color = AbilityDB.val(id, "color", Color.WHITE)
+		var sb := StyleBoxFlat.new()
+		sb.set_corner_radius_all(8)
+		sb.bg_color = Color(0.06, 0.06, 0.09, 0.92 * a).lerp(col, 0.2 if hov else 0.05)
+		sb.border_color = Color(col, (0.95 if hov else 0.45) * a)
+		sb.set_border_width_all(2 if hov else 1)
+		draw_style_box(sb, r.grow(3.0 if hov else 0.0))
+		AbilityDB.draw_icon(self, r.get_center(), id, 1.1 if hov else 0.95, a)
+		if hov:
+			draw_string(f, Vector2(r.get_center().x - 80, r.end.y + 16), str(AbilityDB.val(id, "name", "")), HORIZONTAL_ALIGNMENT_CENTER, 160, 12, Color(col, a))
+	if pages > 1:   # חיצי דפים
+		for side in [-1, n]:
+			var r := _res_rect(c, side, n)
+			draw_string(f, r.position + Vector2(0, 30), "<" if side < 0 else ">", HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 22, Color(1, 1, 1, 0.7 * a))
+		draw_string(f, Vector2(c.x - 60, y0 + 78), "%d / %d" % [_res_page + 1, pages], HORIZONTAL_ALIGNMENT_CENTER, 120, 11, Color(1, 1, 1, 0.5 * a))
