@@ -97,6 +97,7 @@ static func _load_banks() -> void:
 	for path in BANKS:
 		if ResourceLoader.exists(path):
 			register(load(path).SOUNDS)
+	_check_samples()
 	# כל זומבי חדש / שלב יכול להגדיר const SOUNDS := {...} בקובץ שלו - נרשם כאן אוטומטית
 	for list_path in ["res://enemies/zombie_registry.gd", "res://levels/stage_registry.gd"]:
 		if not ResourceLoader.exists(list_path):
@@ -272,7 +273,7 @@ static func _reverb(buf: PackedFloat32Array, wet: float) -> void:
 # ============================================================
 #  קולות זומבים אמיתיים (קבצים ב-sounds/zombies/, חתוכים ומנורמלים).
 #  אם יש קבצים לשם - מנגנים אחד מהם באקראי במקום הצליל המסונתז. אין קובץ = הצליל המסונתז.
-#  SAMPLE_GAIN = כמה dB להוסיף לקבצים (הם מנורמלים חלש; כאן הם ~4dB מתחת לצלילים המסונתזים).
+#  SAMPLE_GAIN = כמה dB להוסיף לקבצים (נמדד במשחק: ~2dB מתחת לצלילים המסונתזים - קצת חלש, אבל נשמע).
 # ============================================================
 const SAMPLE_DIR := "res://sounds/zombies/"
 const SAMPLES := {
@@ -285,8 +286,25 @@ const SAMPLES := {
 	"fscream": ["fscream1", "fscream2", "fscream3"],    # צרחה נשית (MIMIC משתנה)
 	"fwail": ["fwail1", "fwail2"],                      # יללת מוות נשית
 }
-const SAMPLE_GAIN := {"groan": 5.0, "_": 6.0}
+const SAMPLE_GAIN := {"groan": 8.0, "_": 7.5}
 static var _samples := {}
+
+
+# בדיקה בתחילת המשחק: האם קבצי הקולות נמצאים (ההודעה מופיעה בחלון Output של Godot)
+static func _check_samples() -> void:
+	var total := 0
+	var missing := []
+	for k in SAMPLES:
+		for f in SAMPLES[k]:
+			var path: String = SAMPLE_DIR + str(f) + ".mp3"
+			if ResourceLoader.exists(path) or FileAccess.file_exists(path):
+				total += 1
+			elif not missing.has(path):
+				missing.append(path)
+	if missing.is_empty():
+		print("[ZOMBIE VOICES] OK - real zombie voice clips found in ", SAMPLE_DIR)
+	else:
+		push_warning("[ZOMBIE VOICES] missing %d clip(s), e.g. %s - copy the sounds/zombies folder into the game folder" % [missing.size(), missing[0]])
 
 
 static func _sample(name: String) -> AudioStream:
