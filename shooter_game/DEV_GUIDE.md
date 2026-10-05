@@ -117,3 +117,13 @@ POWER upgrades use `power_base` 110 in `ability_db.gd` (130, 200, 310, 480, 740 
 * New zombies: `mimic.gd` (identical to the survivor girl, cries HELP, morphs halfway to you; doesn't groan - `can_groan()` hook in zombie_type.gd),
   `ironwing.gd` (robotic wings: flies, telegraphed dives, a wing breaks at half HP; boss "THE IRON ANGEL"),
   `spare_parts.gd` (throws its own hand, sits and throws both legs - real severed legs other zombies can rethrow - then crawls and grabs).
+
+## Stage 13 - Dunes of Bone (NORTHEAST region, level 4)
+
+* `levels/stage_13.gd`. Real walkable dunes: `environment/s13_dunes.gd` -> `Dune` (StaticBody2D + CollisionPolygon2D, raised-cosine
+  shape, max ~32 degrees, blocks bullets and the sand stream; group `no_outline` = draws its own outline). `stage.surface_y(x)` = ground height.
+  Obstacles only from this stage's own generators (`ribcage`, `rock`) so nothing spawns inside a dune.
+* `SandStorm`: every 32-46 s an 8 s storm (screen haze, sand streaks, zombies see you less via `Game.player_dark`).
+* New zombies: `graveborn.gd` (travels under the sand as a moving mound, cracks + rumble warning, erupts under you; boss "THE OSSUARY"),
+  `sandblaster.gd` (sandblasting machine: rev warning, sand stream that tracks you slowly, pushes and hurts; tank on its back is the weak spot -
+  3 hits from behind burst it). MIMIC appears here too.

@@ -12,6 +12,7 @@ enum {
 	BLOODGATE, KRAKEN, LIVEWIRE,   # שלב 10 (צפון-מזרח)
 	DEVOURER, SPLITJAW,            # שלב 11
 	MIMIC, IRONWING, SPARE_PARTS,  # שלב 12
+	GRAVEBORN, SANDBLASTER,        # שלב 13
 }
 
 const FIRST := 20
@@ -45,6 +46,8 @@ const TYPES := {
 	MIMIC: "res://enemies/types/mimic.gd",
 	IRONWING: "res://enemies/types/ironwing.gd",
 	SPARE_PARTS: "res://enemies/types/spare_parts.gd",
+	GRAVEBORN: "res://enemies/types/graveborn.gd",
+	SANDBLASTER: "res://enemies/types/sandblaster.gd",
 }
 
 static var _stats_cache := {}

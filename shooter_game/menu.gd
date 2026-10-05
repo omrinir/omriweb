@@ -149,9 +149,9 @@ func _build_ui(vp: Vector2) -> void:
 	var play := _button(root, "PLAY", Vector2(70, 250), Vector2(310, 66), 40, 0.15)
 	play.pressed.connect(_open_map)   # PLAY = מפת היבשת
 
-	# בדיקה מהירה: קפיצה ישר לשלב 2-12
-	var accents := [Color("3a8acc"), Color("d8902a"), Color("6a5acd"), Color("c04a3a"), Color("4a90a0"), Color("c0a030"), Color("40b0a0"), Color("d02040"), Color("e8b84a"), Color("8a6ad0"), Color("c03a2a")]
-	for i in 11:
+	# בדיקה מהירה: קפיצה ישר לשלב 2-13
+	var accents := [Color("3a8acc"), Color("d8902a"), Color("6a5acd"), Color("c04a3a"), Color("4a90a0"), Color("c0a030"), Color("40b0a0"), Color("d02040"), Color("e8b84a"), Color("8a6ad0"), Color("c03a2a"), Color("d8c49c")]
+	for i in 12:
 		var lb := _button(root, str(i + 2), Vector2(394 + i * 56, 262), Vector2(50, 44), 20, 0.25 + 0.03 * float(i))
 		lb.accent = accents[i]
 		lb.pressed.connect(_start_game.bind(i + 2))
