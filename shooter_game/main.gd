@@ -687,18 +687,21 @@ func _make_exit(floor_y: float) -> void:
 
 
 # מוזיקת רקע: שלב רחוב = TOTAL WAR, רכבת תחתית = מתח ואימה. מתנגנת בלופ ונכנסת בהדרגה
-@export var music_volume_db := -14.0
+@export var music_volume_db := -7.0   # היה -14: המוזיקה נבלעה מתחת ליריות
 func _start_music() -> void:
 	var path := "res://music/level2_suspense.mp3" if Game.is_subway() or Game.is_night() else "res://music/level1_total_war.mp3"
 	if Game.level == 1:
 		path = "res://music/level1_zombie_joyride.ogg"   # "Zombie Joyride" (EDM). OGG = קובץ קטן בערך פי 2.5 מ-MP3 באותה איכות
 	if _stage != null:
 		path = _stage.music()
-	if not ResourceLoader.exists(path):
+	var stream := _load_music(path)
+	if stream == null:
+		push_warning("[MUSIC] could not load " + path + " - copy the music folder into the game folder")
 		return
-	var stream = load(path)
-	if stream is AudioStreamMP3 or stream is AudioStreamOggVorbis:
-		stream.loop = true
+	if Settings.music_volume <= 0.001:
+		print("[MUSIC] music volume is 0 in the settings (pause menu) - you won't hear ", path)
+	else:
+		print("[MUSIC] playing ", path)
 	var mp := AudioStreamPlayer.new()
 	mp.bus = "Music"   # עוצמה: Settings.music_volume
 	mp.stream = stream
@@ -707,6 +710,25 @@ func _start_music() -> void:
 	add_child(mp)
 	mp.play()
 	create_tween().tween_property(mp, "volume_db", music_volume_db, 2.5)
+
+
+# טוען מוזיקה. אם העורך עוד לא ייבא את הקובץ - קוראים אותו ישירות (OGG / MP3)
+func _load_music(path: String) -> AudioStream:
+	var stream: AudioStream = null
+	if ResourceLoader.exists(path):
+		stream = load(path) as AudioStream
+	if stream == null and FileAccess.file_exists(path):
+		if path.ends_with(".ogg"):
+			stream = AudioStreamOggVorbis.load_from_file(path)
+		elif path.ends_with(".mp3"):
+			var mp3 := AudioStreamMP3.new()
+			mp3.data = FileAccess.get_file_as_bytes(path)
+			stream = mp3
+	if stream is AudioStreamMP3:
+		(stream as AudioStreamMP3).loop = true
+	elif stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
+	return stream
 
 
 func _process(delta: float) -> void:
