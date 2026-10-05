@@ -78,7 +78,10 @@ var _reload_t := 0.0             # טוען (R / מחסנית ריקה). זומ�
 var _reload_total := 1.0
 var _kick := 0.0                 # SMG: הקנה עולה מירייה לירייה
 var _climbing := false           # על סולם (environment/ladder.gd)
-var _drop_t := 0.0               # יורד דרך קומה (S + קפיצה)
+var _drop_t := 0.0               # יורד דרך קומה (S + קפיצה, או S פעמיים מהר)
+var _s_was := false
+var _s_tap_t := 9.0              # כמה זמן עבר מהלחיצה הקודמת על S
+const DOUBLE_TAP := 0.3          # S פעמיים בתוך הזמן הזה = יורדים מהקומה
 var cur_slot := 0
 var wheel_open := false          # גלגל הנשקים פתוח: לא יורים
 var gun: int:
@@ -310,6 +313,18 @@ func _physics_process(delta: float) -> void:
 		Sfx.play("roll", global_position)
 		velocity.x = signf(velocity.x) * 470.0
 	_crouch_was = want_crouch
+	# S פעמיים מהר על קומה עליונה = נופלים דרכה לקומה שמתחת
+	var s_now := controllable and Input.is_physical_key_pressed(KEY_S)
+	_s_tap_t += delta
+	if s_now and not _s_was:
+		if _s_tap_t < DOUBLE_TAP and is_on_floor() and _on_platform() and grabbed_by == null:
+			collision_mask &= ~16
+			_drop_t = 0.25
+			velocity.y = 80.0
+			_s_tap_t = 9.0
+		else:
+			_s_tap_t = 0.0
+	_s_was = s_now
 	# גלגול התחמקות: SHIFT
 	var q := controllable and Input.is_physical_key_pressed(KEY_SHIFT)
 	if q and not _q_was and _roll_cd <= 0.0 and is_on_floor() and grabbed_by == null:

@@ -100,3 +100,11 @@ keep their old death. A zombie type can opt out with `"ragdoll": false` in `stat
 Fuel burns only in the air. Flight time by POWER level: `FUEL = [20, 24, 27, 29, 31, 32]` seconds (max 32).
 POWER upgrades use `power_base` 110 in `ability_db.gd` (130, 200, 310, 480, 740 scrap = 1860 total).
 `"cd_after": true` = the 40 s cooldown starts when the flight ends (shorter if you land early with fuel left).
+
+## Stage 11 - Sun-Bleached Town (NORTHEAST region, level 2)
+
+* `levels/stage_11.gd`, art + night lighting in `effects/s11_decor.gd` (NightOverlay: dark except near working lamps and bonfires;
+  shooting a lamp bulb makes that area dark and sets `Game.player_dark`, so zombies see you less).
+* Second floor only in parts of the level (`ROOFS`). **Any stage:** double-tap S on a one-way floor = drop to the floor below (`player.gd`, `DOUBLE_TAP`).
+* New zombies: `devourer.gd` (walks to nearby zombies and absorbs them: bigger, more HP, more damage, up to 3; shoot it while it eats to make it spit the zombie out;
+  boss "THE GLUTTON"), `splitjaw.gd` (lies like a corpse as bait, head splits open showing teeth, leaps at you). SCOUT is back (calls the others).

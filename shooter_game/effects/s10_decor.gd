@@ -189,6 +189,7 @@ class Obstacle extends Node2D:
 	var kind := "sacks"
 	var size := Vector2(70, 40)
 	var seed_v := 0
+	var label := "SAL"   # מה כתוב על השקים
 
 	func _ready() -> void:
 		var body := StaticBody2D.new()
@@ -211,7 +212,7 @@ class Obstacle extends Node2D:
 					for i in n:
 						var c := Vector2(11.0 + float(i) * 22.0 + float(row % 2) * 11.0, -7.0 - float(row) * 14.0)
 						Art.oval_shaded(self, c, 11.5, 7.5, Color("e0d8c8").darkened(r.randf() * 0.12), r.randf_range(-0.1, 0.1))
-						draw_string(ThemeDB.fallback_font, c + Vector2(-7, 3), "SAL", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.3, 0.3, 0.6, 0.7))
+						draw_string(ThemeDB.fallback_font, c + Vector2(-7 - float(label.length() - 3) * 2.0, 3), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.3, 0.3, 0.6, 0.7))
 			"jangada":   # רפסודת דייגים על החוף, תורן ומפרש קרוע
 				Art.fill_shaded(self, PackedVector2Array([Vector2(0, -size.y), Vector2(size.x, -size.y), Vector2(size.x - 10, 0), Vector2(10, 0)]), Color("8a6440"), 0.15, 0.35)
 				for i in 5:

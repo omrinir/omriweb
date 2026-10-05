@@ -109,7 +109,7 @@ func _process(delta: float) -> void:
 # שלבים זוגיים = רכבת תחתית
 # העולמות מתחלפים: 0 = רחוב, 1 = רכבת תחתית, 2 = מפעל
 # איזה עולם בכל שלב: 0 רחוב, 1 רכבת תחתית, 2 מפעל, 3 רחוב בלילה עם גשם
-const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
+const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
 func world() -> int:
 	return LEVEL_WORLD.get(level, (level - 1) % 4)
 
@@ -134,7 +134,7 @@ func is_factory() -> bool:
 #  מפה: 7 אזורים, 9 שלבים בכל אזור (כרגע 3 השלבים הראשונים קיימים)
 # ============================================================
 const LEVELS_PER_REGION := 9
-const IMPLEMENTED := 10           # כמה שלבים כבר בנויים
+const IMPLEMENTED := 11           # כמה שלבים כבר בנויים
 const REGIONS := [
 	{"name": "NORTHERN AMAZON", "color": Color(0.45, 0.85, 0.3), "desc": "Where it started. The first ones only hunger.",
 		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Ruined District", "Highrise", "The Works", "Research Site", "Zone Zero"]},
@@ -276,6 +276,7 @@ const LEVEL_TITLES := [
 	["THEY ADAPT", "They learned your weapons."],
 	["THEY LEARN", "At first I was fighting zombies. Now the zombies are fighting ME."],
 	["THEY BLEED WITH PURPOSE", "They learned that a wound can be a door."],
+	["THEY HUNGER TOGETHER", "They learned to eat each other. And to play dead."],
 ]
 func level_title() -> Array:
 	var t: Array = LEVEL_TITLES[(level - 1) % LEVEL_TITLES.size()].duplicate()
