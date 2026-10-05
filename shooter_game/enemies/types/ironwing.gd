@@ -94,6 +94,7 @@ func physics(pl: Node, delta: float) -> bool:
 			if _st <= 0.0:
 				state = DIVE
 				_st = 0.9
+				Game.story.emit("flyer", {"z": z})
 				_hit_done = false
 				dives += 1
 				z.velocity = (_target - z.global_position).normalized() * DIVE_SPEED

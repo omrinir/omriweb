@@ -91,6 +91,7 @@ func _rip(p: String, dir: Vector2) -> void:
 		return
 	parts.erase(p)
 	lost += 1
+	Game.story.emit("crumble", {"z": z})
 	var with_hand := false
 	if p == "arm_f" and has("hand_f"):
 		parts.erase("hand_f")
@@ -125,6 +126,7 @@ func _rip(p: String, dir: Vector2) -> void:
 
 
 func _start_crawl() -> void:
+	Game.story.emit("crumble_crawl", {"z": z})
 	crawling = true
 	z._one_leg = false
 	var r := z._shape.shape as RectangleShape2D

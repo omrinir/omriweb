@@ -76,6 +76,7 @@ func on_damage(_amount: int, _hit_pos: Vector2, _dir: Vector2, _src: Dictionary)
 
 
 func _start_morph() -> void:
+	Game.story.emit("mimic", {"z": z})
 	state = MORPH
 	_st = MORPH_T
 	morphs += 1

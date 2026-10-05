@@ -158,14 +158,16 @@ Zombie types can choose a death sound (`zombie_type.gd -> death_sound()`, MIMIC 
   3 shots in the swollen belly while heaving = it chokes; boss "THE BILGE KING"). SCOUT and IRONWING return.
 * `zombie.gd -> lie_down()` = spawn a zombie lying like a corpse (wakes when you come close). Type zombies now draw lying/rising too (`begin_draw`).
 
-## Player monologue (stage 14 only, for now)
+## Player monologue (all levels)
 
-`ui/monologue.gd`: the hero talks to himself - comic speech bubble (font `fonts/Bangers-Regular.ttf`, OFL) above his head,
-on its own CanvasLayer (above the darkness), + a voice clip `sounds/voice/vNN.mp3` - gravelly noir hero (Max Payne / Mad Max style):
-Kokoro TTS voice am_onyx (deep baritone), slow flat delivery, rasp (distorted branch + fast tremolo), close mic, small dry room (ffmpeg).
-25 lines in `LINES` (combat / scary / smart). He talks only 1-2 times per level: `MAX_LINES` 2, `MIN_BETWEEN` 75 s,
-nothing unimportant in the first `FIRST_AFTER` s, combat lines only `COMBAT_CHANCE` of the time.
-Events: `Game.story` signal (game_state.gd) is emitted from zombie.gd (zhit, zkill, notice, wake, cover), player.gd (reload, grenade, phurt),
-ai/zombie_brain.gd (dodge, ambush, flank_jump, adapt), ai/squad_director.gd (call, squad) and the stage (thunder).
-`_poll()` checks situations every 0.3 s (entering a dark hall, 4+ zombies closing in, first big zombie on screen, a zombie in your face).
-To use it in another stage: `main.add_child(preload("res://ui/monologue.gd").new())` in that stage's `build_effects()`.
+`ui/monologue.gd` (added to every level by `main.gd`): the hero talks to himself - comic speech bubble (font `fonts/Bangers-Regular.ttf`, OFL)
+on its own CanvasLayer (above the darkness) + voice clip `sounds/voice/vNN.mp3` (v01..v100): deep raspy voice with a light whisper
+(Kokoro TTS am_onyx, LPC whisper mixed 30%, close-mic EQ, no time-stretch).
+* 100 lines in `LINES`; `EVENTS` maps an event name to its possible lines + priority (1 combat - only sometimes, 2 normal,
+  3 important, 4 must react - e.g. shooting the survivor girl). `SIGHTS` = first time a zombie type is seen in the run.
+* Only 1-4 lines per level (`LINES_PER_LEVEL`, random each level), `MIN_BETWEEN` 40 s apart, the last one is saved for an important moment.
+  Lines already heard in the run are avoided (`heard`).
+* Events: `Game.story.emit(name, info)` - emitted from zombie.gd, player.gd, survivor.gd, exit.gd, bullet.gd (lamp), acid.gd,
+  ai/zombie_brain.gd, ai/squad_director.gd, abilities/types/jetpack.gd, many enemies/types/*.gd, hazards
+  (`hazard.gd -> story_kind`: fire / acid / shock / puke) and stages (thunder, sandstorm, quicksand).
+* Add a line: entry in `LINES` + `sounds/voice/vNN.mp3` + its number in an `EVENTS` entry (or a new event + `Game.story.emit`).

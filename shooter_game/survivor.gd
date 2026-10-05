@@ -77,6 +77,7 @@ func _physics_process(delta: float) -> void:
 					and absf(_player.global_position.y - global_position.y) < 200.0:
 				state = RUN
 				_say("HELP!")
+				Game.story.emit("survivor_seen", {"s": self})
 		RUN, WAIT:
 			if _player == null or _player.dead:
 				velocity.x = move_toward(velocity.x, 0.0, 800.0 * delta)
@@ -141,6 +142,7 @@ func _leave() -> void:
 	p.setup(global_position + Vector2(0, -30), Vector2(-_dir * 60.0, -220.0))
 	_dir = -_dir   # בורחת לכיוון ההפוך
 	Game.on_spared()
+	Game.story.emit("spared", {"s": self})
 
 
 func _say(text: String) -> void:
@@ -159,6 +161,7 @@ func take_damage(_amount: int, hit_pos: Vector2, dir: Vector2, _explosive := fal
 	if state == DEAD or state == DRAINED:
 		return
 	state = DEAD
+	Game.story.emit("survivor_dead", {"s": self, "source": _src.get("source", "grenade" if _explosive else "bullet")})
 	remove_from_group("survivors")
 	collision_layer = 0
 	var r := _shape.shape as RectangleShape2D

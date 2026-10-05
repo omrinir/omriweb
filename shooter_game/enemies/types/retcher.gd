@@ -142,6 +142,7 @@ func blob_hit(pl: Node, dirx: float) -> void:
 	_hit_cd = 0.9
 	hits += 1
 	pl.hurt(z.damage if _boss() else 1, Vector2(dirx, 0.0))
+	Game.story.emit("puked", {"z": z})
 
 
 func _make_mist() -> void:
@@ -196,6 +197,7 @@ func _puddle(at: Vector2, w: float) -> void:
 	var pool = load("res://environment/acid_pool.gd").new()
 	pool.setup(w, 5.0)
 	pool.tint = Color(0.78, 0.82, 0.25)
+	pool.story_kind = "puke"
 	z.get_parent().add_child(pool)
 	pool.global_position = at
 

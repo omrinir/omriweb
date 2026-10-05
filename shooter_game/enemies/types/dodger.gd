@@ -90,6 +90,7 @@ func _try_dodge(pl: Node) -> void:
 	var toward: float = signf(origin.x - z.global_position.x)
 	_side = toward if randf() < 0.55 else -toward
 	dodges += 1
+	Game.story.emit("dodge_bullet", {"z": z})
 	_t = 0.0
 	z.collision_layer = 0   # הקליעים עוברים דרכו
 	_trail.clear()

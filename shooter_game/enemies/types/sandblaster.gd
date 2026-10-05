@@ -129,6 +129,7 @@ func _stream(pl: Node, delta: float) -> void:
 			_tick = TICK
 			hits += 1
 			pl.hurt(z.damage, Vector2(signf(_aim.x), 0.0))
+			Game.story.emit("sandblast", {"z": z})
 
 
 # ---- זרם החול: CPUParticles2D (עובד גם ב-GL Compatibility) ----

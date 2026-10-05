@@ -7,7 +7,6 @@ extends "res://levels/stage_base.gd"
 #  שני אולמות של מפעל השימורים (CANNERIES): בפנים כמעט חושך מוחלט - רק נורות מהבהבות (חלקן מתות).
 #    יש בהם קומה עליונה (מסלול הליכה) עם סולמות. בחוץ: פנסי נמל קרים וחביות בוערות.
 #  מזחי עץ (PIERS) = קומה שנייה בחלקים מהשלב. יורדים: S פעמיים.
-#  חדש: השחקן מדבר לעצמו (ui/monologue.gd) - בועת קומיקס + קול, לפי מה שקורה.
 #  זומבים: CRUMBLER (כל קליע תולש ממנו חלק), RETCHER (ענק שמקיא עליך), SCOUT (מזעיק את כולם),
 #    IRONWING (כנפיים רובוטיות), WALKER, RUNNER.
 #  בוס: RETCHER ענק - "THE BILGE KING".
@@ -17,7 +16,6 @@ extends "res://levels/stage_base.gd"
 const WeaponDB := preload("res://weapons/weapon_db.gd")
 const Decor := preload("res://effects/s14_decor.gd")
 const LampScript := preload("res://street_lamp.gd")
-const MonologueScript := preload("res://ui/monologue.gd")
 
 const HALLS := [[0.27, 900.0], [0.6, 1100.0]]    # [מיקום יחסי, רוחב] אולמות המפעל
 const HALL_H := 300.0
@@ -29,7 +27,6 @@ const LAMP_GAP := Vector2(420.0, 700.0)
 var _hall_spans := []
 var storm_overlay = null
 var storm_rain = null
-var monologue = null
 
 
 func zombie_weights() -> Dictionary:
@@ -196,8 +193,6 @@ func build_effects() -> void:
 	storm_rain = Decor.StormRain.new()
 	storm_rain.overlay = storm_overlay
 	screen_layer.add_child(storm_rain)
-	monologue = MonologueScript.new()   # השחקן מדבר לעצמו (רק בשלב הזה, בינתיים)
-	main.add_child(monologue)
 
 
 # במפעל: CRUMBLER שוכבים (קמים כשמתקרבים) ו-RETCHER. על המזחים: SCOUT. מעל בית הקברות: IRONWING

@@ -36,6 +36,7 @@ func on_boss_dead() -> void:
 	if not locked:
 		return
 	locked = false
+	Game.story.emit("gate_open", {})
 	_wall.queue_free()
 	var t = preload("res://zombie.gd").HitText.new()
 	t.text = "THE GATE IS OPEN!"

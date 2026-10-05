@@ -460,6 +460,8 @@ func on_zombie_killed(kind: int, info: Dictionary) -> Array:
 	for b in bonuses:
 		pts += int(b[1])
 	add_score(pts)
+	if combo == 10:
+		story.emit("combo", {})
 	if combo == 5 or combo == 10 or combo == 15:
 		bonuses.append(["COMBO x%d" % multiplier(), 0])
 	return bonuses

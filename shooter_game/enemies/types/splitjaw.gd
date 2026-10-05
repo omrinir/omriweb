@@ -143,6 +143,7 @@ func physics(pl: Node, delta: float) -> bool:
 
 
 func _leap(pl: Node) -> void:
+	Game.story.emit("splitjaw", {"z": z})
 	state = LEAP
 	_st = LEAP_T * 0.6
 	_bit = false

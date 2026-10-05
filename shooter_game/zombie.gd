@@ -469,7 +469,7 @@ func _physics_process(delta: float) -> void:
 		_dir = signf(tp.global_position.x - global_position.x)
 		if not _noticed:   # ראה את השחקן: זעקה
 			_noticed = true
-			Game.story.emit("notice", {"z": self})
+			Game.story.emit("boss" if is_boss() else "notice", {"z": self})
 			_voice("zscream", 0.9, 3.0)
 			if brain != null:   # משלב 5: מזעיק חברים
 				brain.on_notice(self, player)
@@ -844,6 +844,7 @@ func _bloater_logic(d: Vector2, delta: float) -> float:
 	if (absf(d.x) < 34.0 and absf(d.y) < 60.0) or _swell >= 1.0:
 		_fuse_t = 0.45
 		_popup("!!", Color("ff4030"), 22, -90.0)
+		Game.story.emit("bloater", {"z": self})
 		return 0.0
 	return chase_speed * (1.0 + 0.4 * _swell)   # ככל שהוא נפוח יותר הוא מהיר יותר
 
@@ -1156,6 +1157,7 @@ func _lying() -> bool:
 
 func _lose_leg(dir: Vector2) -> void:
 	_one_leg = true
+	Game.story.emit("leg", {"z": self})
 	Game.on_leg_severed()
 	_hop_t = 0.4
 	var hip := global_position + Vector2(-_dir * 2.0 * wf, -22.0 * sc)
@@ -1770,6 +1772,7 @@ func _ceiling_logic(player: Node, delta: float) -> void:
 func _drop_down() -> void:
 	if not on_ceiling:
 		return
+	Game.story.emit("ceiling_drop", {"z": self})
 	on_ceiling = false
 	_shape.position.y = -33.0 * sc
 	global_position.y += 66.0 * sc

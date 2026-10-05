@@ -111,6 +111,7 @@ func _hold(delta: float, speed: float) -> void:
 
 
 func _start(o: Node2D) -> void:
+	Game.story.emit("devour", {"z": z})
 	_prey = o
 	_abs_t = 0.0
 	_abs_dmg = 0

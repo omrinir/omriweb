@@ -153,6 +153,7 @@ class ShockBolt extends Node2D:
 				if r.has_point(global_position.lerp(to, float(i) / 2.0)):
 					p.hurt(1, Vector2(signf(velocity.x), -0.3))
 					Sfx.play("lw_hit", global_position, 0.0, 0.1, 3)
+					Game.story.emit("shock", {})
 					Particles.burst(get_parent(), global_position, "spark", Vector2.UP, 10)
 					queue_free()
 					return
@@ -190,6 +191,7 @@ class LiveCable extends "res://environment/hazard.gd":
 
 	func _ready() -> void:
 		super._ready()
+		story_kind = "shock"
 		player_damage = 1
 		tick = 0.7
 		z_index = 1
@@ -289,6 +291,7 @@ class DownedLine extends "res://environment/hazard.gd":
 
 	func _ready() -> void:
 		super._ready()
+		story_kind = "shock"
 		rect = Rect2(-width * 0.5, -14.0, width, 15.0)
 		player_damage = 1
 		zombie_damage = 5

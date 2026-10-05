@@ -80,6 +80,7 @@ func _physics_process(delta: float) -> void:
 	for lp in get_tree().get_nodes_in_group("lamps"):   # נורה של פנס רחוב
 		if lp.hit_test(from, to):
 			lp.shatter(velocity.normalized())
+			Game.story.emit("lamp_shot", {})
 			queue_free()
 			return
 	for mh in get_tree().get_nodes_in_group("manholes"):   # מכסה ביוב קופץ

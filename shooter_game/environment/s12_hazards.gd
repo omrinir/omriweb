@@ -84,6 +84,8 @@ class QuickSand extends "res://environment/hazard.gd":
 			p.velocity.x = clampf(p.velocity.x, -SLOW, SLOW)   # בוץ: כמעט לא זזים
 			if p.velocity.y < 0.0:
 				p.velocity.y *= 0.82   # קשה לקפוץ החוצה
+			if _in_t == 0.0:
+				Game.story.emit("quicksand", {})
 			_in_t += delta
 			if _in_t > 1.2:   # שוקע
 				_in_t = 0.4

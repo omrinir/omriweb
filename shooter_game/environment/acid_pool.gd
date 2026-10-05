@@ -10,6 +10,7 @@ var _max_life := 4.0
 
 
 func setup(w: float, seconds: float) -> void:
+	story_kind = "acid"
 	width = w
 	life = seconds
 	_max_life = seconds

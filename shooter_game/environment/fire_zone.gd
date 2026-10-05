@@ -11,6 +11,7 @@ var _flames := []
 
 
 func setup(w: float, seconds: float) -> void:
+	story_kind = "fire"
 	width = w
 	life = seconds
 	rect = Rect2(-w * 0.5, -34.0, w, 36.0)

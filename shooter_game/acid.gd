@@ -33,6 +33,7 @@ func _physics_process(delta: float) -> void:
 		for i in 3:
 			if r.has_point(global_position.lerp(to, float(i) / 2.0)):
 				p.hurt(damage, Vector2(signf(velocity.x), 0.0))
+				Game.story.emit("acid", {})
 				_splash = 0.0
 				return
 	var q := PhysicsRayQueryParameters2D.create(global_position, to, 1 | 16)

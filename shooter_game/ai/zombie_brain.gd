@@ -312,6 +312,7 @@ func _charge(z: Node, dist: float, speed: float, delta: float) -> float:
 			if dist < 200.0 and dist > 60.0 and _charge_cd <= 0.0 and z.is_on_floor():
 				_charge_state = 1
 				_charge_t = 0.5
+				Game.story.emit("charge", {"z": z})
 				z._voice("roar", 1.0, 2.0)
 		1:   # מתכונן (חלון לירות בו)
 			_charge_t -= delta

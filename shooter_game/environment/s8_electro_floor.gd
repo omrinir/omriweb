@@ -25,6 +25,7 @@ var _seed := 0
 
 
 func setup(w: float, ph := 0.0) -> void:
+	story_kind = "shock"
 	width = w
 	phase = ph
 	rect = Rect2(-w * 0.5, -10.0, w, 12.0)

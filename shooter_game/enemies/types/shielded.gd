@@ -135,6 +135,7 @@ func on_damage(_amount: int, hit_pos: Vector2, dir: Vector2, src: Dictionary) ->
 	var steep := absf(dir.y) > 0.72   # יורים מלמעלה (מגשר) - הלוח לא מכסה
 	if (source == "bullet" or source == "melee") and frontal and not steep and not exposed():
 		blocked += 1
+		Game.story.emit("shield_block", {"z": z})
 		if Art.on_screen(z, hit_pos):
 			Particles.burst(z.get_parent(), hit_pos, "fire", Vector2(-dir.x, -0.4), 7)
 		if _clang_cd <= 0.0:

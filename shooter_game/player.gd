@@ -565,6 +565,7 @@ func _try_stomp() -> void:
 					hurt(1, Vector2(side, -0.6))
 					velocity.x = side * 260.0
 					_say("NOT AGAIN!", Color("ff5a4a"))
+					Game.story.emit("stomp_hurt", {})
 				return
 			z.set_meta("stomped", _time)
 			z.take_damage(20, global_position, Vector2(_face(), 0.4), true, {"source": "stomp"})
@@ -610,6 +611,7 @@ func collect(p: Node) -> bool:
 		return false
 	match p.kind:
 		PickupScript.AMMO:
+			Game.story.emit("ammo", {"was_empty": weapon == GUN and ammo <= 0})
 			_ammo_box(1)
 			Sfx.play("pickup", null)
 		PickupScript.GRENADE:
@@ -683,6 +685,7 @@ func _fire() -> void:
 			if _empty_t <= 0.0:
 				_empty_t = 1.0
 				_say("NO AMMO", Color("ff6050"))
+				Game.story.emit("no_ammo", {})
 			return
 		if msize > 0 and mag <= 0:   # מחסנית ריקה: טוענים
 			reload()
@@ -891,6 +894,7 @@ func _take_weapon(p: Node) -> bool:
 		if slots[i] == null:
 			slots[i] = {"id": p.weapon_id, "ammo": amt}
 			Game.mark_weapon_seen(p.weapon_id)
+			Game.story.emit("new_weapon", {"id": p.weapon_id})
 			Sfx.play("weapon", null)
 			select_slot(i)
 			_say(p.label(), p.color())
@@ -1016,6 +1020,7 @@ func _hook_process(delta: float) -> void:
 func grab(by: Node) -> void:
 	grabbed_by = by
 	_mash = 0
+	Game.story.emit("grabbed", {"z": by})
 	_mash_last = 0
 	_hook_state = 0
 	_say("SHAKE FREE!  A / D", Color("ff6050"))
@@ -1092,6 +1097,7 @@ func _drain_candidate() -> Node:
 
 
 func _start_drain(s: Node) -> void:
+	Game.story.emit("drain", {"s": s})
 	_drain_target = s
 	_drain_t = 0.0
 	_cooldown = DRAIN_TIME
@@ -1145,6 +1151,7 @@ func hurt(amount: int, knock_dir: Vector2) -> void:
 			_dodge_slow = 0.6
 			Engine.time_scale = 0.45
 			_say("PERFECT DODGE", Color("80d0ff"))
+			Game.story.emit("perfect_dodge", {})
 			Sfx.play("whoosh", null, 2.0)
 			Game.on_style("dodge", 20)
 		return
@@ -1161,6 +1168,7 @@ func hurt(amount: int, knock_dir: Vector2) -> void:
 	preload("res://particles.gd").burst(get_parent(), global_position + Vector2(0, -30), "hit", Vector2(knock_dir.x, -0.3) if knock_dir != Vector2.ZERO else Vector2.ZERO, 14)
 	_invuln = invuln_time
 	if health - amount <= 0 and abilities != null and abilities.on_lethal_hit():   # LAST BREATH
+		Game.story.emit("last_breath", {})
 		health_changed.emit(health, max_health)
 		return
 	health = maxi(health - amount, 0)

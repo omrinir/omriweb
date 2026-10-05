@@ -141,6 +141,7 @@ func portal_failed() -> void:
 
 
 func _emerge(p: Node2D) -> void:
+	Game.story.emit("portal", {"z": z})
 	if p != null and is_instance_valid(p):
 		z.global_position = p.global_position
 		p.used = true

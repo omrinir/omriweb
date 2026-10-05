@@ -166,6 +166,7 @@ func damage_mult(_zone: String, src: Dictionary) -> float:
 
 
 func _block_fx(hit_pos: Vector2, dir: Vector2) -> void:
+	Game.story.emit("shield_block", {"z": z})
 	Sfx.play("shield_clang", hit_pos, -2.0, 0.2, 3)
 	Particles.burst(z.get_parent(), hit_pos, "fire", Vector2(-dir.x, -0.4), 6)
 	Game.on_zombie_hit({"source": "bullet", "zone": "shield"})

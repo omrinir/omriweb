@@ -1,19 +1,23 @@
 extends Node
 # ============================================================
-#  MONOLOGUE - השחקן מדבר לעצמו (בועת קומיקס מעל הראש + קריינות בקול גבר כהה).
-#  כרגע פעיל רק בשלב 14 (levels/stage_14.gd -> build_effects מוסיף אותו).
-#  כל משפט מחובר לאירוע אמיתי במשחק: Game.story (signal) נשלח מ-zombie.gd, player.gd,
-#  ai/zombie_brain.gd, ai/squad_director.gd ומהשלב עצמו (רעם). חלק מהמצבים נבדקים כל 0.3 שנ' (_poll).
+#  MONOLOGUE - השחקן מדבר לעצמו: בועת קומיקס מעל הראש + קול (גבר צרוד, קצת לוחש).
+#  בכל השלבים (main.gd מוסיף אותו). מדבר מעט: בכל שלב מוגרל MAX 1-4 משפטים (LINES_PER_LEVEL),
+#  עם לפחות MIN_BETWEEN שניות ביניהם - ורק כשקורה משהו שמצדיק את זה.
 #
-#  LINES: [טקסט, קטגוריה, קובץ קול]. קטגוריות: "combat" (צהוב-כתום), "scary" (תכלת), "smart" (סגול).
-#  איך מוסיפים משפט: שורה ב-LINES + קובץ sounds/voice/vNN.mp3 + קריאה ל-_try(NN, עדיפות) במקום המתאים.
-#  כמה הוא מדבר: MAX_LINES (כרגע 2 בשלב), MIN_BETWEEN (שניות בין משפטים), FIRST_AFTER, COMBAT_CHANCE.
-#  הקולות נוצרו עם Kokoro TTS (קול am_onyx - בריטון עמוק) + ffmpeg בסגנון "גיבור נואר" (מקס פיין / מקס הזועם):
-#  הגשה איטית ושטוחה, צרידות (ענף מעוות + טרמולו מהיר), מיקרופון קרוב, חדר קטן ויבש.
+#  איך זה עובד: Game.story (signal ב-game_state.gd) נשלח מכל מקום במשחק כשקורה משהו
+#  (zombie.gd, player.gd, survivor.gd, ai/*, zombie types, hazards, השלבים). _on_story מחליט אם להגיב,
+#  _poll בודק מצבים כל 0.3 שנ' (נכנסים לחושך, הרבה זומבים מתקרבים, רואים סוג זומבי בפעם הראשונה).
+#  כל אירוע = כמה משפטים אפשריים (EVENTS); נבחר אחד אקראי שעוד לא נשמע בריצה הזו (heard).
+#  עדיפות: 1 = קרב (קורה רק לפעמים), 2 = רגיל, 3 = חשוב (הפתעה / הם חכמים),
+#    4 = חייב להגיב (ירית בניצולה) - עוקף את ההמתנה בין משפטים, אבל אף פעם לא יותר מ-4 בשלב.
+#  המשפט האחרון בשלב שמור לאירוע חשוב (עדיפות 2+).
+#  קול: sounds/voice/vNN.mp3 (v100.mp3). Kokoro TTS (am_onyx) + לחישה קלה (LPC על רעש, 30%) + ffmpeg.
+#  להוסיף משפט: שורה ב-LINES + קובץ קול + להוסיף את המספר לאירוע ב-EVENTS (או קריאה ל-_event).
 # ============================================================
 
 const Art := preload("res://art.gd")
 const Registry := preload("res://enemies/zombie_registry.gd")
+const Z := preload("res://zombie.gd")
 const FONT_PATH := "res://fonts/Bangers-Regular.ttf"
 const VOICE_DIR := "res://sounds/voice/"
 
@@ -43,51 +47,150 @@ const LINES := {
 	23: ["They're working together...", "smart"],
 	24: ["Okay... they're getting smarter.", "smart"],
 	25: ["Oh shit. They figured me out.", "smart"],
+	26: ["Ow, shit! Sorry, sorry!", "wtf"],
+	27: ["Shit! I didn't mean that!", "wtf"],
+	28: ["Hang on. I'm coming for you.", "wtf"],
+	29: ["I'm sorry. I need this more than you.", "wtf"],
+	30: ["Go. Get out of here.", "wtf"],
+	31: ["No... no, no, no.", "scary"],
+	32: ["That's not her. That's NOT her!", "wtf"],
+	33: ["Since when do they wear faces?", "wtf"],
+	34: ["I'm not dying in this shithole.", "scary"],
+	35: ["Hold it together. Hold it together.", "scary"],
+	36: ["Better. Much better.", "wtf"],
+	37: ["Get your hands off me!", "wtf"],
+	38: ["Something grabbed my leg!", "wtf"],
+	39: ["Oh god, that's disgusting!", "wtf"],
+	40: ["It's in my mouth. It's in my MOUTH!", "wtf"],
+	41: ["Hot, hot, hot!", "wtf"],
+	42: ["Great. Quicksand. Of course.", "wtf"],
+	43: ["Empty. Of course it's empty.", "wtf"],
+	44: ["Come on, I need bullets!", "wtf"],
+	45: ["Now we're talking.", "combat"],
+	46: ["Hello, beautiful.", "combat"],
+	47: ["Thank god. Bullets.", "combat"],
+	48: ["Boom. Who's next?", "combat"],
+	49: ["Never stand next to a barrel.", "combat"],
+	50: ["Right between the eyes.", "combat"],
+	51: ["One shot. One less.", "combat"],
+	52: ["Two for one.", "combat"],
+	53: ["Watch your head.", "combat"],
+	54: ["Hop along, buddy.", "combat"],
+	55: ["I'm on fire tonight.", "combat"],
+	56: ["Too slow.", "combat"],
+	57: ["Hell yes. I can fly.", "combat"],
+	58: ["Yeah... don't do that twice.", "combat"],
+	59: ["That's a big one.", "scary"],
+	60: ["Oh, you've got to be kidding me.", "scary"],
+	61: ["And stay dead.", "combat"],
+	62: ["Biggest one yet. Still dead.", "combat"],
+	63: ["There's my way out.", "combat"],
+	64: ["Just thunder. Just thunder.", "scary"],
+	65: ["Can't see a damn thing in this sand.", "scary"],
+	66: ["Smart. Real smart. Now it's dark.", "scary"],
+	67: ["Dark. Why is it always dark?", "scary"],
+	68: ["Should've stayed home tonight.", "scary"],
+	69: ["Too quiet. I hate it when it's quiet.", "scary"],
+	70: ["Keep moving. Just keep moving.", "scary"],
+	71: ["They're coming out of the ground?!", "scary"],
+	72: ["Did he just... eat his friend?", "scary"],
+	73: ["His head just opened up!", "scary"],
+	74: ["Since when do they fly?!", "wtf"],
+	75: ["He's falling apart. Literally.", "wtf"],
+	76: ["Even in pieces, he keeps coming.", "wtf"],
+	77: ["Bullets don't do shit to that shield.", "wtf"],
+	78: ["Tentacles. Why are there tentacles?", "scary"],
+	79: ["Where the hell did that one come from?", "scary"],
+	80: ["Electric zombies. Great. Just great.", "wtf"],
+	81: ["Sand in my eyes! Sand everywhere!", "wtf"],
+	82: ["Somebody shut that one up!", "wtf"],
+	83: ["Is that one... giving orders?", "smart"],
+	84: ["It dodged. It actually dodged.", "smart"],
+	85: ["Big guy's charging. Move!", "wtf"],
+	86: ["A zombie with a jetpack. Sure. Why not.", "wtf"],
+	87: ["Rats. I hate rats.", "wtf"],
+	88: ["Even the dogs...", "wtf"],
+	89: ["Acid. That's new.", "wtf"],
+	90: ["Officer, I don't think you're on duty anymore.", "wtf"],
+	91: ["Don't pop. Don't pop. Don't pop.", "wtf"],
+	92: ["From the ceiling?!", "scary"],
+	93: ["I knew it. I knew it was a trap.", "smart"],
+	94: ["Keep it together. You've got this.", "scary"],
+	95: ["One more step. One more.", "scary"],
+	96: ["Clean shot.", "combat"],
+	97: ["Not today.", "combat"],
+	98: ["Did that thing just shoot back?", "smart"],
+	99: ["Who builds a robot for a zombie?", "wtf"],
+	100: ["That's one way to cross a street.", "wtf"],
 }
-const COLORS := {"combat": Color("ffd23a"), "scary": Color("9fe8ff"), "smart": Color("d8a8ff")}
-const GAP := 4.5            # שקט מינימלי אחרי משפט (עדיפות 3 = רק 1.5 שנ')
-const LINE_CD := 40.0       # אותו משפט לא חוזר לפני זה
-const ONCE := [14, 22]      # רק פעם אחת בשלב
+
+# אירוע -> [משפטים אפשריים, עדיפות]
+const EVENTS := {
+	"survivor_shot": [[26, 27], 4], "survivor_blown": [[31, 27], 4], "survivor_seen": [[28], 2],
+	"drain": [[29, 36], 3], "spared": [[30], 2], "mimic": [[32, 33], 3],
+	"low_hp": [[34, 35, 94, 95], 2], "grabbed": [[37], 3], "hand_grab": [[38], 3],
+	"puked": [[39, 40], 3], "fire": [[41], 2], "acid": [[89], 2], "shock": [[80], 2], "quicksand": [[42], 3],
+	"no_ammo": [[43, 44], 2], "new_weapon": [[45, 46], 2], "ammo_saved": [[47], 2], "combo": [[55], 2],
+	"perfect_dodge": [[56], 2], "jetpack": [[57], 2], "stomp_hurt": [[58], 3], "last_breath": [[97], 3],
+	"boss": [[59, 60, 12], 3], "boss_dead": [[61, 62], 3], "gate_open": [[63], 2],
+	"thunder": [[13, 64], 2], "sandstorm": [[65], 2], "lamp_shot": [[66], 2], "dark": [[15, 67, 14], 3],
+	"after_fight": [[69, 70, 68, 17], 2],
+	"graveborn": [[71], 3], "devour": [[72], 3], "splitjaw": [[73], 3], "flyer": [[74], 3],
+	"crumble": [[75], 2], "crumble_crawl": [[76], 2], "shield": [[77], 2], "kraken": [[78], 3], "portal": [[79], 3],
+	"sandblast": [[81], 2], "call": [[82, 23], 3], "squad": [[83, 23], 3], "dodge_bullet": [[84], 3],
+	"charge": [[85], 2], "ceiling_drop": [[92], 3], "ambush": [[22, 93], 3], "bloater": [[91], 3],
+	"leg": [[54], 1], "headshots": [[50, 96], 1], "long_head": [[51], 2], "double": [[52], 1], "blast": [[48], 2],
+	"barrel": [[49], 2], "car": [[100], 2], "stomp_kill": [[53], 1],
+	"grenade_dodged": [[19, 20], 3], "adapt": [[19, 24], 3], "cover": [[24], 2], "flank_jump": [[25], 3],
+	"know": [[21], 3], "heard": [[16], 2], "scared": [[11], 3], "closer": [[18], 2],
+	"die_die": [[1], 1], "wont_die": [[2], 2], "stay_down": [[3], 1], "not_up": [[4], 1], "come_on": [[5], 1],
+	"last_one": [[6], 2], "got_you": [[7], 1], "eat_this": [[8], 1], "back_off": [[9], 1], "had_enough": [[10], 2],
+}
+# סוג זומבי שרואים בפעם הראשונה (בריצה) -> אירוע
+const SIGHTS := {Z.JETPACK: [86], Z.RAT: [87], Z.DOG: [88], Z.HOUND: [88], Z.COP: [90], Z.GUNNER: [98], Z.MECH: [99], Registry.IRONWING: [74]}
+const COLORS := {"combat": Color("ffd23a"), "scary": Color("9fe8ff"), "smart": Color("d8a8ff"), "wtf": Color("ff8a5a")}
 const VOICE_DB := 1.0
-# כמה הוא מדבר: מעט, ורק ברגעים החזקים
-const MAX_LINES := 2        # הכי הרבה משפטים בשלב אחד
-const MIN_BETWEEN := 75.0   # שניות לפחות בין שני המשפטים
-const FIRST_AFTER := 20.0   # לפני זה (תחילת השלב) - רק רגע חשוב באמת (עדיפות 3)
-const COMBAT_CHANCE := 0.35 # משפטי קרב (עדיפות 1) קורים רק לפעמים, כדי שלא תמיד יבחר דווקא אותם
+const LINES_PER_LEVEL := Vector2i(1, 4)   # כמה משפטים מקסימום בשלב (מוגרל בכל שלב)
+const MIN_BETWEEN := 40.0                  # שניות לפחות בין משפטים
+const FIRST_AFTER := 10.0                  # בהתחלה: רק אירועים חשובים
+const COMBAT_CHANCE := 0.35                # משפטי קרב (עדיפות 1) - רק לפעמים
+const SIGHT_RANGE := 750.0
 
 static var _font: Font = null
+static var heard := {}      # משפטים שכבר נאמרו בריצה הזו (עדיפות למשפטים חדשים)
+static var seen_kinds := {} # סוגי זומבים שכבר ראה
 
 var player: Node2D = null
+var max_lines := 2
 var said := {}              # id -> כמה פעמים (לבדיקות)
 var log_lines := []         # [זמן, id] (לבדיקות)
 var _t := 0.0
-var _line_t := {}           # id -> מתי נאמר לאחרונה
-var _cur := 0               # המשפט שמוצג עכשיו
-var _show := 0.0            # כמה זמן הבועה עוד מוצגת
+var _cur := 0
+var _show := 0.0
 var _dur := 0.0
-var _quiet := 2.0           # כמה זמן חייבים לשתוק
-var _pending := 0
-var _pending_p := 0
-var _pending_t := 0.0
 var _voice: AudioStreamPlayer
-var _layer: CanvasLayer      # הבועה מעל הכל (גם מעל החושך של השלב)
+var _layer: CanvasLayer
 var _ui: Node2D
 var _poll_t := 0.0
-# מעקב אחרי זומבים
-var _hits := {}             # instance_id -> [זמני פגיעה]
-var _total := {}            # instance_id -> סה"כ פגיעות
-var _flags := {}            # instance_id -> {"die":, "why":, "lying":, "smart":}
-var _attackers := {}        # זומבים שפגעו בך
-var _kills := []
-var _cleared_t := -99.0
-var _dodges := 0
+var _hits := {}
+var _total := {}
+var _flags := {}
+var _attackers := {}
+var _kills := []            # זמני הריגות
+var _blast_kills := []
+var _head_streak := 0
+var _shield_t := []
 var _was_dark := false
 var _was_inside := false
+var _dark_said := false
+var _fight_t := -99.0       # מתי היה הקרב האחרון (הריגות)
+var _calm_said := false
 var _seen_big := {}
 
 
 func _ready() -> void:
 	add_to_group("monologue")
+	max_lines = randi_range(LINES_PER_LEVEL.x, LINES_PER_LEVEL.y)
 	_layer = CanvasLayer.new()
 	_layer.layer = 4
 	add_child(_layer)
@@ -128,37 +231,51 @@ func _voice_stream(id: int) -> AudioStream:
 	return null
 
 
-# ---- לבקש משפט. עדיפות: 1 = קרב (אפשר לוותר), 2 = רגיל, 3 = חשוב (מפחיד / הם חכמים) ----
-func _try(id: int, prio := 1) -> bool:
-	if player == null or player.dead:
+# ---- האם מותר לדבר עכשיו (בלי לבחור משפט) ----
+func can_talk(prio: int) -> bool:
+	if player == null or not is_instance_valid(player) or player.dead or _show > 0.0:
 		return false
-	if log_lines.size() >= MAX_LINES:
+	if prio >= 4:
+		return log_lines.size() < LINES_PER_LEVEL.y and (log_lines.is_empty() or _t - float(log_lines[-1][0]) > 6.0)
+	if log_lines.size() >= max_lines:
+		return false
+	if log_lines.size() == max_lines - 1 and prio < 2:   # המשפט האחרון בשלב - רק לרגע ששווה אותו
 		return false
 	if not log_lines.is_empty() and _t - float(log_lines[-1][0]) < MIN_BETWEEN:
 		return false
 	if _t < FIRST_AFTER and prio < 3:
 		return false
+	return true
+
+
+# אירוע -> אולי משפט. מחזיר true אם דיבר
+func _event(ev: String, chance := 1.0) -> bool:
+	if not EVENTS.has(ev):
+		return false
+	var prio: int = EVENTS[ev][1]
+	if not can_talk(prio):
+		return false
 	if prio == 1 and randf() > COMBAT_CHANCE:
 		return false
-	if id in ONCE and said.has(id):
+	if chance < 1.0 and randf() > chance:
 		return false
-	if _t - float(_line_t.get(id, -999.0)) < LINE_CD:
-		return false
-	var busy: bool = _show > 0.0 or _quiet > (GAP - 1.5 if prio >= 3 else 0.0)
-	if busy:
-		if prio > _pending_p:   # עסוק: שומרים את החשוב ביותר לעוד רגע
-			_pending = id
-			_pending_p = prio
-			_pending_t = 2.0
-		return false
-	_say(id)
+	var ids: Array = EVENTS[ev][0]
+	if prio < 4 and ids.all(func(i: int) -> bool: return heard.has(i)) and randf() > 0.3:
+		return false   # כל המשפטים של האירוע כבר נשמעו בריצה הזו - רק לפעמים חוזר
+	_say(_pick(ids))
 	return true
+
+
+func _pick(ids: Array) -> int:
+	var fresh := ids.filter(func(i: int) -> bool: return not heard.has(i))
+	var pool: Array = fresh if not fresh.is_empty() else ids
+	return pool[randi() % pool.size()]
 
 
 func _say(id: int) -> void:
 	_cur = id
 	said[id] = int(said.get(id, 0)) + 1
-	_line_t[id] = _t
+	heard[id] = true
 	log_lines.append([snappedf(_t, 0.1), id])
 	var st := _voice_stream(id)
 	var vlen := 0.0
@@ -169,148 +286,196 @@ func _say(id: int) -> void:
 	var txt: String = LINES[id][0]
 	_dur = maxf(vlen + 0.6, 1.4 + float(txt.length()) * 0.045)
 	_show = _dur
-	_quiet = _dur + GAP
-	_pending = 0
-	_pending_p = 0
 
 
-func say_now(id: int) -> void:   # לבדיקות / לשלב
+func say_now(id: int) -> void:   # לבדיקות
 	_say(id)
 
 
 # ============================================================
 #  אירועים
 # ============================================================
-func _zid(info: Dictionary) -> int:
-	var z = info.get("z")
-	if z == null or not is_instance_valid(z):
-		return 0
-	return z.get_instance_id()
-
-
 func _flag(id: int) -> Dictionary:
 	if not _flags.has(id):
 		_flags[id] = {}
 	return _flags[id]
 
 
+func _on_screen(n: Node2D) -> bool:
+	return n != null and is_instance_valid(n) and Art.on_screen(n, n.global_position)
+
+
+func _dist(n: Node2D) -> float:
+	return absf(n.global_position.x - player.global_position.x) if n != null and is_instance_valid(n) else INF
+
+
 func _on_story(ev: String, info: Dictionary) -> void:
 	if player == null or not is_instance_valid(player) or player.dead:
 		return
-	var z = info.get("z")
-	var zid := _zid(info)
-	var zv: bool = zid != 0
-	var dx: float = (z.global_position.x - player.global_position.x) if zv else 0.0
+	var z: Node2D = info.get("z") if info.get("z") != null and is_instance_valid(info.get("z")) else null
+	var zid: int = z.get_instance_id() if z != null else 0
 	match ev:
 		"zhit":
-			if not zv:
-				return
-			var arr: Array = _hits.get(zid, [])
-			arr.append(_t)
-			arr = arr.filter(func(q: float) -> bool: return _t - q < 2.0)
-			_hits[zid] = arr
-			_total[zid] = int(_total.get(zid, 0)) + 1
-			var f := _flag(zid)
-			if info.get("was_lying", false):
-				f["lying"] = true
-			if z.hp <= 0:
-				return
-			if info.get("was_lying", false):
-				_try(3, 1)                                   # Stay down!
-			elif int(_total[zid]) >= 10 and not f.has("why"):
-				f["why"] = true
-				_try(2, 2)                                   # Why won't you fucking die?!
-			elif arr.size() >= 6 and not f.has("die"):
-				f["die"] = true
-				_try(1, 1)                                   # Die! Die! DIE!
+			_on_hit(z, zid, info)
 		"zkill":
-			if not zv:
-				return
-			_kills.append(_t)
-			_kills = _kills.filter(func(q: float) -> bool: return _t - q < 25.0)
-			var f := _flag(zid)
-			if _attackers.has(zid) or z.is_boss():
-				_try(10, 2)                                  # I've had enough of you!
-			elif f.has("lying") or bool(z.get("_one_leg")):
-				_try(4, 1)                                   # You're not getting back up.
-			elif f.has("smart") or absf(dx) > 520.0:
-				_try(7, 1)                                   # Got you!
-			_check_last.call_deferred(zid)
-		"wake":   # נבדק רגע אחרי: אם קם כי ירו בו - זה לא "הפחיד אותי" (זה Stay down!)
-			if zv and absf(dx) < 230.0:
+			_on_kill(z, zid, info)
+		"wake":
+			if z != null and _dist(z) < 230.0:
 				_wake_check.call_deferred(zid)
 		"notice":
-			if not zv:
+			if z == null:
 				return
-			if Game.player_dark and absf(dx) < 700.0:
-				_try(21, 3)                                  # They know where I am.
-			elif not Art.on_screen(z, z.global_position) and absf(dx) < 1300.0:
-				_try(16, 2)                                  # I heard something...
-			elif absf(dx) < 170.0 and signf(dx) != player._face():
-				_try(11, 3)                                  # Shit! You scared me!
-			elif _t - _cleared_t < 14.0:
-				_try(17, 2)                                  # Please don't let there be more of them.
+			if Game.player_dark and _dist(z) < 700.0:
+				_event("know")
+			elif not _on_screen(z) and _dist(z) < 1300.0:
+				_event("heard", 0.3)
+			elif _dist(z) < 170.0 and signf(z.global_position.x - player.global_position.x) != player._face():
+				_event("scared")
 		"phurt":
 			var near := _nearest(150.0)
 			if near != null:
 				_attackers[near.get_instance_id()] = true
-				if absf(near.global_position.x - player.global_position.x) < 80.0 and randf() < 0.6:
-					_try(9, 1)                               # Back off!
+			if player.health == 1:
+				_event("low_hp")
+			elif near != null and _dist(near) < 80.0:
+				_event("back_off")
 		"reload":
 			if _chasing_within(320.0) >= 1:
-				_try(5, 1)                                   # Come on! Come on!
+				_event("come_on")
 		"grenade":
 			if _nearest(480.0) != null:
-				_try(8, 1)                                   # Eat this!
+				_event("eat_this")
 		"dodge":
-			if zv:
-				_flag(zid)["smart"] = true
-			_dodges += 1
-			_try(19 if _dodges == 1 else 20, 3)              # Wait... they're learning. / That didn't work twice.
-		"ambush":
-			if zv:
-				_flag(zid)["smart"] = true
-			_try(22, 3)                                      # How the hell did it know I'd go this way?
-		"flank_jump":
-			if zv:
-				_flag(zid)["smart"] = true
-			_try(25, 3)                                      # Oh shit. They figured me out.
-		"cover":
-			if zv and Art.on_screen(z, z.global_position):
-				_try(24, 2)                                  # Okay... they're getting smarter.
-		"adapt":
-			if zv:
-				_flag(zid)["smart"] = true
-			if not _try(19, 3):
-				_try(24, 2)
-		"call", "squad":
-			if zv and absf(dx) < 1000.0:
-				if not _try(23, 3) and Game.player_dark:     # They're working together...
-					_try(21, 3)
+			_event("grenade_dodged")
+		"survivor_dead":
+			_event("survivor_blown" if info.get("source", "") != "bullet" else "survivor_shot")
+		"survivor_seen":
+			_event("survivor_seen", 0.5)
+		"grabbed":
+			_event("hand_grab" if z != null and z.get("kind") == Z.HAND else "grabbed")
+		"hazard":
+			var k: String = info.get("kind", "")
+			_event("puked" if k == "puke" else k)
+		"ammo":
+			if info.get("was_empty", false):
+				_event("ammo_saved")
+		"boss":
+			_event("boss")
 		"thunder":
-			if randf() < 0.5:
-				_try(13, 2)                                  # What the hell was that?
-		"scare":   # השלב / זומבי מיוחד: קפיצת פחד
-			_try(11, 3)
-		"big":
-			_try(12, 3)
+			_event("thunder", 0.5)
+		"lamp_shot":
+			_event("lamp_shot", 0.6)
+		"call", "squad":
+			if z != null and _dist(z) < 1000.0:
+				_event(ev)
+		"cover":
+			if _on_screen(z):
+				_event("cover")
+		"graveborn", "ceiling_drop", "bloater":
+			if z != null and _dist(z) < 300.0:
+				_event(ev)
+		"devour", "portal", "charge", "crumble_crawl":
+			if _on_screen(z):
+				_event(ev)
+		"crumble":
+			if _on_screen(z) and not _flag(zid).has("crumble"):
+				_flag(zid)["crumble"] = true
+				_event("crumble", 0.5)
+		"shield_block":
+			_shield_t.append(_t)
+			_shield_t = _shield_t.filter(func(q: float) -> bool: return _t - q < 2.0)
+			if _shield_t.size() >= 4:
+				_event("shield")
+		"dodge_bullet", "ambush", "flank_jump", "adapt":
+			if zid != 0:
+				_flag(zid)["smart"] = true
+			_event(ev)
+		"flyer":
+			if not seen_kinds.has("flyer_dive"):
+				seen_kinds["flyer_dive"] = true
+				_event("flyer")
+		_:
+			if EVENTS.has(ev):   # survivor/hazard/weapon/... שם האירוע = שם ב-EVENTS
+				_event(ev)
+
+
+func _on_hit(z: Node2D, zid: int, info: Dictionary) -> void:
+	if z == null:
+		return
+	var arr: Array = _hits.get(zid, [])
+	arr.append(_t)
+	arr = arr.filter(func(q: float) -> bool: return _t - q < 2.0)
+	_hits[zid] = arr
+	_total[zid] = int(_total.get(zid, 0)) + 1
+	var f := _flag(zid)
+	if info.get("was_lying", false):
+		f["lying"] = true
+	if z.hp <= 0:
+		return
+	if info.get("was_lying", false):
+		_event("stay_down")
+	elif int(_total[zid]) >= 10 and not f.has("why"):
+		f["why"] = true
+		_event("wont_die")
+	elif arr.size() >= 6 and not f.has("die"):
+		f["die"] = true
+		_event("die_die")
+
+
+func _on_kill(z: Node2D, zid: int, info: Dictionary) -> void:
+	if z == null:
+		return
+	_fight_t = _t
+	_kills.append(_t)
+	_kills = _kills.filter(func(q: float) -> bool: return _t - q < 25.0)
+	var src: String = info.get("source", "")
+	var zone: String = info.get("zone", "")
+	_head_streak = _head_streak + 1 if zone == "head" else 0
+	var f := _flag(zid)
+	var said_one := false
+	if z.is_boss():
+		said_one = _event("boss_dead")
+	elif src == "barrel":
+		said_one = _event("barrel")
+	elif src == "car":
+		said_one = _event("car")
+	elif src == "stomp":
+		said_one = _event("stomp_kill")
+	elif src == "grenade" or src == "launcher":
+		_blast_kills.append(_t)
+		_blast_kills = _blast_kills.filter(func(q: float) -> bool: return _t - q < 0.4)
+		if _blast_kills.size() >= 3:
+			said_one = _event("blast")
+	if said_one:
+		return
+	if _kills.size() >= 2 and _t - float(_kills[-2]) < 0.15:
+		_event("double")
+	elif _attackers.has(zid):
+		_event("had_enough")
+	elif f.has("lying") or bool(z.get("_one_leg")):
+		_event("not_up")
+	elif zone == "head" and _dist(z) > 600.0:
+		_event("long_head")
+	elif _head_streak >= 3:
+		_head_streak = 0
+		_event("headshots")
+	elif f.has("smart") or _dist(z) > 520.0:
+		_event("got_you")
+	_check_last.call_deferred()
 
 
 func _wake_check(zid: int) -> void:
 	if not _flag(zid).has("lying"):
-		_try(11, 3)                                      # Shit! You scared me!
+		_event("scared")
 
 
-func _check_last(_zid_v: int) -> void:
-	if player == null or not is_instance_valid(player) or _kills.size() < 3:
+func _check_last() -> void:
+	if player == null or not is_instance_valid(player) or _kills.size() < 4:
 		return
 	for z in get_tree().get_nodes_in_group("zombies"):
-		if z.dead or z.dormant:
-			continue
-		if absf(z.global_position.x - player.global_position.x) < 1100.0:
+		if not z.dead and not z.dormant and _dist(z) < 1100.0:
 			return
-	if _try(6, 2):                                       # That's the last one.
-		_cleared_t = _t
+	_event("last_one")
 
 
 func _nearest(r: float) -> Node2D:
@@ -329,37 +494,46 @@ func _nearest(r: float) -> Node2D:
 func _chasing_within(r: float) -> int:
 	var n := 0
 	for z in get_tree().get_nodes_in_group("zombies"):
-		if not z.dead and bool(z.get("_chasing")) and absf(z.global_position.x - player.global_position.x) < r:
+		if not z.dead and bool(z.get("_chasing")) and _dist(z) < r:
 			n += 1
 	return n
 
 
 # ---- מצבים שנבדקים כל הזמן ----
 func _poll() -> void:
-	if _t > 30.0 and not said.has(14) and _nearest(700.0) == null and randf() < 0.01:
-		_try(14, 2)                                      # I really don't like this place. (רגע שקט)
-	# It's really fucking dark in here: כשנכנסים לאזור חשוך (המפעל), או פעם אחת בחושך בחוץ
+	# חושך: נכנסים לאזור חשוך (מפעל) או פעם ראשונה בשלב שהשחקן בחושך
 	var inside := false
 	for dz in get_tree().get_nodes_in_group("dark_zone"):
 		if dz.has_point(player.global_position):
 			inside = true
-	if inside and not _was_inside:
-		_try(15, 3)
+	if (inside and not _was_inside) or (Game.player_dark and not _was_dark and not _dark_said and _t > 5.0):
+		_dark_said = true
+		_event("dark")
 	_was_inside = inside
 	_was_dark = Game.player_dark
-	if _chasing_within(520.0) >= 4:
-		_try(18, 2)                                      # They're getting closer...
+	if _chasing_within(520.0) >= 5:
+		_event("closer")
+	# אחרי קרב גדול (5+ הריגות) ושקט של 12 שניות
+	if not _calm_said and _kills.size() >= 5 and _t - _fight_t > 12.0 and _nearest(900.0) == null:
+		_calm_said = true
+		_event("after_fight", 0.6)
 	for z in get_tree().get_nodes_in_group("zombies"):
-		if z.dead or z.dormant:
+		if z.dead or z.dormant or _dist(z) > SIGHT_RANGE or not _on_screen(z):
 			continue
-		var big: bool = z.sc >= 1.4 or z.is_boss() or z.kind == Registry.RETCHER
-		if big and not _seen_big.has(z.kind) and Art.on_screen(z, z.global_position):
-			_seen_big[z.kind] = true
-			_try(12, 3)                                  # Jesus Christ...
+		var k: int = z.kind
+		if SIGHTS.has(k) and not seen_kinds.has(k):   # סוג חדש בפעם הראשונה בריצה
+			seen_kinds[k] = true
+			if can_talk(3):
+				_say(_pick(SIGHTS[k]))
+		var big: bool = (z.sc >= 1.4 or k == Registry.RETCHER) and not z.is_boss()
+		if big and not _seen_big.has(k):
+			_seen_big[k] = true
+			if can_talk(3):
+				_say(_pick([12, 59]))
 		var dx: float = z.global_position.x - player.global_position.x
 		if absf(dx) < 46.0 and absf(z.global_position.y - player.global_position.y) < 40.0 and not z._lying() and signf(dx) == player._face():
-			if randf() < 0.25:
-				_try(9, 1)                                   # Back off!
+			if randf() < 0.15:
+				_event("back_off")
 
 
 func _process(delta: float) -> void:
@@ -368,16 +542,6 @@ func _process(delta: float) -> void:
 		player = get_tree().get_first_node_in_group("player")
 		return
 	_show -= delta
-	_quiet -= delta
-	_pending_t -= delta
-	if _pending_t <= 0.0:
-		_pending = 0
-		_pending_p = 0
-	elif _pending != 0 and _show <= 0.0 and _quiet <= (GAP - 1.5 if _pending_p >= 3 else 0.0):
-		var pid := _pending
-		_pending = 0
-		_pending_p = 0
-		_say(pid)
 	_poll_t -= delta
 	if _poll_t <= 0.0 and not player.dead:
 		_poll_t = 0.3
@@ -418,8 +582,8 @@ func _draw_bubble() -> void:
 	var wob := 0.0
 	if cat == "combat":
 		wob = sin(_t * 30.0) * 0.03 * maxf(0.0, 1.0 - el / 0.5)
-	elif cat == "scary":
-		c += Vector2(sin(_t * 47.0), cos(_t * 39.0)) * 1.2   # רועד מפחד
+	elif cat == "scary" or cat == "wtf":
+		c += Vector2(sin(_t * 47.0), cos(_t * 39.0)) * 1.2   # רועד מפחד / בהלם
 	_ui.draw_set_transform(c, wob, Vector2(pop, pop))
 	var r := Rect2(-bw * 0.5, -h, bw, h)
 	# זנב הבועה (לכיוון הראש)

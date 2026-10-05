@@ -199,6 +199,8 @@ func _ready() -> void:
 
 	# מסגרת כהה סביב כל מה שהשחקן מתנגש בו (effects/collision_outlines.gd)
 	add_child(preload("res://effects/collision_outlines.gd").new())
+	# השחקן מדבר לעצמו - 1 עד 4 משפטים בשלב, רק כשקורה משהו (ui/monologue.gd)
+	add_child(preload("res://ui/monologue.gd").new())
 
 	# "המפקד הנסתר": תורות התקפה, תקשורת, פקודות (ai/squad_director.gd)
 	var squad = SquadScript.new()

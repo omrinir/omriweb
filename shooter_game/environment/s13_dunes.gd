@@ -190,6 +190,7 @@ class SandStorm extends Node2D:
 				_left = SANDSTORM_T
 				storms += 1
 				Sfx.play("whoosh", null, 2.0)
+				Game.story.emit("sandstorm", {})
 		Game.player_dark = k > 0.5   # בסופה: הזומבים רואים פחות (רק בשלב הזה)
 		if k > 0.01:
 			for s in _streaks:

@@ -148,6 +148,7 @@ func _erupt(pl: Node) -> void:
 	state = ERUPT
 	_st = RISE_T
 	erupts += 1
+	Game.story.emit("graveborn", {"z": z})
 	z.collision_layer = 4
 	Sfx.play("gb_burst", z.global_position, 3.0, 0.1, 3)
 	Particles.burst(z.get_parent(), z.global_position + Vector2(0, -6), "smoke", Vector2.UP, 16)

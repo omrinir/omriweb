@@ -30,6 +30,7 @@ func activate() -> bool:
 	if on:
 		return false
 	on = true
+	Game.story.emit("jetpack", {})
 	fuel = duration()
 	player.jetpack = self
 	if player.is_on_floor():

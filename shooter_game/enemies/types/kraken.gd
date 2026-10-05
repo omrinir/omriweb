@@ -130,6 +130,7 @@ func _resolve(pl: Node) -> void:
 	if pl != null and not pl.dead and area.intersects(pl.body_rect()):
 		hits += 1
 		pl.hurt(z.damage, Vector2(z._dir * 1.6, -0.4))
+		Game.story.emit("kraken", {"z": z})
 
 
 # ============================================================

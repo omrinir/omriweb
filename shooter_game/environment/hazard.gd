@@ -14,6 +14,7 @@ var rect := Rect2(-20, -20, 40, 20)   # אזור הסכנה (יחסית ל-posit
 var active := true                     # פעיל כרגע?
 var triggerable := false               # מהנדס יכול להפעיל אותו
 var player_damage := 1                 # נזק לשחקן בכל "פגיעה"
+var story_kind := ""                   # השחקן מגיב כשזה פוגע בו (ui/monologue.gd): "fire" / "acid" / "shock" / "puke"
 var zombie_burn := 0.0                 # מצית זומבים שנכנסים (שניות)
 var zombie_damage := 0                 # נזק ישיר לזומבים בכל tick
 var tick := 0.5                        # כל כמה שניות פוגע
@@ -56,6 +57,8 @@ func _physics_process(delta: float) -> void:
 	var p := get_tree().get_first_node_in_group("player")
 	if p != null and not p.dead and player_damage > 0 and r.intersects(p.body_rect()):
 		p.hurt(player_damage, Vector2(signf(p.global_position.x - r.get_center().x), 0.0))
+		if story_kind != "":
+			Game.story.emit("hazard", {"kind": story_kind})
 	if zombie_burn > 0.0 or zombie_damage > 0:
 		for z in get_tree().get_nodes_in_group("zombies"):
 			if z.dead or not r.has_point(z.global_position + Vector2(0, -10)):
