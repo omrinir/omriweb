@@ -9,6 +9,9 @@ extends Node
 
 signal score_changed
 signal trophy_unlocked(id: String)
+# אירועי "סיפור" לשחקן שמדבר לעצמו (ui/monologue.gd). כולם שולחים, רק מי שמאזין משתמש:
+#   zhit, zkill, wake, notice, phurt, reload, grenade, dodge, ambush, flank_jump, cover, adapt, call, squad, thunder...
+signal story(event: String, info: Dictionary)
 
 const SAVE_PATH := "user://progress.cfg"
 
@@ -134,7 +137,7 @@ func is_factory() -> bool:
 #  מפה: 7 אזורים, 9 שלבים בכל אזור (כרגע 3 השלבים הראשונים קיימים)
 # ============================================================
 const LEVELS_PER_REGION := 9
-const IMPLEMENTED := 13           # כמה שלבים כבר בנויים
+const IMPLEMENTED := 14           # כמה שלבים כבר בנויים
 const REGIONS := [
 	{"name": "NORTHERN AMAZON", "color": Color(0.45, 0.85, 0.3), "desc": "Where it started. The first ones only hunger.",
 		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Ruined District", "Highrise", "The Works", "Research Site", "Zone Zero"]},
@@ -279,6 +282,7 @@ const LEVEL_TITLES := [
 	["THEY HUNGER TOGETHER", "They learned to eat each other. And to play dead."],
 	["THEY WEAR OUR FACES", "Not everyone who calls for help is still human."],
 	["THEY RISE FROM THE SAND", "They learned to wait beneath you."],
+	["THEY KNOW YOUR VOICE", "Out here, the only one talking is you. For now."],
 ]
 func level_title() -> Array:
 	var t: Array = LEVEL_TITLES[(level - 1) % LEVEL_TITLES.size()].duplicate()

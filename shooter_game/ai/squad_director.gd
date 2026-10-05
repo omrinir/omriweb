@@ -179,6 +179,7 @@ func broadcast(from_z: Node, pos: Vector2) -> void:
 			n += 1
 	if n > 0:
 		calls_made += 1
+		Game.story.emit("call", {"z": from_z, "n": n})
 		_signal(from_z.global_position + Vector2(0, -70.0 * from_z.sc), "!", Color(1.0, 0.45, 0.3))
 		Sfx.play("zcall", from_z.global_position, -2.0, 0.15, 2)
 
@@ -239,6 +240,7 @@ func command(from_z: Node, cmd: String, radius: float, seconds: float) -> int:
 	if cmd == "ATTACK":
 		_wave_t = minf(seconds, 3.0)
 	commands_issued += 1
+	Game.story.emit("squad", {"z": from_z, "cmd": cmd, "n": n})
 	_signal(from_z.global_position + Vector2(0, -86.0 * from_z.sc), cmd, Color(1.0, 0.8, 0.3))
 	Sfx.play("zcommand", from_z.global_position, 0.0, 0.1, 2)
 	return n
@@ -263,6 +265,7 @@ func order_flank(from_z: Node, player: Node) -> int:
 	if n > 0:
 		_signal(from_z.global_position + Vector2(0, -86.0 * from_z.sc), "FLANK", Color(0.6, 0.9, 1.0))
 		commands_issued += 1
+		Game.story.emit("squad", {"z": from_z, "cmd": "FLANK", "n": n})
 	return n
 
 

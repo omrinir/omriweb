@@ -469,6 +469,7 @@ func _physics_process(delta: float) -> void:
 		_dir = signf(tp.global_position.x - global_position.x)
 		if not _noticed:   # ראה את השחקן: זעקה
 			_noticed = true
+			Game.story.emit("notice", {"z": self})
 			_voice("zscream", 0.9, 3.0)
 			if brain != null:   # משלב 5: מזעיק חברים
 				brain.on_notice(self, player)
@@ -641,6 +642,7 @@ func _try_cover(player: Node) -> bool:
 	if best_d == INF:
 		return false
 	_cover_state = 1
+	Game.story.emit("cover", {"z": self})
 	_cover_dir = signf(_cover_x - global_position.x)
 	_cover_t = 3.5   # אם לא הגיע תוך 3.5 שניות - מוותר
 	_duck_t = 0.0
@@ -1074,6 +1076,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	_last_hit = hit_pos
 	_last_boom = explosive
 	hp -= dmg
+	Game.story.emit("zhit", {"z": self, "zone": zone, "source": source, "was_lying": was_lying})
 	if hp > 0 and (source == "bullet" or source == "melee" or source == "taser"):
 		_voice("zhit", 0.85, 3.0)
 	_damage_number(dmg, zone)
@@ -1124,11 +1127,21 @@ func _damage_number(dmg: int, zone: String) -> void:
 	p.global_position = global_position + Vector2(randf_range(-10.0, 10.0), -66.0 * sc)
 
 
+# שוכב על הריצפה כמו גופה עד שמתקרבים (לשלבים: אחרי spawn)
+func lie_down() -> void:
+	dormant = true
+	var r := _shape.shape as RectangleShape2D
+	r.size = Vector2(52, 18) * sc
+	_shape.position = Vector2(0.0, -9.0 * sc)
+	_lie_side = -1.0 if randf() < 0.5 else 1.0
+
+
 func _wake() -> void:
 	if not dormant:
 		return
 	_voice("zscream", 0.95, 3.0)   # קם מהריצפה: זעקה
 	dormant = false
+	Game.story.emit("wake", {"z": self})
 	_rise_t = RISE_TIME
 	var r := _shape.shape as RectangleShape2D
 	r.size = Vector2(38.0 * wf, 66.0 * sc)   # אזור פגיעה גדול מהציור - כדי שכל ירייה על הזומבי תיתפס
@@ -1155,6 +1168,7 @@ func _lose_leg(dir: Vector2) -> void:
 
 func _die(dir: Vector2) -> void:
 	dead = true
+	Game.story.emit("zkill", {"z": self, "zone": _last_info.get("zone", ""), "source": _last_info.get("source", "")})
 	collision_mask |= 16
 	var sd := get_tree().get_first_node_in_group("squad_director")
 	if sd != null:

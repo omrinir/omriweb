@@ -768,6 +768,7 @@ func _fire() -> void:
 			return
 		grenades -= 1
 		PlayerMemory.on_explosive()
+		Game.story.emit("grenade", {})
 		Sfx.play("throw", global_position)
 		_cooldown = grenade_delay
 		var g = GrenadeScript.new()
@@ -788,6 +789,7 @@ func reload() -> void:
 	_reload_t = _reload_total
 	_play_reload_sound()
 	PlayerMemory.on_reload()
+	Game.story.emit("reload", {})
 
 
 # צליל הטעינה: קובץ אמיתי (sounds/reload.mp3, ~1 שנייה). להחלפה: לשים קובץ אחר באותו שם.
@@ -1163,6 +1165,7 @@ func hurt(amount: int, knock_dir: Vector2) -> void:
 		return
 	health = maxi(health - amount, 0)
 	health_changed.emit(health, max_health)
+	Game.story.emit("phurt", {"amount": amount})
 	velocity += Vector2(knock_dir.x * 260.0, -180.0)
 	if health <= 0:
 		dead = true

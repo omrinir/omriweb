@@ -144,3 +144,27 @@ SHIELD ELITE (`shield_elite.gd`) now rests its heavy shield every `REST_EVERY` s
 (zscream, zhit, zdeath, groan, roar, scream, fscream, fwail) to clips; if a clip exists it replaces the synthesized sound.
 Loudness: `SAMPLE_GAIN` (now ~4 dB below the synthesized sounds). Each zombie has its own voice pitch (`zombie.gd -> _vp`, bigger = deeper).
 Zombie types can choose a death sound (`zombie_type.gd -> death_sound()`, MIMIC = female wail).
+
+## Stage 14 - Fishermen's Grave (NORTHEAST region, level 5)
+
+* `levels/stage_14.gd`, art in `effects/s14_decor.gd`: stormy night harbor (heavy rain `StormRain`, lightning that lights everything
+  outside for a moment + thunder), black sea, burning trawler, cannery skyline, fishermen's cemetery (crosses with nets, anchors, upturned boats).
+* `StormOverlay` = darkness shader with lights (harbor lamps, `Bulb`, `FireBarrel` in group `s14_lights`) and `DarkZone`s:
+  inside the two cannery halls (`HALLS`) it is almost black, only flickering bulbs (every third one is dead). Halls have a steel catwalk + ladders.
+  Wooden piers (`PIERS`) = second floor in parts of the level.
+* New zombies: `crumbler.gd` (every bullet tears off the part nearest the hit - scalp, jaw, ear, hand, arms, chest, belly, legs;
+  parts fly as real `Chunk`s; one leg = hops, no legs = crawls; falls apart on death),
+  `retcher.gd` (huge cook: HEAVE warning -> PUKE stream of real bile blobs + burning puddles (`acid_pool.gd` with `tint`);
+  3 shots in the swollen belly while heaving = it chokes; boss "THE BILGE KING"). SCOUT and IRONWING return.
+* `zombie.gd -> lie_down()` = spawn a zombie lying like a corpse (wakes when you come close). Type zombies now draw lying/rising too (`begin_draw`).
+
+## Player monologue (stage 14 only, for now)
+
+`ui/monologue.gd`: the hero talks to himself - comic speech bubble (font `fonts/Bangers-Regular.ttf`, OFL) above his head,
+on its own CanvasLayer (above the darkness), + a dark voice clip `sounds/voice/vNN.mp3` (Kokoro TTS voice bm_george, pitched down,
+bass, slight grit and echo with ffmpeg). 25 lines in `LINES` (combat / scary / smart).
+Events: `Game.story` signal (game_state.gd) is emitted from zombie.gd (zhit, zkill, notice, wake, cover), player.gd (reload, grenade, phurt),
+ai/zombie_brain.gd (dodge, ambush, flank_jump, adapt), ai/squad_director.gd (call, squad) and the stage (thunder).
+`_poll()` checks situations every 0.3 s (entering a dark hall, 4+ zombies closing in, first big zombie on screen, a zombie in your face).
+Pacing: `GAP` seconds of silence after a line (important lines only 1.5 s), each line waits `LINE_CD` s before repeating.
+To use it in another stage: `main.add_child(preload("res://ui/monologue.gd").new())` in that stage's `build_effects()`.

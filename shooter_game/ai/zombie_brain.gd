@@ -199,6 +199,7 @@ func steer(z: Node, player: Node, d: Vector2, delta: float, base_speed: float) -
 			if absf(gd.x) < 120.0 and absf(gd.y) < 90.0 and randf() < float(p.awareness):
 				_dodge_t = 0.7
 				_dodge_dir = -signf(gd.x) if gd.x != 0.0 else -face
+				Game.story.emit("dodge", {"z": z})
 				break
 	if _dodge_t > 0.0:
 		z._dir = _dodge_dir
@@ -239,6 +240,7 @@ func steer(z: Node, player: Node, d: Vector2, delta: float, base_speed: float) -
 				_set_role(z, ATTACK, 0.0)
 				_burst_t = 1.6
 				z._duck_t = 0.0
+				Game.story.emit("ambush", {"z": z})
 				z._voice("zscream", 1.0, 4.0)
 		WAIT:
 			speed = 0.0
@@ -296,6 +298,7 @@ func _adapt_attack(z: Node, player: Node, dist: float, speed: float) -> float:
 	if cr > 0.35 and dist < 170.0 and dist > 60.0 and not player.is_vulnerable():
 		var in_front: bool = signf(z.global_position.x - player.global_position.x) == player._face()
 		if in_front and randf() < cr:
+			Game.story.emit("adapt", {"z": z, "why": "shotgun"})
 			return 0.0
 	return speed
 
@@ -344,6 +347,7 @@ func _flank(z: Node, player: Node, _delta: float, base: float) -> float:
 		z.velocity.x = z._dir * 430.0
 		_hop_cd = 1.5
 		_flank_leap = true
+		Game.story.emit("flank_jump", {"z": z})
 	return base * 1.15
 
 

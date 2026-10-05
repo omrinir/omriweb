@@ -109,10 +109,15 @@ func draw() -> bool:
 # מסדר את הטרנספורם: גודל, היפוך לפי כיוון, סיבוב כשמת, צל על הריצפה
 func begin_draw(shadow := true) -> void:
 	var s := Vector2(z._dir * z.wf * z.sc, z.sc)
-	if shadow and not z.dead and z.is_on_floor():
+	if shadow and not z.dead and not z._lying() and z.is_on_floor():
 		Art.ground_shadow(z, Vector2.ZERO, 14.0 * z.wf * z.sc)
 	if z.dead:
 		var outer := Transform2D(z._angle, Vector2(0.0, -9.0 * z.sc))
+		z.draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * z.sc)))
+	elif z._lying():   # שוכב (z.lie_down()) או קם לאט
+		var k: float = 1.0 if z.dormant else clampf(z._rise_t / z.RISE_TIME, 0.0, 1.0)
+		k = k * k * (3.0 - 2.0 * k)
+		var outer := Transform2D(PI / 2.0 * z._lie_side * k, Vector2(0.0, lerpf(-28.0, -9.0, k) * z.sc))
 		z.draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * z.sc)))
 	else:
 		z.draw_set_transform(Vector2.ZERO, 0.0, s)
