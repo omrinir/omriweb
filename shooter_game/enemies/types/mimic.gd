@@ -52,6 +52,10 @@ func brain_overrides() -> Dictionary:
 	return {"aggression": 0.5}
 
 
+func death_sound() -> String:
+	return "fwail"
+
+
 func can_groan() -> bool:
 	return state == HUNT
 
@@ -120,7 +124,7 @@ func physics(pl: Node, delta: float) -> bool:
 				r.size = Vector2(38.0 * z.wf, 66.0 * z.sc)
 				z._shape.position = Vector2(0.0, -33.0 * z.sc)
 				z.skin = Color("8a9088")
-				Sfx.play("mm_shriek", z.global_position, 4.0, 0.05, 2)
+				Sfx.play("fscream", z.global_position, 2.0, 0.04, 2)   # צרחה נשית אמיתית (sounds/zombies)
 				z._voice("zscream", 1.0, 4.0)
 		HUNT:
 			return false

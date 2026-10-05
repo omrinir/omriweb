@@ -208,6 +208,7 @@ var _lunge_hit := false
 var _cycle := 0
 var _groan_t := randf_range(1.0, 6.0)   # צליל אנקה
 var _voice_cd := 0.0             # זעקות: לא כל הזמן
+var _vp := 1.0                   # גובה הקול של הזומבי הזה (כל זומבי נשמע קצת אחרת; גדול = עמוק)
 var _noticed := false
 var _close_yell := false
 var _charge_cd := 3.0
@@ -306,6 +307,7 @@ func _ready() -> void:
 	_think_t = randf_range(1.0, 3.0)
 	sc = k.scale
 	wf = k.width
+	_vp = clampf(randf_range(0.88, 1.12) / sqrt(maxf(float(k.scale), 0.3)), 0.7, 1.3)
 	# כל הזומבים בגובה של הדמות הראשית, ורזים יותר
 	if is_boss():
 		sc *= 0.92
@@ -434,7 +436,7 @@ func _physics_process(delta: float) -> void:
 	if _groan_t <= 0.0:
 		_groan_t = randf_range(3.0, 7.0)
 		if kind != RAT and kind != HAND and kind != MECH and (type_mod == null or type_mod.can_groan()) and Art.on_screen(self, global_position):
-			Sfx.play("growl" if kind == DOG or kind == HOUND else ("roar" if is_boss() else "groan"), global_position, 0.0 if not is_boss() else 3.0, 0.2, 3)
+			Sfx.play("growl" if kind == DOG or kind == HOUND else ("roar" if is_boss() else "groan"), global_position, 0.0 if not is_boss() else 3.0, 0.08, 3, _vp)
 	# רחוק מאוד מהשחקן: הזומבי "ישן" (חוסך המון ביצועים)
 	if player != null and absf(player.global_position.x - global_position.x) > 1400.0 and is_on_floor() and _carry == null:
 		return
@@ -867,7 +869,7 @@ func _voice(name: String, chance: float, vol: float) -> void:
 	if kind == RAT or kind == HAND or is_boss() or _voice_cd > 0.0 or randf() > chance:
 		return
 	_voice_cd = randf_range(1.2, 2.2)
-	Sfx.play(name, global_position, vol, 0.12, 3)
+	Sfx.play(name, global_position, vol, 0.05, 3, _vp)
 
 
 func is_boss() -> bool:
@@ -1169,7 +1171,7 @@ func _die(dir: Vector2) -> void:
 		Sfx.play("jet", global_position, 4.0)
 	if kind == MECH:   # הרובוט מתפוצץ
 		Boom.blast.call_deferred(get_parent(), global_position + Vector2(0.0, -30.0 * sc), 90.0, 50.0, 30, 1, "mech")
-	Sfx.play("zdeath", global_position, -6.0 if kind != RAT else -14.0, 0.2, 3)
+	Sfx.play(type_mod.death_sound() if type_mod != null else "zdeath", global_position, -6.0 if kind != RAT else -14.0, 0.06, 3, _vp)
 	on_ceiling = false
 	if kind == HAND:   # היד נעלמת בחזרה למים
 		remove_from_group("zombies")

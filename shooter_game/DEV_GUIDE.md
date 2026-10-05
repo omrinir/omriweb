@@ -127,3 +127,10 @@ POWER upgrades use `power_base` 110 in `ability_db.gd` (130, 200, 310, 480, 740 
 * New zombies: `graveborn.gd` (travels under the sand as a moving mound, cracks + rumble warning, erupts under you; boss "THE OSSUARY"),
   `sandblaster.gd` (sandblasting machine: rev warning, sand stream that tracks you slowly, pushes and hurts; tank on its back is the weak spot -
   3 hits from behind burst it). MIMIC appears here too.
+
+## Real zombie voices
+
+`sounds/zombies/*.mp3` - clips cut from recordings (fades, EQ, normalized quiet). `sfx.gd -> SAMPLES` maps a sound name
+(zscream, zhit, zdeath, groan, roar, scream, fscream, fwail) to clips; if a clip exists it replaces the synthesized sound.
+Loudness: `SAMPLE_GAIN` (now ~4 dB below the synthesized sounds). Each zombie has its own voice pitch (`zombie.gd -> _vp`, bigger = deeper).
+Zombie types can choose a death sound (`zombie_type.gd -> death_sound()`, MIMIC = female wail).

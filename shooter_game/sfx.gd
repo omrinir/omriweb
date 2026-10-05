@@ -269,8 +269,50 @@ static func _reverb(buf: PackedFloat32Array, wet: float) -> void:
 
 
 # מנגן צליל. pos = מיקום בעולם (צליל נחלש עם המרחק), null = צליל "על המסך"
-static func play(name: String, pos: Variant = null, vol := 0.0, pitch_var := 0.08, max_same := 5) -> void:
-	if not has_sound(name):
+# ============================================================
+#  קולות זומבים אמיתיים (קבצים ב-sounds/zombies/, חתוכים ומנורמלים).
+#  אם יש קבצים לשם - מנגנים אחד מהם באקראי במקום הצליל המסונתז. אין קובץ = הצליל המסונתז.
+#  SAMPLE_GAIN = כמה dB להוסיף לקבצים (הם מנורמלים חלש; כאן הם ~4dB מתחת לצלילים המסונתזים).
+# ============================================================
+const SAMPLE_DIR := "res://sounds/zombies/"
+const SAMPLES := {
+	"zscream": ["zscream1", "zscream2", "zscream3"],
+	"zhit": ["zhit1", "zhit2", "zhit3", "zhit4"],
+	"zdeath": ["zdeath1", "zdeath2"],
+	"groan": ["groan1", "groan2", "groan3", "groan4", "groan5"],
+	"roar": ["roar1", "roar2"],
+	"scream": ["fscream1", "fscream2", "fscream3"],     # SCREAMER
+	"fscream": ["fscream1", "fscream2", "fscream3"],    # צרחה נשית (MIMIC משתנה)
+	"fwail": ["fwail1", "fwail2"],                      # יללת מוות נשית
+}
+const SAMPLE_GAIN := {"groan": 5.0, "_": 6.0}
+static var _samples := {}
+
+
+static func _sample(name: String) -> AudioStream:
+	if not SAMPLES.has(name):
+		return null
+	var list: Array = SAMPLES[name]
+	var file: String = list[randi() % list.size()]
+	if _samples.has(file):
+		return _samples[file]
+	var path := SAMPLE_DIR + file + ".mp3"
+	var st: AudioStream = null
+	if ResourceLoader.exists(path):
+		st = load(path) as AudioStream
+	if st == null and FileAccess.file_exists(path):   # עוד לא יובא ע"י העורך: קוראים את ה-MP3 ישירות
+		var mp3 := AudioStreamMP3.new()
+		mp3.data = FileAccess.get_file_as_bytes(path)
+		st = mp3
+	_samples[file] = st
+	return st
+
+
+static func play(name: String, pos: Variant = null, vol := 0.0, pitch_var := 0.08, max_same := 5, pitch := 1.0) -> void:
+	var sample := _sample(name)
+	if sample != null:
+		vol += float(SAMPLE_GAIN.get(name, SAMPLE_GAIN["_"]))
+	elif not has_sound(name):
 		return
 	var base := name
 	var vars := [name]
@@ -292,15 +334,15 @@ static func play(name: String, pos: Variant = null, vol := 0.0, pitch_var := 0.0
 		p2.attenuation = 1.2
 		p2.global_position = pos
 		p2.volume_db = volume_db + vol
-		p2.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
-		p2.stream = _stream(name)
+		p2.pitch_scale = pitch * (1.0 + randf_range(-pitch_var, pitch_var))
+		p2.stream = sample if sample != null else _stream(name)
 		p2.bus = "SFX"
 		p = p2
 	else:
 		var p1 := AudioStreamPlayer.new()
 		p1.volume_db = volume_db + vol
-		p1.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
-		p1.stream = _stream(name)
+		p1.pitch_scale = pitch * (1.0 + randf_range(-pitch_var, pitch_var))
+		p1.stream = sample if sample != null else _stream(name)
 		p1.bus = "SFX"
 		p = p1
 	_active[base] = int(_active.get(base, 0)) + 1
