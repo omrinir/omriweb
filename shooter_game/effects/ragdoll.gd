@@ -72,12 +72,12 @@ func setup(zz: Node2D, vel: Vector2, dir: Vector2, hit: Vector2, boom: bool) -> 
 	var collapse := not boom and randf() < 0.3   # מתקפל במקום
 	var base := vel * (0.2 if collapse else 0.8)
 	if not collapse:   # עף מהרצפה (אחרת הרגליים "נדבקות" לקרקע והגוף רק מתקפל במקום)
-		base.y = minf(base.y, -240.0)
+		base.y = minf(base.y, -150.0)
 	q.resize(p.size())
 	for i in p.size():
 		var v := base
 		var near := clampf(1.0 - p[i].distance_to(lh) / (40.0 * float(z.sc)), 0.0, 1.0)
-		v += dir.normalized() * near * (300.0 if not boom else 220.0)
+		v += dir.normalized() * near * (150.0 if not boom else 110.0)
 		if boom:
 			v += Vector2(randf_range(-160.0, 160.0), randf_range(-260.0, -60.0))
 		else:
@@ -88,7 +88,7 @@ func setup(zz: Node2D, vel: Vector2, dir: Vector2, hit: Vector2, boom: bool) -> 
 		p[i].y -= 1.5   # מתחיל טיפה מעל הקרקע
 		q[i].y -= 1.5
 	if lh.y < -40.0 * float(z.sc) and not boom:   # ירייה בראש: הראש נזרק אחורה
-		q[HEAD] = p[HEAD] - (dir.normalized() * 420.0 + base * 0.5) * dt
+		q[HEAD] = p[HEAD] - (dir.normalized() * 210.0 + base * 0.5) * dt
 
 
 # מדמה צעד אחד. מחזיר true אם משהו זז (צריך לצייר מחדש)

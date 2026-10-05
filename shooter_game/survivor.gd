@@ -165,8 +165,8 @@ func take_damage(_amount: int, hit_pos: Vector2, dir: Vector2, _explosive := fal
 	r.size = Vector2(16, 16)
 	_shape.position = Vector2(0, -8)
 	_dir = -signf(dir.x) if dir.x != 0.0 else _dir
-	velocity = Vector2(dir.x * 260.0, -180.0)
-	for i in 14:
+	velocity = Vector2(dir.x * 130.0, -90.0)   # עפה חצי מרחק (היה 260, -180)
+	for i in 7:   # חצי דם (היה 14)
 		var b = BloodScript.new()
 		get_parent().add_child(b)
 		b.setup(hit_pos, Vector2.from_angle(dir.angle() + randf_range(-0.8, 0.8)) * randf_range(80.0, 300.0) + Vector2(0, -120))

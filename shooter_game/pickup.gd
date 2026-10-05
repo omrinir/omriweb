@@ -3,7 +3,7 @@ extends Node2D
 #  חפץ שאפשר לאסוף (עוברים עליו):
 #    AMMO     - קופסת תחמושת (+12 קליעים)
 #    GRENADE  - רימון אחד
-#    SUPPLY   - ארגז אספקה מניצולה שחסת עליה (+15 קליעים, +1 רימון)
+#    SUPPLY   - ארגז ציוד צבאי מניצולה שחסת עליה (2 קופסאות תחמושת + רימון)
 #    BOOST    - כוח מיוחד לכמה שניות (boost = סוג הבוסט)
 #  נופל עם קשת קטנה, מרחף ומהבהב לפני שהוא נעלם.
 # ============================================================
@@ -66,7 +66,7 @@ func label() -> String:
 	match kind:
 		AMMO: return "+AMMO"
 		GRENADE: return "+1 GRENADE"
-		SUPPLY: return "SUPPLIES"
+		SUPPLY: return "AMMO + GRENADE"
 		WEAPON: return str(Game.WEAPON_NAMES[weapon_id]) + "!"
 		_: return BOOST_NAMES[boost]
 
@@ -75,7 +75,7 @@ func color() -> Color:
 	match kind:
 		AMMO: return Color("d8c070")
 		GRENADE: return Color("8aa040")
-		SUPPLY: return Color("e8e0d0")
+		SUPPLY: return Color("a8b870")
 		WEAPON: return Game.WEAPON_COLORS[weapon_id]
 		_: return BOOST_COLORS[boost]
 
@@ -96,10 +96,21 @@ func _draw() -> void:
 		GRENADE:
 			Art.oval_shaded(self, bob, 6.0, 7.0, Color("6d8236"), 0.0, Art.OUTLINE, 1.3)
 			Art.fill(self, PackedVector2Array([bob + Vector2(-2, -7), bob + Vector2(2, -7), bob + Vector2(2, -10), bob + Vector2(-2, -10)]), Color("9a9aa2"), Art.OUTLINE, 0.8)
-		SUPPLY:
-			Art.fill_shaded(self, PackedVector2Array([bob + Vector2(-11, -8), bob + Vector2(11, -8), bob + Vector2(11, 8), bob + Vector2(-11, 8)]), Color("7a5a36"), 0.2, 0.3, Art.OUTLINE, 1.3)
-			draw_rect(Rect2(bob + Vector2(-3, -6), Vector2(6, 12)), Color("e8e0d0"))
-			draw_rect(Rect2(bob + Vector2(-8, -1.5), Vector2(16, 3)), Color("e8e0d0"))
+		SUPPLY:   # ארגז ציוד צבאי (ירוק זית, פינות מתכת, ידיות, כוכב מרוסס)
+			Art.fill_shaded(self, PackedVector2Array([bob + Vector2(-12, -8), bob + Vector2(12, -8), bob + Vector2(12, 8), bob + Vector2(-12, 8)]), Color("4e5a32"), 0.2, 0.35, Art.OUTLINE, 1.3)
+			draw_rect(Rect2(bob + Vector2(-12, -8), Vector2(24, 3)), Color("3a4426"))   # מכסה
+			draw_line(bob + Vector2(-12, -5), bob + Vector2(12, -5), Color("2a301a"), 1.0)
+			for cx: float in [-12.0, 9.0]:   # פינות מתכת
+				draw_rect(Rect2(bob + Vector2(cx, -8), Vector2(3, 3)), Color("8a8e86"))
+				draw_rect(Rect2(bob + Vector2(cx, 5), Vector2(3, 3)), Color("8a8e86"))
+			draw_rect(Rect2(bob + Vector2(-2, -6), Vector2(4, 3)), Color("b8b8a8"))   # תפס
+			draw_line(bob + Vector2(-15, -2), bob + Vector2(-15, 3), Color("2a2a22"), 2.0)   # ידיות
+			draw_line(bob + Vector2(15, -2), bob + Vector2(15, 3), Color("2a2a22"), 2.0)
+			var star := PackedVector2Array()
+			for i in 10:
+				var a := -PI * 0.5 + float(i) * PI / 5.0
+				star.append(bob + Vector2(0, 2) + Vector2.from_angle(a) * (4.0 if i % 2 == 0 else 1.7))
+			draw_colored_polygon(star, Color(0.85, 0.82, 0.68, 0.9))
 		WEAPON:   # צללית של הנשק
 			load("res://weapon_wheel.gd").draw_weapon(self, bob, weapon_id, 0.62)   # אותו ציור כמו בגלגל הנשקים
 		BOOST:

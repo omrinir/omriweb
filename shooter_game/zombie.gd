@@ -31,6 +31,8 @@ const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 const Art := preload("res://art.gd")
 const BloodScript := preload("res://blood_drop.gd")
 const RagdollScript := preload("res://effects/ragdoll.gd")   # גופה רכה
+const DEATH_FLING := 0.5     # כמה רחוק הגופה עפה מהפגיעה האחרונה (1 = כמו פעם)
+const BLOOD_AMOUNT := 0.5    # כמות הדם (1 = כמו פעם)
 const LegScript := preload("res://severed_leg.gd")
 const AcidScript := preload("res://acid.gd")
 const FireScript := preload("res://fire.gd")
@@ -1053,7 +1055,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		Sfx.play("shield", hit_pos, -6.0, 0.15, 2)
 	if type_mod != null:
 		dmg = maxi(0, int(round(float(dmg) * type_mod.damage_mult(zone, src))))
-	Particles.burst(get_parent(), hit_pos, "hit", dir if dir != Vector2.ZERO else Vector2.UP, 10)
+	Particles.burst(get_parent(), hit_pos, "hit", dir if dir != Vector2.ZERO else Vector2.UP, int(10.0 * BLOOD_AMOUNT))
 	# PERFECT: פגיעה בדיוק במרכז הראש
 	var perfect := false
 	if zone == "head":
@@ -1184,7 +1186,7 @@ func _die(dir: Vector2) -> void:
 	var r := _shape.shape as RectangleShape2D
 	r.size = Vector2(18, 18) * sc   # גופה = ריבוע קטן שמתגלגל
 	_shape.position = Vector2(0.0, -9.0 * sc)
-	velocity = Vector2(dir.x, minf(dir.y, 0.0)).normalized() * randf_range(420.0, 620.0) / sqrt(sc * wf) + Vector2(0.0, -260.0)
+	velocity = (Vector2(dir.x, minf(dir.y, 0.0)).normalized() * randf_range(420.0, 620.0) / sqrt(sc * wf) + Vector2(0.0, -260.0)) * DEATH_FLING
 	if kind == JETPACK:   # מתרסק בנקודה אקראית בתוך המסך שרואים
 		var vp := get_viewport()
 		var view := vp.get_canvas_transform().affine_inverse() * vp.get_visible_rect()
@@ -1275,7 +1277,7 @@ func _dead_process(delta: float) -> void:
 
 
 func _spray_blood(pos: Vector2, dir: Vector2, n: int, power: float) -> void:
-	for i in n:
+	for i in maxi(1, int(round(float(n) * BLOOD_AMOUNT))):
 		var b = BloodScript.new()
 		get_parent().add_child(b)
 		var v := Vector2.from_angle(dir.angle() + randf_range(-0.8, 0.8)) * randf_range(power * 0.4, power)
