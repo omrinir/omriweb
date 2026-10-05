@@ -20,6 +20,7 @@ var incendiary := false                    # בוסט: הקליע מצית זו�
 var falloff := []                          # שוטגאן: [נזק קרוב, נזק רחוק, מרחק] - הנזק יורד עם המרחק
 var fixed_damage := []                     # [min, max] נזק קבוע (חץ)
 var dmg_mult := 1.0                        # מכפיל נזק של הנשק (weapon_db.gd)
+var head_mult := 1.0                       # מכפיל לירייה בראש (נשקים אוטומטיים: פחות מ-1)
 var knockback := 60.0                      # כמה הזומבי נהדף
 var weapon_id := 0
 var arrow := false                         # חץ: עף בקשת (כבידה), נזק 13-19, ננעץ בריצפה ואפשר לאסוף
@@ -87,6 +88,7 @@ func _physics_process(delta: float) -> void:
 	_dist += from.distance_to(to)
 	var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary, "sniper": sniper, "counted": not count_hit}
 	src["dmg_mult"] = dmg_mult
+	src["head_mult"] = head_mult
 	src["knockback"] = knockback
 	src["weapon"] = weapon_id
 	if falloff.size() == 3:   # שוטגאן: הרבה נזק מקרוב, יורד עם המרחק

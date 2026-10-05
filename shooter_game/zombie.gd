@@ -1045,6 +1045,8 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		dmg = int(src.fixed)
 	elif src.has("dmg_mult") and zone != "head":   # נשק חלש/חזק יותר (weapons/weapon_db.gd). ירייה בראש נשארת קטלנית
 		dmg = maxi(1, int(round(float(dmg) * float(src.dmg_mult))))
+	elif zone == "head" and float(src.get("head_mult", 1.0)) < 1.0:   # נשק אוטומטי: ירייה בראש לא הורגת מיד
+		dmg = maxi(1, int(round(float(dmg) * float(src.head_mult))))
 	if kind == GUNNER and dir.x * _dir < 0.0 and zone != "head" and not explosive and source != "taser":   # מגן הפלדה
 		_popup("BLOCKED", Color("c0c8d0"), 14, -80.0)
 		Sfx.play("shield", hit_pos, -2.0, 0.15, 3)

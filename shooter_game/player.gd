@@ -725,6 +725,7 @@ func _fire() -> void:
 			b.pierce = int(w.get("pierce", 0)) + (3 if boosts.has(PickupScript.PIERCING) else 0)
 			b.incendiary = boosts.has(PickupScript.INCENDIARY)
 			b.dmg_mult = w.get("damage", 1.0)
+			b.head_mult = w.get("head_mult", 1.0)
 			b.knockback = w.get("knockback", 60.0)
 			b.weapon_id = gun
 			b.sniper = w.get("sniper", false)
