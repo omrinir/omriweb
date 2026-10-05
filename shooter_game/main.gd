@@ -690,12 +690,14 @@ func _make_exit(floor_y: float) -> void:
 @export var music_volume_db := -14.0
 func _start_music() -> void:
 	var path := "res://music/level2_suspense.mp3" if Game.is_subway() or Game.is_night() else "res://music/level1_total_war.mp3"
+	if Game.level == 1:
+		path = "res://music/level1_zombie_joyride.ogg"   # "Zombie Joyride" (EDM). OGG = קובץ קטן בערך פי 2.5 מ-MP3 באותה איכות
 	if _stage != null:
 		path = _stage.music()
 	if not ResourceLoader.exists(path):
 		return
 	var stream = load(path)
-	if stream is AudioStreamMP3:
+	if stream is AudioStreamMP3 or stream is AudioStreamOggVorbis:
 		stream.loop = true
 	var mp := AudioStreamPlayer.new()
 	mp.bus = "Music"   # עוצמה: Settings.music_volume
