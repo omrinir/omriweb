@@ -161,10 +161,11 @@ Zombie types can choose a death sound (`zombie_type.gd -> death_sound()`, MIMIC 
 ## Player monologue (stage 14 only, for now)
 
 `ui/monologue.gd`: the hero talks to himself - comic speech bubble (font `fonts/Bangers-Regular.ttf`, OFL) above his head,
-on its own CanvasLayer (above the darkness), + a dark voice clip `sounds/voice/vNN.mp3` (Kokoro TTS voice bm_george, pitched down,
-bass, slight grit and echo with ffmpeg). 25 lines in `LINES` (combat / scary / smart).
+on its own CanvasLayer (above the darkness), + a voice clip `sounds/voice/vNN.mp3` - gravelly noir hero (Max Payne / Mad Max style):
+Kokoro TTS voice am_onyx (deep baritone), slow flat delivery, rasp (distorted branch + fast tremolo), close mic, small dry room (ffmpeg).
+25 lines in `LINES` (combat / scary / smart). He talks only 1-2 times per level: `MAX_LINES` 2, `MIN_BETWEEN` 75 s,
+nothing unimportant in the first `FIRST_AFTER` s, combat lines only `COMBAT_CHANCE` of the time.
 Events: `Game.story` signal (game_state.gd) is emitted from zombie.gd (zhit, zkill, notice, wake, cover), player.gd (reload, grenade, phurt),
 ai/zombie_brain.gd (dodge, ambush, flank_jump, adapt), ai/squad_director.gd (call, squad) and the stage (thunder).
 `_poll()` checks situations every 0.3 s (entering a dark hall, 4+ zombies closing in, first big zombie on screen, a zombie in your face).
-Pacing: `GAP` seconds of silence after a line (important lines only 1.5 s), each line waits `LINE_CD` s before repeating.
 To use it in another stage: `main.add_child(preload("res://ui/monologue.gd").new())` in that stage's `build_effects()`.

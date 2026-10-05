@@ -7,8 +7,9 @@ extends Node
 #
 #  LINES: [טקסט, קטגוריה, קובץ קול]. קטגוריות: "combat" (צהוב-כתום), "scary" (תכלת), "smart" (סגול).
 #  איך מוסיפים משפט: שורה ב-LINES + קובץ sounds/voice/vNN.mp3 + קריאה ל-_try(NN, עדיפות) במקום המתאים.
-#  איך משנים כמה הוא מדבר: GAP (שקט מינימלי בין משפטים), LINE_CD (כמה זמן עד שאותו משפט חוזר).
-#  הקולות נוצרו עם Kokoro TTS (קול bm_george) + ffmpeg: פיץ' נמוך, בס, חספוס והד.
+#  כמה הוא מדבר: MAX_LINES (כרגע 2 בשלב), MIN_BETWEEN (שניות בין משפטים), FIRST_AFTER, COMBAT_CHANCE.
+#  הקולות נוצרו עם Kokoro TTS (קול am_onyx - בריטון עמוק) + ffmpeg בסגנון "גיבור נואר" (מקס פיין / מקס הזועם):
+#  הגשה איטית ושטוחה, צרידות (ענף מעוות + טרמולו מהיר), מיקרופון קרוב, חדר קטן ויבש.
 # ============================================================
 
 const Art := preload("res://art.gd")
@@ -48,6 +49,11 @@ const GAP := 4.5            # שקט מינימלי אחרי משפט (עדיפ�
 const LINE_CD := 40.0       # אותו משפט לא חוזר לפני זה
 const ONCE := [14, 22]      # רק פעם אחת בשלב
 const VOICE_DB := 1.0
+# כמה הוא מדבר: מעט, ורק ברגעים החזקים
+const MAX_LINES := 2        # הכי הרבה משפטים בשלב אחד
+const MIN_BETWEEN := 75.0   # שניות לפחות בין שני המשפטים
+const FIRST_AFTER := 20.0   # לפני זה (תחילת השלב) - רק רגע חשוב באמת (עדיפות 3)
+const COMBAT_CHANCE := 0.35 # משפטי קרב (עדיפות 1) קורים רק לפעמים, כדי שלא תמיד יבחר דווקא אותם
 
 static var _font: Font = null
 
@@ -125,6 +131,14 @@ func _voice_stream(id: int) -> AudioStream:
 # ---- לבקש משפט. עדיפות: 1 = קרב (אפשר לוותר), 2 = רגיל, 3 = חשוב (מפחיד / הם חכמים) ----
 func _try(id: int, prio := 1) -> bool:
 	if player == null or player.dead:
+		return false
+	if log_lines.size() >= MAX_LINES:
+		return false
+	if not log_lines.is_empty() and _t - float(log_lines[-1][0]) < MIN_BETWEEN:
+		return false
+	if _t < FIRST_AFTER and prio < 3:
+		return false
+	if prio == 1 and randf() > COMBAT_CHANCE:
 		return false
 	if id in ONCE and said.has(id):
 		return false
@@ -322,16 +336,14 @@ func _chasing_within(r: float) -> int:
 
 # ---- מצבים שנבדקים כל הזמן ----
 func _poll() -> void:
-	if _t > 3.5 and not said.has(14) and _nearest(700.0) == null:
-		_try(14, 2)                                      # I really don't like this place.
+	if _t > 30.0 and not said.has(14) and _nearest(700.0) == null and randf() < 0.01:
+		_try(14, 2)                                      # I really don't like this place. (רגע שקט)
 	# It's really fucking dark in here: כשנכנסים לאזור חשוך (המפעל), או פעם אחת בחושך בחוץ
 	var inside := false
 	for dz in get_tree().get_nodes_in_group("dark_zone"):
 		if dz.has_point(player.global_position):
 			inside = true
 	if inside and not _was_inside:
-		_try(15, 3)
-	elif Game.player_dark and not _was_dark and not said.has(15):
 		_try(15, 3)
 	_was_inside = inside
 	_was_dark = Game.player_dark
