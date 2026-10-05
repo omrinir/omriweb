@@ -431,7 +431,7 @@ func _physics_process(delta: float) -> void:
 	_groan_t -= delta
 	if _groan_t <= 0.0:
 		_groan_t = randf_range(3.0, 7.0)
-		if kind != RAT and kind != HAND and kind != MECH and Art.on_screen(self, global_position):
+		if kind != RAT and kind != HAND and kind != MECH and (type_mod == null or type_mod.can_groan()) and Art.on_screen(self, global_position):
 			Sfx.play("growl" if kind == DOG or kind == HOUND else ("roar" if is_boss() else "groan"), global_position, 0.0 if not is_boss() else 3.0, 0.2, 3)
 	# רחוק מאוד מהשחקן: הזומבי "ישן" (חוסך המון ביצועים)
 	if player != null and absf(player.global_position.x - global_position.x) > 1400.0 and is_on_floor() and _carry == null:

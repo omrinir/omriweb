@@ -108,3 +108,12 @@ POWER upgrades use `power_base` 110 in `ability_db.gd` (130, 200, 310, 480, 740 
 * Second floor only in parts of the level (`ROOFS`). **Any stage:** double-tap S on a one-way floor = drop to the floor below (`player.gd`, `DOUBLE_TAP`).
 * New zombies: `devourer.gd` (walks to nearby zombies and absorbs them: bigger, more HP, more damage, up to 3; shoot it while it eats to make it spit the zombie out;
   boss "THE GLUTTON"), `splitjaw.gd` (lies like a corpse as bait, head splits open showing teeth, leaps at you). SCOUT is back (calls the others).
+
+## Stage 12 - The Lighthouse (NORTHEAST region, level 3)
+
+* `levels/stage_12.gd`, art in `effects/s12_decor.gd` (blood-red dusk, sea fog bands, lighthouse beam from the lamp),
+  hazards in `environment/s12_hazards.gd` (quicksand slows you and drains health if you stay; thrown hands).
+* Second floor only on two buried-house roofs (`BURIED`).
+* New zombies: `mimic.gd` (identical to the survivor girl, cries HELP, morphs halfway to you; doesn't groan - `can_groan()` hook in zombie_type.gd),
+  `ironwing.gd` (robotic wings: flies, telegraphed dives, a wing breaks at half HP; boss "THE IRON ANGEL"),
+  `spare_parts.gd` (throws its own hand, sits and throws both legs - real severed legs other zombies can rethrow - then crawls and grabs).

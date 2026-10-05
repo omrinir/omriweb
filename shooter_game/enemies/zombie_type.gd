@@ -61,6 +61,11 @@ func logic(_player: Node, _d: Vector2, _delta: float, speed: float) -> float:
 	return speed
 
 
+# האם הוא נוהם (מתחזים - לא, כדי לא להסגיר את עצמם)
+func can_groan() -> bool:
+	return true
+
+
 # האם הוא נושך רגיל כשהוא קרוב
 func can_bite() -> bool:
 	return true

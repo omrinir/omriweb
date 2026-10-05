@@ -11,6 +11,7 @@ enum {
 	ENGINEER, ADAPTOR, DODGER, TANK, HUNTER, COMMANDER, HUNTER_ELITE, SHIELD_ELITE, INFECTOR, EVOLVED, SIREN,
 	BLOODGATE, KRAKEN, LIVEWIRE,   # שלב 10 (צפון-מזרח)
 	DEVOURER, SPLITJAW,            # שלב 11
+	MIMIC, IRONWING, SPARE_PARTS,  # שלב 12
 }
 
 const FIRST := 20
@@ -41,6 +42,9 @@ const TYPES := {
 	LIVEWIRE: "res://enemies/types/live_wire.gd",
 	DEVOURER: "res://enemies/types/devourer.gd",
 	SPLITJAW: "res://enemies/types/splitjaw.gd",
+	MIMIC: "res://enemies/types/mimic.gd",
+	IRONWING: "res://enemies/types/ironwing.gd",
+	SPARE_PARTS: "res://enemies/types/spare_parts.gd",
 }
 
 static var _stats_cache := {}
