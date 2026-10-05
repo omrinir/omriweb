@@ -11,8 +11,9 @@ const ButtonScript := preload("res://menu_button.gd")
 const Sfx := preload("res://sfx.gd")
 const GAME_SCENE := "res://main.tscn"
 const MENU_SCENE := "res://menu.tscn"
-const MAP_TEX := preload("res://map/continent.png")
-const MASK_TEX := preload("res://map/regions_mask.png")
+# התמונות נטענות בזמן ריצה (לא preload) - כך המפה עובדת גם אם העורך עוד לא ייבא אותן מחדש
+var MAP_TEX: Texture2D = _load_tex("res://map/continent.png")
+var MASK_TEX: Texture2D = _load_tex("res://map/regions_mask.png")
 # מיקום התווית של כל אזור בתמונה המקורית (1024x1536)
 const LABELS := [Vector2(355, 245), Vector2(700, 450), Vector2(455, 540), Vector2(250, 527), Vector2(655, 735), Vector2(445, 910), Vector2(400, 1130)]
 
@@ -71,6 +72,18 @@ var _leaving := false
 var _msg := ""
 var _msg_t := 0.0
 var _shake := {}                 # אזור נעול שלחצו עליו -> רעידה
+
+
+static func _load_tex(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		var t := load(path) as Texture2D
+		if t != null:
+			return t
+	var img := Image.load_from_file(path)   # עוד לא יובא: קוראים את ה-PNG ישירות
+	if img == null or img.is_empty():
+		push_error("Map image missing: " + path)
+		img = Image.create(64, 96, false, Image.FORMAT_RGBA8)
+	return ImageTexture.create_from_image(img)
 
 
 func _ready() -> void:
