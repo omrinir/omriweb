@@ -10,6 +10,7 @@ extends "res://enemies/zombie_type.gd"
 #    ואז דוחף קדימה: נזק + הדיפה חזקה. אחרי המכה הוא מתנדנד רגע (STAGGER) - עוד חלון.
 #  הגנה: קליעים / מכות מלפנים נחסמים (on_damage -> false) עם צלצול מתכת וניצוצות,
 #    והמגן מתמלא שקעים. מאחור: נזק x1.6. טייזר עובר דרך המתכת. רימונים: חצי נזק.
+#  מנוחה (REST): כל REST_EVERY שניות המגן הכבד יורד לרצפה ל-REST_T שניות - אפשר לירות בו מלפנים.
 #  צלילים: "shield_clang" (חסימה), "shield_bash" (מכה + נהמה), "shield_drag" (גרירת מתכת).
 #  איך משנים: TURN_TIME, WINDUP, BASH_SPEED, REAR_MULT.
 # ============================================================
@@ -21,11 +22,13 @@ const SOUNDS := {
 	"shield_drag": [["N", 0, 0, 0.0, 0.35, 0.05, 6.0, 0.3, 0.5, 0, 0.3], ["S", 1700, 1500, 0.0, 0.35, 0.05, 8.0, 0.05, 1.0, 0.02]],
 }
 
-enum { WALK, WINDUP, BASH, STAGGER }
+enum { WALK, WINDUP, BASH, STAGGER, REST }
 const TURN_TIME := 0.65
 const WINDUP_T := 0.5
 const BASH_SPEED := 430.0
 const REAR_MULT := 1.6
+const REST_T := 1.6                       # כמה זמן המגן למטה כשהוא נח
+const REST_EVERY := Vector2(3.5, 6.0)      # כל כמה זמן הוא מוריד את המגן (המגן כבד!)
 
 var state := WALK
 var blocked := 0            # כמה פגיעות נחסמו (לבדיקות)
@@ -39,6 +42,8 @@ var _rear := false
 var _dents := []
 var _drag_t := 0.0
 var _pop_cd := 0.0
+var _rest_cd := 3.0
+var rests := 0              # לבדיקות
 
 
 func stats() -> Dictionary:
@@ -67,6 +72,7 @@ func logic(pl: Node, d: Vector2, delta: float, speed: float) -> float:
 	_bash_cd -= delta
 	_drag_t -= delta
 	_pop_cd -= delta
+	_rest_cd -= delta
 	var want_dir: float = z._dir          # לאן המוח רוצה ללכת
 	var target: float = signf(d.x) if d.x != 0.0 else _facing
 	var dist := absf(d.x)
@@ -85,6 +91,14 @@ func logic(pl: Node, d: Vector2, delta: float, speed: float) -> float:
 			if dist < 78.0 and absf(d.y) < 40.0 and _bash_cd <= 0.0 and target == _facing and z.is_on_floor():
 				state = WINDUP
 				_t = WINDUP_T
+				return 0.0
+			# המגן כבד: מדי פעם מוריד אותו לנוח (חלון לירות בו מלפנים, בלי לאגף / לקפוץ)
+			if _rest_cd <= 0.0 and _turn_t <= 0.0 and dist > 90.0 and dist < 520.0 and z.is_on_floor():
+				state = REST
+				_t = REST_T
+				rests += 1
+				Sfx.play("shield_drag", z.global_position, -4.0, 0.15, 2)
+				z._popup("SHIELD DOWN", Color(1.0, 0.85, 0.4), 13, -90.0)
 				return 0.0
 			var s := minf(speed, 75.0)
 			if s > 1.0 and _drag_t <= 0.0 and Art.on_screen(z, z.global_position):
@@ -119,6 +133,12 @@ func logic(pl: Node, d: Vector2, delta: float, speed: float) -> float:
 		STAGGER:
 			if _t <= 0.0:
 				state = WALK
+			return 0.0
+		REST:   # המגן נשען על הרצפה, הוא מתנשף
+			if _t <= 0.0:
+				state = WALK
+				_rest_cd = randf_range(REST_EVERY.x, REST_EVERY.y)
+				Sfx.play("shield_drag", z.global_position, -6.0, 0.15, 2)
 			return 0.0
 	return speed
 
@@ -209,6 +229,10 @@ func draw() -> bool:
 		STAGGER:
 			off = Vector2(-2.0, 6.0)
 			rot = 0.35
+		REST:   # המגן למטה ונטוי קדימה - הגוף והראש חשופים
+			var k := clampf((REST_T - _t) / 0.25, 0.0, 1.0) * clampf(_t / 0.25, 0.0, 1.0)
+			off = Vector2(8.0, 26.0) * k
+			rot = 1.05 * k
 	if z.dead:
 		off = Vector2(6.0, 4.0)
 		rot = 0.6

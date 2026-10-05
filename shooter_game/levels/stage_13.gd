@@ -149,6 +149,9 @@ func build_world() -> void:
 		_dunes.append(d)
 		reserve(Rect2(x, floor_y - h, w, h))
 		x += w + rng.randf_range(DUNE_GAP.x, DUNE_GAP.y)
+	var sinker := Dunes.DuneSinker.new()   # דמויות על הדיונות שוקעות קצת בחול (לא מרחפות)
+	sinker.dunes = _dunes
+	main.add_child(sinker)
 	var bx := 0.0
 	while bx < level_w:
 		var f := Decor.BoneField.new()

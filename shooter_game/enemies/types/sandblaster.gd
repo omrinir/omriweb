@@ -35,7 +35,8 @@ var _cd := 1.5
 var _tick := 0.0
 var _aim := Vector2.RIGHT
 var _len := STREAM_LEN
-var _grains := []
+var _jet: CPUParticles2D       # זרם החול (חלקיקים אמיתיים)
+var _dust: CPUParticles2D      # ענן אבק במקום שהזרם פוגע
 
 
 func stats() -> Dictionary:
@@ -58,7 +59,7 @@ func _nozzle() -> Vector2:
 func physics(pl: Node, delta: float) -> bool:
 	_cd -= delta
 	_st -= delta
-	_tick_grains(delta)
+	_update_jet()
 	if state == WALK:
 		if tank > 0 and _cd <= 0.0 and pl != null and not pl.dead and z.is_on_floor():
 			var d: Vector2 = pl.global_position - z.global_position
@@ -114,8 +115,6 @@ func _stream(pl: Node, delta: float) -> void:
 	var to := from + _aim * STREAM_LEN
 	var hit: Dictionary = z.get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(from, to, 1))
 	_len = STREAM_LEN if hit.is_empty() else from.distance_to(hit.position)
-	for i in 3:   # גרגרים לציור
-		_grains.append([randf_range(0.0, 20.0), randf_range(-4.0, 4.0), randf_range(700.0, 900.0)])
 	_tick -= delta
 	if pl == null or pl.dead:
 		return
@@ -132,10 +131,82 @@ func _stream(pl: Node, delta: float) -> void:
 			pl.hurt(z.damage, Vector2(signf(_aim.x), 0.0))
 
 
-func _tick_grains(delta: float) -> void:
-	for g in _grains:
-		g[0] += g[2] * delta
-	_grains = _grains.filter(func(g: Array) -> bool: return g[0] < _len)
+# ---- זרם החול: CPUParticles2D (עובד גם ב-GL Compatibility) ----
+func _make_jet() -> void:
+	_jet = CPUParticles2D.new()
+	_jet.local_coords = false          # הגרגרים נשארים בעולם כשהזומבי זז
+	_jet.amount = 150
+	_jet.lifetime = 0.42
+	_jet.explosiveness = 0.0
+	_jet.randomness = 0.4
+	_jet.spread = 5.0
+	_jet.gravity = Vector2(0, 260)
+	_jet.damping_min = 20.0
+	_jet.damping_max = 60.0
+	_jet.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	_jet.emission_sphere_radius = 2.0
+	_jet.scale_amount_min = 1.2
+	_jet.scale_amount_max = 3.4
+	var sc := Curve.new()   # הגרגרים מתפזרים ומתרחבים לאורך הזרם
+	sc.add_point(Vector2(0.0, 0.6))
+	sc.add_point(Vector2(1.0, 1.6))
+	_jet.scale_amount_curve = sc
+	var g := Gradient.new()
+	g.set_color(0, Color(1.0, 0.93, 0.72, 0.95))
+	g.set_color(1, Color(0.82, 0.66, 0.42, 0.0))
+	g.add_point(0.6, Color(0.93, 0.8, 0.55, 0.8))
+	_jet.color_ramp = g
+	_jet.hue_variation_min = -0.03
+	_jet.hue_variation_max = 0.03
+	_jet.emitting = false
+	z.add_child(_jet)
+	_dust = CPUParticles2D.new()
+	_dust.local_coords = false
+	_dust.amount = 40
+	_dust.lifetime = 0.7
+	_dust.spread = 70.0
+	_dust.direction = Vector2(0, -1)
+	_dust.initial_velocity_min = 30.0
+	_dust.initial_velocity_max = 110.0
+	_dust.gravity = Vector2(0, 40)
+	_dust.damping_min = 40.0
+	_dust.damping_max = 80.0
+	_dust.scale_amount_min = 3.0
+	_dust.scale_amount_max = 7.0
+	var g2 := Gradient.new()
+	g2.set_color(0, Color(0.95, 0.86, 0.64, 0.55))
+	g2.set_color(1, Color(0.85, 0.72, 0.5, 0.0))
+	_dust.color_ramp = g2
+	_dust.emitting = false
+	z.add_child(_dust)
+
+
+# קצה הרומח בציור (בקואורדינטות עולם)
+func _tip() -> Vector2:
+	var la := Vector2(_aim.x * z._dir, _aim.y)
+	return z.global_position + Vector2(z._dir * z.wf * z.sc * (14.0 + la.x * 16.0), z.sc * (-32.0 + la.y * 16.0))
+
+
+func _update_jet() -> void:
+	if _jet == null:
+		_make_jet()
+	var on: bool = state == BLAST and not z.dead
+	if on:
+		var tip := _tip()
+		_jet.global_position = tip
+		_jet.direction = _aim
+		var v := _len / _jet.lifetime   # הגרגרים נעצרים בערך איפה שהזרם נחסם
+		_jet.initial_velocity_min = v * 0.8
+		_jet.initial_velocity_max = v * 1.05
+		_dust.global_position = tip + _aim * _len
+	_jet.emitting = on
+	_dust.emitting = on and _len < STREAM_LEN - 4.0   # נחסם בקיר / דיונה = ענן אבק
+
+
+func on_death() -> void:
+	if _jet != null:
+		_jet.emitting = false
+		_dust.emitting = false
 
 
 # נקודת תורפה: המכל על הגב
@@ -213,10 +284,8 @@ func draw() -> bool:
 		var la := Vector2(_aim.x * z._dir, _aim.y)
 		var nrm := Vector2(-la.y, la.x)
 		var lenl: float = _len / z.sc
-		z.draw_colored_polygon(PackedVector2Array([noz + nrm * 2.0, noz + la * lenl + nrm * (6.0 + lenl * 0.08), noz + la * lenl - nrm * (6.0 + lenl * 0.08), noz - nrm * 2.0]), Color(0.9, 0.78, 0.55, 0.45))
-		for g in _grains:
-			var gp: Vector2 = noz + la * (float(g[0]) / z.sc) + nrm * float(g[1]) * (1.0 + float(g[0]) * 0.01)
-			z.draw_circle(gp, 1.3, Color(0.95, 0.85, 0.6, 0.9))
+		# הילה חלשה מתחת לחלקיקים (הגרגרים עצמם = _jet)
+		z.draw_colored_polygon(PackedVector2Array([noz + nrm * 2.0, noz + la * lenl + nrm * (6.0 + lenl * 0.08), noz + la * lenl - nrm * (6.0 + lenl * 0.08), noz - nrm * 2.0]), Color(0.9, 0.78, 0.55, 0.16))
 	elif state == REV and fmod(z._time, 0.15) < 0.07:
 		Art.glow(z, noz, 5.0, Color(1.0, 0.9, 0.6, 0.6))
 	end_draw()

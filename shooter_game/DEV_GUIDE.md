@@ -127,6 +127,16 @@ POWER upgrades use `power_base` 110 in `ability_db.gd` (130, 200, 310, 480, 740 
 * New zombies: `graveborn.gd` (travels under the sand as a moving mound, cracks + rumble warning, erupts under you; boss "THE OSSUARY"),
   `sandblaster.gd` (sandblasting machine: rev warning, sand stream that tracks you slowly, pushes and hurts; tank on its back is the weak spot -
   3 hits from behind burst it). MIMIC appears here too.
+* `DuneSinker` (in `s13_dunes.gd`): characters standing on a dune are drawn a few px into the sand (`SINK`) instead of floating on the
+  slope corner. Visual only (moves the canvas item after everyone moved); physics and hit boxes are unchanged.
+* GRAVEBORN erupts right away (`JUMP_WARN`) when you jump over its mound, so it can't simply be skipped.
+* SANDBLASTER stream = real `CPUParticles2D` (`_jet`) whose speed matches the stream length, plus a dust cloud (`_dust`) where it hits a wall/dune.
+
+## Stomp rule (all stages)
+
+`player.gd -> _try_stomp()`: landing on a zombie's head = 20 damage, but only ONCE per zombie (`meta "stomped"`).
+Landing on the same zombie again hurts YOU (1 heart) and bounces you off.
+SHIELD ELITE (`shield_elite.gd`) now rests its heavy shield every `REST_EVERY` s for `REST_T` s (state `REST`) - shoot it from the front then.
 
 ## Real zombie voices
 

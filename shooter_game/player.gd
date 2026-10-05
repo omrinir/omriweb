@@ -544,16 +544,33 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 
-# נחיתה על ראש זומבי: מפיל אותו ומקפיץ אותך שוב
+# נחיתה על ראש זומבי: 20 נזק ומקפיץ אותך הצידה. פעם אחת לכל זומבי:
+# נחיתה שנייה על אותו זומבי (אחרי STOMP_GRACE) = אתה נפגע ונזרק ממנו.
+const STOMP_GRACE := 0.6   # שניות (זמן משחק) אחרי רמיסה שבהן נחיתה חוזרת על אותו ראש רק מקפיצה (לא נחשבת)
+
+
 func _try_stomp() -> void:
 	for z in get_tree().get_nodes_in_group("zombies"):
 		if z.dead or z._lying():
 			continue
 		var top: float = z.global_position.y - 60.0 * z.sc
 		if absf(z.global_position.x - global_position.x) < 18.0 * z.wf and absf(global_position.y - top) < 16.0:
+			var dx: float = global_position.x - z.global_position.x
+			var side: float = signf(dx) if absf(dx) > 2.0 else (signf(velocity.x) if absf(velocity.x) > 10.0 else _face())
+			_push_t = 0.45   # הדחיפה הצידה גוברת על השליטה באוויר - יורדים מהראש שלו
+			if z.has_meta("stomped"):
+				velocity.y = jump_velocity * 0.55
+				velocity.x = side * 240.0
+				if _time - float(z.get_meta("stomped")) > STOMP_GRACE:   # פעם שנייה: הוא תופס אותך
+					hurt(1, Vector2(side, -0.6))
+					velocity.x = side * 260.0
+					_say("NOT AGAIN!", Color("ff5a4a"))
+				return
+			z.set_meta("stomped", _time)
 			z.take_damage(20, global_position, Vector2(_face(), 0.4), true, {"source": "stomp"})
 			Sfx.play("land", global_position, 3.0)
 			velocity.y = jump_velocity * 0.8
+			velocity.x = side * maxf(absf(velocity.x), 200.0)
 			_air_jumps = 1
 			_say("STOMP", Color("ffd34a"))
 			preload("res://particles.gd").burst(get_parent(), global_position, "hit", Vector2.UP, 12)

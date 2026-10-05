@@ -100,6 +100,63 @@ class Dune extends StaticBody2D:
 
 
 # ============================================================
+#  DuneSinker - מי שעומד על דיונה "שוקע" קצת לתוך החול (רק בציור, לא בפיזיקה).
+#  למה: על שיפוע, הגוף המלבני נשען על הפינה העליונה שלו -> הדמות נראית מרחפת.
+#  איך: אחרי שכולם זזו (process_priority גבוה), מזיזים את ה-canvas item של הדמות למטה
+#  עד פני החול + SINK פיקסלים. הפיזיקה, הקליעים והפגיעות לא משתנים בכלל.
+# ============================================================
+class DuneSinker extends Node:
+	const SINK := 4.0          # כמה פיקסלים "לתוך" החול
+	const MAX_DROP := 16.0     # הכי הרבה שמזיזים למטה
+	var dunes: Array = []
+	var _off := {}             # instance_id -> ההזזה הנוכחית (מוחלקת)
+
+	func _ready() -> void:
+		process_priority = 1000   # אחרי כל ה-_process האחרים, רגע לפני הציור
+
+	func _surface(x: float) -> Vector2:   # (גובה פני החול, גובה הדיונה בנקודה) או INF
+		for d in dunes:
+			if not is_instance_valid(d):
+				continue
+			var y: float = d.surface_y(x)
+			if y != INF:
+				return Vector2(y, d.global_position.y - y)
+		return Vector2(INF, 0.0)
+
+	func _process(delta: float) -> void:
+		var bodies: Array = get_tree().get_nodes_in_group("zombies")
+		bodies.append_array(get_tree().get_nodes_in_group("player"))
+		var seen := {}
+		for b in bodies:
+			if not is_instance_valid(b) or not (b is CharacterBody2D):
+				continue
+			var id: int = b.get_instance_id()
+			seen[id] = true
+			var want := 0.0
+			var alive: bool = not bool(b.get("dead")) and b.is_on_floor() and b.visible
+			if alive:
+				var sf := _surface(b.global_position.x)
+				if sf.x != INF and absf(sf.x - b.global_position.y) < MAX_DROP + 4.0:
+					var gap := clampf(sf.x - b.global_position.y, 0.0, MAX_DROP)
+					want = gap + SINK * clampf(sf.y / 24.0, 0.0, 1.0)   # בקצוות הדיונה (גובה ~0) לא שוקעים
+			var cur: float = _off.get(id, 0.0)
+			if want == 0.0 and cur == 0.0:
+				continue
+			cur = move_toward(cur, want, delta * 90.0)
+			if absf(cur) < 0.05:
+				cur = 0.0
+			_off[id] = cur
+			var t: Transform2D = b.get_transform()
+			t.origin.y += cur
+			RenderingServer.canvas_item_set_transform(b.get_canvas_item(), t)
+			if cur == 0.0:
+				_off.erase(id)
+		for id in _off.keys():
+			if not seen.has(id):
+				_off.erase(id)
+
+
+# ============================================================
 #  סופת חול מחזורית (שכבת מסך)
 # ============================================================
 class SandStorm extends Node2D:

@@ -5,6 +5,7 @@ extends "res://enemies/zombie_type.gd"
 #    חול נשפך ממנו כל הזמן. כפות ידיים ארוכות עם אצבעות-עצם.
 #  מחזור:
 #    UNDER  - מתחת לחול: רואים רק תל חול שזז אליך + אדוות (אי אפשר לפגוע בו).
+#             קופצים מעליו -> מתפרץ מיד (JUMP_WARN), כך שאי אפשר סתם לדלג עליו.
 #    WARN   - מתחתיך: האדמה נסדקת, אבק עולה, רעש (ERUPT_WARN שניות) - זוז!
 #    ERUPT  - פורץ החוצה (ידיים קודם): מי שעומד מעל נפגע ונזרק למעלה.
 #    UP     - זומבי רגיל על הקרקע (רודף, נושך) למשך UP_T, או עד שאתה מתרחק.
@@ -22,6 +23,7 @@ const SOUNDS := {
 
 const UNDER_SPEED := 150.0
 const ERUPT_WARN := 0.65
+const JUMP_WARN := 0.18      # קפצו מעליו: מתפרץ כמעט מיד
 const ERUPT_R := 46.0
 const UP_T := Vector2(6.0, 8.0)
 const RISE_T := 0.4
@@ -90,7 +92,14 @@ func physics(pl: Node, delta: float) -> bool:
 				var dx: float = pl.global_position.x - z.global_position.x
 				z._dir = signf(dx) if dx != 0.0 else z._dir
 				spd = UNDER_SPEED * (0.75 if _boss() else 1.0)
-				if absf(dx) < 14.0 and _cd <= 0.0 and pl.is_on_floor() and absf(pl.global_position.y - z.global_position.y) < 40.0:
+				# השחקן קופץ מעליו -> מתפרץ מיד (אחרת אפשר פשוט לדלג עליו ולהמשיך)
+				var above: float = z.global_position.y - pl.global_position.y
+				if not pl.is_on_floor() and absf(dx) < 30.0 * z.sc and above > 12.0 and above < 260.0:
+					state = WARN
+					_st = JUMP_WARN
+					spd = 0.0
+					Sfx.play("gb_rumble", z.global_position, 2.0, 0.1, 3)
+				elif absf(dx) < 14.0 and _cd <= 0.0 and pl.is_on_floor() and absf(pl.global_position.y - z.global_position.y) < 40.0:
 					state = WARN
 					_st = ERUPT_WARN
 					spd = 0.0
