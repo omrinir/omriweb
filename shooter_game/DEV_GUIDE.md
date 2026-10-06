@@ -182,3 +182,15 @@ While on, zombies can see you (`Game.player_dark` = false).
 Darkness layers read every node in group `dyn_lights` through `effects/dyn_lights.gd` (`gather` / `merge`):
 `subway.gd`, `effects/s11_decor.gd` NightOverlay, `effects/s14_decor.gd` StormOverlay.
 Dark levels (night, subway, `stage.dark_level()` = stages 11 and 14) show `ui/tip_banner.gd` "TIP: USE YOUR FLASHLIGHT" for 4 s.
+
+## Stage 15 - Carnival of the Dead (NORTHEAST region, level 6)
+
+* `levels/stage_15.gd`, art in `effects/s15_decor.gd`: morning in Olinda after a carnival that never ended - golden low sun with rays,
+  sea and Recife towers in the haze, the Olinda hill with pastel houses, white twin-tower churches and palms, colonial row houses
+  with iron balconies and colored shutters (`ColonialRow`), carnival masks, streamers, confetti, Olinda giant puppets (`GiantPuppet`,
+  some fallen), abandoned parade floats (`ParadeFloat`) = second floor (`FLOATS`) with ladders. Obstacles: maracatu drums, drink stall.
+* New zombies: `bombhead.gd` (tears off his head and throws it - the head hits/bounces/chatters on the ground - then runs headless with a
+  lit fireworks belt and explodes on you or when the fuse ends; shooting him while he runs = he explodes right there and hurts zombies),
+  `minigunner.gd` (spin-up warning, sprays ~16 bullets/s with a wide spread and a slow-tracking aim, then OVERHEAT = x1.5 damage),
+  `stilter.gd` (carnival stilt walker with long backward-bent legs: crouch warning then huge leaps aimed where you will be, stomp on landing;
+  boss "THE BONECO" = giant Olinda puppet with a wide landing shockwave). CRUMBLER returns.

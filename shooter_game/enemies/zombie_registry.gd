@@ -14,6 +14,7 @@ enum {
 	MIMIC, IRONWING, SPARE_PARTS,  # שלב 12
 	GRAVEBORN, SANDBLASTER,        # שלב 13
 	CRUMBLER, RETCHER,             # שלב 14
+	BOMBHEAD, MINIGUNNER, STILTER, # שלב 15
 }
 
 const FIRST := 20
@@ -51,6 +52,9 @@ const TYPES := {
 	SANDBLASTER: "res://enemies/types/sandblaster.gd",
 	CRUMBLER: "res://enemies/types/crumbler.gd",
 	RETCHER: "res://enemies/types/retcher.gd",
+	BOMBHEAD: "res://enemies/types/bombhead.gd",
+	MINIGUNNER: "res://enemies/types/minigunner.gd",
+	STILTER: "res://enemies/types/stilter.gd",
 }
 
 static var _stats_cache := {}

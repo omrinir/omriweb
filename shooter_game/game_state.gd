@@ -137,7 +137,7 @@ func is_factory() -> bool:
 #  מפה: 7 אזורים, 9 שלבים בכל אזור (כרגע 3 השלבים הראשונים קיימים)
 # ============================================================
 const LEVELS_PER_REGION := 9
-const IMPLEMENTED := 14           # כמה שלבים כבר בנויים
+const IMPLEMENTED := 15           # כמה שלבים כבר בנויים
 const REGIONS := [
 	{"name": "NORTHERN AMAZON", "color": Color(0.45, 0.85, 0.3), "desc": "Where it started. The first ones only hunger.",
 		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Ruined District", "Highrise", "The Works", "Research Site", "Zone Zero"]},
@@ -283,6 +283,7 @@ const LEVEL_TITLES := [
 	["THEY WEAR OUR FACES", "Not everyone who calls for help is still human."],
 	["THEY RISE FROM THE SAND", "They learned to wait beneath you."],
 	["THEY KNOW YOUR VOICE", "Out here, the only one talking is you. For now."],
+	["THEY DANCE WITH DEATH", "The carnival never ended. It just changed partners."],
 ]
 func level_title() -> Array:
 	var t: Array = LEVEL_TITLES[(level - 1) % LEVEL_TITLES.size()].duplicate()

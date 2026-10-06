@@ -140,14 +140,14 @@ const EVENTS := {
 	"sandblast": [[81], 2], "call": [[82, 23], 3], "squad": [[83, 23], 3], "dodge_bullet": [[84], 3],
 	"charge": [[85], 2], "ceiling_drop": [[92], 3], "ambush": [[22, 93], 3], "bloater": [[91], 3],
 	"leg": [[54], 1], "headshots": [[50, 96], 1], "long_head": [[51], 2], "double": [[52], 1], "blast": [[48], 2],
-	"barrel": [[49], 2], "car": [[100], 2], "stomp_kill": [[53], 1],
+	"barrel": [[49], 2], "car": [[100], 2], "stomp_kill": [[53], 1], "head_throw": [[13], 2],
 	"grenade_dodged": [[19, 20], 3], "adapt": [[19, 24], 3], "cover": [[24], 2], "flank_jump": [[25], 3],
 	"know": [[21], 3], "heard": [[16], 2], "scared": [[11], 3], "closer": [[18], 2],
 	"die_die": [[1], 1], "wont_die": [[2], 2], "stay_down": [[3], 1], "not_up": [[4], 1], "come_on": [[5], 1],
 	"last_one": [[6], 2], "got_you": [[7], 1], "eat_this": [[8], 1], "back_off": [[9], 1], "had_enough": [[10], 2],
 }
 # סוג זומבי שרואים בפעם הראשונה (בריצה) -> אירוע
-const SIGHTS := {Z.JETPACK: [86], Z.RAT: [87], Z.DOG: [88], Z.HOUND: [88], Z.COP: [90], Z.GUNNER: [98], Z.MECH: [99], Registry.IRONWING: [74]}
+const SIGHTS := {Registry.MINIGUNNER: [98], Registry.STILTER: [60], Z.JETPACK: [86], Z.RAT: [87], Z.DOG: [88], Z.HOUND: [88], Z.COP: [90], Z.GUNNER: [98], Z.MECH: [99], Registry.IRONWING: [74]}
 const COLORS := {"combat": Color("ffd23a"), "scary": Color("9fe8ff"), "smart": Color("d8a8ff"), "wtf": Color("ff8a5a")}
 const VOICE_DB := 1.0
 const LINES_PER_LEVEL := Vector2i(1, 4)   # כמה משפטים מקסימום בשלב (מוגרל בכל שלב)
