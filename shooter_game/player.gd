@@ -19,7 +19,7 @@ const DebrisScript := preload("res://debris.gd")
 const PickupScript := preload("res://pickup.gd")
 const TextScript := preload("res://zombie.gd")
 const HeroAnim := preload("res://hero_anim.gd")       # אנימציות הדמות (SPRITE SHEET)
-const HERO_TEX := preload("res://sprites/hero.png")
+var HERO_TEX: Texture2D = preload("res://tex_load.gd").get_tex("res://sprites/hero.png")   # נטען בזמן ריצה (לא נשבר אם עוד לא יובא)
 const SPRITE_SCALE := 0.44                             # גודל הדמות במשחק (52 פיקסלים = גובה הדמות)
 
 enum { GUN, GRENADE }

@@ -45,7 +45,7 @@ const Brain := preload("res://ai/zombie_brain.gd")             # המוח (טק�
 const Registry := preload("res://enemies/zombie_registry.gd")  # סוגי זומבים חדשים (20+) - enemies/types/*.gd
 # סוגים שהמוח מזיז (לשאר יש לוגיקת תנועה משלהם)
 const BRAIN_KINDS := [0, 1, 2, 4, 9, 14, 16]
-const DOG_TEX := preload("res://sprites/dog.png")   # ספרייט כלב זומבי
+var DOG_TEX: Texture2D = preload("res://tex_load.gd").get_tex("res://sprites/dog.png")   # ספרייט כלב זומבי (נטען בזמן ריצה)
 
 enum { WALKER, RUNNER, BRUTE, SPITTER, SCREAMER, BOSS, BLOATER, CONDUCTOR, CRAWLER, COP, RAT, HAND, MECH, HURLER, IMP, DOG, DRUNK, GUNNER, JETPACK, HOUND }
 
