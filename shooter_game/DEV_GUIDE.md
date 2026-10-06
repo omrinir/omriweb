@@ -192,5 +192,9 @@ Dark levels (night, subway, `stage.dark_level()` = stages 11 and 14) show `ui/ti
 * New zombies: `bombhead.gd` (tears off his head and throws it - the head hits/bounces/chatters on the ground - then runs headless with a
   lit fireworks belt and explodes on you or when the fuse ends; shooting him while he runs = he explodes right there and hurts zombies),
   `minigunner.gd` (spin-up warning, sprays ~16 bullets/s with a wide spread and a slow-tracking aim, then OVERHEAT = x1.5 damage),
-  `stilter.gd` (kangaroo legs: walks with bent legs, crouches deeper as a warning, legs fully extended in the air; huge leaps aimed where you will be, stomp on landing;
+  `stilter.gd` (gaunt hunched creature with kangaroo legs - muscular thighs, sinewy shins, long clawed feet; skull with sunken glowing eyes and a hanging jaw;
+  walks with bent legs, crouches deeper as a warning, legs fully extended in the air; huge leaps aimed where you will be, stomp on landing; dies as a ragdoll;
   boss "THE BONECO" = giant Olinda puppet with a wide landing shockwave). CRUMBLER returns.
+
+Ragdoll hooks for zombie types (`effects/ragdoll.gd`): a type can define `ragdoll_pose() -> Array` (11 joints, local, unscaled)
+and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER uses both).

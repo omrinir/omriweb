@@ -47,6 +47,8 @@ func setup(zz: Node2D, vel: Vector2, dir: Vector2, hit: Vector2, boom: bool) -> 
 	var pose := [Vector2(3, -50), Vector2(2, -39), Vector2(0, -22 + crouch * 6.0),
 		Vector2(-2, -11), Vector2(-3, 0), Vector2(4, -11), Vector2(3, 0),
 		Vector2(-3, -30), Vector2(-2, -21), Vector2(7, -31), Vector2(11, -24)]
+	if z.type_mod != null and z.type_mod.has_method("ragdoll_pose"):   # סוג עם פרופורציות אחרות (למשל רגלי קנגורו)
+		pose = z.type_mod.ragdoll_pose()
 	var lie: float = PI / 2.0 * z._lie_side if z._lying() else 0.0
 	for v: Vector2 in pose:
 		var lp := Vector2(v.x * sx, v.y * sy)
@@ -195,6 +197,9 @@ func _notification(what: int) -> void:
 #  ציור (בצבעים של הזומבי)
 # ============================================================
 func draw(ci: CanvasItem) -> void:
+	if z.type_mod != null and z.type_mod.has_method("draw_ragdoll"):   # סוג שמצייר את הגופה שלו בעצמו
+		z.type_mod.draw_ragdoll(ci, self)
+		return
 	var sc: float = z.sc
 	var w: float = sqrt(float(z.wf))
 	var sk: Color = z.skin
