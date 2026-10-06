@@ -29,7 +29,7 @@ func zombie_weights() -> Dictionary:
 
 
 func zombie_density() -> float:
-	return 1.5
+	return 1.0
 
 
 func generators() -> Array:
@@ -157,8 +157,8 @@ func extra_spawns() -> void:
 	for s in _spans:
 		var x0: float = s[0]
 		var x1: float = s[1]
-		for k in 3:
-			spawn(Registry.SWARMER, lerpf(x0, x1, 0.25 + 0.25 * float(k)), floor_y - TIER1)
+		for k in 2:
+			spawn(Registry.SWARMER, lerpf(x0, x1, 0.3 + 0.4 * float(k)), floor_y - TIER1)
 		spawn(Registry.SWARMER, lerpf(x0, x1, 0.5), floor_y - TIER2)
 
 
@@ -169,9 +169,9 @@ func extra_spawns() -> void:
 #    כל גל שני: הצנחת תחמושת ליד השחקן.
 # ============================================================
 class HordeDirector extends Node:
-	const WAVE_GAP := Vector2(7.0, 10.0)
-	const WAVE_SIZE := Vector2i(9, 18)
-	const MAX_ALIVE := 48
+	const WAVE_GAP := Vector2(8.0, 12.0)
+	const WAVE_SIZE := Vector2i(6, 12)
+	const MAX_ALIVE := 30
 	const STREAM := 0.07
 	const Registry := preload("res://enemies/zombie_registry.gd")
 	const Sfx := preload("res://sfx.gd")
@@ -185,6 +185,8 @@ class HordeDirector extends Node:
 	var _queue := []          # [x] לזרם
 	var _stream_t := 0.0
 	var _side := 1.0
+	var _freeze_t := 0.0
+	const FREEZE_DIST := 1600.0   # זומבים רחוקים מזה מהשחקן מוקפאים לגמרי (חוסך ביצועים כשיש המון)
 
 	func _physics_process(delta: float) -> void:
 		var main: Node = get_parent()
@@ -195,6 +197,13 @@ class HordeDirector extends Node:
 			return
 		_t -= delta
 		var px := pl.global_position.x
+		_freeze_t -= delta
+		if _freeze_t <= 0.0:
+			_freeze_t = 0.25
+			for z in get_tree().get_nodes_in_group("zombies"):
+				var awake: bool = absf(z.global_position.x - px) < FREEZE_DIST or z.is_boss()
+				if z.is_physics_processing() != awake:
+					z.set_physics_process(awake)
 		var near_boss: bool = px > stage.level_w - 1500.0
 		if _t <= 0.0:
 			_t = randf_range(WAVE_GAP.x, WAVE_GAP.y) * (1.6 if near_boss else 1.0)
@@ -206,8 +215,12 @@ class HordeDirector extends Node:
 				if SwarmerType.count_near(pl.global_position.x, 1500.0) >= MAX_ALIVE:
 					_queue.clear()
 					break
-				var x: float = _queue.pop_front()
-				var z = main._spawn_zombie(clampf(x, 40.0, stage.level_w - 40.0), stage.floor_y, Registry.SWARMER)
+				var x: float = clampf(_queue.pop_front(), 40.0, stage.level_w - 40.0)
+				var tries := 0
+				while not stage.free_x(x, 24.0) and tries < 10:   # לא בתוך מכולה / מכשול
+					x += 40.0 * _side
+					tries += 1
+				var z = main._spawn_zombie(x, stage.floor_y, Registry.SWARMER)
 				if z != null:
 					z._dir = -_side
 					spawned += 1

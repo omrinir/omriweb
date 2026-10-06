@@ -205,8 +205,11 @@ Dark levels (night, subway, `stage.dark_level()` = stages 11 and 14) show `ui/ti
 * One zombie type only: `swarmer.gd` - hunched, fast, 1-hit, comes in huge numbers. They climb on each other (`on_back`):
   blocked by a wall / obstacle / a slow swarmer ahead -> hop onto its back; landing on a swarmer's back = ride it. Piles form at walls
   and under the player when he is on a high floor; from the pile (or a floor) they leap up. Close range: pounce + bite.
+  Dies as a ragdoll (`ragdoll_pose` / `draw_ragdoll`). Anti-stuck: every few frames (and right after spawning) checks if its body
+  overlaps a solid (`_inside_solid`) and pops up/out (`_unstick`); a rider whose mount walks into a wall gets off.
 * `HordeDirector` (inner class in stage_16.gd): every `WAVE_GAP` s a wave (`WAVE_SIZE`, grows with progress) streams in off-screen
   ahead (25% from behind), capped at `MAX_ALIVE` awake swarmers near the player. Every 2nd wave = ammo drop next to the player.
+  Performance: zombies farther than `FREEZE_DIST` from the player are fully paused (physics off) and wake up when he gets close.
 * Lots of ammo: a box every `AMMO_GAP` px (road or scaffold), a SUPPLY crate on every top floor.
 * Boss `broodmother.gd` "THE BROODMOTHER": huge spiny thing on all fours with a translucent belly sac full of wriggling young.
   LABOR (sac swells, glows, screams) -> BIRTH: throws 3-4 newborn swarmers at you (+2 under half HP, max `MAX_KIDS` alive).

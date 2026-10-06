@@ -25,6 +25,9 @@ const BITE_R := 24.0
 
 static var _members: Array = []          # כל ה-SWARMERS החיים (לטיפוס אחד על השני)
 static var _members_frame := -1
+static var _q: PhysicsShapeQueryParameters2D = null   # בדיקת "תקוע בתוך מכשול"
+static var _q_shape: RectangleShape2D = null
+var unstuck := 0                         # לבדיקות: כמה פעמים חולץ ממכשול
 
 var newborn := false
 var on_back = null                       # על הגב של מי הוא עומד עכשיו
@@ -40,7 +43,7 @@ var _tick := 0
 func stats() -> Dictionary:
 	return {"name": "SWARMER", "hp": 6, "walk": 200.0, "chase": 260.0, "damage": 1, "bite_delay": 0.75, "scale": 0.92, "width": 0.95,
 		"duck": 0.0, "cover": 0.0, "skin": Color("9aa39a"), "shirt": Color("3a3836"), "pants": Color("2c2a2a"), "shoe": Color("1a1616"),
-		"points": 45, "ragdoll": false}
+		"points": 45}
 
 
 func brain_overrides() -> Dictionary:
@@ -60,6 +63,12 @@ func setup() -> void:
 	z.dormant = false
 	z._set_crouch(true)          # צורה נמוכה (כפוף): הראש ב-30 העליונים
 	_members.append(z)
+	_spawn_check.call_deferred()
+
+
+func _spawn_check() -> void:   # נוצר בתוך מכשול (שער היציאה / מכולה)? מחלצים מיד
+	if is_instance_valid(z) and not z.dead and z.is_inside_tree() and _inside_solid(z.global_position):
+		_unstick()
 
 
 static func swarm() -> Array:   # מתעדכן פעם אחת בפריים (חוסך המון כשיש עשרות)
@@ -92,6 +101,8 @@ func physics(pl: Node, delta: float) -> bool:
 	if z.global_position.y > 900.0:   # נפל מחוץ לעולם (נדחק מתחת לכביש)
 		z.queue_free()
 		return true
+	if (Engine.get_physics_frames() + _tick) % 9 == 0 and _inside_solid(z.global_position):   # תקוע בתוך מכשול: מחלצים למעלה
+		_unstick()
 	var has_pl: bool = pl != null and not pl.dead
 	var d: Vector2 = (pl.global_position - z.global_position) if has_pl else Vector2(z._dir * 300.0, 0.0)
 	if absf(d.x) > 10.0:
@@ -103,9 +114,14 @@ func physics(pl: Node, delta: float) -> bool:
 		if not is_instance_valid(on_back) or on_back.dead or absf(on_back.global_position.x - z.global_position.x) > 17.0 * z.sc:
 			on_back = null
 		else:
-			z.global_position.y = on_back.type_mod.top_y()
-			z.velocity.y = 0.0
-			grounded = true
+			var ty: float = on_back.type_mod.top_y()
+			if on_back.global_position.y - z.global_position.y > 6.0 and (Engine.get_physics_frames() + _tick) % 3 == 0 \
+					and _inside_solid(Vector2(z.global_position.x, ty)):   # הגב שלו נכנס לקיר: יורד ממנו
+				on_back = null
+			else:
+				z.global_position.y = ty
+				z.velocity.y = 0.0
+				grounded = true
 	# ---- נוחת על גב של אחר ----
 	if on_back == null and not grounded and z.velocity.y > 0.0:
 		for s in swarm():
@@ -171,6 +187,36 @@ func _decide(pl: Node, d: Vector2, dir: float) -> void:
 		Sfx.play("sw_shriek", z.global_position, -6.0, 0.2, 3)
 
 
+# האם הגוף (מלבן קטן בתוך הצורה) חופף לעולם המוצק (קירות, מכשולים, מכולות - לא קומות)
+func _inside_solid(pos: Vector2) -> bool:
+	if _q == null:
+		_q = PhysicsShapeQueryParameters2D.new()
+		_q_shape = RectangleShape2D.new()
+		_q.shape = _q_shape
+		_q.collision_mask = 1
+	_q_shape.size = Vector2(10.0 * z.sc, 26.0 * z.sc)
+	_q.transform = Transform2D(0.0, pos + Vector2(0.0, -17.0 * z.sc))
+	return not z.get_world_2d().direct_space_state.intersect_shape(_q, 1).is_empty()
+
+
+func _unstick() -> void:
+	unstuck += 1
+	on_back = null
+	var p0: Vector2 = z.global_position
+	for k in range(1, 26):   # למעלה עד שיש מקום פנוי (מעל המכולה)
+		var up := p0 + Vector2(0.0, -8.0 * float(k))
+		if not _inside_solid(up):
+			z.global_position = up
+			z.velocity = Vector2(z.velocity.x * 0.3, 0.0)
+			return
+	for k in range(1, 20):   # אין למעלה: לצדדים
+		for sd in [-1.0, 1.0]:
+			var side := p0 + Vector2(sd * 10.0 * float(k), 0.0)
+			if not _inside_solid(side):
+				z.global_position = side
+				return
+
+
 func _blocked(dir: float) -> bool:
 	var s = _climb_target(dir)
 	return s != null and absf(s.velocity.x) < 70.0
@@ -201,6 +247,41 @@ func _jump(h: float, vx: float) -> void:
 
 func on_death() -> void:
 	on_back = null
+
+
+# גופה רכה (effects/ragdoll.gd): מתחילה בתנוחה הכפופה שלו
+func ragdoll_pose() -> Array:
+	return [Vector2(21, -28), Vector2(12, -29), Vector2(-6, -24),
+		Vector2(-2, -13), Vector2(-8, 0), Vector2(3, -13), Vector2(2, 0),
+		Vector2(10, -17), Vector2(14, -4), Vector2(14, -18), Vector2(20, -5)]
+
+
+func draw_ragdoll(ci: CanvasItem, rag) -> void:
+	var p: PackedVector2Array = rag.p
+	var sc: float = z.sc
+	var sk: Color = z.skin
+	var dark := Art.shade(z.skin, 0.3)
+	ci.draw_colored_polygon(Art.ellipse((p[rag.PELVIS] + p[rag.NECK]) * 0.5 + Vector2(0, 7.0 * sc), 16.0 * sc, 2.5 * sc, 0.0, 12), Color(0, 0, 0, 0.22))
+	for leg in [[rag.KNEE_B, rag.FOOT_B, dark], [rag.KNEE_F, rag.FOOT_F, sk]]:
+		Art.limb(ci, PackedVector2Array([p[rag.PELVIS], p[leg[0]], p[leg[1]]]), 3.0 * sc, leg[2])
+	for arm in [[rag.ELBOW_B, rag.HAND_B, dark]]:
+		Art.limb(ci, PackedVector2Array([p[rag.NECK], p[arm[0]], p[arm[1]]]), 2.4 * sc, arm[2])
+	var axis := (p[rag.PELVIS] - p[rag.NECK]).normalized()
+	var nrm := Vector2(-axis.y, axis.x) * 4.2 * sc
+	Art.fill_shaded(ci, PackedVector2Array([p[rag.NECK] + nrm, p[rag.NECK] - nrm * 0.8, p[rag.PELVIS] - nrm * 0.7, p[rag.PELVIS] + nrm * 0.9]), sk, 0.15, 0.45, Art.OUTLINE, 1.1)
+	Art.fill(ci, PackedVector2Array([p[rag.NECK].lerp(p[rag.PELVIS], 0.35) + nrm, p[rag.NECK].lerp(p[rag.PELVIS], 0.35) - nrm * 0.8, p[rag.PELVIS] - nrm * 0.7, p[rag.PELVIS] + nrm * 0.9]), z.shirt, Art.OUTLINE, 1.0)
+	for i in 4:   # חוליות
+		ci.draw_circle(p[rag.NECK].lerp(p[rag.PELVIS], 0.15 + 0.22 * float(i)) + nrm * 0.9, 1.3 * sc, Art.shade(z.skin, -0.15))
+	for arm in [[rag.ELBOW_F, rag.HAND_F, sk]]:
+		Art.limb(ci, PackedVector2Array([p[rag.NECK], p[arm[0]], p[arm[1]]]), 2.4 * sc, arm[2])
+		var hd: Vector2 = (p[arm[1]] - p[arm[0]]).normalized()
+		for i in 3:   # טפרים
+			ci.draw_line(p[arm[1]], p[arm[1]] + hd.rotated(-0.45 + float(i) * 0.45) * 4.0 * sc, Color("d8d0b0"), 0.9)
+	var hdir := (p[rag.HEAD] - p[rag.NECK]).normalized()
+	Art.limb(ci, PackedVector2Array([p[rag.NECK], p[rag.HEAD]]), 2.2 * sc, dark)
+	Art.oval_shaded(ci, p[rag.HEAD], 5.6 * sc, 4.4 * sc, sk, hdir.angle())
+	ci.draw_circle(p[rag.HEAD] + hdir * 1.8 * sc + hdir.orthogonal() * 1.2 * sc, 1.3 * sc, Color("120808"))   # עין כבויה
+	ci.draw_line(p[rag.HEAD] + hdir.rotated(0.8) * 3.0 * sc, p[rag.HEAD] + hdir.rotated(1.6) * 4.6 * sc, Color("2a0606"), 1.5 * sc)   # לסת שמוטה
 
 
 # ============================================================
