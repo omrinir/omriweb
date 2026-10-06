@@ -201,6 +201,8 @@ func _ready() -> void:
 	add_child(preload("res://effects/collision_outlines.gd").new())
 	# השחקן מדבר לעצמו - 1 עד 4 משפטים בשלב, רק כשקורה משהו (ui/monologue.gd)
 	add_child(preload("res://ui/monologue.gd").new())
+	# מד רצף הריגות מהיר מעל השחקן (ui/kill_streak.gd)
+	add_child(preload("res://ui/kill_streak.gd").new())
 	# שלב חשוך: טיפ לפנס (4 שניות, אחרי כותרת השלב)
 	if Game.is_night() or Game.is_subway() or (_stage != null and _stage.dark_level()):
 		var tip = preload("res://ui/tip_banner.gd").new()

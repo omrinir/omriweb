@@ -12,6 +12,9 @@ signal trophy_unlocked(id: String)
 # אירועי "סיפור" לשחקן שמדבר לעצמו (ui/monologue.gd). כולם שולחים, רק מי שמאזין משתמש:
 #   zhit, zkill, wake, notice, phurt, reload, grenade, dodge, ambush, flank_jump, cover, adapt, call, squad, thunder...
 signal story(event: String, info: Dictionary)
+# רצף הריגות מהיר (ui/kill_streak.gd): כל הריגה בתוך STREAK_WINDOW שניות מהקודמת ממשיכה את הרצף
+signal streak_kill(count: int, head: bool, bonus: int, pos: Vector2)
+signal streak_end(count: int, total: int)
 
 const SAVE_PATH := "user://progress.cfg"
 
@@ -39,6 +42,13 @@ const OLD_UPGRADES := {"fire_rate": [40, 80, 140], "ammo": [40, 70, 110], "grena
 
 # ---------------- ניקוד ----------------
 const KILL_POINTS := [100, 120, 200, 150, 150, 2000, 160, 3000, 140, 180, 20, 120, 250, 300, 80, 120, 150, 220, 260, 4000]   # לפי סוג זומבי
+const STREAK_WINDOW := 1.5                              # רצף הריגות: הזמן עד ההריגה הבאה
+const STREAK_FULL := 8.0                                # כמה "הריגות" ממלאות את המד (ראש = 1.5)
+const STREAK_BONUS := 50                                # נקודות: 50 * (מספר ברצף - 1)
+var streak := 0
+var streak_t := 0.0
+var streak_meter := 0.0
+var streak_total := 0
 const COMBO_WINDOW := 4.0                               # שניות בין הריגות כדי שהקומבו ימשיך
 
 # מצב הריצה (נשמר בין שלבים, מתאפס במשחק חדש)
@@ -99,6 +109,11 @@ func _process(delta: float) -> void:
 	if get_tree().paused:
 		return
 	style = maxf(style - 6.0 * delta / maxf(Engine.time_scale, 0.01), 0.0)
+	if streak > 0:
+		streak_t -= delta
+		if streak_t <= 0.0:
+			streak_end.emit(streak, streak_total)
+			_reset_streak()
 	if combo > 0:
 		combo_t -= delta / maxf(Engine.time_scale, 0.01)
 		if combo_t <= 0.0:
@@ -313,6 +328,7 @@ func new_run() -> void:
 func reset_level() -> void:
 	PlayerMemory.on_level_start()
 	level_score = 0
+	_reset_streak()
 	combo = 0
 	combo_t = 0.0
 	style = 0.0
@@ -381,6 +397,13 @@ func multiplier() -> int:
 	if combo >= 6: return 3
 	if combo >= 3: return 2
 	return 1
+
+
+func _reset_streak() -> void:
+	streak = 0
+	streak_t = 0.0
+	streak_meter = 0.0
+	streak_total = 0
 
 
 func add_score(points: int) -> void:
@@ -458,6 +481,15 @@ func on_zombie_killed(kind: int, info: Dictionary) -> Array:
 		_blast_kills[blast] = int(_blast_kills.get(blast, 0)) + 1
 		if src == "barrel" and _blast_kills[blast] >= 4:
 			unlock("chain")
+	# רצף הריגות מהיר
+	streak = streak + 1 if streak_t > 0.0 else 1
+	streak_t = STREAK_WINDOW
+	var head: bool = info.get("zone", "") == "head"
+	streak_meter = minf(streak_meter + (1.5 if head else 1.0), STREAK_FULL)
+	var sb := STREAK_BONUS * (streak - 1)
+	streak_total += sb
+	pts += sb
+	streak_kill.emit(streak, head, sb, info.get("pos", Vector2.INF))
 	for b in bonuses:
 		pts += int(b[1])
 	add_score(pts)

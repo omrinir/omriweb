@@ -1195,6 +1195,7 @@ func _die(dir: Vector2) -> void:
 		if pl != null and pl.grabbed_by == self:
 			pl.grabbed_by = null
 		_spray_blood(global_position + Vector2(0, -20), Vector2.UP, 10, 260.0)
+		_last_info["pos"] = global_position + Vector2(0.0, -52.0 * sc)
 		Game.on_zombie_killed(kind, _last_info)
 		queue_free()
 		return
@@ -1223,7 +1224,9 @@ func _die(dir: Vector2) -> void:
 	if is_instance_valid(_fire):
 		_fire.queue_free()
 	# ניקוד + בונוסים
+	_last_info["pos"] = global_position + Vector2(0.0, -52.0 * sc)   # לחותמת HEADSHOT של ui/kill_streak.gd
 	var bonuses: Array = Game.on_zombie_killed(kind, _last_info)
+	bonuses = bonuses.filter(func(b): return b[0] != "HEADSHOT")   # HEADSHOT מוצג בגדול ע"י ui/kill_streak.gd
 	for i in bonuses.size():
 		var b: Array = bonuses[i]
 		var txt: String = b[0] + (" +%d" % b[1] if int(b[1]) > 0 else "")

@@ -160,7 +160,7 @@ Zombie types can choose a death sound (`zombie_type.gd -> death_sound()`, MIMIC 
 
 ## Player monologue (all levels)
 
-`ui/monologue.gd` (added to every level by `main.gd`): the hero talks to himself - comic speech bubble (font `fonts/Bangers-Regular.ttf`, OFL)
+`ui/monologue.gd`, `ui/kill_streak.gd` (fast-kill streak meter above the player: tiers GOOD..GODLIKE, HEADSHOT stamp; logic in game_state `streak_*`) (added to every level by `main.gd`): the hero talks to himself - comic speech bubble (font `fonts/Bangers-Regular.ttf`, OFL)
 on its own CanvasLayer (above the darkness) + voice clip `sounds/voice/vNN.mp3` (v01..v100): deep raspy voice with a light whisper
 (Kokoro TTS am_onyx, LPC whisper mixed 30%, close-mic EQ, no time-stretch).
 * 100 lines in `LINES`; `EVENTS` maps an event name to its possible lines + priority (1 combat - only sometimes, 2 normal,
