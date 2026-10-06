@@ -15,6 +15,7 @@ const Art := preload("res://art.gd")
 const BulletScript := preload("res://bullet.gd")
 const GrenadeScript := preload("res://grenade.gd")
 const MolotovScript := preload("res://weapons/molotov.gd")
+const RocketScript := preload("res://weapons/rocket.gd")
 const DebrisScript := preload("res://debris.gd")
 const PickupScript := preload("res://pickup.gd")
 const TextScript := preload("res://zombie.gd")
@@ -72,7 +73,7 @@ const Upgrades := preload("res://progression/upgrade_db.gd")        # שדרוג
 const AbilityRunnerScript := preload("res://abilities/ability_runner.gd")
 var abilities: Node = null       # היכולות (C = הפעלה, 6-0 = בחירה)
 var jetpack: RefCounted = null   # abilities/types/jetpack.gd כשהוא דולק
-enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, GRENADE_LAUNCHER, ASSAULT_SHOTGUN }
+enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, GRENADE_LAUNCHER, ASSAULT_SHOTGUN, ROCKET_LAUNCHER }
 var slots := []                  # 5 מקומות: {"id", "ammo", "mag"} או null (ammo = הכל, mag = מה שבמחסנית)
 var _reload_t := 0.0             # טוען (R / מחסנית ריקה). זומבים חכמים מנצלים את הרגע הזה!
 var _reload_total := 1.0
@@ -751,6 +752,12 @@ func _fire() -> void:
 				gl.damage = int(45.0 * float(w.get("damage", 1.0)))   # שדרוג DAMAGE
 				get_parent().add_child(gl)
 				gl.setup(sh + _aim * float(w.barrel), _aim * float(w.bullet_speed))
+				return
+			"rocket":   # משגר טילים: טיל אחד שמתפצל ל-3 (weapons/rocket.gd)
+				var rkt = RocketScript.new()
+				rkt.damage_mult = float(w.get("damage", 1.0))
+				get_parent().add_child(rkt)
+				rkt.setup(sh + _aim * float(w.barrel), _aim * float(w.bullet_speed))
 				return
 		# קליעים: רובה / שוטגאן / צלף / SMG / קשת...
 		var kick: float = w.get("kick", 0.0)
@@ -1641,6 +1648,19 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 		draw_line(g.call(14.0, 0.0), g.call(17.0, -1.5), Color("d8c8a0"), 1.6)
 		if ammo > 0:
 			Art.glow(self, g.call(18.0, -2.5), 5.0 + sin(_time * 25.0), Color(1.0, 0.6, 0.15, 0.8))
+		return
+	if gun == ROCKET_LAUNCHER:   # משגר טילים: צינור ירוק על הכתף, ידית, כוונת, ראש נפץ אדום כשטעון
+		Art.fill(self, PackedVector2Array([g.call(-14.0, -4.6), g.call(30.0, -4.6), g.call(30.0, 2.0), g.call(-14.0, 2.0)]), Color("4a5a3a"), Art.OUTLINE, 1.1)
+		draw_line(g.call(-12.0, -3.4), g.call(28.0, -3.4), Color(1, 1, 1, 0.14), 1.0, true)
+		Art.fill(self, PackedVector2Array([g.call(-17.0, -6.0), g.call(-13.0, -6.0), g.call(-13.0, 3.4), g.call(-17.0, 3.4)]), Color("2a2c26"), Art.OUTLINE, 0.9)
+		Art.fill(self, PackedVector2Array([g.call(26.0, -5.6), g.call(31.0, -5.6), g.call(31.0, 3.0), g.call(26.0, 3.0)]), Color("2a2c26"), Art.OUTLINE, 0.9)
+		Art.fill(self, PackedVector2Array([g.call(1.0, 2.0), g.call(4.5, 2.0), g.call(3.5, 8.0), g.call(0.0, 8.0)]), Color("1e1e22"), Art.OUTLINE, 0.9)
+		Art.fill(self, PackedVector2Array([g.call(12.0, 2.0), g.call(15.0, 2.0), g.call(14.5, 6.5), g.call(11.5, 6.5)]), Color("1e1e22"), Art.OUTLINE, 0.9)
+		Art.fill(self, PackedVector2Array([g.call(6.0, -4.6), g.call(12.0, -4.6), g.call(12.0, -8.0), g.call(6.0, -8.0)]), Color("1e1e22"), Art.OUTLINE, 0.9)
+		if mag > 0:
+			Art.fill(self, PackedVector2Array([g.call(31.0, -4.0), g.call(37.0, -1.3), g.call(31.0, 1.4)]), Color("c03a2a"), Art.OUTLINE, 0.9)
+		if _muzzle_flash > 0.0:   # להבה מאחור
+			Art.glow(self, g.call(-20.0, -1.3), 12.0, Color(1.0, 0.7, 0.3, 0.9))
 		return
 	if gun == PISTOL:   # אקדח: קטן, ביד אחת
 		Art.fill(self, PackedVector2Array([g.call(-1.0, -1.8), g.call(13.0, -1.8), g.call(13.0, 1.4), g.call(3.5, 1.4), g.call(2.5, 7.0), g.call(-1.5, 6.5), g.call(-1.0, 1.4)]), Color("1d1d23"), Art.OUTLINE, 1.0)

@@ -69,10 +69,13 @@ const WEAPONS := [
 	{"name": "ASSAULT SHOTGUN", "unlock_level": 8, "color": Color("ff5a3a"), "falloff": [11.0, 2.0, 460.0], "fire_rate": 0.32, "magazine_size": 8, "reload_time": 2.6,
 		"range": 950.0, "spread": 0.19, "recoil": 1.5, "bullet_speed": 2400.0, "knockback": 170.0, "pellets": 7, "projectile": "bullet",
 		"ammo_type": "shell", "ammo_start": 16, "ammo_box": 6, "ammo_max": 40, "sound": "ashotgun", "style": "ashotgun", "barrel": 24.0, "category": "shotgun"},
+	{"name": "ROCKET LAUNCHER", "unlock_level": 14, "color": Color("e05a30"), "damage": 1.0, "fire_rate": 0.95, "magazine_size": 2, "reload_time": 2.4, "recoil": 1.3,
+		"bullet_speed": 640.0, "knockback": 0.0, "projectile": "rocket",
+		"ammo_type": "rocket", "ammo_start": 4, "ammo_box": 2, "ammo_max": 10, "sound": "rocket", "style": "rocket", "barrel": 30.0, "category": "explosive"},
 ]
 
 # מזהים נוחים
-enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, GRENADE_LAUNCHER, ASSAULT_SHOTGUN }
+enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, GRENADE_LAUNCHER, ASSAULT_SHOTGUN, ROCKET_LAUNCHER }
 
 
 static func count() -> int:

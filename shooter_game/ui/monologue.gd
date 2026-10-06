@@ -441,7 +441,7 @@ func _on_kill(z: Node2D, zid: int, info: Dictionary) -> void:
 		said_one = _event("car")
 	elif src == "stomp":
 		said_one = _event("stomp_kill")
-	elif src == "grenade" or src == "launcher":
+	elif src == "grenade" or src == "launcher" or src == "rocket":
 		_blast_kills.append(_t)
 		_blast_kills = _blast_kills.filter(func(q: float) -> bool: return _t - q < 0.4)
 		if _blast_kills.size() >= 3:

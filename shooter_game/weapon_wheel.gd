@@ -447,6 +447,16 @@ static func draw_weapon(ci: CanvasItem, p: Vector2, id: int, s: float, alpha := 
 			ci.draw_circle(p + Vector2(-2, 10) * s, 2.5 * s, steel)
 			poly.call([Vector2(-11, 4), Vector2(-7, 4), Vector2(-9, 11), Vector2(-13, 10)], metal)
 			ln.call(Vector2(10, -4.5), Vector2(34, -4.5), Color(1.0, 0.35, 0.2, 0.7 * alpha), 0.8)
+		11:   # משגר טילים: צינור ירוק, ידיות, כוונת, ראש נפץ אדום
+			var tube := Color(0.29, 0.35, 0.23, alpha)
+			poly.call([Vector2(-34, -6), Vector2(28, -6), Vector2(28, 3), Vector2(-34, 3)], tube)
+			ln.call(Vector2(-32, -4.5), Vector2(26, -4.5), hi, 1.0)
+			poly.call([Vector2(-38, -8), Vector2(-33, -8), Vector2(-33, 5), Vector2(-38, 5)], metal)
+			poly.call([Vector2(24, -7.5), Vector2(30, -7.5), Vector2(30, 4.5), Vector2(24, 4.5)], metal)
+			poly.call([Vector2(-10, 3), Vector2(-5, 3), Vector2(-6, 12), Vector2(-11, 12)], metal)
+			poly.call([Vector2(6, 3), Vector2(10, 3), Vector2(9.5, 9), Vector2(5.5, 9)], metal)
+			poly.call([Vector2(-4, -6), Vector2(4, -6), Vector2(4, -11), Vector2(-4, -11)], metal)
+			poly.call([Vector2(30, -5), Vector2(38, -1.5), Vector2(30, 2)], Color(0.75, 0.23, 0.16, alpha))
 
 
 # ---- בר היכולות (מתחת לבר הנשקים): 5 קופסאות קטנות, טעינה מסתובבת, C = הפעלה ----
