@@ -4,7 +4,9 @@ extends Node
 #  2 הריגות ומעלה במהירות (כל הריגה בתוך Game.STREAK_WINDOW מהקודמת) מציגים:
 #    * מד אנכי שמצביע למעלה ומתמלא (ירוק > כחול > צהוב > כתום > אדום > סגול > זהב). מלא = קצה החץ נדלק.
 #      הריגה בראש ממלאת יותר (1.5).
-#    * "xN" על כוכב מתפוצץ + מילה לפי הדרגה (TIERS) שנכנסת בטריקה ורעידה.
+#    * "xN" על כוכב מתפוצץ + משפט אקראי לפי הדרגה (WORDS) שנכנס בטריקה ורעידה.
+#      הריגה מיוחדת (באוויר, החלקה, דריכה, פיצוץ, מרחוק, ברגע האחרון...) = משפט מ-SPECIAL במקום.
+#      הריגה בודדת מיוחדת (SOLO) = כיתוב קטן שעולה.
 #    * גולגולת לכל הריגה (אדומה = ראש), קו זמן שמתקצר עד שהרצף נשבר, ו"+נקודות".
 #    * דרגה חדשה: ניצוצות + צליל "דינג" שעולה בכל דרגה.
 #    * HEADSHOT: חותמת אדומה גדולה מעל הזומבי.
@@ -25,6 +27,37 @@ const TIERS := [
 	["UNSTOPPABLE", Color(0.9, 0.27, 1.0)],
 	["GODLIKE", Color(1.0, 0.94, 0.47)],
 ]
+# כמה משפטים לכל דרגה - נבחר אקראית (לא אותו משפט פעמיים ברצף)
+const WORDS := [
+	["GOOD!", "NICE!", "DOUBLE TAP!", "TWO DOWN!", "NOT BAD!", "TWOFER!"],
+	["GREAT!", "TRIPLE!", "HAT TRICK!", "SWEET!", "ON FIRE!", "KEEP GOING!"],
+	["EXCELLENT!", "WICKED!", "BRUTAL!", "CLEAN UP!", "RAMPAGE!", "FOUR ON THE FLOOR!"],
+	["AMAZING!", "SAVAGE!", "MASSACRE!", "KILLING SPREE!", "UNREAL!", "HIGH FIVE!"],
+	["INSANE!", "MANIAC!", "BLOODBATH!", "PSYCHO!", "MAYHEM!", "NO MERCY!"],
+	["UNSTOPPABLE!", "RELENTLESS!", "WRECKING BALL!", "DEATH MACHINE!", "ZOMBIE BANE!", "LUCKY SEVEN!"],
+	["GODLIKE!", "LEGENDARY!", "APOCALYPSE!", "ONE MAN ARMY!", "THEY FEAR YOU!", "EXTINCTION!"],
+]
+# הריגות מיוחדות (תגיות מ-game_state.gd -> _kill_tags). מחליפות את המילה של הדרגה
+const SPECIAL := {
+	"stomp": ["STOMPED!", "BOOT PARTY!", "CURB STOMP!", "SQUASHED!"],
+	"head3": ["HEAD HUNTER!", "BRAIN DRAIN!", "SHARPSHOOTER!", "SKULL COLLECTOR!"],
+	"pierce": ["TWO FOR ONE!", "SKEWERED!", "SHISH KEBAB!", "LINED UP!"],
+	"air": ["AIRBORNE!", "SKY HIGH!", "FROM ABOVE!", "AIR STRIKE!", "TOP GUN!"],
+	"slide": ["SLIDE KILL!", "SMOOTH!", "BASEBALL SLIDE!", "SLICK!"],
+	"roll": ["ROLL KILL!", "TUCK & ROLL!", "ROLLING THUNDER!", "STUNTMAN!"],
+	"melee": ["BARE HANDS!", "SMACKDOWN!", "KNUCKLE SANDWICH!", "UP CLOSE & PERSONAL!"],
+	"edge": ["ON THE EDGE!", "DEATH WISH!", "NOT TODAY!", "STILL BREATHING!"],
+	"clutch": ["CLUTCH!", "JUST IN TIME!", "BUZZER BEATER!", "SO CLOSE!"],
+	"hidden": ["FLUSHED OUT!", "NO HIDING!", "PEEKABOO!"],
+	"boom": ["KABOOM!", "FIREWORKS!", "BLAST OFF!", "BOOM BOOM!", "SCATTERED!"],
+	"fire": ["ROASTED!", "WELL DONE!", "BBQ!", "EXTRA CRISPY!"],
+	"taser": ["SHOCKING!", "ELECTRIFIED!", "ZAPPED!", "FRIED!"],
+	"far": ["LONG SHOT!", "SNIPED!", "DOWNTOWN!", "EAGLE EYE!"],
+	"close": ["POINT BLANK!", "IN YOUR FACE!", "TOO CLOSE!", "PERSONAL SPACE!"],
+}
+const SPECIAL_COL := {"stomp": Color(1.0, 0.6, 0.25), "head3": Color(1.0, 0.3, 0.3), "pierce": Color(0.6, 0.9, 1.0), "air": Color(0.5, 0.85, 1.0),
+	"slide": Color(0.5, 1.0, 0.7), "roll": Color(0.5, 1.0, 0.7), "melee": Color(1.0, 0.7, 0.4), "edge": Color(1.0, 0.35, 0.45), "hidden": Color(0.8, 0.9, 0.5)}
+const SOLO := ["stomp", "head3", "pierce", "air", "slide", "roll", "melee", "edge", "hidden", "far"]   # מוצגות גם בהריגה בודדת
 const BAR_COLS := [Color(0.47, 0.9, 0.35), Color(0.31, 0.78, 1.0), Color(1.0, 0.75, 0.16), Color(1.0, 0.47, 0.12),
 	Color(1.0, 0.24, 0.24), Color(0.9, 0.27, 1.0), Color(1.0, 0.94, 0.47)]
 const OFF := Vector2(-165.0, -10.0)    # תחתית המד ביחס לרגלי השחקן (במסך)
@@ -51,6 +84,8 @@ var _sparks: Array = []               # [pos, vel, life, color]
 var _stamps: Array = []               # HEADSHOT: [world pos, age]
 var _summaries: Array = []            # [text, age, screen pos, color]
 var _anchor := Vector2.ZERO
+var _word := ""
+var _last_word := ""
 var _layer: CanvasLayer
 var _ui: Node2D
 static var _font: Font = null
@@ -81,15 +116,30 @@ static func font() -> Font:
 	return _font
 
 
-func _on_kill(n: int, head: bool, bonus: int, pos: Vector2) -> void:
+func _pick(arr: Array) -> String:
+	var w: String = arr[randi() % arr.size()]
+	if w == _last_word and arr.size() > 1:
+		w = arr[(arr.find(w) + 1 + randi() % (arr.size() - 1)) % arr.size()]
+	_last_word = w
+	return w
+
+
+func _on_kill(n: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void:
 	if head and pos != Vector2.INF:
 		_stamps.append([pos, 0.0])
 	if n == 1:
 		heads = [head]
 		count = 1
+		for tg in tags:   # הריגה בודדת מיוחדת: כיתוב קטן שעולה
+			if tg in SOLO:
+				var c: Color = SPECIAL_COL.get(tg, Color(1.0, 0.85, 0.3))
+				_summaries.append([_pick(SPECIAL[tg]), 0.0, _anchor + Vector2(70.0, -175.0), c, true])
+				Sfx.play("streak_tick", null, -6.0, 0.05, 2, 1.2)
+				break
 		return
 	_end_t = 0.0
 	count = n
+	_summaries = _summaries.filter(func(sm): return not sm[4])   # הרצף התחיל: הכיתוב הקטן מפנה מקום למד
 	heads.append(head)
 	if heads.size() > 12:
 		heads.pop_front()
@@ -99,6 +149,7 @@ func _on_kill(n: int, head: bool, bonus: int, pos: Vector2) -> void:
 	_bonus = bonus
 	_bonus_t = 0.0
 	var t := clampi(n - 2, 0, TIERS.size() - 1)
+	_word = _pick(SPECIAL[tags[0]]) if not tags.is_empty() and SPECIAL.has(tags[0]) else _pick(WORDS[t])
 	if t != tier or n == 2:
 		tier = t
 		_spin_v = 9.0
@@ -112,7 +163,7 @@ func _on_end(n: int, total: int) -> void:
 	if n >= 2:
 		_end_t = 0.001
 	if n >= 5 and tier >= 0:
-		_summaries.append(["x%d CHAIN  +%d" % [n, total], 0.0, _anchor + Vector2(70.0, -185.0), TIERS[tier][1]])
+		_summaries.append(["x%d CHAIN  +%d" % [n, total], 0.0, _anchor + Vector2(70.0, -185.0), TIERS[tier][1], false])
 	count = 0
 
 
@@ -182,7 +233,8 @@ func _draw_ui() -> void:
 		# המילה: טריקה + רעידה
 		var sh := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * 5.0 * _pop
 		var ws := 1.0 + 1.3 * _pop * _pop
-		_text(ci, f, TIERS[tier][0] + "!", o + Vector2(92.0, -186.0) + sh, 32.0 * ws, -0.1, col, a, 8, false)
+		var wsz := 32.0 * clampf(11.0 / float(maxi(_word.length(), 1)), 0.62, 1.0)   # מילים ארוכות קטנות יותר
+		_text(ci, f, _word, o + Vector2(92.0, -186.0) + sh, wsz * ws, -0.1, col, a, 8, false)
 		# גולגולות (אדומה = ראש)
 		for i in heads.size():
 			var sp := o + Vector2(98.0 + float(i) * 17.0, -146.0 + (1.5 if i % 2 == 0 else 0.0))

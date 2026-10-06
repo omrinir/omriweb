@@ -13,7 +13,7 @@ signal trophy_unlocked(id: String)
 #   zhit, zkill, wake, notice, phurt, reload, grenade, dodge, ambush, flank_jump, cover, adapt, call, squad, thunder...
 signal story(event: String, info: Dictionary)
 # רצף הריגות מהיר (ui/kill_streak.gd): כל הריגה בתוך STREAK_WINDOW שניות מהקודמת ממשיכה את הרצף
-signal streak_kill(count: int, head: bool, bonus: int, pos: Vector2)
+signal streak_kill(count: int, head: bool, bonus: int, pos: Vector2, tags: Array)
 signal streak_end(count: int, total: int)
 
 const SAVE_PATH := "user://progress.cfg"
@@ -42,13 +42,14 @@ const OLD_UPGRADES := {"fire_rate": [40, 80, 140], "ammo": [40, 70, 110], "grena
 
 # ---------------- ניקוד ----------------
 const KILL_POINTS := [100, 120, 200, 150, 150, 2000, 160, 3000, 140, 180, 20, 120, 250, 300, 80, 120, 150, 220, 260, 4000]   # לפי סוג זומבי
-const STREAK_WINDOW := 1.5                              # רצף הריגות: הזמן עד ההריגה הבאה
+const STREAK_WINDOW := 3.5                              # רצף הריגות: הזמן עד ההריגה הבאה
 const STREAK_FULL := 8.0                                # כמה "הריגות" ממלאות את המד (ראש = 1.5)
 const STREAK_BONUS := 50                                # נקודות: 50 * (מספר ברצף - 1)
 var streak := 0
 var streak_t := 0.0
 var streak_meter := 0.0
 var streak_total := 0
+var _streak_heads := 0                                  # כמה הריגות ראש ברצף (בלי הפסקה)
 const COMBO_WINDOW := 4.0                               # שניות בין הריגות כדי שהקומבו ימשיך
 
 # מצב הריצה (נשמר בין שלבים, מתאפס במשחק חדש)
@@ -241,7 +242,7 @@ func load_dict(d: Dictionary) -> bool:
 	if ws is Array and ws.size() == 5:
 		weapon_slots = []
 		for s in ws:
-			weapon_slots.append(null if s == null else {"id": int(s.id), "ammo": int(s.ammo)})
+			weapon_slots.append(null if s == null or WeaponDB.removed(int(s.id)) else {"id": int(s.id), "ammo": int(s.ammo)})
 	scrap = int(d.get("scrap", scrap))
 	var up = d.get("upgrades", {})
 	for k in up:
@@ -399,7 +400,45 @@ func multiplier() -> int:
 	return 1
 
 
+# תגיות להריגה מיוחדת (ui/kill_streak.gd בוחר להן משפט). לפי סדר עדיפות
+func _kill_tags(info: Dictionary, src: String, mv: String, was_t: float, bid: int) -> Array:
+	var tags := []
+	var pl := get_tree().get_first_node_in_group("player") as Node2D
+	var pos: Vector2 = info.get("pos", Vector2.INF)
+	var dist := pl.global_position.distance_to(pos) if pl != null and pos != Vector2.INF else -1.0
+	if src == "stomp":
+		tags.append("stomp")
+	if _streak_heads >= 3:
+		tags.append("head3")
+	if bid != 0 and int(_bullet_kills.get(bid, 0)) >= 2:
+		tags.append("pierce")
+	if mv == "air" and src != "stomp":
+		tags.append("air")
+	elif mv == "slide" or mv == "roll":
+		tags.append(mv)
+	if src == "melee":
+		tags.append("melee")
+	if pl != null and int(pl.get("health")) <= 1:
+		tags.append("edge")
+	if streak > 1 and was_t > 0.0 and was_t < 0.8:
+		tags.append("clutch")
+	if info.get("hidden", false):
+		tags.append("hidden")
+	if src in ["grenade", "launcher", "rocket", "barrel", "car", "bloater", "jet", "mech"]:
+		tags.append("boom")
+	elif src == "fire":
+		tags.append("fire")
+	elif src == "taser":
+		tags.append("taser")
+	if dist > 650.0:
+		tags.append("far")
+	elif dist >= 0.0 and dist < 75.0 and src != "stomp" and src != "melee":
+		tags.append("close")
+	return tags
+
+
 func _reset_streak() -> void:
+	_streak_heads = 0
 	streak = 0
 	streak_t = 0.0
 	streak_meter = 0.0
@@ -482,14 +521,17 @@ func on_zombie_killed(kind: int, info: Dictionary) -> Array:
 		if src == "barrel" and _blast_kills[blast] >= 4:
 			unlock("chain")
 	# רצף הריגות מהיר
+	var was_t := streak_t
 	streak = streak + 1 if streak_t > 0.0 else 1
 	streak_t = STREAK_WINDOW
 	var head: bool = info.get("zone", "") == "head"
+	_streak_heads = _streak_heads + 1 if head else 0
+	var tags := _kill_tags(info, src, mv, was_t, bid)
 	streak_meter = minf(streak_meter + (1.5 if head else 1.0), STREAK_FULL)
 	var sb := STREAK_BONUS * (streak - 1)
 	streak_total += sb
 	pts += sb
-	streak_kill.emit(streak, head, sb, info.get("pos", Vector2.INF))
+	streak_kill.emit(streak, head, sb, info.get("pos", Vector2.INF), tags)
 	for b in bonuses:
 		pts += int(b[1])
 	add_score(pts)
@@ -632,7 +674,7 @@ func _load() -> void:
 			level_best[int(k)] = int(d.level_best[k])
 		var ws = d.get("weapon_slots", null)
 		if ws is Array and ws.size() == 5:
-			weapon_slots = ws
+			weapon_slots = ws.map(func(s): return null if s == null or WeaponDB.removed(int(s.id)) else s)
 		scrap = int(d.get("scrap", 0))
 		for k in d.get("upgrades", {}):
 			upgrades[k] = int(d.upgrades[k])

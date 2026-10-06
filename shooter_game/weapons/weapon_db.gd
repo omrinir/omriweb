@@ -43,7 +43,7 @@ const WEAPONS := [
 	{"name": "SHOTGUN", "unlock_level": 1, "color": Color("e07a3a"), "falloff": [9.0, 1.0, 420.0], "fire_rate": 1.0, "magazine_size": 6, "reload_time": 1.2,
 		"range": 900.0, "spread": 0.16, "recoil": 2.2, "bullet_speed": 2400.0, "knockback": 150.0, "pellets": 6, "projectile": "bullet",
 		"ammo_type": "shell", "ammo_start": 8, "ammo_box": 3, "ammo_max": 16, "sound": "shotgun", "sound_db": 2.0, "style": "shotgun", "barrel": 22.0, "category": "shotgun"},
-	{"name": "BOW", "unlock_level": 1, "color": Color("8ac060"), "fixed_damage": [13, 19], "fire_rate": 0.8, "magazine_size": 0,
+	{"name": "BOW", "removed": true, "unlock_level": 1, "color": Color("8ac060"), "fixed_damage": [13, 19], "fire_rate": 0.8, "magazine_size": 0,
 		"range": 3400.0, "spread": 0.0, "recoil": 0.0, "bullet_speed": 1150.0, "knockback": 40.0, "projectile": "arrow",
 		"ammo_type": "arrow", "ammo_start": 12, "ammo_box": 4, "ammo_max": 20, "sound": "bow", "sound_db": -2.0, "style": "bow", "barrel": 20.0, "category": "precision"},
 	{"name": "SNIPER", "unlock_level": 2, "color": Color("7ad0ff"), "damage": 1.0, "sniper": true, "fire_rate": 1.5, "magazine_size": 5, "reload_time": 1.1,
@@ -76,6 +76,11 @@ const WEAPONS := [
 
 # מזהים נוחים
 enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, GRENADE_LAUNCHER, ASSAULT_SHOTGUN, ROCKET_LAUNCHER }
+
+
+# נשק שהוסר מהמשחק ("removed": true) - נשאר ברשימה רק כדי שה-id של השאר לא ישתנו
+static func removed(id: int) -> bool:
+	return id < 0 or id >= WEAPONS.size() or bool(WEAPONS[id].get("removed", false))
 
 
 static func count() -> int:

@@ -40,8 +40,8 @@ const ABILITIES := [
 		"power_desc": "More flight time (20s -> 32s max)", "power_base": 110,
 		"desc": "Fly! Hold W/SPACE to thrust, fire while flying. 20s of fuel, burns only in the air. C again = land."},
 	{"id": "flashlight", "name": "FLASHLIGHT", "color": Color("ffe6a8"), "cooldown": 25.0, "unlock_level": 1, "icon": "torch", "cd_after": true,
-		"power_desc": "Longer battery (20s -> 30s max)", "power_base": 80,
-		"desc": "A warm light that cuts through the dark for 20s. They can see you too. Flickers when the battery dies. C again = off."},
+		"power_desc": "Longer battery (50s -> 2 min max)", "power_base": 80,
+		"desc": "A warm light that cuts through the dark for 50s. They can see you too. Flickers when the battery dies. C again = off."},
 ]
 
 

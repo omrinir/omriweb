@@ -74,6 +74,8 @@ func _items() -> Array:
 	match _tab:
 		0:
 			for id in WeaponDB.count():
+				if WeaponDB.removed(id):
+					continue
 				var seen: bool = id in Game.seen_weapons
 				out.append({"kind": "w", "id": id, "name": str(WeaponDB.val(id, "name", "?")) if seen else "???", "locked": not seen,
 					"why": "FIND IT FIRST (STAGE %d+)" % int(WeaponDB.val(id, "unlock_level", 1)), "color": WeaponDB.val(id, "color", Color.WHITE)})

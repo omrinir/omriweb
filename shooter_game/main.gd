@@ -35,6 +35,7 @@ const SUBWAY_GENS := [["train", 3.0], ["crates", 1.5], ["barrels", 1.5], ["barri
 const FogScript := preload("res://fog.gd")
 const PauseScript := preload("res://pause_menu.gd")
 const SurvivorScript := preload("res://survivor.gd")
+const WeaponDB := preload("res://weapons/weapon_db.gd")
 const PickupScript := preload("res://pickup.gd")
 const ExitScript := preload("res://exit.gd")
 const ResultsScript := preload("res://results.gd")
@@ -652,12 +653,12 @@ func _spawn_supplies(rng: RandomNumberGenerator, floor_y: float) -> void:
 	for s in Game.weapon_slots:
 		if s != null:
 			owned.append(s.id)
-	var offer := [3, 4, 1, 2] if Game.is_subway() else ([1, 2, 3, 4] if Game.is_factory() else [1, 2])
+	var offer := [3, 4, 1] if Game.is_subway() else ([1, 3, 4] if Game.is_factory() else [1])
 	if _stage != null:
 		offer = _stage.weapon_offers()
 	var n := 0
 	for wid in offer:
-		if wid in owned or n >= 3:
+		if wid in owned or n >= 3 or WeaponDB.removed(wid):
 			continue
 		var spots := [safe_zone * 0.75, level_w * 0.3, level_w * 0.55]
 		var x: float = spots[n]

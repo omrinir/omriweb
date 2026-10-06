@@ -21,7 +21,7 @@ const MINI_POP := 220.0         # קפיצה קטנה למעלה ברגע הפי
 const MINI_GRAVITY := 1300.0
 const MINI_LIFE := 3.0          # ביטחון: מתפוצץ אחרי הזמן הזה בכל מקרה
 const MINI_RADIUS := 62.0       # פיצוץ רגיל ~110-120
-const MINI_DAMAGE := 26
+const MINI_DAMAGE := 39
 const BREAK_RADIUS := 40.0
 
 static var _blast_id := 100000
