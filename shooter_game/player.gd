@@ -79,6 +79,9 @@ var _reload_total := 1.0
 var _kick := 0.0                 # SMG: הקנה עולה מירייה לירייה
 var _climbing := false           # על סולם (environment/ladder.gd)
 var _drop_t := 0.0               # יורד דרך קומה (S + קפיצה, או S פעמיים מהר)
+var _ladder_cd := 0.0            # רגע אחרי שעזבו סולם - לא נתפסים בו שוב מיד
+const LADDER_SIDE := 110.0       # מהירות תזוזה הצידה על סולם (A/D)
+const LADDER_LET_GO := 0.5       # כמה מהגוף מחוץ לסולם = עוזבים (0.5 = חצי)
 var _s_was := false
 var _s_tap_t := 9.0              # כמה זמן עבר מהלחיצה הקודמת על S
 const DOUBLE_TAP := 0.3          # S פעמיים בתוך הזמן הזה = יורדים מהקומה
@@ -402,23 +405,40 @@ func _physics_process(delta: float) -> void:
 		_drop_t -= delta
 		if _drop_t <= 0.0 and not _climbing:
 			collision_mask |= 16
+	_ladder_cd -= delta
 	var lad := _ladder_at()
 	var kw := controllable and Input.is_physical_key_pressed(KEY_W)
 	var ks := controllable and Input.is_physical_key_pressed(KEY_S)
-	if lad != null and not _climbing and grabbed_by == null and _hook_state != 2 and (kw or (ks and _on_platform())):
+	if lad != null and not _climbing and grabbed_by == null and _hook_state != 2 and _ladder_cd <= 0.0 and (kw or (ks and _on_platform())):
 		_climbing = true
 		_jump_was = true
 	if _climbing:
-		if lad == null or (controllable and Input.is_physical_key_pressed(KEY_SPACE) and not _jump_was):
+		var ksp := controllable and Input.is_physical_key_pressed(KEY_SPACE)
+		# כמה מהגוף עוד על הסולם (A/D מזיזים הצידה - חצי בחוץ = עוזבים / קופצים)
+		var inside := 0.0
+		if lad != null:
+			var lr: Rect2 = lad.world_rect()
+			var x0 := global_position.x - W * 0.5
+			var x1 := global_position.x + W * 0.5
+			inside = maxf(0.0, minf(x1, lr.end.x) - maxf(x0, lr.position.x)) / W
+		var jump_off: bool = ksp and not _jump_was
+		if lad == null or jump_off or (inside <= LADDER_LET_GO and dir != 0.0):
 			_climbing = false
+			_ladder_cd = 0.35
 			collision_mask |= 16
-			if lad != null:
-				velocity.y = jump_velocity * 0.8
+			if lad != null and (jump_off or kw or ksp):   # קפיצה מהסולם לכיוון שאליו זזים
+				velocity.y = jump_velocity * (0.8 if dir == 0.0 else 0.85)
+				velocity.x = dir * speed
+				_air_jumps = 1
+				_jump_was = true
+			elif lad != null:   # רק עוזבים (נופלים) הצידה
+				velocity = Vector2(dir * speed * 0.7, 0.0)
 		else:
 			collision_mask &= ~16
 			var cdir := (-1.0 if kw else 0.0) + (1.0 if ks else 0.0)
-			velocity = Vector2(dir * 50.0, cdir * 170.0)
-			global_position.x = move_toward(global_position.x, lad.global_position.x, 220.0 * delta)
+			velocity = Vector2(dir * LADDER_SIDE, cdir * 170.0)
+			if dir == 0.0:   # בלי A/D: מתיישר בעדינות למרכז הסולם
+				global_position.x = move_toward(global_position.x, lad.global_position.x, 50.0 * delta)
 			if kw and global_position.y <= lad.top_y() + 2.0:   # הגיע למעלה: עולה על הקומה
 				global_position.y = lad.top_y()
 				velocity.y = 0.0
@@ -427,7 +447,7 @@ func _physics_process(delta: float) -> void:
 			elif ks and is_on_floor() and global_position.y >= lad.global_position.y - 2.0:
 				_climbing = false
 				collision_mask |= 16
-			_jump_was = Input.is_physical_key_pressed(KEY_SPACE)
+			_jump_was = ksp
 			_move()
 			queue_redraw()
 			return
