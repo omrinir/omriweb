@@ -1,7 +1,7 @@
 extends "res://enemies/zombie_type.gd"
 # ============================================================
-#  STILTER (שלב 15, צפון-מזרח, קרנבל) - הולך-על-קביים של הקרנבל שהפך לזומבי: רגליים ארוכות ומכופפות
-#  (ברך הפוכה, כמו של חגב), גוף צר, ז'קט פסים של ליצן, כובע צילינדר מעוך.
+#  STILTER (שלב 15, צפון-מזרח, קרנבל) - זומבי עם רגלי קנגורו: ירכיים עבות, שוקיים ארוכות וכפות רגליים
+#  ארוכות. הולך עם רגליים מקופלות, ובזינוק הרגליים נמתחות עד הסוף. גוף צר, ז'קט פסים, כובע צילינדר מעוך.
 #  מחזור:
 #    WALK   - פוסע בצעדים גדולים (המוח מזיז אותו).
 #    CROUCH - מקפל את הרגליים הארוכות (CROUCH_T) = אזהרה.
@@ -41,7 +41,7 @@ func stats() -> Dictionary:
 			"duck": 0.0, "cover": 0.0, "skin": Color("e8c8a0"), "shirt": Color("e83a8a"), "pants": Color("3a2a6a"), "shoe": Color("2a1a10"),
 			"points": 900, "boss": true, "boss_name": "THE BONECO", "ragdoll": false}
 	return {"name": "STILTER", "hp": 32, "walk": 55.0, "chase": 110.0, "damage": 1, "bite_delay": 0.8, "scale": 1.55, "width": 0.75,
-		"duck": 0.0, "cover": 0.1, "skin": Color("98a880"), "shirt": Color("2a8ac0"), "pants": Color("e8d8b0"), "shoe": Color("3a2a1a"),
+		"duck": 0.0, "cover": 0.1, "skin": Color("98a880"), "shirt": Color("2a8ac0"), "pants": Color("6a4a8a"), "shoe": Color("3a2a1a"),
 		"points": 360, "ragdoll": false}
 
 
@@ -129,63 +129,93 @@ func _land(pl: Node) -> void:
 
 
 # ============================================================
-#  ציור: רגליים ארוכות עם ברך הפוכה (בקואורדינטות מקומיות, x פונה ימינה; הכל מוכפל ב-sc)
+#  ציור: רגלי קנגורו (בקואורדינטות מקומיות, x פונה ימינה; הכל מוכפל ב-sc)
+#  ירך עבה קדימה, שוק ארוכה אחורה, כף רגל ארוכה שטוחה על הרצפה.
+#  הולך עם רגליים מקופלות (קפיצות קטנות), מתכופף עוד לפני זינוק, ובאוויר הרגליים נמתחות עד הסוף.
 # ============================================================
+func _ext() -> float:   # 0 = מקופל (הליכה), 1 = מתוח לגמרי (באוויר), שלילי = מתכופף
+	match state:
+		CROUCH:
+			return -(1.0 - clampf(_st / CROUCH_T, 0.0, 1.0))
+		LEAP:
+			return 1.0 if z.velocity.y < 120.0 else 0.6   # עולה = מתוח, נוחת = מתחיל להתקפל
+		LAND:
+			return -clampf(_st / 0.55, 0.0, 1.0) * 0.7
+	return 0.0
+
+
+func _leg_pts(e: float, ph: float, back: bool) -> Array:
+	# e: -1 מתכופף ... 0 הליכה ... 1 מתוח. ph = שלב ההליכה
+	var air: bool = not z.is_on_floor() and not z.dead
+	var hop := absf(sin(ph)) * 2.5 if (z.is_on_floor() and absf(z.velocity.x) > 8.0 and e == 0.0) else 0.0
+	var hip_y: float = lerpf(-19.0, -10.0, -e) if e <= 0.0 else lerpf(-19.0, -38.0, e)
+	hip_y -= hop
+	var hip := Vector2(-2.0 + (1.5 if back else 0.0), hip_y)
+	var step := sin(ph + (PI if back else 0.0)) * 3.0 if not air else 0.0
+	var toe := Vector2(11.0 + step, 0.0)
+	var ankle := Vector2(-3.0 + step, -3.5)
+	var knee := hip + Vector2(7.5, 6.5)
+	if e > 0.0:   # מתוח: הירך, השוק וכף הרגל כמעט בקו ישר מטה-אחורה
+		var k := e
+		knee = knee.lerp(hip + Vector2(2.0, 11.0), k)
+		ankle = ankle.lerp(knee + Vector2(-3.0, 13.0), k)
+		toe = toe.lerp(ankle + Vector2(4.0, 9.0), k)
+	elif e < 0.0:   # מתכופף: ברך קדימה, עקב כמעט נוגע ברצפה
+		var k := -e
+		knee = knee.lerp(hip + Vector2(11.0, 3.0), k)
+		ankle = ankle.lerp(Vector2(-6.0, -1.0), k)
+	return [hip, knee, ankle, toe]
+
+
 func draw() -> bool:
 	begin_draw()
 	var sk := col(z.skin)
 	var jacket := col(z.shirt)
-	var pole := col(z.pants)
+	var shorts := col(z.pants)
 	var p: float = z._walk_phase
-	var bend := 0.0   # 0 = עומד, 1 = מקופל עד הסוף
-	match state:
-		CROUCH:
-			bend = 1.0 - clampf(_st / CROUCH_T, 0.0, 1.0)
-		LAND:
-			bend = clampf(_st / 0.55, 0.0, 1.0) * 0.8
-		LEAP:
-			bend = 0.25
-	var hip_y := lerpf(-24.0, -15.0, bend) + absf(sin(p)) * 0.6
-	var hip := Vector2(-1.0, hip_y)
-	var sh := hip + Vector2(1.0, -14.0)
-	var head := sh + Vector2(2.0, -6.0)
-	# שתי רגליים-קביים: ירך קדימה, ברך הפוכה אחורה, שוק ארוכה לרצפה
+	var e := _ext()
+	var legs := [_leg_pts(e, p, true), _leg_pts(e, p, false)]
+	var hip: Vector2 = legs[1][0]
+	var lean := 3.0 if e <= 0.0 else -1.0   # הולך שפוף קדימה, באוויר הגוף זקוף
+	var sh := hip + Vector2(3.0 + lean, -13.0)
+	var head := sh + Vector2(3.0, -6.0)
+	# רגליים: אחורית כהה יותר
 	for i in 2:
-		var ph := p + float(i) * PI
-		var foot := Vector2(sin(ph) * 5.0 + (1.0 if i == 0 else -1.0), -maxf(0.0, cos(ph)) * 2.0)
-		if not z.is_on_floor() and not z.dead:
-			foot = Vector2(3.0 - float(i) * 6.0, -3.0)
-		var knee := hip + Vector2(5.0 + 4.0 * bend, (foot.y - hip.y) * 0.4)
-		var hock := knee + Vector2(-6.0 - 3.0 * bend, (foot.y - knee.y) * 0.55)
-		var c := pole if i == 0 else col(Art.shade(z.pants, 0.3))
-		Art.limb(z, PackedVector2Array([hip + Vector2(0, 0), knee]), 2.6, c)
-		Art.limb(z, PackedVector2Array([knee, hock]), 2.0, c)
-		Art.limb(z, PackedVector2Array([hock, foot]), 1.6, c)
-		z.draw_line(foot + Vector2(-2.5, 0), foot + Vector2(3.0, 0), col(z.shoe), 1.6)   # רגלית
-		z.draw_circle(knee, 1.4, col(Color("b0a080")))   # מפרק
+		var lp: Array = legs[i]
+		var dark := i == 0
+		var thigh_c := col(Art.shade(z.pants, 0.3)) if dark else shorts
+		var skin_c := col(Art.shade(z.skin, 0.25)) if dark else sk
+		var th: Vector2 = lp[1] - lp[0]
+		Art.limb(z, PackedVector2Array([lp[1], lp[2]]), 3.2, skin_c)               # שוק ארוכה
+		Art.limb(z, PackedVector2Array([lp[2], lp[3]]), 2.6, skin_c)               # כף רגל ארוכה
+		Art.oval(z, lp[0] + th * 0.5, th.length() * 0.62 + 2.0, 4.6, thigh_c, th.angle(), Art.OUTLINE, 1.2)   # ירך שרירית עבה (קנגורו)
+		z.draw_circle(lp[1], 2.0, skin_c)                                         # ברך
+		z.draw_line(lp[3], lp[3] + Vector2(2.5, 0.0), col(z.shoe), 2.0)           # בהונות
 	# גוף צר עם ז'קט פסים
-	var body := PackedVector2Array([sh + Vector2(-4, -1), sh + Vector2(4, 0), hip + Vector2(3.5, 1), hip + Vector2(-3.5, 1)])
+	var body := PackedVector2Array([sh + Vector2(-4, -1), sh + Vector2(4, 0), hip + Vector2(4.5, 1), hip + Vector2(-4, 1)])
 	Art.fill_shaded(z, body, jacket, 0.15, 0.4)
 	for i in 3:
-		z.draw_line(sh + Vector2(-3.5 + float(i) * 3.2, 0), hip + Vector2(-3.0 + float(i) * 3.0, 0), col(Color("f0e8d0")), 0.8)
-	# ידיים ארוכות ודקות
-	z._arm(sh + Vector2(-1, 1), sh + Vector2(9, 9 + sin(p) * 2.0), col(Art.shade(z.skin, 0.25)), Art.shade(jacket, 0.3))
-	z._arm(sh + Vector2(2, 1), sh + Vector2(11, 6 - sin(p) * 2.0), sk, jacket)
+		z.draw_line(sh + Vector2(-3.5 + float(i) * 3.2, 0), hip + Vector2(-3.0 + float(i) * 3.2, 0), col(Color("f0e8d0")), 0.8)
+	# ידיים: באוויר מתוחות לאחור, בהליכה מושטות קדימה
+	var hand_a := sh + (Vector2(-9, 6) if e > 0.0 else Vector2(9, 8 + sin(p) * 2.0))
+	var hand_b := sh + (Vector2(-6, 9) if e > 0.0 else Vector2(11, 5 - sin(p) * 2.0))
+	z._arm(sh + Vector2(-1, 1), hand_a, col(Art.shade(z.skin, 0.25)), Art.shade(jacket, 0.3))
+	z._arm(sh + Vector2(2, 1), hand_b, sk, jacket)
 	if _boss():   # בובת אולינדה: ראש ענק של עיסת נייר
 		var bh := head + Vector2(1, -5)
 		Art.oval_shaded(z, bh, 9.0, 10.0, sk, 0.0)
-		Art.fill(z, PackedVector2Array([bh + Vector2(-9, -3), bh + Vector2(-4, -12), bh + Vector2(5, -12), bh + Vector2(10, -2), bh + Vector2(2, -8)]), col(Color("2a1a10")), Art.OUTLINE, 1.0)   # שיער צבוע
+		Art.fill(z, PackedVector2Array([bh + Vector2(-9, -3), bh + Vector2(-4, -12), bh + Vector2(5, -12), bh + Vector2(10, -2), bh + Vector2(2, -8)]), col(Color("2a1a10")), Art.OUTLINE, 1.0)
 		z.draw_circle(bh + Vector2(-3, -1), 2.0, Color.WHITE)
 		z.draw_circle(bh + Vector2(4, -1), 2.0, Color.WHITE)
 		z.draw_circle(bh + Vector2(-2.5, -1), 1.0, Color(0.8, 0.1, 0.1))
 		z.draw_circle(bh + Vector2(4.5, -1), 1.0, Color(0.8, 0.1, 0.1))
-		z.draw_arc(bh + Vector2(1, 4), 4.0, 0.2, PI - 0.2, 8, col(Color("a01818")), 1.6)   # חיוך מצויר
+		z.draw_arc(bh + Vector2(1, 4), 4.0, 0.2, PI - 0.2, 8, col(Color("a01818")), 1.6)
 		Art.oval(z, bh + Vector2(-5, 3), 2.0, 1.2, Color(0.95, 0.4, 0.4, 0.6), 0.0, Art.NONE)
 		Art.oval(z, bh + Vector2(6, 3), 2.0, 1.2, Color(0.95, 0.4, 0.4, 0.6), 0.0, Art.NONE)
 	else:
-		Art.oval_shaded(z, head, 4.5, 5.0, sk, 0.0)
-		z.draw_circle(head + Vector2(2.2, -0.5), 1.0, Color(1.0, 0.85, 0.3))
-		z.draw_line(head + Vector2(0.5, 2.5), head + Vector2(4.2, 2.2), col(Color("2a0a0a")), 1.0)
+		Art.oval_shaded(z, head, 4.8, 5.2, sk, 0.0)
+		z.draw_circle(head + Vector2(2.4, -0.5), 1.0, Color(1.0, 0.85, 0.3))
+		z.draw_line(head + Vector2(0.5, 2.6), head + Vector2(4.4, 2.3), col(Color("2a0a0a")), 1.0)
 		# כובע צילינדר מעוך
 		Art.fill(z, PackedVector2Array([head + Vector2(-4, -4), head + Vector2(4, -4.5), head + Vector2(3.5, -11), head + Vector2(-2, -12)]), col(Color("1a1a22")), Art.OUTLINE, 0.8)
 		z.draw_line(head + Vector2(-5, -4), head + Vector2(5, -4.5), col(Color("1a1a22")), 1.4)

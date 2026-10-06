@@ -21,8 +21,8 @@ const SOUNDS := {
 
 const RANGE := 620.0
 const SPIN_T := 0.95
-const FIRE_T := 2.6
-const RATE := 16.0          # כדורים בשנייה
+const FIRE_T := 2.0
+const RATE := 9.0           # כדורים בשנייה
 const SPREAD := 0.34         # רדיאנים לכל צד (לא מדויק!)
 const TRACK := 1.6          # כמה מהר הכוונת עוקבת אחריך (רדיאנים/שנייה)
 const HEAT_T := 1.6
@@ -43,7 +43,7 @@ var _snd := 0.0
 
 
 func stats() -> Dictionary:
-	return {"name": "MINIGUNNER", "hp": 70, "walk": 30.0, "chase": 52.0, "damage": 1, "bite_delay": 1.0, "scale": 1.22, "width": 1.35,
+	return {"name": "MINIGUNNER", "hp": 50, "walk": 30.0, "chase": 52.0, "damage": 1, "bite_delay": 1.0, "scale": 1.22, "width": 1.35,
 		"duck": 0.0, "cover": 0.0, "skin": Color("8a9878"), "shirt": Color("4a5a3a"), "pants": Color("3a3a32"), "shoe": Color("1a1612"), "points": 460}
 
 
