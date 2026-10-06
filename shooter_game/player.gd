@@ -77,6 +77,7 @@ enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, 
 var slots := []                  # 5 מקומות: {"id", "ammo", "mag"} או null (ammo = הכל, mag = מה שבמחסנית)
 var _reload_t := 0.0             # טוען (R / מחסנית ריקה). זומבים חכמים מנצלים את הרגע הזה!
 var _reload_total := 1.0
+var _mag_out := false            # באמצע טעינה: המחסנית בחוץ (לא מציירים אותה בנשק)
 var _kick := 0.0                 # SMG: הקנה עולה מירייה לירייה
 var _climbing := false           # על סולם (environment/ladder.gd)
 var _drop_t := 0.0               # יורד דרך קומה (S + קפיצה, או S פעמיים מהר)
@@ -279,7 +280,9 @@ func _physics_process(delta: float) -> void:
 	_cooldown -= delta
 	_kick = move_toward(_kick, 0.0, delta * 0.5)
 	if _reload_t > 0.0:
+		var k0 := _reload_k()
 		_reload_t -= delta
+		_reload_events(k0, _reload_k())
 		if _reload_t <= 0.0:
 			_finish_reload()
 	_melee_t = maxf(_melee_t - delta, 0.0)
@@ -851,6 +854,8 @@ func _play_reload_sound() -> void:
 	a.bus = "SFX"
 	a.volume_db = Sfx.volume_db - 2.0
 	a.max_distance = 1500.0
+	if st.get_length() > 0.0:   # טעינה קצרה: הצליל מהיר יותר כדי להיגמר בזמן
+		a.pitch_scale = clampf(st.get_length() / maxf(_reload_total * 1.05, 0.1), 1.0, 1.6)
 	add_child(a)
 	a.play()
 	a.finished.connect(a.queue_free)
@@ -1391,8 +1396,12 @@ func _draw_hero(la: Vector2) -> void:
 		draw_set_transform_matrix(_base_xf)
 		return
 	if weapon == GUN:
-		_arm(sh + Vector2(-3.0, 1.5), hand + la * 9.0 + la.rotated(PI / 2.0) * 2.0, true)
+		var rp := _reload_pose(hand, la, sh)
+		la = rp.la
+		hand = rp.hand
+		_arm(sh + Vector2(-3.0, 1.5), rp.support, true)
 		_draw_rifle(hand, la)
+		_draw_held(rp.support, la, rp.held)
 	else:
 		var g := hand + la * 3.0
 		Art.disc(self, g, 4.3, Color("4a5a2c"))
@@ -1547,7 +1556,10 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	if _drain_target != null:
 		_draw_device(hand, la)
 	elif weapon == GUN:
-		_draw_rifle(hand, la)
+		var rp := _reload_pose(hand, la, fs)
+		hand = rp.hand
+		_draw_rifle(hand, rp.la)
+		_draw_held(rp.support, rp.la, rp.held)
 	else:
 		var g := hand + la * 3.0
 		Art.disc(self, g, 4.3, Color("4a5a2c"))
@@ -1622,9 +1634,172 @@ func _draw_beam(from: Vector2, to: Vector2, k: float) -> void:
 	Art.glow(self, from, 10.0, Color(col, 0.6))
 
 
+# ============================================================
+#  אנימציית טעינה - לפי סוג הנשק:
+#    "mag"      - המחסנית נופלת, היד לוקחת חדשה מהחגורה, מכניסה, ודורכת (רובה / SMG / רובה סער / צלף / אקדח / שוטגאן אוטומטי)
+#    "shell"    - 3 כדורים אחד אחד לפתח הטעינה ואז משאבה (שוטגאן)
+#    "launcher" - המשגר נפתח (הקנה למטה), 2 רימונים, נסגר
+#    "rocket"   - היד לוקחת טיל מהגב ודוחפת אותו לקצה הצינור
+#  k = התקדמות 0..1 (זמן הטעינה ב-weapon_db.gd -> reload_time)
+# ============================================================
+func _reload_k() -> float:
+	return clampf(1.0 - _reload_t / maxf(_reload_total, 0.01), 0.0, 1.0)
+
+
+func _reload_kind() -> String:
+	match str(WeaponDB.val(gun, "style", "rifle")):
+		"shotgun":
+			return "shell"
+		"launcher":
+			return "launcher"
+		"rocket":
+			return "rocket"
+	return "mag"
+
+
+# אירועים חד-פעמיים לאורך הטעינה (מחסנית נופלת, תרמילים)
+func _reload_events(k0: float, k1: float) -> void:
+	var kind := _reload_kind()
+	var fpos := global_position + Vector2(_face() * 8.0, -26.0)
+	if kind == "mag" and k0 < 0.12 and k1 >= 0.12:
+		var c = DebrisScript.new()
+		get_parent().add_child(c)
+		c.setup(fpos, Vector2(2.6, 6.0), Color("26262c"), Vector2(_face() * randf_range(10.0, 40.0), 30.0))
+	elif kind == "launcher" and k0 < 0.12 and k1 >= 0.12:
+		for i in 2:
+			_eject_casing(global_position + Vector2(_face() * 2.0, -30.0))
+
+
+func _reload_pose(hand: Vector2, la: Vector2, sh: Vector2) -> Dictionary:
+	var rest_of := func(h: Vector2, l: Vector2) -> Vector2: return h + l * 9.0 + l.rotated(PI / 2.0) * 2.0
+	_mag_out = false
+	if _reload_t <= 0.0:
+		return {"la": la, "hand": hand, "support": rest_of.call(hand, la), "held": ""}
+	var k := _reload_k()
+	var kind := _reload_kind()
+	var into := smoothstep(0.0, 0.14, k) * (1.0 - smoothstep(0.86, 1.0, k))   # כניסה / יציאה מהתנוחה
+	# הנשק עובר לתנוחת טעינה קבועה (לא משנה לאן כיוונת) וחוזר בסוף
+	var pose_ang := 0.0
+	var off := Vector2.ZERO
+	match kind:
+		"mag":
+			pose_ang = -0.5
+			off = Vector2(-3.0, -1.5) * into
+		"shell":
+			pose_ang = -0.3
+			off = Vector2(-2.0, 0.0) * into
+		"launcher":
+			pose_ang = 0.6
+			off = Vector2(-2.0, 2.0) * into
+		"rocket":
+			pose_ang = -0.1
+			off = Vector2(-1.0, 0.0) * into
+	var rot := wrapf(lerp_angle(la.angle(), pose_ang, into) - la.angle(), -PI, PI)
+	# מכה קטנה כשהמחסנית ננעלת / כשדורכים
+	var jolt := maxf(0.0, 1.0 - absf(k - 0.61) / 0.05) + maxf(0.0, 1.0 - absf(k - 0.78) / 0.05)
+	var gla := la.rotated(rot - 0.08 * jolt)
+	var gh := hand + off - gla * 1.5 * jolt
+	var n := gla.rotated(PI / 2.0)
+	var g := func(x: float, y: float) -> Vector2: return gh + gla * x + n * y
+	var rest: Vector2 = rest_of.call(gh, gla)
+	var belt := sh + Vector2(-1.0, 20.0)
+	var sup := rest
+	var held := ""
+	var seg := func(a: Vector2, b: Vector2, k0: float, k1: float) -> Vector2: return a.lerp(b, smoothstep(k0, k1, k))
+	match kind:
+		"mag":
+			var well: Vector2 = g.call(7.5, 7.0)
+			var bolt: Vector2 = g.call(6.0, -2.5) if gun == PISTOL else g.call(1.0, -3.0)
+			var racked := bolt - gla * 5.0
+			_mag_out = k > 0.12 and k < 0.6
+			if k < 0.12:
+				sup = seg.call(rest, well, 0.0, 0.12)
+			elif k < 0.34:
+				sup = seg.call(well, belt, 0.12, 0.34)
+			elif k < 0.4:
+				sup = belt
+			elif k < 0.6:
+				sup = seg.call(belt, well, 0.4, 0.6)
+			elif k < 0.72:
+				sup = seg.call(well, bolt, 0.6, 0.72)
+			elif k < 0.8:
+				sup = seg.call(bolt, racked, 0.72, 0.8)
+			else:
+				sup = seg.call(racked, rest, 0.8, 0.95)
+			if k >= 0.36 and k < 0.6:
+				held = "mag"
+		"shell":   # 3 כדורים, ואז משאבה
+			var port: Vector2 = g.call(8.0, 3.5)
+			if k < 0.12:
+				sup = seg.call(rest, port, 0.0, 0.12)
+			elif k < 0.78:
+				var c := fmod((k - 0.12) / 0.22, 1.0)
+				sup = port.lerp(belt, smoothstep(0.0, 0.4, c)) if c < 0.45 else belt.lerp(port, smoothstep(0.5, 1.0, c))
+				if c >= 0.45:
+					held = "shell"
+			else:
+				var pump: Vector2 = g.call(18.0, 2.4)
+				var back: Vector2 = g.call(12.0, 2.4)
+				if k < 0.84:
+					sup = seg.call(port, pump, 0.78, 0.84)
+				elif k < 0.9:
+					sup = seg.call(pump, back, 0.84, 0.9)
+				elif k < 0.95:
+					sup = seg.call(back, pump, 0.9, 0.95)
+				else:
+					sup = pump.lerp(rest, smoothstep(0.95, 1.0, k))
+		"launcher":   # נפתח, 2 רימונים, נסגר
+			var breech: Vector2 = g.call(3.0, -2.5)
+			if k < 0.15:
+				sup = seg.call(rest, breech, 0.0, 0.15)
+			elif k < 0.8:
+				var c := fmod((k - 0.15) / 0.325, 1.0)
+				sup = breech.lerp(belt, smoothstep(0.0, 0.4, c)) if c < 0.45 else belt.lerp(breech, smoothstep(0.5, 1.0, c))
+				if c >= 0.45:
+					held = "grenade"
+			else:
+				sup = seg.call(breech, rest, 0.8, 0.92)
+		"rocket":   # טיל מהגב אל קצה הצינור
+			var back := sh + Vector2(-12.0, -6.0)
+			var front: Vector2 = g.call(44.0, -1.3)
+			var tip: Vector2 = g.call(35.0, -1.3)
+			if k < 0.3:
+				sup = seg.call(rest, back, 0.05, 0.3)
+			elif k < 0.38:
+				sup = back
+			elif k < 0.62:
+				sup = seg.call(back, front, 0.38, 0.62)
+			elif k < 0.76:
+				sup = seg.call(front, tip, 0.62, 0.76)
+			else:
+				sup = seg.call(tip, rest, 0.78, 0.95)
+			if k >= 0.34 and k < 0.76:
+				held = "rocket"
+	return {"la": gla, "hand": gh, "support": sup, "held": held}
+
+
+# מה שהיד התומכת מחזיקה באמצע טעינה
+func _draw_held(at: Vector2, la: Vector2, what: String) -> void:
+	var n := la.rotated(PI / 2.0)
+	match what:
+		"mag":
+			Art.fill(self, PackedVector2Array([at - la * 1.6 - n * 1.0, at + la * 1.6 - n * 1.0, at + la * 2.2 + n * 7.0, at - la * 1.2 + n * 7.0]), Color("3a3a44"), Art.OUTLINE, 0.9)
+			draw_line(at + la * 1.6 - n * 1.0, at + la * 2.2 + n * 7.0, Color(rim_color, 0.8), 0.8, true)
+			draw_line(at - la * 1.0 - n * 1.2, at + la * 1.0 - n * 1.2, Color("e0b848"), 1.2)
+		"shell":
+			Art.fill(self, PackedVector2Array([at - la * 1.4 - n * 3.0, at + la * 1.4 - n * 3.0, at + la * 1.4 + n * 1.0, at - la * 1.4 + n * 1.0]), Color("c03a2a"), Art.OUTLINE, 0.8)
+			draw_line(at - la * 1.4 + n * 1.6, at + la * 1.4 + n * 1.6, Color("d8b048"), 1.4)
+		"grenade":
+			Art.disc(self, at + n * -1.0, 2.6, Color("5a6a3a"), Art.OUTLINE, 0.9)
+			draw_line(at - la * 1.6 - n * 1.0, at + la * 1.6 - n * 1.0, Color("d8b048"), 0.9)
+		"rocket":
+			var b := at - n * 1.3
+			Art.fill(self, PackedVector2Array([b - la * 8.0 - n * 2.4, b + la * 4.0 - n * 2.4, b + la * 4.0 + n * 2.4, b - la * 8.0 + n * 2.4]), Color("4a5a3a"), Art.OUTLINE, 0.9)
+			draw_line(b - la * 7.0 - n * 1.6, b + la * 3.0 - n * 1.6, Color(1, 1, 1, 0.25), 0.8, true)
+			Art.fill(self, PackedVector2Array([b + la * 4.0 - n * 2.4, b + la * 9.0, b + la * 4.0 + n * 2.4]), Color("c03a2a"), Art.OUTLINE, 0.9)
+
+
 func _draw_rifle(hand: Vector2, la: Vector2) -> void:
-	if _reload_t > 0.0:   # טעינה: הנשק יורד ומתנדנד
-		la = la.rotated(0.6 * sin(PI * clampf(1.0 - _reload_t / _reload_total, 0.0, 1.0)))
 	var n := la.rotated(PI / 2.0)
 	var g := func(x: float, y: float) -> Vector2: return hand + la * x + n * y
 	var metal := Color("1d1d23")
@@ -1682,7 +1857,7 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 	match style:
 		"shotgun", "ashotgun":   # שוטגאן: ידית משאבה (אוטומטי: תוף מחסנית)
 			Art.fill(self, PackedVector2Array([g.call(15.0, 1.2), g.call(21.0, 1.2), g.call(21.0, 3.6), g.call(15.0, 3.6)]), Color("5a3a24"), Art.OUTLINE, 0.9)
-			if style == "ashotgun":
+			if style == "ashotgun" and not _mag_out:
 				Art.disc(self, g.call(4.0, 6.0), 3.6, Color("3a3a42"), Art.OUTLINE, 0.9)
 		"sniper":   # צלף: כוונת טלסקופית
 			Art.fill(self, PackedVector2Array([g.call(0.0, -3.4), g.call(11.0, -3.4), g.call(11.0, -6.4), g.call(0.0, -6.4)]), Color("16161a"), Art.OUTLINE, 0.9)
@@ -1692,9 +1867,11 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 				draw_circle(g.call(16.0 + float(k) * 2.0, -0.4), 2.2, Color(0.7, 0.5, 1.0, 0.5 + 0.3 * sin(_time * 20.0 + float(k))))
 			draw_circle(g.call(bl, -0.4), 1.8, Color(0.85, 0.75, 1.0))
 		"smg":   # SMG: מחסנית ארוכה ישרה
-			Art.fill(self, PackedVector2Array([g.call(6.0, 1.6), g.call(9.0, 1.6), g.call(9.0, 11.0), g.call(6.0, 11.0)]), Color("18181c"), Art.OUTLINE, 0.9)
+			if not _mag_out:
+				Art.fill(self, PackedVector2Array([g.call(6.0, 1.6), g.call(9.0, 1.6), g.call(9.0, 11.0), g.call(6.0, 11.0)]), Color("18181c"), Art.OUTLINE, 0.9)
 		"ar":   # רובה סער: מחסנית מעוקלת + ידית נשיאה
-			Art.fill(self, PackedVector2Array([g.call(5.0, 1.6), g.call(9.0, 1.6), g.call(11.0, 9.0), g.call(7.0, 10.0)]), Color("18181c"), Art.OUTLINE, 0.9)
+			if not _mag_out:
+				Art.fill(self, PackedVector2Array([g.call(5.0, 1.6), g.call(9.0, 1.6), g.call(11.0, 9.0), g.call(7.0, 10.0)]), Color("18181c"), Art.OUTLINE, 0.9)
 			draw_line(g.call(18.0, -1.4), g.call(18.0, -4.0), Color("2c2c34"), 1.4)
 		"launcher":   # משגר: קנה עבה ותוף
 			Art.disc(self, g.call(6.0, 3.0), 4.6, Color("4a5a3a"), Art.OUTLINE, 0.9)
