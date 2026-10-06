@@ -15,16 +15,19 @@ const SOUNDS := {
 	"sw_shriek": [["W", 980, 620, 0.0, 0.3, 0.02, 6.0, 0.32, 0.45, 0.07], ["N", 0, 0, 0.0, 0.3, 0.02, 7.0, 0.3, 0.6, 0]],
 }
 
-const RUN := Vector2(215.0, 300.0)      # מהירות ריצה (כל אחד אקראי בטווח)
+const RUN := Vector2(180.0, 250.0)      # מהירות ריצה (כל אחד אקראי בטווח, כפול מהירות הקושי)
 const ACCEL := 1500.0
 const LEAP_H := 150.0                    # כמה גבוה הוא קופץ לבד (קומה ראשונה = 120)
 const HOP_V := 430.0                     # קפיצה קטנה על הגב של מי שלפניו
-const POUNCE := Vector2(80.0, 170.0)     # טווח זינוק על השחקן
+const POUNCE := Vector2(80.0, 140.0)     # טווח זינוק על השחקן
+const WINDUP := 0.3                      # מתכופף ונוהם לפני זינוק (אזהרה)
+const PACK_BITE := 1.2                   # כל הלהקה יחד: נשיכה אחת לכל PACK_BITE שניות (לא נגמרים הלבבות בשנייה)
 const BACK_H := 27.0                     # גובה הגב (מי שעומד עליו)
 const BITE_R := 24.0
 
 static var _members: Array = []          # כל ה-SWARMERS החיים (לטיפוס אחד על השני)
 static var _members_frame := -1
+static var _pack_bite_at := 0      # מתי הלהקה יכולה לנשוך שוב (ms)
 static var _q: PhysicsShapeQueryParameters2D = null   # בדיקת "תקוע בתוך מכשול"
 static var _q_shape: RectangleShape2D = null
 var unstuck := 0                         # לבדיקות: כמה פעמים חולץ ממכשול
@@ -35,13 +38,14 @@ var climbs := 0                          # לבדיקות: כמה פעמים ט�
 var _speed := 250.0
 var _hop_cd := 0.0
 var _pounce_cd := 1.0
+var _windup := 0.0
 var _air_pose := 0.0
 var _seed := 0.0
 var _tick := 0
 
 
 func stats() -> Dictionary:
-	return {"name": "SWARMER", "hp": 6, "walk": 200.0, "chase": 260.0, "damage": 1, "bite_delay": 0.75, "scale": 0.92, "width": 0.95,
+	return {"name": "SWARMER", "hp": 3, "walk": 200.0, "chase": 260.0, "damage": 1, "bite_delay": 0.75, "scale": 0.92, "width": 0.95,
 		"duck": 0.0, "cover": 0.0, "skin": Color("9aa39a"), "shirt": Color("3a3836"), "pants": Color("2c2a2a"), "shoe": Color("1a1616"),
 		"points": 45}
 
@@ -55,10 +59,10 @@ func can_groan() -> bool:
 
 
 func setup() -> void:
-	_speed = randf_range(RUN.x, RUN.y)
+	_speed = randf_range(RUN.x, RUN.y) * float(z.speed_mult)   # קל = איטיים יותר
 	_seed = randf() * 100.0
 	_tick = randi() % 3
-	_pounce_cd = randf_range(0.5, 2.0)
+	_pounce_cd = randf_range(1.5, 3.0)
 	z.corpse_time = 3.0          # המון גופות - נעלמות מהר
 	z.dormant = false
 	z._set_crouch(true)          # צורה נמוכה (כפוף): הראש ב-30 העליונים
@@ -136,7 +140,13 @@ func physics(pl: Node, delta: float) -> bool:
 				grounded = true
 				break
 	# ---- תנועה ----
-	if grounded:
+	if grounded and _windup > 0.0:   # מתכופף לפני זינוק
+		_windup -= delta
+		z.velocity.x = move_toward(z.velocity.x, 0.0, 1400.0 * delta)
+		if _windup <= 0.0:
+			z.velocity = Vector2(dir * 400.0, -320.0)
+			on_back = null
+	elif grounded:
 		var want := dir * _speed * (0.25 if absf(d.x) < 14.0 else 1.0)
 		z.velocity.x = move_toward(z.velocity.x, want, ACCEL * delta)
 		_air_pose = maxf(_air_pose - delta * 6.0, 0.0)
@@ -153,7 +163,8 @@ func physics(pl: Node, delta: float) -> bool:
 		z.global_position.y = on_back.type_mod.top_y()
 	z._walk_phase += delta * absf(z.velocity.x) * 0.11 / z.sc
 	# ---- נשיכה ----
-	if has_pl and absf(d.x) < BITE_R * z.wf and absf(d.y) < 46.0 and z._attack_t <= 0.0:
+	if has_pl and absf(d.x) < BITE_R * z.wf and absf(d.y) < 46.0 and z._attack_t <= 0.0 and Time.get_ticks_msec() >= _pack_bite_at:
+		_pack_bite_at = Time.get_ticks_msec() + int(PACK_BITE * 1000.0)
 		z._attack_t = z.bite_delay
 		z._bite_anim = 0.25
 		pl.hurt(z.damage, Vector2(dir, 0.0))
@@ -182,8 +193,8 @@ func _decide(pl: Node, d: Vector2, dir: float) -> void:
 		return
 	# זינוק על השחקן
 	if _pounce_cd <= 0.0 and absf(d.x) > POUNCE.x and absf(d.x) < POUNCE.y and absf(d.y) < 40.0 and on_back == null:
-		_pounce_cd = randf_range(1.6, 3.2)
-		z.velocity = Vector2(dir * 430.0, -330.0)
+		_pounce_cd = randf_range(2.5, 4.5)
+		_windup = WINDUP
 		Sfx.play("sw_shriek", z.global_position, -6.0, 0.2, 3)
 
 
@@ -294,7 +305,7 @@ func draw() -> bool:
 	var rag := col(z.shirt)
 	var p: float = z._walk_phase
 	var air := _air_pose
-	var bob := absf(sin(p)) * 2.0 * (1.0 - air)
+	var bob := absf(sin(p)) * 2.0 * (1.0 - air) - (4.0 if _windup > 0.0 else 0.0)   # מתכופף לפני זינוק
 	var hip := Vector2(-7.0, -25.0 - bob)
 	var sh := Vector2(12.0, -27.0 - bob * 0.6 + sin(p * 2.0) * 0.8)
 	var head := sh + Vector2(9.0, -3.0 + sin(z._time * 9.0 + _seed) * 0.8)

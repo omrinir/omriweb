@@ -19,6 +19,7 @@ const TIER1 := 120.0          # קומה ראשונה מעל הכביש (קפי�
 const TIER2 := 240.0          # קומה שנייה
 const T2_SPAN := Vector2(0.15, 0.85)
 const AMMO_GAP := Vector2(380.0, 520.0)
+const MEDKIT_GAP := 1400.0     # ערכת עזרה ראשונה (+1 לב) בערך כל כמה פיקסלים
 
 var _spans := []
 var director: Node = null
@@ -29,7 +30,7 @@ func zombie_weights() -> Dictionary:
 
 
 func zombie_density() -> float:
-	return 1.0
+	return 0.75
 
 
 func generators() -> Array:
@@ -121,8 +122,9 @@ func build_world() -> void:
 		add_ladder(ox + w * T2_SPAN.x + 16.0, floor_y - TIER2, floor_y - TIER1)
 		reserve(Rect2(ox - 30.0, floor_y - TIER2, w + 60.0, TIER2))
 		_spans.append([ox, ox + w])
-		# ארגז ציוד על הקומה העליונה
-		_pickup(PickupScript.SUPPLY, Vector2(ox + w * 0.5, floor_y - TIER2 - 30.0))
+		# ארגז ציוד + ערכת עזרה ראשונה על הקומה העליונה
+		_pickup(PickupScript.SUPPLY, Vector2(ox + w * 0.42, floor_y - TIER2 - 30.0))
+		_pickup(PickupScript.HEALTH, Vector2(ox + w * 0.58, floor_y - TIER2 - 30.0))
 	# קופסת תחמושת כל AMMO_GAP פיקסלים (על הכביש או על הפיגום)
 	var x: float = main.safe_zone * 0.6
 	var i := 0
@@ -133,6 +135,17 @@ func build_world() -> void:
 		_pickup(PickupScript.GRENADE if i % 6 == 5 else PickupScript.AMMO, Vector2(x, y))
 		x += rng.randf_range(AMMO_GAP.x, AMMO_GAP.y)
 		i += 1
+	_medkits()
+
+
+func _medkits() -> void:   # על הכביש בין הפיגומים + 2 לפני הבוס
+	var x := MEDKIT_GAP * 0.8
+	while x < level_w - 1300.0:
+		if not _in_scaffold(x) and free_x(x, 20.0):
+			_pickup(PickupScript.HEALTH, Vector2(x, floor_y - 30.0))
+		x += MEDKIT_GAP * rng.randf_range(0.85, 1.15)
+	_pickup(PickupScript.HEALTH, Vector2(level_w - 1150.0, floor_y - 30.0))
+	_pickup(PickupScript.HEALTH, Vector2(level_w - 1050.0, floor_y - 30.0))
 
 
 func _pickup(kind: int, pos: Vector2) -> void:
@@ -169,9 +182,12 @@ func extra_spawns() -> void:
 #    כל גל שני: הצנחת תחמושת ליד השחקן.
 # ============================================================
 class HordeDirector extends Node:
-	const WAVE_GAP := Vector2(8.0, 12.0)
-	const WAVE_SIZE := Vector2i(6, 12)
-	const MAX_ALIVE := 30
+	const WAVE_GAP := Vector2(10.0, 14.0)
+	const WAVE_SIZE := Vector2i(5, 9)
+	const MAX_ALIVE := 22
+	const BEHIND := 0.12          # סיכוי לגל מאחור (אף פעם לא ב-30% הראשונים של השלב)
+	const WARN_T := 1.4           # אזהרה "HORDE INCOMING" לפני שהגל מתחיל לרוץ
+	const EASY_MULT := [0.65, 0.85, 1.0]   # גודל הגל לפי הקושי (EASY / NORMAL / HARD)
 	const STREAM := 0.07
 	const Registry := preload("res://enemies/zombie_registry.gd")
 	const Sfx := preload("res://sfx.gd")
@@ -181,7 +197,7 @@ class HordeDirector extends Node:
 	var stage = null
 	var waves := 0
 	var spawned := 0
-	var _t := 6.0
+	var _t := 10.0
 	var _queue := []          # [x] לזרם
 	var _stream_t := 0.0
 	var _side := 1.0
@@ -228,22 +244,25 @@ class HordeDirector extends Node:
 	func _start_wave(pl: Node2D) -> void:
 		waves += 1
 		var prog := clampf(pl.global_position.x / stage.level_w, 0.0, 1.0)
-		var n := int(lerpf(float(WAVE_SIZE.x), float(WAVE_SIZE.y), prog)) + randi_range(-2, 2)
+		var n := int(lerpf(float(WAVE_SIZE.x), float(WAVE_SIZE.y), prog)) + randi_range(-1, 1)
+		n = maxi(3, int(round(float(n) * float(EASY_MULT[clampi(Settings.difficulty, 0, 2)]))))
 		var vs: Vector2 = get_viewport().get_visible_rect().size
 		var half := vs.x * 0.5 / maxf(get_viewport().get_camera_2d().zoom.x if get_viewport().get_camera_2d() != null else 1.0, 0.1)
-		_side = 1.0 if (randf() < 0.75 or pl.global_position.x < 1400.0) else -1.0
+		_side = -1.0 if (randf() < BEHIND and prog > 0.3) else 1.0
 		var x0 := pl.global_position.x + _side * (half + 120.0)
 		if x0 > stage.level_w - 60.0 or x0 < 60.0:
 			_side = -_side
 			x0 = pl.global_position.x + _side * (half + 120.0)
 		for i in n:
 			_queue.append(x0 + _side * randf_range(0.0, 260.0))
-		_stream_t = 0.0
+		_stream_t = WARN_T   # קודם אזהרה, אז הם מגיעים
+		if pl.has_method("_say"):
+			pl._say("HORDE INCOMING  >>>" if _side > 0.0 else "<<<  BEHIND YOU!", Color(1.0, 0.45, 0.3))
 		Sfx.play("sw_shriek", Vector2(x0, stage.floor_y - 40.0), 2.0, 0.25, 4, 0.8)
 		Sfx.play("sw_shriek", Vector2(x0, stage.floor_y - 40.0), 0.0, 0.25, 4, 1.15)
-		if waves % 2 == 0:   # הצנחת תחמושת
+		if waves % 2 == 0:   # הצנחת תחמושת (כל גל רביעי: עזרה ראשונה)
 			var p = PickupScript.new()
-			p.kind = PickupScript.SUPPLY if waves % 6 == 0 else PickupScript.AMMO
+			p.kind = PickupScript.HEALTH if waves % 4 == 0 else (PickupScript.SUPPLY if waves % 6 == 0 else PickupScript.AMMO)
 			p.life = 30.0
 			get_parent().add_child(p)
 			p.setup(Vector2(pl.global_position.x + randf_range(-160.0, 220.0), pl.global_position.y - 420.0), Vector2(0.0, 40.0))

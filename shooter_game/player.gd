@@ -650,6 +650,13 @@ func collect(p: Node) -> bool:
 			Sfx.play("boost", null)
 		PickupScript.WEAPON:
 			return _take_weapon(p)
+		PickupScript.HEALTH:   # +1 לב (מלא = משאירים על הרצפה)
+			if health >= max_health:
+				return false
+			health = mini(health + 1, max_health)
+			health_changed.emit(health, max_health)
+			_heal_flash = 1.0
+			Sfx.play("heal", null)
 	_say(p.label(), p.color())
 	return true
 

@@ -18,9 +18,9 @@ const SOUNDS := {
 }
 
 const LABOR_T := 1.1
-const LITTER := Vector2i(3, 4)          # כמה בכל לידה (כועסת: +2)
-const CD := Vector2(4.5, 6.5)
-const MAX_KIDS := 14
+const LITTER := Vector2i(2, 3)          # כמה בכל לידה (כועסת: +1)
+const CD := Vector2(6.0, 8.5)
+const MAX_KIDS := 8
 
 enum { WALK, LABOR, REST }
 var state := WALK
@@ -32,7 +32,7 @@ var _kids: Array = []
 
 
 func stats() -> Dictionary:
-	return {"name": "BROODMOTHER", "hp": 420, "walk": 32.0, "chase": 52.0, "damage": 2, "bite_delay": 1.1, "scale": 1.9, "width": 1.5,
+	return {"name": "BROODMOTHER", "hp": 320, "walk": 32.0, "chase": 52.0, "damage": 2, "bite_delay": 1.1, "scale": 1.9, "width": 1.5,
 		"duck": 0.0, "cover": 0.0, "skin": Color("b4a69c"), "shirt": Color("c8828c"), "pants": Color("4a3a3a"), "shoe": Color("2a2020"),
 		"points": 1500, "boss": true, "boss_name": "THE BROODMOTHER", "ragdoll": false}
 
@@ -95,7 +95,7 @@ func physics(pl: Node, delta: float) -> bool:
 # הלידה: הקטנים נזרקים מהשק לכיוון השחקן, כל אחד בקשת אחרת
 func _give_birth(pl: Node) -> void:
 	births += 1
-	var n := randi_range(LITTER.x, LITTER.y) + (2 if _rage() else 0)
+	var n := randi_range(LITTER.x, LITTER.y) + (1 if _rage() else 0)
 	n = mini(n, MAX_KIDS - _kids.size())
 	var main: Node = z.get_parent()
 	var at := _belly()
