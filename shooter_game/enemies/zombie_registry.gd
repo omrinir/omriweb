@@ -15,6 +15,7 @@ enum {
 	GRAVEBORN, SANDBLASTER,        # שלב 13
 	CRUMBLER, RETCHER,             # שלב 14
 	BOMBHEAD, MINIGUNNER, STILTER, # שלב 15
+	SWARMER, BROODMOTHER,          # שלב 16
 }
 
 const FIRST := 20
@@ -55,6 +56,8 @@ const TYPES := {
 	BOMBHEAD: "res://enemies/types/bombhead.gd",
 	MINIGUNNER: "res://enemies/types/minigunner.gd",
 	STILTER: "res://enemies/types/stilter.gd",
+	SWARMER: "res://enemies/types/swarmer.gd",
+	BROODMOTHER: "res://enemies/types/broodmother.gd",
 }
 
 static var _stats_cache := {}

@@ -196,5 +196,21 @@ Dark levels (night, subway, `stage.dark_level()` = stages 11 and 14) show `ui/ti
   walks with bent legs, crouches deeper as a warning, legs fully extended in the air; huge leaps aimed where you will be, stomp on landing; dies as a ragdoll;
   boss "THE BONECO" = giant Olinda puppet with a wide landing shockwave). CRUMBLER returns.
 
+## Stage 16 - The Flood (NORTHEAST region, level 7) - "THEY COME IN WAVES"
+
+* `levels/stage_16.gd`, art in `effects/s16_decor.gd`: afternoon construction site in light rain (`LightRain` = thin slanted streaks +
+  splashes on the road), warm hazy sun behind clouds, hazy skyline with cranes, concrete building skeletons with tarps and a tower crane,
+  site fence with tarps and danger signs. Obstacles: concrete pipes, jersey barriers, brick pallets, containers.
+* `SCAFFOLDS` = steel scaffolding (`Scaffold`) with TWO floors (`TIER1` 120 / `TIER2` 240 above the road) - player and zombies jump onto them.
+* One zombie type only: `swarmer.gd` - hunched, fast, 1-hit, comes in huge numbers. They climb on each other (`on_back`):
+  blocked by a wall / obstacle / a slow swarmer ahead -> hop onto its back; landing on a swarmer's back = ride it. Piles form at walls
+  and under the player when he is on a high floor; from the pile (or a floor) they leap up. Close range: pounce + bite.
+* `HordeDirector` (inner class in stage_16.gd): every `WAVE_GAP` s a wave (`WAVE_SIZE`, grows with progress) streams in off-screen
+  ahead (25% from behind), capped at `MAX_ALIVE` awake swarmers near the player. Every 2nd wave = ammo drop next to the player.
+* Lots of ammo: a box every `AMMO_GAP` px (road or scaffold), a SUPPLY crate on every top floor.
+* Boss `broodmother.gd` "THE BROODMOTHER": huge spiny thing on all fours with a translucent belly sac full of wriggling young.
+  LABOR (sac swells, glows, screams) -> BIRTH: throws 3-4 newborn swarmers at you (+2 under half HP, max `MAX_KIDS` alive).
+* `game_state.gd` `LEVEL_WORLD` now maps levels 14-16 to their own worlds (before, 14/15/16 were read as subway/factory/NIGHT).
+
 Ragdoll hooks for zombie types (`effects/ragdoll.gd`): a type can define `ragdoll_pose() -> Array` (11 joints, local, unscaled)
 and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER uses both).

@@ -128,7 +128,7 @@ func _process(delta: float) -> void:
 # שלבים זוגיים = רכבת תחתית
 # העולמות מתחלפים: 0 = רחוב, 1 = רכבת תחתית, 2 = מפעל
 # איזה עולם בכל שלב: 0 רחוב, 1 רכבת תחתית, 2 מפעל, 3 רחוב בלילה עם גשם
-const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
+const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12, 14: 13, 15: 14, 16: 15}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
 func world() -> int:
 	return LEVEL_WORLD.get(level, (level - 1) % 4)
 
@@ -153,12 +153,12 @@ func is_factory() -> bool:
 #  מפה: 7 אזורים, 9 שלבים בכל אזור (כרגע 3 השלבים הראשונים קיימים)
 # ============================================================
 const LEVELS_PER_REGION := 9
-const IMPLEMENTED := 15           # כמה שלבים כבר בנויים
+const IMPLEMENTED := 16           # כמה שלבים כבר בנויים
 const REGIONS := [
 	{"name": "NORTHERN AMAZON", "color": Color(0.45, 0.85, 0.3), "desc": "Where it started. The first ones only hunger.",
 		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Ruined District", "Highrise", "The Works", "Research Site", "Zone Zero"]},
 	{"name": "NORTHEAST", "color": Color(1.0, 0.8, 0.25), "desc": "Sun, salt and sand. They learned to wait in the heat.",
-		"levels": ["Salt Flats", "Sun-Bleached Town", "The Lighthouse", "Dunes of Bone", "Fishermen's Grave", "Carnival of the Dead", "Old Fort", "The Dry River", "Cathedral of Ash"]},
+		"levels": ["Salt Flats", "Sun-Bleached Town", "The Lighthouse", "Dunes of Bone", "Fishermen's Grave", "Carnival of the Dead", "The Flood", "The Dry River", "Cathedral of Ash"]},
 	{"name": "CENTRAL PLATEAU", "color": Color(0.35, 0.65, 1.0), "desc": "Endless roads. They learned to hunt in packs.",
 		"levels": ["Savanna Road", "Cattle Ghosts", "Glass Capital", "The Dam", "Highway 7", "Burning Fields", "Radio Tower", "The Bunker", "Plateau Gate"]},
 	{"name": "ANDES", "color": Color(0.78, 0.5, 1.0), "desc": "Thin air, deep mines. They learned to climb.",
@@ -300,6 +300,7 @@ const LEVEL_TITLES := [
 	["THEY RISE FROM THE SAND", "They learned to wait beneath you."],
 	["THEY KNOW YOUR VOICE", "Out here, the only one talking is you. For now."],
 	["THEY DANCE WITH DEATH", "The carnival never ended. It just changed partners."],
+	["THEY COME IN WAVES", "There are always more of them than bullets."],
 ]
 func level_title() -> Array:
 	var t: Array = LEVEL_TITLES[(level - 1) % LEVEL_TITLES.size()].duplicate()

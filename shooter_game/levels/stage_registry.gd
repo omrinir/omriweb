@@ -15,6 +15,7 @@ const STAGES := {
 	13: "res://levels/stage_13.gd",   # אזור צפון-מזרח, שלב 4
 	14: "res://levels/stage_14.gd",   # אזור צפון-מזרח, שלב 5
 	15: "res://levels/stage_15.gd",   # אזור צפון-מזרח, שלב 6
+	16: "res://levels/stage_16.gd",   # אזור צפון-מזרח, שלב 7
 }
 
 
