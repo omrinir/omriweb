@@ -1,27 +1,28 @@
 extends Node2D
 # ============================================================
 #  ROCKET - טיל של ה-ROCKET LAUNCHER (weapons/weapon_db.gd: "projectile": "rocket").
-#  טיל אחד עף ישר (עשן + להבה), ואחרי SPLIT_DIST פיקסלים מתפצל ל-3 טילים קטנים במניפה.
-#  כל טיל קטן מתפוצץ כשהוא פוגע בזומבי / קיר / רצפה (או אחרי MINI_RANGE) - פיצוץ קטן
+#  טיל אחד עף ישר (עשן + להבה), ואחרי SPLIT_DIST פיקסלים מתפצל ל-3 טילים קטנים שנופלים בקשת
+#  (כבידה) ונוחתים קרוב / באמצע / רחוק - כולם בתוך המסך.
+#  כל טיל קטן מתפוצץ כשהוא פוגע בזומבי / קיר / רצפה - פיצוץ קטן
 #  (MINI_RADIUS, בערך חצי מפיצוץ רגיל) שעשוי כולו מחלקיקים: כדור אש, ניצוצות, עשן, שברים והבזק.
 #  פגע במשהו לפני הפיצול? 3 פיצוצים קטנים מסביב לנקודת הפגיעה.
-#  לשנות: SPEED, SPLIT_DIST, SPREAD, MINI_SPEED, MINI_RANGE, MINI_RADIUS, MINI_DAMAGE.
+#  לשנות: SPEED, SPLIT_DIST, MINI_LAND, MINI_POP, MINI_GRAVITY, MINI_RADIUS, MINI_DAMAGE.
 # ============================================================
 
 const Sfx := preload("res://sfx.gd")
 const Art := preload("res://art.gd")
 
 const SPEED := 640.0
-const SPLIT_DIST := 230.0
-const SPREAD := 0.24            # זווית בין הטילים הקטנים (רדיאנים)
-const MINI_SPEED := 820.0
-const MINI_RANGE := 640.0
+const SPLIT_DIST := 140.0
+# אחרי הפיצול 3 הטילים הקטנים "נופלים" (כבידה) בקשת. כל אחד מחשב את המהירות שלו כך שינחת
+# במרחק קבוע מהמשגר (קרוב / באמצע / רחוק) על הרצפה שמתחת - כולם בתוך המסך, גם אם כיוונת קצת למעלה.
+const MINI_LAND := [230.0, 320.0, 410.0]   # איפה כל אחד נוחת (פיקסלים מהמשגר)
+const MINI_POP := 220.0         # קפיצה קטנה למעלה ברגע הפיצול
+const MINI_GRAVITY := 1300.0
+const MINI_LIFE := 3.0          # ביטחון: מתפוצץ אחרי הזמן הזה בכל מקרה
 const MINI_RADIUS := 62.0       # פיצוץ רגיל ~110-120
 const MINI_DAMAGE := 26
 const BREAK_RADIUS := 40.0
-const HOMING := 2.2             # טיל קטן מתעקם קצת לעבר זומבי שמולו (רדיאנים/שנייה). 0 = ישר
-const HOMING_CONE := 0.55       # רק זומבים בתוך הזווית הזו מהכיוון שלו
-const HOMING_RANGE := 520.0
 
 static var _blast_id := 100000
 static var _soft: Texture2D      # עיגול רך לחלקיקים (במקום ריבועים)
@@ -47,6 +48,7 @@ var velocity := Vector2.ZERO
 var damage_mult := 1.0
 var mini := false               # טיל קטן (אחרי הפיצול)
 var _dist := 0.0
+var _origin := Vector2.ZERO
 var _t := 0.0
 var _trail: CPUParticles2D
 var _done := false
@@ -54,6 +56,7 @@ var _done := false
 
 func setup(pos: Vector2, vel: Vector2) -> void:
 	global_position = pos
+	_origin = pos
 	velocity = vel
 	rotation = vel.angle()
 
@@ -89,8 +92,9 @@ func _physics_process(delta: float) -> void:
 	if _done:
 		return
 	_t += delta
-	if mini and HOMING > 0.0:
-		_home(delta)
+	if mini:   # נופל בקשת, האף פונה לכיוון התנועה
+		velocity.y += MINI_GRAVITY * delta
+		rotation = velocity.angle()
 	var to := global_position + velocity * delta
 	# פגיעה בזומבי
 	for z in get_tree().get_nodes_in_group("zombies"):
@@ -110,39 +114,29 @@ func _physics_process(delta: float) -> void:
 	if not mini and _dist >= SPLIT_DIST:
 		_split()
 		return
-	if mini and _dist >= MINI_RANGE:
+	if mini and _t >= MINI_LIFE:
 		_impact(global_position)
 		return
 	queue_redraw()
 
 
-func _home(delta: float) -> void:
-	var best: Vector2 = Vector2.ZERO
-	var best_d := HOMING_RANGE
-	var dir := velocity.normalized()
-	for z in get_tree().get_nodes_in_group("zombies"):
-		if z.dead or z.collision_layer == 0:
-			continue
-		var tp: Vector2 = z.global_position + Vector2(0, -30.0 * z.sc)
-		var d := global_position.distance_to(tp)
-		if d < best_d and absf(dir.angle_to(tp - global_position)) < HOMING_CONE:
-			best_d = d
-			best = tp
-	if best_d < HOMING_RANGE:
-		var turn := clampf(dir.angle_to(best - global_position), -HOMING * delta, HOMING * delta)
-		velocity = velocity.rotated(turn)
-		rotation = velocity.angle()
-
-
 func _split() -> void:
 	Sfx.play("rocket_split", global_position, -2.0, 0.1, 3)
 	Particles.burst(get_parent(), global_position, "fire", velocity.normalized(), 8)
+	var face := 1.0 if velocity.x >= 0.0 else -1.0
+	# כמה זמן ייקח ליפול עד הרצפה שמתחת (בלי רצפה - בור: מניחים 300)
+	var down := get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(global_position, global_position + Vector2(0, 1500), 1 | 16))
+	var fall_h: float = (down.position.y - global_position.y) if down else 300.0
+	var t := (MINI_POP + sqrt(MINI_POP * MINI_POP + 2.0 * MINI_GRAVITY * maxf(fall_h, 0.0))) / MINI_GRAVITY
 	for i in 3:
 		var r = get_script().new()
 		r.mini = true
 		r.damage_mult = damage_mult
 		get_parent().add_child(r)
-		r.setup(global_position, velocity.normalized().rotated(SPREAD * float(i - 1)) * MINI_SPEED)
+		var vx := (_origin.x + face * float(MINI_LAND[i]) - global_position.x) / t
+		if vx * face < 60.0:   # תמיד קצת קדימה
+			vx = face * 60.0
+		r.setup(global_position, Vector2(vx, -MINI_POP))
 	_finish()
 
 
