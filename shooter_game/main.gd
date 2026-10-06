@@ -201,6 +201,13 @@ func _ready() -> void:
 	add_child(preload("res://effects/collision_outlines.gd").new())
 	# השחקן מדבר לעצמו - 1 עד 4 משפטים בשלב, רק כשקורה משהו (ui/monologue.gd)
 	add_child(preload("res://ui/monologue.gd").new())
+	# שלב חשוך: טיפ לפנס (4 שניות, אחרי כותרת השלב)
+	if Game.is_night() or Game.is_subway() or (_stage != null and _stage.dark_level()):
+		var tip = preload("res://ui/tip_banner.gd").new()
+		tip.seconds = 4.0
+		var fi: int = Game.ability_slots.find("flashlight")
+		tip.sub = ("Press %d to pick it, then C to turn it on" % ((fi + 6) % 10)) if fi >= 0 else "Equip FLASHLIGHT in UPGRADES -> ABILITIES"
+		add_child(tip)
 
 	# "המפקד הנסתר": תורות התקפה, תקשורת, פקודות (ai/squad_director.gd)
 	var squad = SquadScript.new()

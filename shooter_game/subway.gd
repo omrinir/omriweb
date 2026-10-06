@@ -1,4 +1,5 @@
 extends Node2D
+const DynLights := preload("res://effects/dyn_lights.gd")
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  עולם הרכבת התחתית (שלבים זוגיים). main.gd יוצר אותו.
@@ -125,9 +126,9 @@ func _physics_process(delta: float) -> void:
 	if player != null:
 		var pp: Vector2 = ct * (player.global_position + Vector2(0.0, -30.0))
 		lights.append(Vector4(pp.x, pp.y, 70.0 * zoom, 0.55))
-	while lights.size() < 10:
-		lights.append(Vector4(0, 0, 1, 0))
-	Game.player_dark = dark
+	var dyn: Array = DynLights.gather(tree, ct, zoom, player)   # פנס של השחקן
+	lights = DynLights.merge(dyn[0], lights, 10)
+	Game.player_dark = dark and not dyn[1]
 	var m: ShaderMaterial = _overlay.material
 	m.set_shader_parameter("lights", lights)
 	m.set_shader_parameter("darkness", darkness)

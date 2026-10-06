@@ -171,3 +171,14 @@ on its own CanvasLayer (above the darkness) + voice clip `sounds/voice/vNN.mp3` 
   ai/zombie_brain.gd, ai/squad_director.gd, abilities/types/jetpack.gd, many enemies/types/*.gd, hazards
   (`hazard.gd -> story_kind`: fire / acid / shock / puke) and stages (thunder, sandstorm, quicksand).
 * Add a line: entry in `LINES` + `sounds/voice/vNN.mp3` + its number in an `EVENTS` entry (or a new event + `Game.story.emit`).
+
+## Flashlight ability
+
+`abilities/types/flashlight.gd` (ability_db id "flashlight", icon "torch", unlock stage 1, `cd_after`): C = on, C again = off.
+Natural light, not a cone: three overlapping soft round lights stretched toward the aim (`Beam.lights()`), plus an additive warm glow
+(`Beam._draw`, radial GradientTexture2D). The hand follows the aim with a small lag and a little sway.
+Battery: `TIME` 20 s -> 30 s with POWER upgrades. The last `FLICKER_T` (2.5 s) it flickers and dims, then "BATTERY DEAD".
+While on, zombies can see you (`Game.player_dark` = false).
+Darkness layers read every node in group `dyn_lights` through `effects/dyn_lights.gd` (`gather` / `merge`):
+`subway.gd`, `effects/s11_decor.gd` NightOverlay, `effects/s14_decor.gd` StormOverlay.
+Dark levels (night, subway, `stage.dark_level()` = stages 11 and 14) show `ui/tip_banner.gd` "TIP: USE YOUR FLASHLIGHT" for 4 s.

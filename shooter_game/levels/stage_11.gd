@@ -64,6 +64,10 @@ func world_tint() -> Color:
 	return Color(0.62, 0.66, 0.86)   # אור ירח כחלחל
 
 
+func dark_level() -> bool:
+	return true
+
+
 func fog() -> bool:
 	return false
 

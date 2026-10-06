@@ -366,9 +366,9 @@ void fragment() {
 		if player != null:
 			var pp: Vector2 = ct * (player.global_position + Vector2(0.0, -30.0))
 			lights.append(Vector4(pp.x, pp.y, 75.0 * zoom, 0.5))
-		while lights.size() < 14:
-			lights.append(Vector4(0, 0, 1, 0))
-		Game.player_dark = dark
+		var dyn: Array = preload("res://effects/dyn_lights.gd").gather(get_tree(), ct, zoom, player)   # פנס של השחקן
+		lights = preload("res://effects/dyn_lights.gd").merge(dyn[0], lights, 14)
+		Game.player_dark = dark and not dyn[1]
 		var m := _rect.material as ShaderMaterial
 		m.set_shader_parameter("lights", lights)
 		m.set_shader_parameter("darkness", darkness)

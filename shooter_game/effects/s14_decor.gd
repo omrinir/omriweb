@@ -229,8 +229,10 @@ void fragment() {
 		if player != null:
 			var pp: Vector2 = ct * (player.global_position + Vector2(0.0, -30.0))
 			lights.append(Vector4(pp.x, pp.y, 70.0 * zoom, 0.45))
-		while lights.size() < 16:
-			lights.append(Vector4(0, 0, 1, 0))
+		var dyn: Array = preload("res://effects/dyn_lights.gd").gather(get_tree(), ct, zoom, player)   # פנס של השחקן
+		lights = preload("res://effects/dyn_lights.gd").merge(dyn[0], lights, 16)
+		if dyn[1]:
+			dark = false
 		var zones := []
 		for zn in get_tree().get_nodes_in_group("dark_zone"):
 			if zones.size() >= 3:

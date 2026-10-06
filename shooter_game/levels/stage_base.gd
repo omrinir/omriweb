@@ -118,6 +118,11 @@ func street_lamps() -> bool:
 	return false
 
 
+# שלב חשוך (לילה / מפעל חשוך) -> טיפ "השתמש בפנס" בתחילת השלב
+func dark_level() -> bool:
+	return false
+
+
 func fog() -> bool:
 	return true
 

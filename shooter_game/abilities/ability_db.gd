@@ -39,6 +39,9 @@ const ABILITIES := [
 	{"id": "jetpack", "name": "JETPACK", "color": Color("ff9a3a"), "cooldown": 40.0, "unlock_level": 2, "icon": "jet", "cd_after": true,
 		"power_desc": "More flight time (20s -> 32s max)", "power_base": 110,
 		"desc": "Fly! Hold W/SPACE to thrust, fire while flying. 20s of fuel, burns only in the air. C again = land."},
+	{"id": "flashlight", "name": "FLASHLIGHT", "color": Color("ffe6a8"), "cooldown": 25.0, "unlock_level": 1, "icon": "torch", "cd_after": true,
+		"power_desc": "Longer battery (20s -> 30s max)", "power_base": 80,
+		"desc": "A warm light that cuts through the dark for 20s. They can see you too. Flickers when the battery dies. C again = off."},
 ]
 
 
@@ -118,6 +121,11 @@ static func draw_icon(ci: CanvasItem, c: Vector2, id: String, s: float, alpha :=
 			ci.draw_rect(Rect2(c + Vector2(2, 3) * s, Vector2(3, 3) * s), col)
 			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-5, 7) * s, c + Vector2(-2, 7) * s, c + Vector2(-3.5, 12) * s]), Color(1.0, 0.85, 0.3, alpha))
 			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(2, 7) * s, c + Vector2(5, 7) * s, c + Vector2(3.5, 12) * s]), Color(1.0, 0.85, 0.3, alpha))
+		"torch":   # פנס: גוף + ראש + אור רך
+			ci.draw_circle(c + Vector2(5, -1) * s, 8.0 * s, Color(1.0, 0.92, 0.7, 0.25 * alpha))
+			ci.draw_rect(Rect2(c + Vector2(-9, -2) * s, Vector2(10, 5) * s), col)
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(1, -4) * s, c + Vector2(5, -5) * s, c + Vector2(5, 6) * s, c + Vector2(1, 5) * s]), col)
+			ci.draw_line(c + Vector2(5.5, -4) * s, c + Vector2(5.5, 5) * s, Color(1.0, 0.97, 0.85, alpha), w, true)
 		"silence":
 			ci.draw_arc(c, 9.0 * s, 0.0, TAU, 20, col, w, true)
 			ci.draw_line(c + Vector2(-6, -6) * s, c + Vector2(6, 6) * s, col, w, true)

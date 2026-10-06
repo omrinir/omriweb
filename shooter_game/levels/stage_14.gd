@@ -68,6 +68,10 @@ func world_tint() -> Color:
 	return Color(0.82, 0.88, 0.95)
 
 
+func dark_level() -> bool:
+	return true
+
+
 func fog() -> bool:
 	return false
 
