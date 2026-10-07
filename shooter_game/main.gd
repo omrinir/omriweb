@@ -307,8 +307,10 @@ func _ready() -> void:
 	var wheel = WheelScript.new()   # גלגל נשקים (TAB)
 	wheel.player = player
 	hud.add_child(wheel)
-	# סצנת הפתיחה של שלב 1 (פעם אחת, לא אחרי TRY AGAIN / נקודת ביקורת)
-	if Game.level == 1 and not Game.intro_seen and not Game.use_checkpoint and not Game.practice:
+	# סצנת הפתיחה של שלב 1 (פעם אחת לכל גרסה, לא אחרי TRY AGAIN / נקודת ביקורת; או מכפתור WATCH INTRO)
+	var want_intro: bool = Game.watch_intro or (Game.intro_seen < Game.INTRO_VERSION and not Game.practice)
+	Game.watch_intro = false
+	if Game.level == 1 and not Game.use_checkpoint and want_intro:
 		var intro = preload("res://ui/intro_cutscene.gd").new()
 		intro.main = self
 		intro.player = player

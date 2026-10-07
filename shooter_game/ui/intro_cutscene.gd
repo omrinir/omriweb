@@ -5,7 +5,7 @@ extends Node
 #  ואז שיחה עם הזומבי שמדבר (STRANGER - enemies/types/stranger.gd: שרירי, חצי גולגולת מתכת, יד רובוטית).
 #  מצלמה משלה (שוטים: רחב, תקריבים, שני-שוט, מבט אחורה), תמיד עם הרצפה בפריים. פסים שחורים, כתוביות עם קול,
 #  ובסוף: חיתוך לשחור -> THEY LEARN -> משחק. הזומבי נעלם בחושך (דמות חוזרת).
-#  מתנגן פעם אחת (Game.intro_seen נשמר). ENTER / SPACE = דילוג.
+#  מתנגן פעם אחת לכל גרסה (Game.intro_seen / INTRO_VERSION נשמר), ובכפתור WATCH INTRO בתפריט. ENTER / SPACE = דילוג.
 #  קולות: sounds/intro/p01..p05 (השחקן), z01..z08 (הזומבי) - נוצרו ב-Kokoro TTS + עיבוד ffmpeg.
 #  לשנות: BEATS (סדר המשפטים, השוטים והפעולות), DIST, WALK_IN, SPOT_DIST.
 # ============================================================
@@ -67,7 +67,7 @@ static var _font: Font = null
 
 
 func _ready() -> void:
-	Game.intro_seen = true
+	Game.intro_seen = Game.INTRO_VERSION
 	Game._save()
 	_ui = CanvasLayer.new()
 	_ui.layer = 8

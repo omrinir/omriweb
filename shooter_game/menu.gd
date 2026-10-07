@@ -171,6 +171,10 @@ func _build_ui(vp: Vector2) -> void:
 		lb.accent = accents[i]
 		lb.pressed.connect(_start_game.bind(i + 2))
 
+	var wi := _button(root, "WATCH INTRO", Vector2(394, 318), Vector2(210, 40), 20, 0.7)   # סצנת הפתיחה שוב (שלב 1 בתרגול)
+	wi.accent = Color("c03a2a")
+	wi.pressed.connect(_watch_intro)
+
 	var lbl := Caption.new()
 	lbl.text = "DIFFICULTY"
 	lbl.position = Vector2(72, 360)
@@ -270,6 +274,13 @@ func _start_game(start_level := 1) -> void:
 	tw.tween_interval(0.15)
 	tw.tween_property(_fade, "color:a", 1.0, 0.6)
 	tw.tween_callback(func(): get_tree().change_scene_to_file(GAME_SCENE))
+
+
+func _watch_intro() -> void:
+	if _leaving:
+		return
+	Game.watch_intro = true
+	_start_game(1)
 
 
 func _quit() -> void:

@@ -247,7 +247,8 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 ## Level 1 opening cutscene - "FIRST ENCOUNTER"
 
 * `ui/intro_cutscene.gd` - in-engine cinematic with the game's own characters, started from `main.gd` on level 1
-  (once: `Game.intro_seen` is saved; never after TRY AGAIN / checkpoint / practice). ENTER or SPACE = skip.
+  (once per version: `Game.intro_seen` stores the version seen, bump `Game.INTRO_VERSION` when the scene changes; never after
+  TRY AGAIN / checkpoint / practice). Menu button WATCH INTRO plays it any time (level 1 as practice). ENTER or SPACE = skip.
   Opens with a walk-in: the player auto-walks (`player.auto_walk`, only used while `controllable` is false), spots the zombie,
   stops and raises the gun, then approaches slowly (WALK_IN / SPOT_DIST / DIST). Things on the path are hidden AND disabled
   (pickups passed on the way are moved just ahead of the player at the end; wide bricks = the floor are never touched).
