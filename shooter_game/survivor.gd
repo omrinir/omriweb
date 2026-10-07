@@ -36,6 +36,7 @@ var _wait_t := 0.0
 var _leave_t := 0.0
 
 var state := IDLE
+var scripted := false            # סצנת סיפור (story/): עומדת במקום, לא רצה לשחקן ולא בורחת
 var _c: Dictionary
 var _dir := -1.0
 var _t := 0.0
@@ -73,7 +74,7 @@ func _physics_process(delta: float) -> void:
 	match state:
 		IDLE:
 			velocity.x = 0.0
-			if _player != null and not _player.dead and absf(_player.global_position.x - global_position.x) < notice_range \
+			if not scripted and _player != null and not _player.dead and absf(_player.global_position.x - global_position.x) < notice_range \
 					and absf(_player.global_position.y - global_position.y) < 200.0:
 				state = RUN
 				_say("HELP!")
@@ -231,7 +232,7 @@ func _draw() -> void:
 		var left := 1.0 - _wait_t / mercy_time
 		draw_arc(Vector2(0, -68), 14.0, -PI / 2.0, -PI / 2.0 + TAU * left, 24, Color(1, 1, 1, 0.35), 2.0, true)
 	# סימן: אפשר להפעיל את המכשיר עכשיו
-	if _player != null and is_instance_valid(_player) and can_drain(_player) and not _player.dead:
+	if not scripted and _player != null and is_instance_valid(_player) and can_drain(_player) and not _player.dead:
 		var pulse := 0.5 + 0.5 * sin(_t * 8.0)
 		var c := Vector2(0, -68)
 		draw_arc(c, 9.0 + pulse * 3.0, 0.0, TAU, 24, Color(0.45, 1.0, 0.85, 0.5 + 0.5 * pulse), 2.0, true)

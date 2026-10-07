@@ -43,7 +43,12 @@ func _dist() -> float:
 	return float(data.get("dist", 300.0))
 
 
+func _zk() -> float:   # "zoom" בסצנה: 0.75 = כל השוטים קצת יותר רחוקים
+	return float(data.get("zoom", 1.0))
+
+
 func _ready() -> void:
+	add_to_group("story_scene")   # ui/monologue.gd שותק בזמן הסצנה
 	Game.story_seen[data.id] = true
 	_ui = CanvasLayer.new()
 	_ui.layer = 8
@@ -91,7 +96,8 @@ func _process(delta: float) -> void:
 	if _follow != "" and _cam != null:
 		var k := 1.0 - exp(-delta * 3.0)
 		_cam.global_position = _cam.global_position.lerp(_follow_target(), k)
-		_cam.zoom = _cam.zoom.lerp(Vector2(2.3, 2.3), k)
+		var fz := 2.3 * _zk()
+		_cam.zoom = _cam.zoom.lerp(Vector2(fz, fz), k)
 	_draw.queue_redraw()
 
 
@@ -99,7 +105,7 @@ func _follow_target() -> Vector2:
 	var px: float = player.global_position.x + 170.0
 	if actor != null and is_instance_valid(actor):
 		px = (player.global_position.x + actor.global_position.x) * 0.5
-	return _frame(px, 2.3)
+	return _frame(px, 2.3 * _zk())
 
 
 # מרכז מצלמה לזום z כך שהרצפה תמיד בפריים: low = כמה מתחת למרכז התמונה (בין הפסים) נמצאות כפות הרגליים
@@ -149,6 +155,9 @@ func _run() -> void:
 	if done:
 		return
 	match String(data.get("ending", "vanish")):
+		"drain":   # השחקן שואב ממנה את כוח החיים עם המכשיר, והיא צורחת
+			_line = ""
+			await _drain_end()
 		"leap":   # מתכופף, וקופץ גבוה החוצה מהמסך (דמות חוזרת)
 			_line = ""
 			await _leap()
@@ -162,6 +171,20 @@ func _run() -> void:
 				actor = null
 			await _wait(1.1)
 	_finish()
+
+
+func _drain_end() -> void:
+	if actor == null or not is_instance_valid(actor) or not actor.has_method("start_drain"):
+		return
+	_shot("two", false)
+	await _wait(0.5)
+	player.unarmed = false   # המכשיר צריך להיראות
+	player._start_drain(actor)
+	Sfx.play("fscream", null, 3.0, 0.0, 1)
+	await _wait(1.2)
+	Sfx.play("fwail", null, 0.0, 0.0, 1)   # הצרחה נגמרת ביללה עד שהיא נשרפת
+	await _wait(float(player.DRAIN_TIME) - 1.2 + 0.3)
+	await _wait(1.6)   # נשארת שרופה; השחקן עם חיים מלאים
 
 
 func _leap() -> void:
@@ -214,7 +237,7 @@ func _say(who: String, voice: String, text: String) -> void:
 
 
 func _set_actor(prop: String, v) -> void:
-	if actor != null and is_instance_valid(actor) and actor.type_mod != null and prop in actor.type_mod:
+	if actor != null and is_instance_valid(actor) and "type_mod" in actor and actor.type_mod != null and prop in actor.type_mod:
 		actor.type_mod.set(prop, v)
 
 
@@ -261,10 +284,14 @@ func _shot(name: String, cut: bool) -> void:
 			_cam_tw.tween_property(_cam, "zoom", Vector2(5.9, 5.9), 1.4)
 			_cam_tw.parallel().tween_property(_cam, "global_position", _frame(zx - 4.0, 5.9, 0.34), 1.4)
 			return
+		"wide":   # רחב: שניהם וסביבה
+			zoom = 1.7
+			dur = 1.2
 		"behind":   # המצלמה זזה מאחורי השחקן - הרחוב הריק שממנו הגיע
 			x = px - 230.0
 			zoom = 2.6
 			dur = 2.4
+	zoom *= _zk()
 	var target := _frame(x, zoom, low)
 	if cut and dur == 0.0:
 		_cam.global_position = target
@@ -277,7 +304,7 @@ func _shot(name: String, cut: bool) -> void:
 
 
 func _act(a: String) -> void:
-	var tm = actor.type_mod if actor != null and is_instance_valid(actor) else null
+	var tm = actor.type_mod if actor != null and is_instance_valid(actor) and "type_mod" in actor else null
 	match a:
 		"aim":   # מכוון לראש
 			player.idle_aim = Vector2(1.0, -0.12).normalized()
@@ -317,7 +344,12 @@ func _finish() -> void:
 	_voice.stop()
 	_line = ""
 	if actor != null and is_instance_valid(actor):
-		actor.queue_free()   # גם בדילוג - נעלם
+		if String(data.get("ending", "")) == "drain":   # נשארת בשלב (שרופה). דילוג לפני השאיבה = שואבים עכשיו
+			if actor.has_method("start_drain") and actor.state != actor.DRAINED:
+				player._start_drain(actor)
+				Sfx.play("fscream", null, 3.0, 0.0, 1)
+		else:
+			actor.queue_free()   # גם בדילוג - נעלם
 		actor = null
 	for zz in _frozen:
 		if is_instance_valid(zz):

@@ -312,6 +312,8 @@ func _dist(n: Node2D) -> float:
 func _on_story(ev: String, info: Dictionary) -> void:
 	if player == null or not is_instance_valid(player) or player.dead:
 		return
+	if get_tree().get_first_node_in_group("story_scene") != null:   # בסצנת סיפור (story/) הוא לא מדבר לעצמו
+		return
 	var z: Node2D = info.get("z") if info.get("z") != null and is_instance_valid(info.get("z")) else null
 	var zid: int = z.get_instance_id() if z != null else 0
 	match ev:
@@ -501,6 +503,8 @@ func _chasing_within(r: float) -> int:
 
 # ---- מצבים שנבדקים כל הזמן ----
 func _poll() -> void:
+	if get_tree().get_first_node_in_group("story_scene") != null:
+		return
 	# חושך: נכנסים לאזור חשוך (מפעל) או פעם ראשונה בשלב שהשחקן בחושך
 	var inside := false
 	for dz in get_tree().get_nodes_in_group("dark_zone"):

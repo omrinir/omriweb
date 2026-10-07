@@ -260,6 +260,10 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 * Shots go through `_frame()` so the feet sit low in the frame and a strip of ground is always visible.
   `player.auto_walk` (used only while `controllable` is false) does the scripted walk; `player.calm` softens the idle
   breathing during the scene (in close-ups it looked like the player rising).
+* Level 3 (`story/scenes/l03_survivor.gd`): actor "SURVIVOR" (survivor.gd with `scripted = true` - stands, can't be shot),
+  `zoom` 0.75 (all shots a bit wider), `ending` "drain" = the player absorbs her with the device (real drain: full life),
+  she screams (fscream + fwail) and stays burned in the level. Voices `sounds/story/l03_survivor/` (her: Kokoro af_sarah + tremble).
+* During a scene the monologue (ui/monologue.gd) stays quiet (group "story_scene").
 * Level 1 voices: `sounds/story/l01_stranger/` - player = Kokoro am_onyx + monologue FX, zombie = Kokoro bm_lewis,
   fast villain delivery (speed 1.1, pitched down without slowing, rasp layer, thin metallic comb = half-robot).
 * The zombie = `enemies/types/stranger.gd` (registry `STRANGER`, scale 1.1 - a bit taller than the player): flayed "revenant" - skull with red eyes and a lipless grin,

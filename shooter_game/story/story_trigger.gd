@@ -8,6 +8,7 @@ extends Node2D
 
 const Registry := preload("res://enemies/zombie_registry.gd")
 const SceneScript := preload("res://story/story_scene.gd")
+const SurvivorScript := preload("res://survivor.gd")
 
 var data: Dictionary = {}
 var main: Node = null
@@ -30,12 +31,23 @@ func _setup() -> void:
 	var x: float = float(data.x)
 	var floor_y: float = player.global_position.y
 	global_position = Vector2(x, floor_y)
-	var kind: int = int((Registry as Script).get_script_constant_map().get(String(data.actor), 0))
-	actor = main._spawn_zombie(x, floor_y, kind)
-	actor.dormant = false
-	actor._dir = -1.0
-	actor.remove_from_group("zombies")   # לא מטרה, לא נספר, אי אפשר לפגוע בו
-	actor.collision_layer = 0
+	if String(data.actor) == "SURVIVOR":   # ניצולה (survivor.gd) - עומדת ומחכה
+		actor = SurvivorScript.new()
+		actor.variant = int(data.get("variant", 0))
+		actor.scripted = true
+		actor.position = Vector2(x, floor_y)
+		main.add_child(actor)
+		actor.world_w = main.level_w
+		actor._dir = -1.0
+		actor.remove_from_group("survivors")
+		actor.collision_layer = 0   # אי אפשר לירות בה לפני הסצנה
+	else:   # זומבי לפי שם ב-zombie_registry.gd
+		var kind: int = int((Registry as Script).get_script_constant_map().get(String(data.actor), 0))
+		actor = main._spawn_zombie(x, floor_y, kind)
+		actor.dormant = false
+		actor._dir = -1.0
+		actor.remove_from_group("zombies")   # לא מטרה, לא נספר, אי אפשר לפגוע בו
+		actor.collision_layer = 0
 	_placed = true
 	# מפנים את הדרך: מהמקום שבו השחקן עוצר ועד מעבר לדמות
 	var x0: float = x - float(data.get("spot", 560.0)) - 40.0
@@ -60,9 +72,10 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(actor):   # הסצנה נגמרה (הדמות נעלמה)
 		queue_free()
 		return
-	actor.type_mod.t += delta   # עומד וזז קצת (נושם / מסתכל) גם לפני הסצנה
-	actor._time += delta
-	actor.queue_redraw()
+	if "type_mod" in actor:   # זומבי: עומד וזז קצת (נושם / מסתכל) גם לפני הסצנה
+		actor.type_mod.t += delta
+		actor._time += delta
+		actor.queue_redraw()
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null or player.dead:
 		return

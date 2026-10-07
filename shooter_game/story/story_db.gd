@@ -7,6 +7,7 @@ extends RefCounted
 
 const SCENES := [
 	preload("res://story/scenes/l01_stranger.gd"),
+	preload("res://story/scenes/l03_survivor.gd"),
 ]
 
 
