@@ -60,6 +60,7 @@ var glove_color := Color("141418")
 @export var controllable := true
 ## לאן הדמות מכוונת כשהיא לא נשלטת
 var idle_aim := Vector2(-1.0, 0.25).normalized()
+var auto_walk := 0.0   # כשלא בשליטה (סצנה): כיוון ומהירות הליכה אוטומטית (-1..1)
 ## עיניים זוהרות בתוך הברדס (false = רק חושך, כמו בתמונה)
 @export var glowing_eyes := false
 var eye_color := Color("ff3030")
@@ -360,6 +361,8 @@ func _physics_process(delta: float) -> void:
 		dir -= 1.0
 	if controllable and Input.is_physical_key_pressed(KEY_D):
 		dir += 1.0
+	if not controllable:
+		dir = auto_walk
 	# ריצה: לחיצה כפולה מהירה על אותו כיוון. נגמרת כשעוזבים את המקש
 	var ka := controllable and Input.is_physical_key_pressed(KEY_A)
 	var kd := controllable and Input.is_physical_key_pressed(KEY_D)

@@ -248,12 +248,16 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 
 * `ui/intro_cutscene.gd` - in-engine cinematic with the game's own characters, started from `main.gd` on level 1
   (once: `Game.intro_seen` is saved; never after TRY AGAIN / checkpoint / practice). ENTER or SPACE = skip.
-  Own Camera2D with shots (wide push-in, close-ups, two-shot, a slow pan behind the player, hard-cut extreme close-up),
+  Opens with a walk-in: the player auto-walks (`player.auto_walk`, only used while `controllable` is false), spots the zombie,
+  stops and raises the gun, then approaches slowly (WALK_IN / SPOT_DIST / DIST). Things on the path are hidden AND disabled
+  (pickups passed on the way are moved just ahead of the player at the end; wide bricks = the floor are never touched).
+  Own Camera2D with shots (two-shot, close-ups, a slow pan behind the player, hard-cut close-up). Every shot goes through
+  `_frame()` so the feet sit low in the frame and a strip of ground is always visible.
   letterbox bars, typed subtitles with speaker names ("???" / "YOU"), voices, then cut to black + boom + "THEY LEARN",
   and the normal stage title. Everything is frozen during the scene; props between the two are hidden and come back under the black.
   Edit the dialogue / shots / actions in `BEATS`.
-* Voices: `sounds/intro/p01-p05.mp3` (player - same voice + FX as the monologue), `z01-z08.mp3` (the zombie: Kokoro bm_george,
-  slower, slightly lower, small room, faint rasp - calm, almost friendly).
-* The zombie = `enemies/types/stranger.gd` (registry `STRANGER`): tall flayed "revenant" - skull with red eyes and a lipless grin,
+* Voices: `sounds/intro/p01-p05.mp3` (player - same voice + FX as the monologue), `z01-z08.mp3` (the zombie: Kokoro bm_lewis,
+  fast villain delivery: speed 1.1, pitched down without slowing, rasp layer, thin metallic comb = half-robot). Generator kept outside the repo.
+* The zombie = `enemies/types/stranger.gd` (registry `STRANGER`, scale 1.1 - a bit taller than the player): flayed "revenant" - skull with red eyes and a lipless grin,
   ribs and guts, metal braces, a cannon arm with red hoses, a hooked metal claw, metal knee braces and toe claws.
   Controls from the scene: `talking`, `tilt`, `smile`, `look_back`. Recurring character - he disappears in the black, not killed.

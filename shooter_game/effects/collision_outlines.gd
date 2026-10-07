@@ -46,7 +46,7 @@ func _collect(n: Node) -> void:
 # המלבנים (בעולם) של גוף
 func _rects_of(b: Node) -> Array:
 	var out := []
-	if (int(b.collision_layer) & MASK) == 0 or b.is_in_group("no_outline"):   # no_outline = מצייר קו מתאר משלו (דיונות)
+	if (int(b.collision_layer) & MASK) == 0 or b.is_in_group("no_outline") or not b.is_visible_in_tree():   # מוסתר = אין מסגרת. no_outline = מצייר קו מתאר משלו (דיונות)
 		return out
 	if b.has_method("world_rect") and b.is_in_group("platforms"):
 		out.append(b.world_rect())

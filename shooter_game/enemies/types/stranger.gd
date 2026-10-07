@@ -20,7 +20,7 @@ const EYE := Color(1.0, 0.18, 0.12)
 
 
 func stats() -> Dictionary:
-	return {"name": "???", "hp": 999, "walk": 0.0, "chase": 0.0, "damage": 0, "bite_delay": 9.0, "scale": 1.32, "width": 0.92,
+	return {"name": "???", "hp": 999, "walk": 0.0, "chase": 0.0, "damage": 0, "bite_delay": 9.0, "scale": 1.1, "width": 0.9,
 		"duck": 0.0, "cover": 0.0, "skin": Color("c49a86"), "shirt": Color("8a3a32"), "pants": Color("6e2c28"), "shoe": Color("1a1612"),
 		"points": 0, "ragdoll": false}
 
@@ -182,7 +182,7 @@ func _skull(c: Vector2, ang: float) -> void:
 	var low := PackedVector2Array([j0, j1, p.call(Vector2(5.5, 4.2 + jaw)), p.call(Vector2(0.5, 5.0 + jaw))])
 	z.draw_colored_polygon(PackedVector2Array([j0, j1, p.call(Vector2(5.5, 1.8 + jaw)), p.call(Vector2(0.5, 2.8 + jaw))]), Color(0.12, 0.02, 0.02))
 	Art.fill(z, low, col(BONE.darkened(0.12)), Art.OUTLINE, 0.8)
-	for k in 5:   # שיניים עליונות + תחתונות
-		var tp: Vector2 = j0.lerp(j1, 0.1 + 0.2 * float(k))
-		z.draw_line(tp, tp + Vector2(0.0, 1.0), Color(0.95, 0.92, 0.8), 0.8)
-		z.draw_line(tp + Vector2(0.0, 1.2 + jaw), tp + Vector2(0.0, 0.3 + jaw), Color(0.9, 0.87, 0.75), 0.7)
+	for k in 6:   # שיניים קטנות עליונות + תחתונות
+		var tp: Vector2 = j0.lerp(j1, 0.12 + 0.15 * float(k))
+		z.draw_line(tp, tp + Vector2(0.0, 0.55), Color(0.95, 0.92, 0.8), 0.45)
+		z.draw_line(tp + Vector2(0.0, 1.0 + jaw), tp + Vector2(0.0, 0.5 + jaw), Color(0.9, 0.87, 0.75), 0.4)

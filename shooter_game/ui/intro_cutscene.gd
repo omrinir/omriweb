@@ -1,12 +1,13 @@
 extends Node
 # ============================================================
 #  סצנת הפתיחה של שלב 1 - "FIRST ENCOUNTER". סינמטיקה בתוך המשחק עם הדמויות של המשחק:
-#  השחקן פוגש זומבי שמדבר (STRANGER - enemies/types/stranger.gd: שרירי, חצי גולגולת מתכת, יד רובוטית).
-#  מצלמה משלה (שוטים: רחב, תקריבים, שני-שוט, תנועה מאחורי השחקן), פסים שחורים, כתוביות עם קול,
+#  השחקן הולך ברחוב (הליכה אוטומטית), רואה זומבי עומד מולו, עוצר, מרים נשק ומתקרב בזהירות -
+#  ואז שיחה עם הזומבי שמדבר (STRANGER - enemies/types/stranger.gd: שרירי, חצי גולגולת מתכת, יד רובוטית).
+#  מצלמה משלה (שוטים: רחב, תקריבים, שני-שוט, מבט אחורה), תמיד עם הרצפה בפריים. פסים שחורים, כתוביות עם קול,
 #  ובסוף: חיתוך לשחור -> THEY LEARN -> משחק. הזומבי נעלם בחושך (דמות חוזרת).
 #  מתנגן פעם אחת (Game.intro_seen נשמר). ENTER / SPACE = דילוג.
-#  קולות: sounds/intro/p01..p05 (השחקן), z01..z08 (הזומבי).
-#  לשנות: BEATS (סדר המשפטים, השוטים והפעולות), DIST.
+#  קולות: sounds/intro/p01..p05 (השחקן), z01..z08 (הזומבי) - נוצרו ב-Kokoro TTS + עיבוד ffmpeg.
+#  לשנות: BEATS (סדר המשפטים, השוטים והפעולות), DIST, WALK_IN, SPOT_DIST.
 # ============================================================
 
 const Art := preload("res://art.gd")
@@ -14,23 +15,27 @@ const Sfx := preload("res://sfx.gd")
 const Registry := preload("res://enemies/zombie_registry.gd")
 const FONT_PATH := "res://fonts/Bangers-Regular.ttf"
 const VOICE_DIR := "res://sounds/intro/"
-const DIST := 330.0            # מרחק בין השחקן לזומבי
+const DIST := 300.0            # מרחק השיחה בין השחקן לזומבי
+const WALK_IN := 900.0         # כמה רחוק הזומבי עומד מנקודת ההתחלה של השחקן
+const SPOT_DIST := 560.0       # כאן השחקן "רואה" אותו ועוצר
+const BAR_H := 78.0            # גובה הפסים השחורים (במסך)
 
 # [מי, קול, טקסט, שוט, פעולה, הפסקה אחרי]
-# שוטים: wide / cu_p / cu_z / cu_z2 / two / behind / xcu_z.  פעולות: lower / raise / tilt / look_back / turn_back / smile
+# שוטים: two / cu_p / cu_z / cu_z2 / behind / xcu_z.
+# פעולות: aim / lower / tilt / look_back / turn_back / face / grin / smile
 const BEATS := [
-	["Z", "z01", "Hello, friend.", "wide", "", 0.5],
-	["P", "p01", "...Friend? You're a fucking zombie.", "cu_p", "lower", 0.3],
-	["Z", "z02", "That's true.", "cu_z", "tilt", 0.25],
-	["P", "p02", "You're dead meat, waiting to be ground up.", "cu_p", "raise", 0.2],
-	["Z", "z03", "Technically... I already am.", "cu_z2", "tilt", 0.9],
-	["P", "p03", "Then why are you talking to me?", "two", "", 0.2],
-	["Z", "z04", "Because I know what's coming.", "two", "", 0.3],
-	["Z", "z05", "When they come... you'll need a friend.", "behind", "look_back", 0.4],
-	["P", "p04", "There's nothing behind me.", "behind", "turn_back", 0.3],
-	["Z", "z06", "I didn't say there was.", "two", "", 1.8],
-	["Z", "z07", "I'm trying to save you.", "cu_z2", "smile", 0.3],
-	["P", "p05", "From what?", "cu_p", "", 0.35],
+	["Z", "z01", "Ahh. There you are. Hello, friend.", "two", "", 0.3],
+	["P", "p01", "Friend? You're a fucking zombie.", "cu_p", "", 0.1],
+	["Z", "z02", "Zombie. Such an ugly word.", "cu_z", "tilt", 0.1],
+	["P", "p02", "Ugly fits you. Give me one reason not to shoot.", "cu_p", "aim", 0.15],
+	["Z", "z03", "Shoot me? I've been dead for weeks. It didn't take.", "cu_z2", "grin", 0.3],
+	["P", "p03", "Then why talk, instead of bite?", "two", "", 0.1],
+	["Z", "z04", "Because I know what's coming.", "cu_z", "look_back", 0.15],
+	["Z", "z05", "Today they crawl. Tomorrow they run. And then... they think.", "behind", "turn_back", 0.25],
+	["P", "p04", "There's nothing back there.", "behind", "", 0.2],
+	["Z", "z06", "Not yet.", "cu_z2", "face", 0.5],
+	["Z", "z07", "I'm the only one here trying to save you.", "two", "", 0.1],
+	["P", "p05", "Save me? From what?", "cu_p", "lower", 0.25],
 	["Z", "z08", "From us.", "xcu_z", "smile", 0.6],
 ]
 
@@ -46,7 +51,10 @@ var _draw: Node2D
 var _voice: AudioStreamPlayer
 var _frozen: Array = []
 var _hidden: Array = []
-var _cam_tw: Tween = null   # תנועת המצלמה הנוכחית (נעצרת בשוט הבא)     # מכוניות / ארגזים בין השחקן לזומבי - מוסתרים בזמן הסצנה
+var _cam_tw: Tween = null   # תנועת המצלמה הנוכחית (נעצרת בשוט הבא)
+var _floor := 0.0
+var _follow := ""           # המצלמה עוקבת: "player" (הליכה) / "two" (התקרבות) / "" (שוטים)
+var _disabled: Array = []   # [node, process_mode] - מכשולים שהוסתרו ונוטרלו (שהשחקן יוכל לעבור)
 var _bars := 0.0            # פסים שחורים 0..1
 var _black := 0.0           # מסך שחור
 var _title := 0.0           # THEY LEARN
@@ -70,35 +78,43 @@ func _ready() -> void:
 	_voice = AudioStreamPlayer.new()
 	_voice.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
 	add_child(_voice)
-	# הבמה: השחקן קצת פנימה, הזומבי מולו
-	var floor_y: float = player.global_position.y
-	player.global_position.x = maxf(player.global_position.x, 520.0)
+	# הבמה: הזומבי עומד ברחוב, השחקן ייכנס אליו בהליכה
+	_floor = player.global_position.y
 	player.controllable = false
-	player.idle_aim = Vector2.RIGHT
+	player.idle_aim = Vector2(1.0, 0.5).normalized()   # רובה למטה, הליכה רגועה
 	for zz in get_tree().get_nodes_in_group("zombies"):   # כולם קופאים בזמן הסצנה
 		if zz.is_physics_processing():
 			zz.set_physics_process(false)
 			_frozen.append(zz)
-	stranger = main._spawn_zombie(player.global_position.x + DIST, floor_y, Registry.STRANGER)
+	stranger = main._spawn_zombie(player.global_position.x + WALK_IN, _floor, Registry.STRANGER)
 	stranger.dormant = false
 	stranger._dir = -1.0
 	stranger.remove_from_group("zombies")   # לא מטרה, לא נספר
 	stranger.collision_layer = 0
 	var x0: float = player.global_position.x - 40.0
 	var x1: float = stranger.global_position.x + 60.0
-	for n in main.get_children():   # מפנים את הבמה (חוזרים בסוף, מתחת למסך השחור)
+	for n in main.get_children():   # מפנים את הבמה ואת הדרך (חוזרים בסוף, מתחת למסך השחור)
 		var scr: String = n.get_script().resource_path if n.get_script() != null else ""
 		var clutter: bool = n.is_in_group("blastable") or n.is_in_group("pickups") or n.is_in_group("zombies") or n.is_in_group("cover") \
 			or scr.ends_with("prop.gd") or scr.ends_with("fire.gd") or scr.ends_with("street_prop.gd")
+		if scr.ends_with("brick.gd") and float(n.size.x) > 300.0:   # הרצפה / קירות ארוכים נשארים
+			clutter = false
 		if n is Node2D and n.visible and n != player and n != stranger and clutter:
 			var nx: float = (n as Node2D).global_position.x
 			if nx > x0 - 260.0 and nx < x1 + 420.0:
 				n.visible = false
 				_hidden.append(n)
+				if nx > x0 and nx < x1 and not scr.ends_with("brick.gd"):   # על הדרך: לא חוסם את ההליכה ולא נאסף
+					_disabled.append([n, n.process_mode])
+					n.process_mode = Node.PROCESS_MODE_DISABLED
 	if hud_layer != null:
 		hud_layer.visible = false
 	_cam = Camera2D.new()
 	main.add_child(_cam)
+	var vp := get_viewport()
+	var cur := vp.get_camera_2d()
+	_cam.global_position = cur.get_screen_center_position() if cur != null else _follow_target()
+	_cam.zoom = cur.zoom if cur != null else Vector2.ONE
 	_cam.make_current()
 	_run()
 
@@ -107,12 +123,38 @@ func _process(delta: float) -> void:
 	_clock += delta
 	_skip_t += delta
 	if _line != "":
-		_shown += delta * 34.0
+		_shown += delta * 40.0
 	if stranger != null and is_instance_valid(stranger):
 		stranger.type_mod.t += delta
 		stranger._time += delta
 		stranger.queue_redraw()
+	if _follow != "" and _cam != null:
+		var k := 1.0 - exp(-delta * 3.0)
+		_cam.global_position = _cam.global_position.lerp(_follow_target(), k)
+		var z := _follow_zoom()
+		_cam.zoom = _cam.zoom.lerp(Vector2(z, z), k)
 	_draw.queue_redraw()
+
+
+func _follow_zoom() -> float:
+	return 1.8 if _follow == "player" else 2.3
+
+
+func _follow_target() -> Vector2:
+	var z := _follow_zoom()
+	var px: float = player.global_position.x + 170.0
+	if _follow == "two" and stranger != null and is_instance_valid(stranger):
+		px = (player.global_position.x + stranger.global_position.x) * 0.5
+	return _frame(px, z)
+
+
+# מרכז מצלמה לזום z כך שהרצפה תמיד בפריים: low = כמה מתחת למרכז התמונה (בין הפסים) נמצאות כפות הרגליים
+# (0.3 = ב-80% מהגובה) - תמיד רואים רצועת אדמה מתחת לדמויות, כמו מצלמה שמסתכלת קצת מלמעלה
+func _frame(x: float, z: float, low := 0.25) -> Vector2:
+	var vs: Vector2 = get_viewport().get_visible_rect().size
+	var h: float = (vs.y - BAR_H * 2.0) / z
+	x = maxf(x, vs.x * 0.5 / z + 4.0)   # לא מראים את קצה העולם (שמאל לתחילת השלב)
+	return Vector2(x, _floor - h * low)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -129,12 +171,32 @@ func _unhandled_input(event: InputEvent) -> void:
 func _run() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "_bars", 1.0, 0.8)
-	_shot("wide", true)
-	await _wait(1.0)
+	# 1. הולך ברחוב...
+	_follow = "player"
+	player.auto_walk = 1.0
+	await _walk_to(stranger.global_position.x - SPOT_DIST, 6.0)
+	if done:
+		return
+	# 2. ...רואה אותו: עוצר, מרים נשק, המצלמה נפתחת לשניהם
+	player.auto_walk = 0.0
+	player.idle_aim = Vector2.RIGHT
+	Sfx.play("pickup", null, -6.0, 0.0, 1, 0.5)   # "קליק" של הרובה
+	_follow = "two"
+	await _wait(1.3)
+	if done:
+		return
+	# 3. מתקרב לאט, הרובה עליו
+	player.auto_walk = 0.42
+	await _walk_to(stranger.global_position.x - DIST, 6.0)
+	player.auto_walk = 0.0
+	if done:
+		return
+	await _wait(0.5)
+	_follow = ""
 	for b in BEATS:
 		if done:
 			return
-		_shot(b[3], b[3] != "behind" and b[3] != "wide")
+		_shot(b[3], b[3] != "behind")
 		_act(b[4])
 		await _say(b[0], b[1], b[2])
 		if done:
@@ -159,6 +221,15 @@ func _run() -> void:
 	t3.tween_property(self, "_title", 0.0, 0.5)
 	await _wait(0.5)
 	_finish(false)
+
+
+# הליכה אוטומטית עד x (אם משהו חוסם - אחרי max_t שניות פשוט ממשיכים)
+func _walk_to(x: float, max_t: float) -> void:
+	var end := _clock + max_t
+	while not done and player.global_position.x < x and _clock < end:
+		await get_tree().process_frame
+	if not done and player.global_position.x < x - 40.0:
+		player.global_position.x = x
 
 
 func _wait(sec: float) -> void:
@@ -196,52 +267,42 @@ func _stream(path: String) -> AudioStream:
 	return null
 
 
-# שוטים: איפה המצלמה ובאיזה זום. cut = חיתוך מיידי, אחרת תנועה איטית
+# שוטים: איפה המצלמה ובאיזה זום. cut = חיתוך מיידי, אחרת תנועה איטית.
+# כל השוטים דרך _frame: הרצפה ורצועת אדמה תמיד בתמונה, הדמויות מלאות מכף רגל ועד ראש
 func _shot(name: String, cut: bool) -> void:
-	var pp: Vector2 = player.global_position + Vector2(0, -42)
-	var zp: Vector2 = stranger.global_position + Vector2(0, -52) if stranger != null and is_instance_valid(stranger) else pp
-	var mid := (pp + zp) * 0.5
-	var target := mid
-	var zoom := 1.0
+	var px: float = player.global_position.x
+	var zx: float = stranger.global_position.x if stranger != null and is_instance_valid(stranger) else px + DIST
+	var x := (px + zx) * 0.5
+	var zoom := 2.4
+	var low := 0.25
 	var dur := 0.0
 	if _cam_tw != null and _cam_tw.is_valid():
 		_cam_tw.kill()
 	match name:
-		"wide":
-			var vs0: Vector2 = _cam.get_viewport_rect().size
-			_cam.global_position = Vector2(maxf(mid.x, vs0.x * 0.5 + 4.0), mid.y - 60.0)
-			_cam.zoom = Vector2.ONE
-			var tw := create_tween().set_trans(Tween.TRANS_SINE)
-			_cam_tw = tw
-			tw.tween_property(_cam, "zoom", Vector2(1.25, 1.25), 5.0)
-			tw.parallel().tween_property(_cam, "global_position", Vector2(maxf(mid.x, vs0.x * 0.5 / 1.25 + 4.0), mid.y - 30.0), 5.0)
-			return
 		"cu_p":
-			target = pp + Vector2(16, -8)
-			zoom = 4.2
+			x = px + 22.0
+			zoom = 4.6
+			low = 0.3
 		"cu_z":
-			target = zp + Vector2(-12, 10)
-			zoom = 4.2
+			x = zx - 22.0
+			zoom = 4.6
+			low = 0.3
 		"cu_z2":
-			target = zp + Vector2(-6, 6)
-			zoom = 5.6
-		"xcu_z":
-			# חיתוך חד לפנים, ואז זחילה איטית פנימה
-			var t0 := zp + Vector2(-2, -2)
-			_cam.global_position = t0
-			_cam.zoom = Vector2(6.0, 6.0)
+			x = zx - 8.0
+			zoom = 5.3
+			low = 0.32
+		"xcu_z":   # חיתוך חד, ואז זחילה איטית פנימה
+			_cam.global_position = _frame(zx - 6.0, 5.3, 0.32)
+			_cam.zoom = Vector2(5.3, 5.3)
 			_cam_tw = create_tween().set_trans(Tween.TRANS_SINE)
-			_cam_tw.tween_property(_cam, "zoom", Vector2(8.0, 8.0), 1.6)
+			_cam_tw.tween_property(_cam, "zoom", Vector2(5.9, 5.9), 1.4)
+			_cam_tw.parallel().tween_property(_cam, "global_position", _frame(zx - 4.0, 5.9, 0.34), 1.4)
 			return
-		"two":
-			target = mid + Vector2(0, -12)
-			zoom = 1.6
-		"behind":   # המצלמה זזה מאחורי השחקן - הרחוב הריק
-			target = pp + Vector2(-280, -10)
-			zoom = 1.7
-			dur = 2.6
-	var vs: Vector2 = _cam.get_viewport_rect().size
-	target.x = maxf(target.x, vs.x * 0.5 / zoom + 4.0)   # לא מראים את קצה העולם (שמאל לתחילת השלב)
+		"behind":   # המצלמה זזה מאחורי השחקן - הרחוב הריק שממנו הגיע
+			x = px - 230.0
+			zoom = 2.6
+			dur = 2.4
+	var target := _frame(x, zoom, low)
 	if cut and dur == 0.0:
 		_cam.global_position = target
 		_cam.zoom = Vector2(zoom, zoom)
@@ -255,26 +316,32 @@ func _shot(name: String, cut: bool) -> void:
 func _act(a: String) -> void:
 	var tm = stranger.type_mod if stranger != null and is_instance_valid(stranger) else null
 	match a:
+		"aim":   # מכוון לראש
+			player.idle_aim = Vector2(1.0, -0.12).normalized()
 		"lower":   # מוריד קצת את הרובה
-			player.idle_aim = Vector2(1.0, 0.45).normalized()
-		"raise":
-			player.idle_aim = Vector2.RIGHT
+			player.idle_aim = Vector2(1.0, 0.4).normalized()
 		"tilt":
 			if tm != null:
-				create_tween().tween_property(tm, "tilt", 0.22 if tm.tilt < 0.1 else 0.0, 0.5)
+				create_tween().tween_property(tm, "tilt", 0.22, 0.4)
+		"grin":
+			if tm != null:
+				create_tween().tween_property(tm, "tilt", 0.0, 0.3)
+				create_tween().tween_property(tm, "smile", 0.5, 0.5)
 		"look_back":   # הזומבי מסתכל מאחורי השחקן
 			if tm != null:
-				create_tween().tween_property(tm, "look_back", 1.0, 0.8)
-		"turn_back":   # השחקן מסתובב להסתכל אחורה... ואז חוזר
+				create_tween().tween_property(tm, "look_back", 1.0, 0.6)
+		"turn_back":   # השחקן מסתובב להסתכל אחורה
+			await _wait(0.9)
 			player.idle_aim = Vector2.LEFT
-			await _wait(1.6)
+		"face":   # חוזר לזומבי
 			player.idle_aim = Vector2.RIGHT
 			if tm != null:
 				tm.look_back = 0.0
+				create_tween().tween_property(tm, "smile", 0.7, 0.4)
 		"smile":
 			if tm != null:
 				tm.tilt = 0.0
-				create_tween().tween_property(tm, "smile", 1.0, 0.7)
+				create_tween().tween_property(tm, "smile", 1.0, 0.6)
 
 
 func _finish(skipped: bool) -> void:
@@ -292,6 +359,14 @@ func _finish(skipped: bool) -> void:
 	for n in _hidden:
 		if is_instance_valid(n):
 			n.visible = true
+	var ahead := 0
+	for d in _disabled:
+		if is_instance_valid(d[0]):
+			d[0].process_mode = d[1]
+			if d[0].is_in_group("pickups") and d[0].global_position.x < player.global_position.x + 40.0:
+				d[0].global_position.x = player.global_position.x + 110.0 + 55.0 * float(ahead)   # מה שעבר בדרך - מחכה לפניו
+				ahead += 1
+	player.auto_walk = 0.0
 	player.controllable = true
 	player.idle_aim = Vector2.RIGHT
 	var main_cam := player.get_node_or_null("Camera2D") as Camera2D
@@ -334,7 +409,7 @@ static func _f() -> Font:
 func _on_draw() -> void:
 	var vs := _draw.get_viewport_rect().size
 	var f := _f()
-	var bh := 78.0 * _bars
+	var bh := BAR_H * _bars
 	_draw.draw_rect(Rect2(0, 0, vs.x, bh), Color.BLACK)
 	_draw.draw_rect(Rect2(0, vs.y - bh, vs.x, bh), Color.BLACK)
 	if _black > 0.0:
