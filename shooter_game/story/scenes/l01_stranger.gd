@@ -26,7 +26,7 @@ const SCENE := {
 		["P", "p01", "Friend? You're a fucking zombie.", "cu_p", "", 0.1],
 		["Z", "z02", "Such an ugly word.", "cu_z", "tilt", 0.1],
 		["P", "p02", "Give me one reason not to shoot.", "cu_p", "", 0.15],
-		["Z", "z03", "I've been dead for weeks.", "cu_z2", "grin", 0.2],
+		["Z", "z03", "You can't kill what's already dead.", "cu_z2", "grin", 0.2],
 		["P", "p03", "Then why talk?", "two", "", 0.2],
 		["Z", "z04", "We've met before.", "cu_z2", "untilt", 0.5],
 		["P", "p04", "...I don't remember.", "cu_p", "", 0.5],
