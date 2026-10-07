@@ -58,6 +58,7 @@ func _ready() -> void:
 	player.controllable = false
 	player.auto_walk = 0.0
 	player.calm = true
+	player.unarmed = true   # בלי נשק בסצנה (רק הספרייט)
 	player.idle_aim = LOW_READY.normalized()
 	for zz in get_tree().get_nodes_in_group("zombies"):   # כולם קופאים בזמן הסצנה
 		if zz.is_physics_processing():
@@ -123,7 +124,6 @@ func _unhandled_input(event: InputEvent) -> void:
 func _run() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "_bars", 1.0, 0.8)
-	Sfx.play("pickup", null, -6.0, 0.0, 1, 0.5)   # "קליק" של הרובה
 	_follow = "two"
 	await _wait(1.1)
 	if done:
@@ -326,6 +326,7 @@ func _finish() -> void:
 			n.visible = true
 	player.auto_walk = 0.0
 	player.calm = false
+	player.unarmed = false
 	player.controllable = true
 	player.idle_aim = Vector2.RIGHT
 	var main_cam: Camera2D = null

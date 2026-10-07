@@ -62,6 +62,7 @@ var glove_color := Color("141418")
 var idle_aim := Vector2(-1.0, 0.25).normalized()
 var auto_walk := 0.0   # כשלא בשליטה (סצנה): כיוון ומהירות הליכה אוטומטית (-1..1)
 var calm := false      # בסצנת סיפור: נשימה חלשה (בתקריב הנשימה הרגילה נראית כמו "עלייה")
+var unarmed := false   # בסצנת סיפור: בלי נשק וידיים מצוירות - רק הספרייט (הידיים שלו)
 ## עיניים זוהרות בתוך הברדס (false = רק חושך, כמו בתמונה)
 @export var glowing_eyes := false
 var eye_color := Color("ff3030")
@@ -1436,7 +1437,7 @@ func _draw_hero(la: Vector2) -> void:
 	else:
 		draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s), Rect2(fr[0], fr[1], fr[2], fr[3]))
 	draw_set_transform_matrix(_base_xf)
-	if dead or _melee_t > 0.0 or _roll_t > 0.0 or _slide_t > 0.0:
+	if dead or _melee_t > 0.0 or _roll_t > 0.0 or _slide_t > 0.0 or unarmed:
 		return
 	# ידיים + נשק מעל הספרייט (מכוונים לעכבר)
 	var c := _crouch_k
