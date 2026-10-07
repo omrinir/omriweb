@@ -288,3 +288,18 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 
 * `hero_anim.gd` "run" anchors are aligned on the head (no forward/back jumps between frames); frames 2 and 4 are the
   airborne phase (feet off the ground, head level) instead of sinking the whole body. Running kicks up dust (`player._dust`).
+
+## Stage 17 - "THE DRY RIVER" ("THEY LEARNED TO LIE")
+
+* `levels/stage_17.gd` + `effects/s17_decor.gd`: noon, dead river - cracked mud drawn over the road (`Riverbed`),
+  stranded boats / rocks / driftwood (solid, own outline: group "no_outline"), river junk, old wooden piers
+  (PIERS at PIER_H = one jump), mesas + broken dam + banks in the background, `HeatHaze` screen shader.
+* `enemies/types/mirage.gd` (MIRAGE): walks with 2-3 copies (3 on HARD). **Only the real one casts a shadow and kicks
+  up dust.** A copy pops from one bullet (no blood, no score, no kill), vanishes when it touches you, and blocks
+  bullets meant for the real one. The real one waits behind its copies just outside your usual shooting distance
+  (PlayerMemory.avg_distance) and charges when you reload or its copies are gone; lost copies come back every 7 s.
+  Kill the real one -> all its copies vanish.
+* Boss `enemies/types/mirage_king.gd` (FATA MORGANA): 3-4 copies that return fast, and every 8-11 s (or after 5 hits)
+  swaps places with one of its copies in a shimmer.
+* Story `story/scenes/l17_stranger.gd`: the stranger teaches the shadow rule - and has no shadow himself
+  (`actor_props: {"no_shadow": true}`); ending "shimmer" = he dissolves like a mirage.

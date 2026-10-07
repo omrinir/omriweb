@@ -12,6 +12,7 @@ var tilt := 0.0          # הטיית ראש (רדיאנים)
 var smile := 0.0         # 0 = רציני, 1 = חיוך מצמרר
 var look_back := 0.0     # 0 = מסתכל על השחקן, 1 = מסתכל מאחוריו
 var t := 0.0
+var no_shadow := false   # שלב 17: אין לו צל (כמו המיראז'ים...)
 
 const METAL := Color("8a9098")
 const METAL_D := Color("4a5058")
@@ -51,7 +52,7 @@ const HOSE := Color("c0281e")
 
 
 func draw() -> bool:
-	begin_draw()
+	begin_draw(not no_shadow)
 	var fl := col(FLESH)
 	var fl_d := col(FLESH.darkened(0.3))
 	var mu := col(MUSCLE)

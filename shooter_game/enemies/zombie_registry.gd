@@ -17,6 +17,7 @@ enum {
 	BOMBHEAD, MINIGUNNER, STILTER, # שלב 15
 	SWARMER, BROODMOTHER,          # שלב 16
 	STRANGER,                      # "החבר" מסצנת הסיפור של שלב 1 (story/)
+	MIRAGE, MIRAGE_KING,           # שלב 17
 }
 
 const FIRST := 20
@@ -60,6 +61,8 @@ const TYPES := {
 	SWARMER: "res://enemies/types/swarmer.gd",
 	BROODMOTHER: "res://enemies/types/broodmother.gd",
 	STRANGER: "res://enemies/types/stranger.gd",
+	MIRAGE: "res://enemies/types/mirage.gd",
+	MIRAGE_KING: "res://enemies/types/mirage_king.gd",
 }
 
 static var _stats_cache := {}

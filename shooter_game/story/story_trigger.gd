@@ -48,6 +48,9 @@ func _setup() -> void:
 		actor._dir = -1.0
 		actor.remove_from_group("zombies")   # לא מטרה, לא נספר, אי אפשר לפגוע בו
 		actor.collision_layer = 0
+		for k in data.get("actor_props", {}):   # למשל {"no_shadow": true}
+			if actor.type_mod != null and k in actor.type_mod:
+				actor.type_mod.set(k, data.actor_props[k])
 	_placed = true
 	# מפנים את הדרך: מהמקום שבו השחקן עוצר ועד מעבר לדמות
 	var x0: float = x - float(data.get("spot", 560.0)) - 40.0
@@ -62,6 +65,7 @@ func _setup() -> void:
 		if n.is_in_group("pickups"):   # מה שהיה שם - מחכה אחרי הדמות
 			n.global_position.x = x1 + 60.0
 		elif scr.ends_with("prop.gd") or scr.ends_with("street_prop.gd") or scr.ends_with("fire.gd") or n.is_in_group("cover") \
+				or (n.get("size") != null and n.get("kind") != null and n.get("seed_v") != null and not scr.ends_with("brick.gd")) \
 				or (scr.ends_with("brick.gd") and float(n.size.x) <= 300.0):
 			n.queue_free()
 

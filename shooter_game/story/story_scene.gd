@@ -155,6 +155,20 @@ func _run() -> void:
 	if done:
 		return
 	match String(data.get("ending", "vanish")):
+		"shimmer":   # מתפוגג כמו מיראז' (שלב 17)
+			_line = ""
+			await _wait(0.4)
+			if actor != null and is_instance_valid(actor):
+				var fx = preload("res://enemies/types/mirage.gd").Shimmer.new()
+				fx.position = actor.global_position
+				fx.sc = float(actor.sc) * 1.4
+				fx.col = Color(1.0, 0.95, 0.85)
+				main.add_child(fx)
+				Sfx.play("mr_pop", null, 2.0, 0.0, 1, 0.7)
+				Sfx.play("mr_hum", null, -4.0, 0.0, 1, 0.6)
+				actor.queue_free()
+				actor = null
+			await _wait(1.3)
 		"drain":   # השחקן שואב ממנה את כוח החיים עם המכשיר, והיא צורחת
 			_line = ""
 			await _drain_end()
