@@ -49,10 +49,6 @@ func custom_gen(gname: String, x: float) -> float:
 	return j.width
 
 
-func weapon_offers() -> Array:
-	return [WeaponDB.ASSAULT_RIFLE, WeaponDB.SNIPER, WeaponDB.GRENADE_LAUNCHER]
-
-
 func boss_kind() -> int:
 	return Registry.EVOLVED
 

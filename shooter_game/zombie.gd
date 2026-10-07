@@ -40,6 +40,7 @@ const PickupScript := preload("res://pickup.gd")
 const DebrisScript := preload("res://debris.gd")
 const Particles := preload("res://particles.gd")
 const FleshFx := preload("res://effects/flesh_fx.gd")
+const Arsenal := preload("res://progression/arsenal.gd")
 const GrenadeScript := preload("res://grenade.gd")
 const Boom := preload("res://explosion.gd")
 const Brain := preload("res://ai/zombie_brain.gd")             # המוח (טקטיקה, תורות, איגוף) - ai/zombie_brain.gd
@@ -1101,7 +1102,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 			_wounds.append(Vector2(clampf(lx, -6.0, 6.0), clampf(ly, -40.0, -22.0)))
 	# חתיכות בשר נתלשות (אפור + אדום) - effects/flesh_fx.gd
 	if dmg > 0 and kind != MECH and (type_mod == null or bool(type_mod.stats().get("flesh", true))):
-		FleshFx.burst(get_parent(), hit_pos, dir, skin, zone, hp <= 0, explosive)
+		FleshFx.burst(get_parent(), hit_pos, dir, skin, zone, hp <= 0, explosive, hp <= 0 and death_load() >= DEATH_HEAVY - 1)
 	if hp <= 0:
 		_die(dir)
 	else:
@@ -1172,8 +1173,25 @@ func _lose_leg(dir: Vector2) -> void:
 	_popup("LEG!", Color("ff8a5a"), 16, -40.0)
 
 
+# ---- תקציב מוות: הרבה הריגות ביחד (MULTI KILL) = אפקטים זולים יותר, כדי שהמשחק לא יאט ----
+const DEATH_WINDOW := 1000          # ms
+const DEATH_HEAVY := 3              # מההריגה ה-3 בתוך שנייה: בלי רגדול, פחות דם וחתיכות
+const MAX_BLOOD := 90               # כמה טיפות דם (צמתים) יכולות להתקיים בבת אחת
+static var _deaths: Array = []
+var _lite := false                  # המוות הזה במצב "חסכוני"
+
+
+static func death_load() -> int:   # כמה זומבים מתו בשנייה האחרונה
+	var now := Time.get_ticks_msec()
+	while not _deaths.is_empty() and now - int(_deaths[0]) > DEATH_WINDOW:
+		_deaths.pop_front()
+	return _deaths.size()
+
+
 func _die(dir: Vector2) -> void:
 	dead = true
+	_lite = death_load() >= DEATH_HEAVY - 1
+	_deaths.append(Time.get_ticks_msec())
 	Game.story.emit("zkill", {"z": self, "zone": _last_info.get("zone", ""), "source": _last_info.get("source", "")})
 	collision_mask |= 16
 	var sd := get_tree().get_first_node_in_group("squad_director")
@@ -1221,7 +1239,7 @@ func _die(dir: Vector2) -> void:
 		var t_fall := (-vy0 + sqrt(vy0 * vy0 + 2.0 * 650.0 * h)) / 650.0
 		velocity = Vector2(clampf((tx - global_position.x) / t_fall, -900.0, 900.0), vy0)
 	_spin = randf_range(8.0, 14.0) * signf(velocity.x if velocity.x != 0.0 else 1.0)
-	if _ragdoll_kind():   # זומבי אנושי: גופה רכה שנופלת לפי המכה
+	if _ragdoll_kind() and not _lite:   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל: גופה פשוטה)
 		_rag = RagdollScript.new()
 		_rag.setup(self, velocity, dir, _last_hit if _last_hit != Vector2.ZERO else global_position + Vector2(0, -30) * sc, _last_boom)
 	_spray_blood(global_position + Vector2(0, -30) * sc, dir, 14, 380.0)
@@ -1252,8 +1270,8 @@ func _die(dir: Vector2) -> void:
 		BLOATER:   # נפוח שנהרג - מתפוצץ ופוגע בזומבים מסביב
 			Boom.blast.call_deferred(get_parent(), global_position + Vector2(0.0, -30.0 * sc), 100.0 + 30.0 * _swell, 50.0, 40, 2, "bloater")
 			hide()
-		_:
-			if randf() < 0.1:
+		_:   # תחמושת דינמית: יותר כשנגמר לשחקן (progression/arsenal.gd)
+			if randf() < Arsenal.ammo_drop_chance(get_tree().get_first_node_in_group("player")):
 				_drop(PickupScript.AMMO)
 
 
@@ -1304,7 +1322,10 @@ func _dead_process(delta: float) -> void:
 
 
 func _spray_blood(pos: Vector2, dir: Vector2, n: int, power: float) -> void:
-	for i in maxi(1, int(round(float(n) * BLOOD_AMOUNT))):
+	var lite := _lite or death_load() >= DEATH_HEAVY - 1   # מולטי-קיל: שליש מהטיפות
+	var cnt := maxi(1, int(round(float(n) * BLOOD_AMOUNT * (0.33 if lite else 1.0))))
+	cnt = mini(cnt, MAX_BLOOD - BloodScript.alive)
+	for i in cnt:
 		var b = BloodScript.new()
 		get_parent().add_child(b)
 		var v := Vector2.from_angle(dir.angle() + randf_range(-0.8, 0.8)) * randf_range(power * 0.4, power)

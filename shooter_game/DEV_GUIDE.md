@@ -217,3 +217,19 @@ Dark levels (night, subway, `stage.dark_level()` = stages 11 and 14) show `ui/ti
 
 Ragdoll hooks for zombie types (`effects/ragdoll.gd`): a type can define `ragdoll_pose() -> Array` (11 joints, local, unscaled)
 and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER uses both).
+
+## Progression, saving and performance (feedback round)
+
+* **Weapons** (`progression/arsenal.gd`): every weapon enters the game at a fixed stage = `"unlock_level"` in `weapons/weapon_db.gd`
+  (1 shotgun, 2 sniper, 3 taser, 4 pistol, 5 SMG, 6 assault rifle, 7 molotov, 8 grenade launcher, 9 assault shotgun, 12 rocket launcher).
+  It waits for you at the start of that stage (NEW WEAPON). Mid-level `CACHE_AT` = a weapon cache with an older unlocked weapon you don't own.
+  The old per-stage `weapon_offers()` lists are gone.
+* **Ammo**: fixed supply points with a sign (`SupplyMarker`) at 20/40/60/80% (`SUPPLY_POINTS`; a stage can override `supply_points()` -
+  stage 16 has one every 10%, incl. medkits). Dynamic drops: a dying zombie drops ammo with 3% (full) .. 20% (almost empty) .. 35% (all empty)
+  - `Arsenal.ammo_drop_chance()`.
+* **Saving** (`game_state.gd`): autosave at level end + at the mid-level checkpoint (`environment/checkpoint.gd`, `main.gd` `CHECKPOINT_AT`):
+  position, weapons, ammo, grenades. TRY AGAIN after passing it = start at the checkpoint with that gear. Each level attempt keeps one
+  `attempt_seed`, so a restart rebuilds the exact same level. Menu: CONTINUE (checkpoint or next stage) + STAGE MAP. The stage buttons
+  are PRACTICE (`start_practice`): stage-appropriate loadout, nothing is saved and the real save is restored on return (`end_practice`).
+* **Performance**: death budget in `zombie.gd` - from the 3rd death within 1 s (`DEATH_HEAVY`) the death is "lite": no ragdoll, a third of
+  the blood drops, one flesh chunk, one spray layer. Blood drops capped (`MAX_BLOOD`). Landed flesh chunks stop redrawing (fade by modulate).

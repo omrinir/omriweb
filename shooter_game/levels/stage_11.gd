@@ -48,10 +48,6 @@ func custom_gen(gname: String, x: float) -> float:
 const S10Decor := preload("res://effects/s10_decor.gd")
 
 
-func weapon_offers() -> Array:
-	return [WeaponDB.SMG, WeaponDB.ASSAULT_SHOTGUN, WeaponDB.MOLOTOV]
-
-
 func boss_kind() -> int:
 	return Registry.DEVOURER
 

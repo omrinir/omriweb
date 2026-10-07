@@ -33,10 +33,6 @@ func custom_gen(gname: String, x: float) -> float:
 	return 60.0
 
 
-func weapon_offers() -> Array:
-	return [WeaponDB.PISTOL, WeaponDB.SMG, WeaponDB.SHOTGUN]
-
-
 func boss_kind() -> int:
 	return 5
 

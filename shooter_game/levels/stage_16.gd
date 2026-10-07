@@ -5,9 +5,9 @@ extends "res://levels/stage_base.gd"
 #  סוג זומבי אחד בלבד: SWARMER (כפוף, מהיר, קליע אחד) - אבל המון. הם מגיעים בגלים (HordeDirector)
 #    מקדימה ולפעמים מאחורה, מטפסים אחד על השני מעל מכשולים ואל הקומות.
 #  פיגומים (SCAFFOLDS) עם שתי קומות: TIER1 / TIER2 פיקסלים מעל הכביש - גם השחקן וגם הזומבים קופצים אליהן.
-#  הרבה תחמושת: קופסה כל AMMO_GAP פיקסלים + הצנחת תחמושת ליד השחקן כל גל שני.
+#  הרבה תחמושת: נקודת אספקה כל עשירית מהשלב (supply_points) + הצנחת תחמושת ליד השחקן כל גל שני.
 #  בוס: BROODMOTHER - "THE BROODMOTHER" (יולדת SWARMERS ויורה אותם עליך).
-#  לשנות: SCAFFOLDS, TIER1/TIER2, AMMO_GAP, HordeDirector (WAVE_GAP, WAVE_SIZE, MAX_ALIVE).
+#  לשנות: SCAFFOLDS, TIER1/TIER2, supply_points(), HordeDirector (WAVE_GAP, WAVE_SIZE, MAX_ALIVE).
 # ============================================================
 
 const WeaponDB := preload("res://weapons/weapon_db.gd")
@@ -18,8 +18,6 @@ const SCAFFOLDS := [[0.09, 760.0], [0.25, 900.0], [0.43, 820.0], [0.6, 980.0], [
 const TIER1 := 120.0          # קומה ראשונה מעל הכביש (קפיצה רגילה)
 const TIER2 := 240.0          # קומה שנייה
 const T2_SPAN := Vector2(0.15, 0.85)
-const AMMO_GAP := Vector2(380.0, 520.0)
-const MEDKIT_GAP := 1400.0     # ערכת עזרה ראשונה (+1 לב) בערך כל כמה פיקסלים
 
 var _spans := []
 var director: Node = null
@@ -29,8 +27,11 @@ func zombie_weights() -> Dictionary:
 	return {Registry.SWARMER: 1.0}
 
 
+const HARDER := [1.0, 1.25, 1.25]   # תוספת זומבים לפי הקושי (EASY / NORMAL / HARD): +25% ב-NORMAL ו-HARD
+
+
 func zombie_density() -> float:
-	return 0.75
+	return 0.75 * float(HARDER[clampi(Settings.difficulty, 0, 2)])
 
 
 func generators() -> Array:
@@ -56,10 +57,6 @@ func custom_gen(gname: String, x: float) -> float:
 	main.add_child(o)
 	reserve(Rect2(x, floor_y - o.size.y, o.size.x, o.size.y))
 	return o.size.x
-
-
-func weapon_offers() -> Array:
-	return [WeaponDB.SMG, WeaponDB.ASSAULT_SHOTGUN, WeaponDB.ASSAULT_RIFLE]
 
 
 func boss_kind() -> int:
@@ -125,27 +122,15 @@ func build_world() -> void:
 		# ארגז ציוד + ערכת עזרה ראשונה על הקומה העליונה
 		_pickup(PickupScript.SUPPLY, Vector2(ox + w * 0.42, floor_y - TIER2 - 30.0))
 		_pickup(PickupScript.HEALTH, Vector2(ox + w * 0.58, floor_y - TIER2 - 30.0))
-	# קופסת תחמושת כל AMMO_GAP פיקסלים (על הכביש או על הפיגום)
-	var x: float = main.safe_zone * 0.6
-	var i := 0
-	while x < level_w - 700.0:
-		var y := floor_y - 30.0
-		if _in_scaffold(x) and i % 2 == 1:
-			y = floor_y - TIER1 - 30.0
-		_pickup(PickupScript.GRENADE if i % 6 == 5 else PickupScript.AMMO, Vector2(x, y))
-		x += rng.randf_range(AMMO_GAP.x, AMMO_GAP.y)
-		i += 1
-	_medkits()
-
-
-func _medkits() -> void:   # על הכביש בין הפיגומים + 2 לפני הבוס
-	var x := MEDKIT_GAP * 0.8
-	while x < level_w - 1300.0:
-		if not _in_scaffold(x) and free_x(x, 20.0):
-			_pickup(PickupScript.HEALTH, Vector2(x, floor_y - 30.0))
-		x += MEDKIT_GAP * rng.randf_range(0.85, 1.15)
+	# 2 ערכות עזרה ראשונה לפני הבוס (שאר האספקה: supply_points)
 	_pickup(PickupScript.HEALTH, Vector2(level_w - 1150.0, floor_y - 30.0))
 	_pickup(PickupScript.HEALTH, Vector2(level_w - 1050.0, floor_y - 30.0))
+
+
+# שלב של המון זומבים: נקודת אספקה כל עשירית מהשלב (במקום 4 בשלב רגיל)
+func supply_points() -> Array:
+	return [[0.1, "ammo"], [0.2, "health"], [0.3, "supply"], [0.4, "ammo"], [0.5, "health"],
+		[0.6, "supply"], [0.7, "ammo"], [0.8, "health"], [0.87, "supply"]]
 
 
 func _pickup(kind: int, pos: Vector2) -> void:
@@ -187,7 +172,7 @@ class HordeDirector extends Node:
 	const MAX_ALIVE := 22
 	const BEHIND := 0.12          # סיכוי לגל מאחור (אף פעם לא ב-30% הראשונים של השלב)
 	const WARN_T := 1.4           # אזהרה "HORDE INCOMING" לפני שהגל מתחיל לרוץ
-	const EASY_MULT := [0.65, 0.85, 1.0]   # גודל הגל לפי הקושי (EASY / NORMAL / HARD)
+	const EASY_MULT := [0.65, 1.06, 1.25]   # גודל הגל לפי הקושי (EASY / NORMAL +25% / HARD +25%)
 	const STREAM := 0.07
 	const Registry := preload("res://enemies/zombie_registry.gd")
 	const Sfx := preload("res://sfx.gd")
@@ -228,7 +213,7 @@ class HordeDirector extends Node:
 			_stream_t -= delta
 			while _stream_t <= 0.0 and not _queue.is_empty():
 				_stream_t += STREAM
-				if SwarmerType.count_near(pl.global_position.x, 1500.0) >= MAX_ALIVE:
+				if SwarmerType.count_near(pl.global_position.x, 1500.0) >= int(MAX_ALIVE * (1.0 if Settings.difficulty == 0 else 1.25)):
 					_queue.clear()
 					break
 				var x: float = clampf(_queue.pop_front(), 40.0, stage.level_w - 40.0)

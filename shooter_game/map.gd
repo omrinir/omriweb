@@ -87,6 +87,7 @@ static func _load_tex(path: String) -> Texture2D:
 
 
 func _ready() -> void:
+	Game.end_practice()   # המפה = הקמפיין האמיתי
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	Sfx.warm_up()

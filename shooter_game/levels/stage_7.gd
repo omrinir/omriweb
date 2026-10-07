@@ -49,10 +49,6 @@ func custom_gen(gname: String, x: float) -> float:
 	return m.size.x
 
 
-func weapon_offers() -> Array:
-	return [WeaponDB.SNIPER]
-
-
 func boss_kind() -> int:
 	return 5   # שומר היציאה: הענק עם הדלת (המפעל שייך לו)
 

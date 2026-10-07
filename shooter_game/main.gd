@@ -36,6 +36,10 @@ const FogScript := preload("res://fog.gd")
 const PauseScript := preload("res://pause_menu.gd")
 const SurvivorScript := preload("res://survivor.gd")
 const WeaponDB := preload("res://weapons/weapon_db.gd")
+const Arsenal := preload("res://progression/arsenal.gd")
+const CheckpointScript := preload("res://environment/checkpoint.gd")
+const CHECKPOINT_AT := 0.5     # נקודת הביקורת: באמצע השלב
+var _checkpoint: Node2D = null
 const PickupScript := preload("res://pickup.gd")
 const ExitScript := preload("res://exit.gd")
 const ResultsScript := preload("res://results.gd")
@@ -153,10 +157,12 @@ func _ready() -> void:
 		leaf_layer.add_child(LeavesScript.new())
 
 	var rng := RandomNumberGenerator.new()
-	if level_seed == 0:
-		rng.randomize()
-	else:
+	if level_seed != 0:
 		rng.seed = level_seed
+	elif Game.attempt_seed != 0:   # אותו ניסיון בשלב = אותו מבנה (חזרה מנקודת ביקורת)
+		rng.seed = Game.attempt_seed
+	else:
+		rng.randomize()
 	if _stage != null:
 		_stage.rng = rng
 
@@ -229,6 +235,9 @@ func _ready() -> void:
 		_stage.extra_spawns()
 	_spawn_survivors(rng, floor_y)
 	_spawn_supplies(rng, floor_y)
+	_checkpoint = CheckpointScript.new()   # נקודת ביקורת באמצע השלב (שמירה אוטומטית)
+	_checkpoint.position = Vector2(_free_spot(level_w * CHECKPOINT_AT), floor_y)
+	add_child(_checkpoint)
 	_make_exit(floor_y)
 
 	var hp: int = int(diff.player_hp) + preload("res://progression/upgrade_db.gd").perk("vitality")   # PERK: VITALITY
@@ -238,6 +247,8 @@ func _ready() -> void:
 	player.set_meta("ground_y", floor_y)   # PlayerMemory: מתי השחקן "גבוה"
 	add_child(player)
 	player.world_w = level_w
+	if Game.use_checkpoint and int(Game.checkpoint.get("level", -1)) == Game.level:   # TRY AGAIN / CONTINUE מנקודת הביקורת
+		_start_at_checkpoint(player)
 
 	# מצלמה שעוקבת אחרי השחקן ונעצרת בקצוות הרמה
 	var cam = CameraScript.new()
@@ -635,44 +646,75 @@ func _pick_kind(rng: RandomNumberGenerator) -> int:
 	return 0
 
 
-# קופסאות תחמושת ורימונים פזורות בשלב
-func _spawn_supplies(rng: RandomNumberGenerator, floor_y: float) -> void:
-	for i in (5 if _stage != null else 3):   # שלבים 5-9: יותר נשקים = יותר קופסאות
-		var x := rng.randf_range(safe_zone, level_w - end_margin)
-		var tries := 0
-		while _near_brick(x) and tries < 60:
-			x += 41.0
-			tries += 1
-		var p = PickupScript.new()
-		p.kind = PickupScript.GRENADE if i == 2 or i == 4 else PickupScript.AMMO
-		p.life = 100000.0
-		add_child(p)
-		p.setup(Vector2(x, floor_y - 30.0), Vector2.ZERO)
-	# נשקים חדשים לאורך השלב (רק כאלה שעוד אין): שלב 1 = שוטגאן + קשת, רכבת תחתית = צלף + טייזר
+func _start_at_checkpoint(player: Node2D) -> void:
+	var cp: Dictionary = Game.checkpoint
+	player.position.x = _checkpoint.position.x + 30.0
+	player.slots = (cp.slots as Array).duplicate(true)
+	player.grenades = int(cp.get("grenades", player.grenades))
+	for i in player.slots.size():
+		if player.slots[i] != null:
+			player.cur_slot = i
+			break
+	_checkpoint.set_reached()
+	for z in get_tree().get_nodes_in_group("zombies"):   # זומבים שכבר עברת / ממש ליד - לא מחכים לך שם
+		if not z.is_boss() and z.global_position.x < player.position.x + 260.0:
+			z.queue_free()
+
+
+# נקודות אספקה קבועות + נשקים לפי מבנה ההתקדמות (progression/arsenal.gd)
+func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
+	var points: Array = _stage.supply_points() if _stage != null else Arsenal.SUPPLY_POINTS
+	for sp in points:
+		var x := _free_spot(level_w * float(sp[0]))
+		var kinds: Array = {"ammo": [PickupScript.AMMO], "supply": [PickupScript.SUPPLY], "health": [PickupScript.HEALTH, PickupScript.AMMO]}.get(sp[1], [PickupScript.AMMO])
+		var mk = Arsenal.SupplyMarker.new()
+		mk.kind = sp[1]
+		mk.position = Vector2(x, floor_y)
+		add_child(mk)
+		for i in kinds.size():
+			_place_pickup(kinds[i], Vector2(x + float(i) * 26.0 - float(kinds.size() - 1) * 13.0, floor_y - 30.0))
+	# נשקים: החדש של השלב בהתחלה (NEW WEAPON), ומטמון של נשק ישן שאין לך באמצע השלב
 	var owned := []
 	for s in Game.weapon_slots:
 		if s != null:
 			owned.append(s.id)
-	var offer := [3, 4, 1] if Game.is_subway() else ([1, 3, 4] if Game.is_factory() else [1])
-	if _stage != null:
-		offer = _stage.weapon_offers()
+	var off: Dictionary = Arsenal.offers(Game.level, owned)
 	var n := 0
-	for wid in offer:
-		if wid in owned or n >= 3 or WeaponDB.removed(wid):
-			continue
-		var spots := [safe_zone * 0.75, level_w * 0.3, level_w * 0.55]
-		var x: float = spots[n]
+	for wid in off.new:
+		_place_weapon(wid, _free_spot(safe_zone * 0.75 + float(n) * 90.0), floor_y)
 		n += 1
-		var tries := 0
-		while _near_brick(x) and tries < 60:
-			x += 41.0
-			tries += 1
-		var p = PickupScript.new()
-		p.kind = PickupScript.WEAPON
-		p.weapon_id = wid
-		p.life = 100000.0
-		add_child(p)
-		p.setup(Vector2(x, floor_y - 30.0), Vector2.ZERO)
+	if int(off.cache) >= 0:
+		var cx := _free_spot(level_w * Arsenal.CACHE_AT)
+		var mk = Arsenal.SupplyMarker.new()
+		mk.kind = "cache"
+		mk.position = Vector2(cx, floor_y)
+		add_child(mk)
+		_place_weapon(int(off.cache), cx, floor_y)
+
+
+func _free_spot(x: float) -> float:
+	var tries := 0
+	while _near_brick(x) and tries < 60:
+		x += 41.0
+		tries += 1
+	return x
+
+
+func _place_pickup(kind: int, pos: Vector2) -> void:
+	var p = PickupScript.new()
+	p.kind = kind
+	p.life = 100000.0
+	add_child(p)
+	p.setup(pos, Vector2.ZERO)
+
+
+func _place_weapon(wid: int, x: float, floor_y: float) -> void:
+	var p = PickupScript.new()
+	p.kind = PickupScript.WEAPON
+	p.weapon_id = wid
+	p.life = 100000.0
+	add_child(p)
+	p.setup(Vector2(x, floor_y - 30.0), Vector2.ZERO)
 
 
 # היציאה + הבוס ששומר עליה

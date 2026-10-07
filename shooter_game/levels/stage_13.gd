@@ -44,10 +44,6 @@ func custom_gen(gname: String, x: float) -> float:
 	return o.size.x
 
 
-func weapon_offers() -> Array:
-	return [WeaponDB.ASSAULT_SHOTGUN, WeaponDB.SMG, WeaponDB.SNIPER]
-
-
 func boss_kind() -> int:
 	return Registry.GRAVEBORN
 

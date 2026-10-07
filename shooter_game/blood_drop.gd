@@ -9,6 +9,15 @@ var life := 3.0            # כמה שניות הטיפה חיה לפני שנע
 var radius := 2.0
 var color := Color("a31616")
 var velocity := Vector2.ZERO
+static var alive := 0      # כמה טיפות קיימות (zombie.gd מגביל ל-MAX_BLOOD)
+
+
+func _enter_tree() -> void:
+	alive += 1
+
+
+func _exit_tree() -> void:
+	alive -= 1
 
 
 func setup(pos: Vector2, vel: Vector2) -> void:

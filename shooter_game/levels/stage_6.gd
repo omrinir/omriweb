@@ -100,10 +100,6 @@ func _furniture(kind: String, x: float, y: float) -> Node:
 	return f
 
 
-func weapon_offers() -> Array:
-	return [WeaponDB.ASSAULT_RIFLE, WeaponDB.MOLOTOV]
-
-
 func boss_kind() -> int:
 	return 19   # HOUND - כלב הענק, בחצר הגשומה
 

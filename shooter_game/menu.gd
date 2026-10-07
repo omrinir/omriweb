@@ -56,6 +56,7 @@ func _show_trophies() -> void:
 
 
 func _ready() -> void:
+	Game.end_practice()   # חזרה מתרגול: השמירה האמיתית חוזרת
 	preload("res://sfx.gd").warm_up()   # מייצר את הצלילים כבר בתפריט
 	get_tree().paused = false
 	var vp := get_viewport_rect().size
@@ -146,10 +147,24 @@ func _build_ui(vp: Vector2) -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(root)
 
-	var play := _button(root, "PLAY", Vector2(70, 250), Vector2(310, 66), 40, 0.15)
-	play.pressed.connect(_open_map)   # PLAY = מפת היבשת
+	var first: Control = null   # הכפתור הראשי (פוקוס למקלדת)
+	if Game.has_progress():   # CONTINUE: ממשיכים מנקודת הביקורת / השלב הבא, ומתחת מפת היבשת
+		var cont := _button(root, "CONTINUE  ·  STAGE %d" % Game.resume_level(), Vector2(70, 244), Vector2(310, 54), 28, 0.12)
+		cont.pressed.connect(_continue)
+		first = cont
+		var mp := _button(root, "STAGE MAP", Vector2(70, 304), Vector2(310, 44), 22, 0.18)
+		mp.pressed.connect(_open_map)
+	else:
+		var play := _button(root, "PLAY", Vector2(70, 250), Vector2(310, 66), 40, 0.15)
+		play.pressed.connect(_open_map)   # PLAY = מפת היבשת
+		first = play
 
-	# בדיקה מהירה: קפיצה ישר לשלב 2-16
+	# תרגול: קפיצה ישר לשלב 2-16 עם ציוד מתאים (לא נשמר, לא נוגע בשמירה)
+	var plbl := Caption.new()
+	plbl.text = "PRACTICE  (NOT SAVED)"
+	plbl.size = 15
+	plbl.position = Vector2(396, 250)
+	ui.add_child(plbl)
 	var accents := [Color("3a8acc"), Color("d8902a"), Color("6a5acd"), Color("c04a3a"), Color("4a90a0"), Color("c0a030"), Color("40b0a0"), Color("d02040"), Color("e8b84a"), Color("8a6ad0"), Color("c03a2a"), Color("d8c49c"), Color("5a8aa0"), Color("e8483a"), Color("d89a5a")]
 	for i in 15:
 		var lb := _button(root, str(i + 2), Vector2(394 + i * 50, 262), Vector2(46, 44), 20, 0.25 + 0.03 * float(i))
@@ -194,7 +209,7 @@ func _build_ui(vp: Vector2) -> void:
 	hint.position = Vector2(20, vp.y - 18.0)
 	ui.add_child(hint)
 
-	play.call_deferred("grab_focus")
+	first.call_deferred("grab_focus")
 
 	# מסך שחור שנעלם בכניסה (ומופיע ביציאה)
 	_fade = ColorRect.new()
@@ -234,12 +249,23 @@ func _open_map() -> void:
 	tw.tween_callback(func(): get_tree().change_scene_to_file(MAP_SCENE))
 
 
+func _continue() -> void:
+	if _leaving:
+		return
+	_leaving = true
+	Game.continue_campaign()
+	var tw := create_tween()
+	tw.tween_interval(0.15)
+	tw.tween_property(_fade, "color:a", 1.0, 0.6)
+	tw.tween_callback(func(): get_tree().change_scene_to_file(GAME_SCENE))
+
+
+# כפתורי השלבים = תרגול (ציוד מתאים לשלב, לא נשמר)
 func _start_game(start_level := 1) -> void:
 	if _leaving:
 		return
 	_leaving = true
-	Game.new_run()
-	Game.level = start_level
+	Game.start_practice(start_level)
 	var tw := create_tween()
 	tw.tween_interval(0.15)
 	tw.tween_property(_fade, "color:a", 1.0, 0.6)

@@ -23,6 +23,7 @@ const HazardScript := preload("res://environment/hazard.gd")
 const Registry := preload("res://enemies/zombie_registry.gd")
 const FireScript := preload("res://fire.gd")
 const RainScript := preload("res://rain.gd")
+const Arsenal := preload("res://progression/arsenal.gd")
 
 const FLOOR2 := 160.0     # כמה מעל הכביש הקומה השנייה
 const ROOF := 320.0       # גגות
@@ -78,11 +79,13 @@ func extra_spawns() -> void:
 
 
 # נשקים שמופיעים בשלב (מ-weapons/weapon_db.gd)
-func weapon_offers() -> Array:
-	return []
-
-
 # הבוס שליד היציאה (-1 = בלי בוס)
+# נקודות אספקה קבועות בשלב: [[מיקום יחסי 0-1, "ammo" / "supply" / "health"], ...]
+# (הנשקים עצמם מגיעים לפי progression/arsenal.gd - כל נשק בשלב שלו)
+func supply_points() -> Array:
+	return Arsenal.SUPPLY_POINTS
+
+
 func boss_kind() -> int:
 	return 5
 

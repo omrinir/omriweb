@@ -57,6 +57,7 @@ var level := 1
 # ---- נשקים: 5 מקומות, לכל נשק תחמושת משלו (נשמר בין שלבים) ----
 # הנשקים מוגדרים ב-weapons/weapon_db.gd. כאן רק עמודות נוחות (Game.WEAPON_NAMES[id] וכו')
 const WeaponDB := preload("res://weapons/weapon_db.gd")
+const Arsenal := preload("res://progression/arsenal.gd")
 const Registry := preload("res://enemies/zombie_registry.gd")
 var WEAPON_NAMES: Array = WeaponDB.column("name")
 var WEAPON_COLORS: Array = WeaponDB.column("color")
@@ -206,9 +207,86 @@ func level_playable(lv: int) -> bool:
 	return level_unlocked(lv) and lv <= IMPLEMENTED
 
 
+# ============================================================
+#  שמירה אוטומטית (כמו ברוב משחקי היריות הדו-ממדיים):
+#   * סוף שלב: ההתקדמות במפה, הנשקים והתחמושת, גרוטאות, שדרוגים, יכולות -> נשמר.
+#   * נקודת ביקורת באמצע השלב (environment/checkpoint.gd): המיקום, הנשקים והתחמושת -> נשמר.
+#     מתים -> TRY AGAIN מתחיל מנקודת הביקורת (אם עברת אותה) עם מה שהיה לך שם.
+#   * CONTINUE בתפריט: ממשיך מאיפה שהפסקת (נקודת ביקורת או השלב הבא).
+#   * כל ניסיון בשלב שומר את אותו מבנה שלב (attempt_seed) - חזרה = אותו שלב בדיוק.
+#   * כפתורי השלבים בתפריט = PRACTICE: ציוד מתאים לשלב, לא נשמר כלום ולא נוגע בשמירה שלך.
+# ============================================================
+var practice := false             # תרגול: לא שומרים לקובץ
+var _practice_backup := {}
+var attempt_seed := 0             # מבנה השלב בניסיון הזה (0 = אקראי)
+var checkpoint := {}              # {"level", "x", "slots", "grenades", "seed", "run_score", "scrap"}
+var use_checkpoint := false       # השלב הבא שנטען מתחיל מנקודת הביקורת
+
+
+func has_progress() -> bool:
+	return not completed.is_empty() or not checkpoint.is_empty()
+
+
+# השלב שממשיכים ממנו: נקודת ביקורת שמורה, אחרת השלב הראשון שעוד לא עברת
+func resume_level() -> int:
+	if not checkpoint.is_empty() and level_playable(int(checkpoint.level)):
+		return int(checkpoint.level)
+	var lv := 1
+	while completed.has(lv) and lv < IMPLEMENTED:
+		lv += 1
+	return lv
+
+
+func continue_campaign() -> void:
+	end_practice()
+	var lv := resume_level()
+	start_level(lv)
+	if not checkpoint.is_empty() and int(checkpoint.level) == lv:
+		attempt_seed = int(checkpoint.seed)
+		use_checkpoint = true
+
+
+func start_practice(lv: int) -> void:
+	if not practice:
+		_practice_backup = save_dict().duplicate(true)
+	practice = true
+	level = lv
+	weapon_slots = Arsenal.loadout_for(lv)
+	run_score = 0
+	level_score = 0
+	combo = 0
+	_level_start_score = 0
+	_level_start_scrap = scrap
+	attempt_seed = (randi() % 1000000) + 1
+	use_checkpoint = false
+	checkpoint = {}
+
+
+# יוצאים מתרגול: מחזירים את השמירה האמיתית
+func end_practice() -> void:
+	if not practice:
+		return
+	practice = false
+	if not _practice_backup.is_empty():
+		load_dict(_practice_backup)
+		var cp = _practice_backup.get("checkpoint", {})
+		checkpoint = cp if cp is Dictionary else {}
+	_practice_backup = {}
+
+
+func reach_checkpoint(x: float, player: Node) -> void:
+	checkpoint = {"level": level, "x": x, "slots": player.slots.duplicate(true), "grenades": int(player.grenades),
+		"seed": attempt_seed, "run_score": run_score + level_score, "scrap": scrap}
+	_save()
+
+
 # מתחילים שלב מהמפה (הנשקים, השדרוגים והגרוטאות נשמרים)
 func start_level(lv: int) -> void:
 	level = lv
+	attempt_seed = (randi() % 1000000) + 1   # מבנה חדש לשלב, נשמר לכל הניסיונות החוזרים
+	use_checkpoint = false
+	if not checkpoint.is_empty() and int(checkpoint.level) != lv:
+		checkpoint = {}
 	run_score = 0
 	level_score = 0
 	combo = 0
@@ -226,7 +304,7 @@ func save_dict() -> Dictionary:
 		best[str(k)] = level_best[k]
 	return {"game": "THEY LEARN", "version": 1, "completed": comp, "level_best": best, "weapon_slots": weapon_slots,
 		"scrap": scrap, "upgrades": upgrades, "seen_weapons": seen_weapons, "ability_slots": ability_slots, "trophies": trophies, "high_scores": high_scores, "lifetime": lifetime,
-		"difficulty": Settings.difficulty}
+		"difficulty": Settings.difficulty, "checkpoint": checkpoint}
 
 
 func load_dict(d: Dictionary) -> bool:
@@ -341,10 +419,15 @@ func reset_level() -> void:
 	Engine.time_scale = 1.0
 
 
-# TRY AGAIN: חוזרים לתחילת השלב (בלי הניקוד שהרווחנו בו)
+# TRY AGAIN: חוזרים לנקודת הביקורת (אם עברת אותה) או לתחילת השלב - בלי הניקוד שהרווחנו אחריה
 func restart_level() -> void:
-	run_score = _level_start_score
-	scrap = _level_start_scrap
+	if not checkpoint.is_empty() and int(checkpoint.level) == level:
+		use_checkpoint = true
+		run_score = int(checkpoint.run_score)
+		scrap = int(checkpoint.scrap)
+	else:
+		run_score = _level_start_score
+		scrap = _level_start_scrap
 	reset_level()
 
 
@@ -609,6 +692,8 @@ func finish_level(time_sec: float) -> Dictionary:
 	var result := {"stars": stars, "accuracy": acc, "bonus": bonus, "scrap": earned, "best": best,
 		"level_score": level_score, "run_score": run_score, "stats": stats.duplicate()}
 	level += 1
+	checkpoint = {}   # השלב נגמר: אין יותר נקודת ביקורת
+	use_checkpoint = false
 	level_score = 0   # כבר נוסף ל-run_score
 	combo = 0
 	_level_start_score = run_score
@@ -645,6 +730,8 @@ func unlock(id: String) -> void:
 
 
 func _save() -> void:
+	if practice:   # תרגול: לא נוגעים בשמירה
+		return
 	var cfg := ConfigFile.new()
 	cfg.set_value("progress", "trophies", trophies)
 	cfg.set_value("progress", "high_scores", high_scores)
@@ -684,6 +771,10 @@ func _load() -> void:
 		var asl = d.get("ability_slots", [])
 		if asl is Array and asl.size() == 5:
 			ability_slots = asl.duplicate()
+		var cp = d.get("checkpoint", {})
+		if cp is Dictionary and cp.has("level") and cp.has("slots"):
+			checkpoint = cp
+			checkpoint.slots = (cp.slots as Array).map(func(s): return null if s == null or WeaponDB.removed(int(s.id)) else {"id": int(s.id), "ammo": int(s.ammo)})
 
 
 # ---- באנר שיורד מלמעלה כשפותחים גביע ----

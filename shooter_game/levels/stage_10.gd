@@ -48,10 +48,6 @@ func custom_gen(gname: String, x: float) -> float:
 	return o.size.x + (30.0 if gname == "cart" else 0.0)
 
 
-func weapon_offers() -> Array:
-	return [WeaponDB.ASSAULT_RIFLE, WeaponDB.SNIPER, WeaponDB.ASSAULT_SHOTGUN]
-
-
 func boss_kind() -> int:
 	return Registry.KRAKEN
 
