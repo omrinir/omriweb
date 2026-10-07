@@ -24,14 +24,14 @@ const BANK_H := Vector2(55.0, 105.0)
 
 
 func zombie_weights() -> Dictionary:
-	return {Registry.MIRAGE: 0.3, 0: 0.12, 1: 0.24, Registry.GRAVEBORN: 0.14, Registry.DODGER: 0.2}
+	return {Registry.MIRAGE: 0.28, 0: 0.2, 1: 0.2, Registry.GRAVEBORN: 0.14, Registry.DODGER: 0.18}
 
 
-const HARDER := [1.0, 1.3, 1.55]   # כמות לפי הקושי (EASY / NORMAL / HARD)
+const HARDER := [1.0, 1.15, 1.3]   # כמות לפי הקושי (EASY / NORMAL / HARD)
 
 
 func zombie_density() -> float:
-	return 1.15 * float(HARDER[clampi(Settings.difficulty, 0, 2)])
+	return 0.95 * float(HARDER[clampi(Settings.difficulty, 0, 2)])
 
 
 func generators() -> Array:
@@ -194,6 +194,8 @@ class Freezer extends Node:
 		if _t > 0.0:
 			return
 		_t = 0.25
+		if get_tree().get_first_node_in_group("story_scene") != null:   # סצנת סיפור מקפיאה את כולם - לא להעיר
+			return
 		var pl := get_tree().get_first_node_in_group("player") as Node2D
 		if pl == null:
 			return

@@ -201,7 +201,7 @@ class HordeDirector extends Node:
 		_freeze_t -= delta
 		if _freeze_t <= 0.0:
 			_freeze_t = 0.25
-			for z in get_tree().get_nodes_in_group("zombies"):
+			for z in (get_tree().get_nodes_in_group("zombies") if get_tree().get_first_node_in_group("story_scene") == null else []):
 				var awake: bool = absf(z.global_position.x - px) < FREEZE_DIST or z.is_boss()
 				if z.is_physics_processing() != awake:
 					z.set_physics_process(awake)
