@@ -1390,6 +1390,8 @@ func _draw() -> void:
 		draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
 	elif kind == JETPACK:   # עף עקום
 		draw_set_transform_matrix(Transform2D(_tilt, Vector2(0.0, -30.0 * sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 30.0 * sc)))
+	elif kind == IMP and _carrier != null:   # קטן מוחזק ביד אחת: שוכב על הצד, המותן בכף היד, ראש קדימה, רגליים תלויות
+		draw_set_transform_matrix(Transform2D(PI / 2.0 * _dir, Vector2.ZERO) * Transform2D(0.0, s, 0.0, Vector2(0.0, 25.0 * sc)))
 	elif kind == IMP and _thrown:   # קטן שנזרק: מסתובב באוויר
 		draw_set_transform_matrix(Transform2D(_spin_a, Vector2(0.0, -28.0 * sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
 	else:
@@ -1457,9 +1459,8 @@ func _draw_body() -> void:
 		front_hand = fs + Vector2(4.0 + 14.0 * k, -16.0 + 18.0 * k)
 	if (kind == DRUNK or kind == JETPACK) and not dead:   # מכוון את הנשק קדימה
 		front_hand = fs + Vector2(15.0, -3.0 + sin(_time * 2.3) * (3.0 if kind == DRUNK else 1.0))
-	if kind == HURLER and (_imp != null or _hurl_wind > 0.0):   # מחזיק זומבי קטן מעל הראש
-		front_hand = head + Vector2(7.0, -11.0)
-		back_hand = head + Vector2(-6.0, -11.0)
+	if kind == HURLER and (_imp != null or _hurl_wind > 0.0):   # מחזיק זומבי קטן ביד אחת (היד השנייה חופשית)
+		front_hand = _hurl_hand()
 	if dead or _lying():
 		back_hand = bs + Vector2(-4.0, 15.0)
 		front_hand = fs + Vector2(5.0, 15.0)
@@ -1947,8 +1948,21 @@ func _imp_air(player: Node, delta: float) -> void:
 	_maybe_redraw()
 
 
+# HURLER: היד שמחזיקה את הקטן (בקואורדינטות של הגוף). מחזיק ביד אחת מושטת לפניו בגובה החזה,
+# ולפני הזריקה היד (והקטן) נמשכים אחורה ולמעלה
+const HURL_HOLD := Vector2(18.0, -35.0)
+const HURL_BACK := Vector2(-6.0, -50.0)
+
+
+func _hurl_hand() -> Vector2:
+	var k := clampf(1.0 - _hurl_wind / 0.55, 0.0, 1.0) if _hurl_wind > 0.0 else 0.0
+	return HURL_HOLD.lerp(HURL_BACK, k * k)
+
+
+# איפה הקטן נמצא כשמחזיקים אותו: המותן שלו בכף היד (ראה הציור: הוא שוכב על הצד)
 func imp_hold_pos() -> Vector2:
-	return global_position + Vector2(_dir * 3.0, -62.0 * sc)
+	var h := _hurl_hand()
+	return global_position + Vector2(_dir * h.x * wf * sc, h.y * sc - 1.5)
 
 
 # ---- זורק: אוסף זומבי קטן, מרים אותו וזורק עליך ----
