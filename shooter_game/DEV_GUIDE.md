@@ -265,3 +265,22 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 * The zombie = `enemies/types/stranger.gd` (registry `STRANGER`, scale 1.1 - a bit taller than the player): flayed "revenant" - skull with red eyes and a lipless grin,
   ribs and guts, metal braces, a cannon arm with red hoses, a hooked metal claw, metal knee braces and toe claws.
   Controls from the scene: `talking`, `tilt`, `smile`, `look_back`. Recurring character - he disappears in the black, not killed.
+
+## THEY LEARN clock (level timer)
+
+* `progression/level_clock.gd` - GOLD / SILVER par per level (from level length, level number, difficulty).
+  Shown top-center by `hud.gd` (`_draw_clock`): time, a GOLD | SILVER | red bar, the current target and 3 "eyes".
+* Why it matters: past SILVER the zombies start learning you - every 30 s one more tier (max 3, `Game.learn_tier`).
+  Each tier: `zombie_brain.adapt_k()` +0.2 (they use what PlayerMemory learned about you), `coord()` +0.1,
+  decisions 10% faster (never under 0.25 s), and `PlayerMemory` learns 50% faster. No extra HP / zombies.
+  Big red alert + sound on every tier; beeps in the last 10 s before GOLD / SILVER.
+* Reward (`Game.finish_level`): GOLD = 20 points per second left + 50% more scrap + "THEY FORGET YOU"
+  (next level's PlayerMemory decays 70% instead of 35%) + trophy GHOST. SILVER = 8 points per second left + 25% scrap.
+  Results screen shows the medal and TIME BONUS.
+* The clock pauses in story scenes (`main.clock_paused`) and the pause menu, and resumes from the checkpoint (saved there).
+* Tune: PACE, PACE_DROP, BOSS_TIME, SILVER_MULT, LEARN_STEP, DIFF_MULT, GOLD_POINTS / SCRAP.
+
+## Hero run animation
+
+* `hero_anim.gd` "run" anchors are aligned on the head (no forward/back jumps between frames); frames 2 and 4 are the
+  airborne phase (feet off the ground, head level) instead of sinking the whole body. Running kicks up dust (`player._dust`).

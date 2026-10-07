@@ -28,6 +28,7 @@ const TROPHIES := [
 	{"id": "leg_day", "name": "LEG DAY", "desc": "Sever 20 zombie legs"},
 	{"id": "hard_boiled", "name": "HARD BOILED", "desc": "Finish a level on HARD"},
 	{"id": "return", "name": "RETURN TO SENDER", "desc": "Shoot a thrown leg out of the air"},
+	{"id": "ghost", "name": "GHOST", "desc": "Finish a level under the GOLD time"},
 ]
 
 # ---------------- שדרוגים ----------------
@@ -58,6 +59,11 @@ var level := 1
 # הנשקים מוגדרים ב-weapons/weapon_db.gd. כאן רק עמודות נוחות (Game.WEAPON_NAMES[id] וכו')
 const WeaponDB := preload("res://weapons/weapon_db.gd")
 const Arsenal := preload("res://progression/arsenal.gd")
+const LevelClock := preload("res://progression/level_clock.gd")
+# THEY LEARN CLOCK (progression/level_clock.gd): main.gd מעדכן, hud.gd מציג, finish_level נותן פרס
+var level_time := 0.0             # זמן השלב הנוכחי (שניות)
+var clock_pars := Vector2.ZERO    # [GOLD, SILVER] של השלב הנוכחי
+var learn_tier := 0               # 0 = עוד לא, 1..3 = עברת את SILVER והם לומדים אותך (ai/zombie_brain.gd, player_memory.gd)
 const Registry := preload("res://enemies/zombie_registry.gd")
 var WEAPON_NAMES: Array = WeaponDB.column("name")
 var WEAPON_COLORS: Array = WeaponDB.column("color")
@@ -278,7 +284,7 @@ func end_practice() -> void:
 
 func reach_checkpoint(x: float, player: Node) -> void:
 	checkpoint = {"level": level, "x": x, "slots": player.slots.duplicate(true), "special": player.special, "special_uses": int(player.special_uses),
-		"seed": attempt_seed, "run_score": run_score + level_score, "scrap": scrap}
+		"seed": attempt_seed, "run_score": run_score + level_score, "scrap": scrap, "time": level_time}
 	_save()
 
 
@@ -410,6 +416,8 @@ func new_run() -> void:
 
 func reset_level() -> void:
 	PlayerMemory.on_level_start()
+	level_time = 0.0
+	learn_tier = 0
 	level_score = 0
 	_reset_streak()
 	combo = 0
@@ -690,7 +698,19 @@ func finish_level(time_sec: float) -> Dictionary:
 			stars = 3
 	var bonus := stars * 250
 	level_score += bonus
+	# שעון: GOLD / SILVER -> ניקוד לכל שנייה שנשארה + גרוטאות, ו-GOLD גם "THEY FORGET" לשלב הבא
+	var medal := LevelClock.medal(time_sec, clock_pars)
+	var time_bonus := 0
+	if medal == LevelClock.GOLD:
+		time_bonus = int(clock_pars.x - time_sec) * LevelClock.GOLD_POINTS
+		unlock("ghost")
+	elif medal == LevelClock.SILVER:
+		time_bonus = int(clock_pars.y - time_sec) * LevelClock.SILVER_POINTS
+	level_score += time_bonus
+	PlayerMemory.forget_more = medal == LevelClock.GOLD
 	var earned := Upgrades.level_income(level, stars, level_score)   # כלכלה מאוזנת ל-70 שלבים
+	var time_scrap := int(round(float(earned) * (LevelClock.GOLD_SCRAP if medal == LevelClock.GOLD else (LevelClock.SILVER_SCRAP if medal == LevelClock.SILVER else 0.0))))
+	earned += time_scrap
 	scrap += earned
 	run_score += level_score
 	if stats.drained == 0:
@@ -703,6 +723,7 @@ func finish_level(time_sec: float) -> Dictionary:
 	completed[level] = maxi(int(completed.get(level, 0)), stars)   # התקדמות במפה
 	level_best[level] = maxi(int(level_best.get(level, 0)), level_score)
 	var result := {"stars": stars, "accuracy": acc, "bonus": bonus, "scrap": earned, "best": best,
+		"medal": medal, "time_bonus": time_bonus, "time_scrap": time_scrap, "pars": clock_pars,
 		"level_score": level_score, "run_score": run_score, "stats": stats.duplicate()}
 	level += 1
 	checkpoint = {}   # השלב נגמר: אין יותר נקודת ביקורת

@@ -158,8 +158,9 @@ class ResultsPanel extends Node2D:
 			["ACCURACY", "%d%%" % int(round(float(r.accuracy) * 100.0))],
 			["HEARTS LOST", str(st.hearts_lost)],
 			["DRAINED / SPARED", "%d / %d" % [st.drained, st.spared]],
-			["TIME", "%d:%02d" % [int(st.time) / 60, int(st.time) % 60]],
+			["TIME", "%d:%02d" % [int(st.time) / 60, int(st.time) % 60] + ["", "   SILVER", "   GOLD"][int(r.get("medal", 0))]],
 			["STAR BONUS", "+%d" % r.bonus],
+			["TIME BONUS", ("+%d   +%d SCRAP" % [r.get("time_bonus", 0), r.get("time_scrap", 0)]) if int(r.get("medal", 0)) > 0 else "-"],
 			["LEVEL SCORE", str(r.level_score)],
 			["TOTAL SCORE", str(r.run_score)],
 		]
@@ -169,10 +170,15 @@ class ResultsPanel extends Node2D:
 				continue
 			var y := 214.0 + float(i) * 28.0
 			var col := Color(0.85, 0.82, 0.78, a)
-			if i >= 7:
+			if i >= 8:
 				col = Color(1, 1, 1, a)
+			if i == 5 or i == 7:   # זמן: צבע המדליה
+				col = Color([Color(0.85, 0.82, 0.78), Color("c8ccd8"), Color("f0c040")][int(r.get("medal", 0))], a)
 			_txt(Vector2(px + 90, y), lines[i][0], 18, col)
 			_txt(Vector2(px + 90, y), lines[i][1], 18, col, HORIZONTAL_ALIGNMENT_RIGHT, pw - 180.0)
+		if int(r.get("medal", 0)) == 2:   # GOLD: בשלב הבא הם זוכרים פחות עליך (progression/level_clock.gd)
+			var ga := clampf((_t - 1.9) / 0.4, 0.0, 1.0)
+			_txt(Vector2(0, 512), "THEY FORGET YOU  -  the next level knows less about how you fight", 15, Color(0.94, 0.75, 0.25, ga), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 		if _t > 1.8:
 			_txt(Vector2(0, 482), "+%d SCRAP" % r.scrap, 20, Color("d8a033"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 			if r.best:

@@ -89,11 +89,12 @@ func director() -> Node:
 func coord() -> float:
 	if confused_t > 0.0:
 		return 0.0
-	return clampf(float(p.coordination_level) + leader_boost, 0.0, 1.0)
+	return clampf(float(p.coordination_level) + leader_boost + 0.1 * float(Game.learn_tier), 0.0, 1.0)
 
 
+# כמה הזומבי משתמש במה שלמד על השחקן. השעון (progression/level_clock.gd) מעל SILVER מוסיף 0.2 לכל דרגה
 func adapt_k() -> float:
-	return clampf(float(p.adaptation_level), 0.0, 1.0)
+	return clampf(float(p.adaptation_level) + 0.2 * float(Game.learn_tier), 0.0, 1.0)
 
 
 # האם הזומבי עדיין "יודע" איפה השחקן (ראה אותו לאחרונה / שמע עליו)
@@ -167,7 +168,7 @@ func steer(z: Node, player: Node, d: Vector2, delta: float, base_speed: float) -
 			z._alert_t = maxf(z._alert_t, 4.0)
 	_decide_t -= delta
 	if _decide_t <= 0.0:
-		_decide_t = float(p.reaction_time) * randf_range(0.8, 1.25)
+		_decide_t = maxf(float(p.reaction_time) * (1.0 - 0.1 * float(Game.learn_tier)), 0.25) * randf_range(0.8, 1.25)   # השעון: מגיבים מהר יותר (לא פחות מ-0.25)
 		_perceive(z, player)
 		_decide(z, player, d)
 	if not _started:   # התחיל לרדוף (שמע / ראה): יודע בערך איפה השחקן

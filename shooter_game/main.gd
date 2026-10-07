@@ -14,6 +14,7 @@ const LeavesScript := preload("res://leaves.gd")
 const ZombieScene := preload("res://zombie.tscn")
 const HudScript := preload("res://hud.gd")
 const CameraScript := preload("res://shake_camera.gd")
+const LevelClock := preload("res://progression/level_clock.gd")
 const PropScript := preload("res://prop.gd")
 const StreetPropScript := preload("res://street_prop.gd")
 const RoadDecorScript := preload("res://road_decor.gd")
@@ -96,6 +97,7 @@ var max_h := 48.0
 var _rects: Array[Rect2] = []
 var _pits := []
 var _time := 0.0
+var clock_paused := false   # סצנת סיפור: שעון השלב עוצר (progression/level_clock.gd)
 var _player: Node
 var _pause: Node
 var _finished := false
@@ -134,6 +136,7 @@ func _ready() -> void:
 		zombie_weights[2] += 0.04 * float(Game.level - 1)
 	var vp := get_viewport_rect().size
 	level_w = vp.x * float(maxi(level_screens, 8))
+	Game.clock_pars = LevelClock.pars(Game.level, level_w, Settings.difficulty)
 	if _stage != null:
 		_stage.level_w = level_w
 		_stage.vp = vp
@@ -657,6 +660,8 @@ func _pick_kind(rng: RandomNumberGenerator) -> int:
 func _start_at_checkpoint(player: Node2D) -> void:
 	var cp: Dictionary = Game.checkpoint
 	player.position.x = _checkpoint.position.x + 30.0
+	_time = float(cp.get("time", 0.0))   # השעון ממשיך מנקודת הביקורת
+	Game.level_time = _time
 	player.slots = (cp.slots as Array).duplicate(true)
 	player.special = str(cp.get("special", ""))
 	player.special_uses = int(cp.get("special_uses", 0))
@@ -805,8 +810,12 @@ func _load_music(path: String) -> AudioStream:
 
 
 func _process(delta: float) -> void:
-	if not _finished and _player != null and not _player.dead:
+	if not _finished and _player != null and not _player.dead and not clock_paused:
 		_time += delta
+		Game.level_time = _time
+		var tier: int = LevelClock.tier(_time, Game.clock_pars)
+		if tier > Game.learn_tier:   # עבר את SILVER: הם לומדים אותך (hud.gd מציג התראה)
+			Game.learn_tier = tier
 
 
 func _level_complete() -> void:

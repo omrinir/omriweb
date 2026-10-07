@@ -26,6 +26,9 @@ const WeaponDB := preload("res://weapons/weapon_db.gd")
 const LEARN_RATE := 0.035          # כמה כל אירוע משנה את הממוצע
 const SAMPLE_TIME := 0.5           # כל כמה שניות דוגמים את מצב השחקן
 const DECAY_ON_LEVEL := 0.35       # בתחילת שלב: כמה מהזיכרון נשכח
+const DECAY_GOLD := 0.7            # ...אחרי שסיימת את השלב הקודם בזמן GOLD ("THEY FORGET", progression/level_clock.gd)
+
+var forget_more := false           # Game.finish_level: השלב הקודם נגמר ב-GOLD
 
 var weapon_use := {"auto": 0.0, "shotgun": 0.0, "precision": 0.5, "explosive": 0.0, "other": 0.0}
 var avg_distance := 300.0
@@ -62,6 +65,7 @@ func _process(delta: float) -> void:
 
 
 func _ema(old: float, v: float, rate := LEARN_RATE) -> float:
+	rate *= 1.0 + 0.5 * float(Game.learn_tier)   # השעון עבר את SILVER: לומדים אותך מהר יותר
 	return old + (v - old) * rate
 
 
@@ -170,11 +174,13 @@ func is_camping() -> bool:
 
 # תחילת שלב: שוכחים קצת (אבל לא הכל - הם זוכרים!)
 func on_level_start() -> void:
+	var dk := DECAY_GOLD if forget_more else DECAY_ON_LEVEL   # GOLD בשלב הקודם: שוכחים יותר
+	forget_more = false
 	for k in weapon_use:
-		weapon_use[k] = lerpf(weapon_use[k], 0.2, DECAY_ON_LEVEL)
+		weapon_use[k] = lerpf(weapon_use[k], 0.2, dk)
 	for f in ["crouch", "camping", "high_ground", "retreat", "explosives", "reload_rate"]:
-		set(f, float(get(f)) * (1.0 - DECAY_ON_LEVEL))
-	retreat_dir *= 1.0 - DECAY_ON_LEVEL
+		set(f, float(get(f)) * (1.0 - dk))
+	retreat_dir *= 1.0 - dk
 	camp_shots = 0
 	_reloads_window.clear()
 

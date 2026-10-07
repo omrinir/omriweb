@@ -59,6 +59,7 @@ func _ready() -> void:
 	player.auto_walk = 0.0
 	player.calm = true
 	player.unarmed = true   # בלי נשק בסצנה (רק הספרייט)
+	main.clock_paused = true   # השעון של השלב עוצר בזמן השיחה
 	player.idle_aim = LOW_READY.normalized()
 	for zz in get_tree().get_nodes_in_group("zombies"):   # כולם קופאים בזמן הסצנה
 		if zz.is_physics_processing():
@@ -327,6 +328,7 @@ func _finish() -> void:
 	player.auto_walk = 0.0
 	player.calm = false
 	player.unarmed = false
+	main.clock_paused = false
 	player.controllable = true
 	player.idle_aim = Vector2.RIGHT
 	var main_cam: Camera2D = null

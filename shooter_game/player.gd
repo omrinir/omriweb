@@ -131,6 +131,7 @@ var _breath_was_up := false
 var _mist := []                  # (לא בשימוש)
 var _magic := []                 # חלקיקי קסם עדינים סביב הדמות: [מיקום בעולם, מהירות, גיל, חיים, גודל, צבע]
 var _magic_t := 0.0
+var _dust := []                  # אבק מהרגליים בריצה: [מיקום בעולם, מהירות, גיל, חיים, גודל]
 var _base_xf := Transform2D.IDENTITY
 var _aim := Vector2.RIGHT
 var _muzzle_flash := 0.0
@@ -523,6 +524,10 @@ func _physics_process(delta: float) -> void:
 		if _step_t <= 0.0:
 			_step_t = 0.36
 			Sfx.play("step_water" if in_water else "step", global_position, (-1.0 if _running else -5.0) if in_water else (-3.0 if _running else -7.0), 0.15, 3)
+			if _running and not in_water and _dust.size() < 24:   # ריצה: אבק נבעט אחורה מכף הרגל
+				var back := -signf(velocity.x)
+				for i in 3:
+					_dust.append([global_position + Vector2(back * randf_range(2.0, 8.0), -1.5), Vector2(back * randf_range(25.0, 70.0), randf_range(-28.0, -8.0)), 0.0, randf_range(0.35, 0.55), randf_range(2.0, 3.6)])
 	if is_on_floor() and not _was_floor and fall_v > 250.0:
 		_land_t = 0.12   # פריים נחיתה
 		Sfx.play("splash" if in_water else "land", global_position, -2.0)
@@ -550,6 +555,12 @@ func _physics_process(delta: float) -> void:
 		m[1].x += sin(_time * 2.0 + m[4] * 9.0) * 10.0 * delta   # מתפתל קצת
 		m[0] += m[1] * delta
 	_magic = _magic.filter(func(m): return m[2] < m[3])
+	for d in _dust:
+		d[2] += delta
+		d[1] *= 1.0 - 3.0 * delta
+		d[0] += d[1] * delta
+		d[4] += delta * 5.0   # מתפשט
+	_dust = _dust.filter(func(d): return d[2] < d[3])
 
 	# כיוון ויריה
 	var sh := global_position + _front_shoulder()
@@ -1325,6 +1336,9 @@ func _draw() -> void:
 		var mk := 1.0 - _melee_t / MELEE_TIME
 		draw_arc(Vector2(10, -24), 22.0, -0.9 + mk * 0.6, 0.5 + mk * 0.6, 10, Color(1, 1, 1, 0.5 * sin(mk * PI)), 3.0, true)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+	for d in _dust:   # אבק ריצה
+		var dk: float = d[2] / d[3]
+		draw_circle(d[0] - global_position, d[4], Color(0.62, 0.57, 0.5, 0.35 * (1.0 - dk)))
 	# חלקיקי קסם (עדינים מאוד)
 	for m in _magic:
 		var k: float = m[2] / m[3]

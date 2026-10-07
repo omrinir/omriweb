@@ -1,5 +1,7 @@
 extends Node2D
 const Arsenal := preload("res://progression/arsenal.gd")
+const LevelClock := preload("res://progression/level_clock.gd")
+const Sfx := preload("res://sfx.gd")
 # ============================================================
 #  HUD: לבבות, מגן, נשק ותחמושת, בוסטים, ניקוד + קומבו, מספר שלב,
 #  בר חיים של הבוס, צבע של BULLET TIME והודעת GAME OVER.
@@ -43,10 +45,14 @@ func show_game_over() -> void:
 
 
 var _intro_t := 0.0   # כותרת השלב (THEY LEARN)
+var _tier_shown := 0      # דרגת הלמידה שכבר הודענו עליה
+var _learn_alert := 0.0   # התראה "THEY'RE LEARNING YOU" (שניות שנשארו)
+var _last_tick := -1      # צליל תקתוק בשניות האחרונות לפני GOLD / SILVER
 
 
 func _process(delta: float) -> void:
 	_intro_t += delta / maxf(Engine.time_scale, 0.05)
+	_clock_update(delta)
 	_pulse = maxf(_pulse - delta, 0.0)
 	_combo_pop = maxf(_combo_pop - delta * 3.0, 0.0)
 	_score_shown = move_toward(_score_shown, float(Game.run_score + Game.level_score), maxf(400.0 * delta, absf(float(Game.run_score + Game.level_score) - _score_shown) * 6.0 * delta))
@@ -128,9 +134,98 @@ func _text(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_A
 	draw_string(f, pos, t, align, width, size, col)
 
 
+# ============================================================
+#  THEY LEARN CLOCK (progression/level_clock.gd): שעון למעלה באמצע + פס GOLD / SILVER / אדום
+# ============================================================
+func _clock_update(delta: float) -> void:
+	_learn_alert = maxf(_learn_alert - delta, 0.0)
+	if Game.learn_tier < _tier_shown:   # שלב חדש / TRY AGAIN
+		_tier_shown = Game.learn_tier
+	if Game.learn_tier > _tier_shown:
+		_tier_shown = Game.learn_tier
+		_learn_alert = 2.8
+		Sfx.play("zscream", null, -4.0, 0.0, 1, 0.6)
+		Sfx.play("thunder", null, -10.0, 0.0, 1, 0.7)
+	var p: Vector2 = Game.clock_pars
+	var t := Game.level_time
+	var goal := p.x if t <= p.x else (p.y if t <= p.y else -1.0)
+	if goal > 0.0:   # 10 השניות האחרונות לפני היעד: תקתוק
+		var left := int(ceil(goal - t))
+		if left <= 10 and left != _last_tick and left > 0:
+			_last_tick = left
+			Sfx.play("beep", null, -14.0 + float(10 - left) * 0.6, 0.0, 1, 1.4 if left > 3 else 1.8)
+
+
+func _draw_clock(vp: Vector2) -> void:
+	var p: Vector2 = Game.clock_pars
+	if p.x <= 0.0 or player == null:
+		return
+	var t := Game.level_time
+	var cx := vp.x * 0.5
+	var gold_c := Color("f0c040")
+	var silver_c := Color("c8ccd8")
+	var red_c := Color("ff3a2a")
+	var goal := p.x if t <= p.x else (p.y if t <= p.y else -1.0)
+	var left := goal - t
+	var urgent := goal > 0.0 and left <= 10.0
+	var beat := 0.5 + 0.5 * sin(Game.level_time * TAU)   # פעימה פעם בשנייה
+	# הזמן עצמו
+	var tcol := Color.WHITE
+	if Game.learn_tier > 0:
+		tcol = red_c.lerp(Color.WHITE, 0.25 * beat)
+	elif urgent:
+		tcol = (gold_c if t <= p.x else silver_c).lerp(red_c, beat)
+	var fs := 30 + (int(3.0 * beat) if urgent or Game.learn_tier > 0 else 0)
+	_text(Vector2(0, 66), LevelClock.fmt(t), fs, tcol, HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+	# פס: GOLD | SILVER | למידה (3 דרגות)
+	var full := p.y + LevelClock.LEARN_STEP * float(LevelClock.MAX_TIER)
+	var bw := 220.0
+	var bx := cx - bw * 0.5
+	var by := 74.0
+	var gx := bw * p.x / full
+	var sx := bw * p.y / full
+	draw_rect(Rect2(bx - 2, by - 2, bw + 4, 10), Color(0, 0, 0, 0.6))
+	draw_rect(Rect2(bx, by, gx, 6), Color(gold_c, 0.35))
+	draw_rect(Rect2(bx + gx, by, sx - gx, 6), Color(silver_c, 0.3))
+	draw_rect(Rect2(bx + sx, by, bw - sx, 6), Color(red_c, 0.3))
+	var k := clampf(t / full, 0.0, 1.0)
+	var fill_c := gold_c if t <= p.x else (silver_c if t <= p.y else red_c)
+	draw_rect(Rect2(bx, by, bw * k, 6), fill_c)
+	draw_rect(Rect2(bx + bw * k - 1.5, by - 4, 3, 14), Color.WHITE)   # הסמן
+	for i in LevelClock.MAX_TIER:   # 3 עיניים בקטע האדום: נדלקות בכל דרגת למידה
+		var ex := bx + sx + (bw - sx) * (float(i) + 0.5) / float(LevelClock.MAX_TIER)
+		var on := i < Game.learn_tier
+		Art.oval(self, Vector2(ex, by + 17), 5.0, 2.6, Color(red_c, 0.95) if on else Color(0, 0, 0, 0.55), 0.0, Art.NONE)
+		if on:
+			draw_circle(Vector2(ex, by + 17), 1.6, Color(1, 0.9, 0.6))
+	# מה היעד עכשיו
+	var label := ""
+	var lcol := Color.WHITE
+	if t <= p.x:
+		label = "GOLD  %s" % LevelClock.fmt(left + 0.99)
+		lcol = gold_c
+	elif t <= p.y:
+		label = "SILVER  %s" % LevelClock.fmt(left + 0.99)
+		lcol = silver_c
+	else:
+		label = LevelClock.TIER_WORDS[Game.learn_tier]
+		lcol = Color(red_c, 0.6 + 0.4 * beat)
+	_text(Vector2(0, by + 35), label, 13, lcol, HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+	# התראה גדולה כשהם מתחילים ללמוד אותך
+	if _learn_alert > 0.0:
+		var a := clampf(_learn_alert / 0.6, 0.0, 1.0) * clampf((2.8 - _learn_alert) / 0.2, 0.0, 1.0)
+		for i in 6:   # הבזק אדום בשוליים
+			var w := 40.0 + float(i) * 22.0
+			draw_rect(Rect2(0, 0, w, vp.y), Color(0.6, 0.0, 0.0, 0.05 * a))
+			draw_rect(Rect2(vp.x - w, 0, w, vp.y), Color(0.6, 0.0, 0.0, 0.05 * a))
+		_text(Vector2(0, vp.y * 0.3), LevelClock.TIER_WORDS[Game.learn_tier], 42, Color(1.0, 0.2, 0.15, a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+		_text(Vector2(0, vp.y * 0.3 + 30), "too slow  -  they read your every move", 16, Color(1, 0.85, 0.8, 0.8 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+
+
 func _draw() -> void:
 	var vp := get_viewport_rect().size
 	_draw_intro(vp)
+	_draw_clock(vp)
 	if _intro_t < 1.0:   # מעבר שלב: נכנסים מתוך שחור
 		draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 1.0 - _intro_t))
 	# BULLET TIME: המסך כחלחל-אפור
@@ -219,7 +314,7 @@ func _draw() -> void:
 		for z in get_tree().get_nodes_in_group("zombies"):
 			if z.is_boss() and absf(z.global_position.x - player.global_position.x) < 900.0:
 				var w := 420.0
-				var bp := Vector2((vp.x - w) / 2.0, 108)
+				var bp := Vector2((vp.x - w) / 2.0, 140)   # מתחת לשעון
 				var bname: String = {7: "THE CONDUCTOR", 19: "THE HOUND"}.get(z.kind, "THE GATEKEEPER")
 				if z.type_mod != null:   # בוס חדש (enemies/types): השם מ-stats()["boss_name"]
 					bname = str(z.type_mod.stats().get("boss_name", bname))
