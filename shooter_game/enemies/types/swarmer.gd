@@ -42,6 +42,12 @@ var _windup := 0.0
 var _air_pose := 0.0
 var _seed := 0.0
 var _tick := 0
+var _pants_len := 0.0   # 0 = בלי מכנסיים (רגליים חשופות), אחרת כמה מהשוק מכוסה (0.35 = קרוע בברך, 1 = עד הקרסול)
+
+# בגדים: צבעים עמומים ומלוכלכים - כל אחד מקבל צירוף משלו (שלא ייראו כולם אותו דבר)
+const SHIRTS := [Color("3a3836"), Color("5a3a34"), Color("3c4a5c"), Color("6a6250"), Color("4a5236"), Color("7a7468"), Color("5c2e2e"), Color("2e3a44"), Color("6e5a3e")]
+const PANTS := [Color("2c2a2a"), Color("2e3a52"), Color("4a4234"), Color("3a3f2e"), Color("5a5048"), Color("23262e"), Color("3c3a46")]
+const SKIN_TINTS := [Color("a7a08e"), Color("8f9c9a"), Color("a39490"), Color("8e9a7e")]   # צהבהב / כחלחל / אפרפר-ורוד / ירקרק
 
 
 func stats() -> Dictionary:
@@ -63,6 +69,10 @@ func setup() -> void:
 	_seed = randf() * 100.0
 	_tick = randi() % 3
 	_pounce_cd = randf_range(1.5, 3.0)
+	z.shirt = Art.shade(SHIRTS[randi() % SHIRTS.size()], randf_range(-0.08, 0.1))
+	z.pants = Art.shade(PANTS[randi() % PANTS.size()], randf_range(-0.06, 0.1))
+	z.skin = z.skin.lerp(SKIN_TINTS[randi() % SKIN_TINTS.size()], randf_range(0.0, 0.4))
+	_pants_len = 0.0 if randf() < 0.2 else randf_range(0.35, 1.0)
 	z.corpse_time = 3.0          # המון גופות - נעלמות מהר
 	z.dormant = false
 	z._set_crouch(true)          # צורה נמוכה (כפוף): הראש ב-30 העליונים
@@ -273,8 +283,10 @@ func draw_ragdoll(ci: CanvasItem, rag) -> void:
 	var sk: Color = z.skin
 	var dark := Art.shade(z.skin, 0.3)
 	ci.draw_colored_polygon(Art.ellipse((p[rag.PELVIS] + p[rag.NECK]) * 0.5 + Vector2(0, 7.0 * sc), 16.0 * sc, 2.5 * sc, 0.0, 12), Color(0, 0, 0, 0.22))
-	for leg in [[rag.KNEE_B, rag.FOOT_B, dark], [rag.KNEE_F, rag.FOOT_F, sk]]:
+	for leg in [[rag.KNEE_B, rag.FOOT_B, dark, true], [rag.KNEE_F, rag.FOOT_F, sk, false]]:
 		Art.limb(ci, PackedVector2Array([p[rag.PELVIS], p[leg[0]], p[leg[1]]]), 3.0 * sc, leg[2])
+		if _pants_len > 0.0:
+			Art.limb(ci, PackedVector2Array([p[rag.PELVIS], p[leg[0]], p[leg[0]].lerp(p[leg[1]], _pants_len * 0.85)]), 3.5 * sc, Art.shade(z.pants, 0.3 if leg[3] else 0.0))
 	for arm in [[rag.ELBOW_B, rag.HAND_B, dark]]:
 		Art.limb(ci, PackedVector2Array([p[rag.NECK], p[arm[0]], p[arm[1]]]), 2.4 * sc, arm[2])
 	var axis := (p[rag.PELVIS] - p[rag.NECK]).normalized()
@@ -320,8 +332,8 @@ func draw() -> bool:
 	var torso := PackedVector2Array([hip + Vector2(-4.0, -3.0), hip.lerp(sh, 0.45) + Vector2(0.0, -7.5), sh + Vector2(2.0, -4.0),
 		sh + Vector2(3.0, 3.0), belly + Vector2(2.0, 2.0), hip + Vector2(-2.0, 5.0)])
 	Art.fill_shaded(z, torso, sk, 0.12, 0.45)
-	var rags := PackedVector2Array([hip + Vector2(-4.0, -2.0), hip.lerp(sh, 0.4) + Vector2(0.0, -6.0), hip.lerp(sh, 0.62) + Vector2(1.0, 2.5),
-		belly + Vector2(-2.0, 6.0), hip + Vector2(-1.0, 6.0)])
+	var rags := PackedVector2Array([hip + Vector2(-4.0, -2.0), hip.lerp(sh, 0.5) + Vector2(0.0, -7.0), hip.lerp(sh, 0.72) + Vector2(1.0, -3.0),
+		hip.lerp(sh, 0.66) + Vector2(1.0, 3.0), belly + Vector2(-1.0, 6.0), hip + Vector2(-1.0, 6.0)])   # חולצה קרועה (קצת יותר גדולה - שהצבע ייראה)
 	Art.fill(z, rags, rag, Art.OUTLINE, 1.0)
 	for i in 3:   # צלעות
 		var c := hip.lerp(sh, 0.62 + float(i) * 0.1) + Vector2(0.0, 2.0)
@@ -363,6 +375,11 @@ func _leg(hip: Vector2, ph: float, c: Color, back: bool, air: float) -> void:
 	foot = foot.lerp(Vector2(-9.0 if back else -4.0, -12.0), air)
 	var knee := hip.lerp(foot, 0.5) + Vector2(6.0, -2.0).lerp(Vector2(8.0, -6.0), air)
 	Art.limb(z, PackedVector2Array([hip, knee, foot + Vector2(0.0, -2.0)]), 3.2, c)
+	if _pants_len > 0.0:   # מכנסיים: ירך + חלק מהשוק, קרועים בקצה
+		var pc := col(Art.shade(z.pants, 0.3 if back else 0.0))
+		var end := knee.lerp(foot + Vector2(0.0, -2.0), _pants_len * 0.85)
+		Art.limb(z, PackedVector2Array([hip + Vector2(0.0, -1.0), knee, end]), 3.7, pc)
+		z.draw_line(end + Vector2(-1.8, 0.0), end + Vector2(1.6, 0.6), col(Art.shade(z.pants, -0.25)), 0.8)   # שוליים פרומים
 	Art.fill(z, PackedVector2Array([foot + Vector2(-2.0, -3.0), foot + Vector2(4.0, -2.0), foot + Vector2(4.5, 0.0), foot + Vector2(-2.0, 0.0)]),
 		col(Art.shade(z.skin, 0.35 if back else 0.15)), Art.OUTLINE, 0.8)
 
