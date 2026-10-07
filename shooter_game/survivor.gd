@@ -1,5 +1,5 @@
 extends CharacterBody2D
-const SIZE := 0.85   # גודל הניצולה (בגובה הדמות הראשית)
+const SIZE := 0.78   # גודל הניצולה (קצת נמוכה מהדמות הראשית)
 # ============================================================
 #  ניצולה (אישה, לא זומבי). כשהשחקן מתקרב היא רצה אליו ומבקשת עזרה.
 #  * קליע אחד הורג אותה.
@@ -320,39 +320,52 @@ func _draw_woman(alive: float) -> void:
 	# שיער ארוך מאחור (קוקו שמתנופף בריצה)
 	if not burned:
 		var sway := sin(_t * (12.0 if running else 2.0)) * (3.0 if running else 1.0)
-		var tail := PackedVector2Array([head + Vector2(-5.0, -3.0), head + Vector2(-10.0 - lean, 3.0 + sway * 0.5), head + Vector2(-13.0 - lean * 1.6, 12.0 + sway)])
-		Art.limb(self, tail, 4.5, hair)
+		# שיער ארוך שיורד על הגב (מתנופף קצת בריצה)
+		var tip := sh + Vector2(-4.5 - lean * 0.8 + sway * 0.4, 9.0)
+		Art.fill(self, PackedVector2Array([head + Vector2(-1.0, -6.6), head + Vector2(-6.4, -2.0), head + Vector2(-6.8, 4.0), tip + Vector2(-1.4, 0.0),
+			tip + Vector2(2.6, 0.6), sh + Vector2(-0.5, 2.0), head + Vector2(0.0, 4.5), head + Vector2(2.0, -2.0)]), Art.shade(hair, 0.1), Art.OUTLINE, 0.8)
+		draw_polyline(PackedVector2Array([head + Vector2(-4.6, -1.0), head + Vector2(-5.0, 4.0), tip + Vector2(0.4, -2.0)]), Color(hair.lightened(0.3), 0.55), 0.6, true)   # ברק בשיער
 	_arm(bs, bh, Art.shade(skin, 0.15), Art.shade(top, 0.15), burned)
 	_leg(hip + Vector2(-1.5, 0), f2, Art.shade(pants, 0.2), Art.shade(boots, 0.2), burned)
 	_leg(hip + Vector2(1.5, 0), f1, pants, boots, burned)
 	# גוף: חולצה צמודה
-	var body := PackedVector2Array([
-		sh + Vector2(-6.5, -0.5), sh + Vector2(6.0, 0.0), sh + Vector2(6.8, 4.5), hip + Vector2(4.5, -7.0),
-		hip + Vector2(6.0, 1.0), hip + Vector2(-6.0, 1.0), hip + Vector2(-4.5, -7.0), sh + Vector2(-7.0, 4.0),
+	var body := PackedVector2Array([   # צר יותר, עם מותן
+		sh + Vector2(-4.8, -0.3), sh + Vector2(4.6, 0.0), sh + Vector2(5.2, 4.0), hip + Vector2(3.4, -7.0),
+		hip + Vector2(4.6, 1.0), hip + Vector2(-4.6, 1.0), hip + Vector2(-3.6, -7.0), sh + Vector2(-5.2, 3.6),
 	])
-	Art.fill_shaded(self, body, top, 0.15, 0.3, Art.OUTLINE, 1.2)
-	draw_line(hip + Vector2(-6.0, -1.0), hip + Vector2(6.0, -1.0), Art.shade(pants, 0.3), 2.0, true)   # חגורה
+	Art.fill_shaded(self, body, top, 0.15, 0.3, Art.OUTLINE, 0.9)
+	if not burned:
+		Art.fill(self, PackedVector2Array([sh + Vector2(0.0, -0.2), sh + Vector2(3.4, -0.1), sh + Vector2(1.8, 2.6)]), skin, Art.NONE)   # מחשוף קטן
+		draw_polyline(PackedVector2Array([sh + Vector2(4.4, 0.6), sh + Vector2(4.9, 4.0), hip + Vector2(3.2, -6.5)]), Color(top.lightened(0.35), 0.6), 0.7, true)   # אור על הקצה
+	draw_line(hip + Vector2(-4.6, -1.0), hip + Vector2(4.6, -1.0), Art.shade(pants, 0.3), 1.4, true)   # חגורה
 	# צוואר + ראש
-	Art.limb(self, PackedVector2Array([sh + Vector2(1.0, 0.0), head + Vector2(-0.5, 4.0)]), 3.4, skin)
+	Art.limb(self, PackedVector2Array([sh + Vector2(1.0, 0.0), head + Vector2(-0.5, 4.0)]), 2.4, skin)
 	if burned:
 		Art.oval_shaded(self, head, 5.6, 6.2, skin, 0.3, Art.OUTLINE, 1.2)
 		Art.oval(self, head + Vector2(3.0, -0.5), 1.4, 1.0, Color(0, 0, 0, 0.8), 0.0, Art.NONE)   # ארובת עין
 		_embers(body, head)
 	else:
-		Art.oval(self, head + Vector2(-1.5, -1.5), 6.6, 6.8, hair)   # שיער מאחורי הראש
-		Art.oval_shaded(self, head, 5.6, 6.4, skin, 0.0, Art.OUTLINE, 1.1)
+		Art.oval(self, head + Vector2(-1.4, -1.6), 6.0, 6.3, hair)   # שיער מאחורי הראש
+		# פנים: אליפסה קטנה יותר + סנטר עדין קדימה
+		Art.oval_shaded(self, head, 4.9, 5.8, skin, 0.0, Art.OUTLINE, 0.9)
+		draw_line(head + Vector2(4.7, -0.2), head + Vector2(5.4, 1.4), Art.shade(skin, 0.2), 0.6, true)   # אף
+		Art.oval(self, head + Vector2(1.2, 1.0), 1.0, 0.6, Color(0.95, 0.45, 0.45, 0.15), 0.0, Art.NONE)   # סומק עדין על הלחי
 		# פוני ושיער בצד
-		Art.fill(self, PackedVector2Array([head + Vector2(-6.0, -1.0), head + Vector2(-5.0, -6.0), head + Vector2(0.0, -7.5), head + Vector2(5.5, -5.0), head + Vector2(4.5, -3.0), head + Vector2(0.0, -4.0), head + Vector2(-3.0, 1.0)]), hair, Art.OUTLINE, 1.0)
-		# עין עם ריסים, שפתיים
-		var eye := head + Vector2(3.0, -0.8)
+		Art.fill(self, PackedVector2Array([head + Vector2(-5.4, -1.0), head + Vector2(-4.6, -5.6), head + Vector2(0.0, -6.9), head + Vector2(5.0, -4.6), head + Vector2(4.2, -2.6), head + Vector2(1.0, -3.8), head + Vector2(-2.6, 0.6)]), hair, Art.OUTLINE, 0.8)
+		draw_line(head + Vector2(-2.0, -5.6), head + Vector2(2.5, -5.0), Color(hair.lightened(0.35), 0.6), 0.6, true)   # ברק
+		# עין: לבן + אישון + ריסים + גבה
+		var eye := head + Vector2(2.7, -0.6)
 		var closed := dk > 0.3
+		var ink := Color("1a1010")
 		if closed:
-			draw_line(eye + Vector2(-1.2, 0.3), eye + Vector2(1.2, 0.3), Color("1a1010"), 0.8, true)
+			draw_line(eye + Vector2(-1.1, 0.3), eye + Vector2(1.1, 0.3), ink, 0.7, true)
 		else:
-			Art.oval(self, eye, 0.9, 1.2, Color("1a1010"), 0.0, Art.NONE)
-			draw_line(eye + Vector2(-0.6, -1.3), eye + Vector2(1.6, -1.8), Color("1a1010"), 0.7, true)
-		draw_line(head + Vector2(3.0, 3.4), head + Vector2(4.6, 3.2), Color("a8404a").lerp(gray, dk), 1.1, true)
-		draw_circle(head + Vector2(-1.0, 2.0), 0.7, Color("d8c070"))   # עגיל
+			Art.oval(self, eye, 1.15, 0.85, Color(0.96, 0.94, 0.92), 0.0, Art.NONE)
+			Art.oval(self, eye + Vector2(0.35, 0.05), 0.6, 0.75, Color("3a2a22") if variant != 1 else Color("3a5a6a"), 0.0, Art.NONE)
+			draw_line(eye + Vector2(-1.2, -0.7), eye + Vector2(1.3, -0.9), ink, 0.7, true)   # ריסים
+		draw_line(eye + Vector2(-1.0, -2.0), eye + Vector2(1.4, -2.2), Art.shade(hair, 0.15), 0.6, true)   # גבה
+		draw_line(head + Vector2(3.2, 3.2), head + Vector2(3.9, 3.1), skin.lerp(Color("a85060"), 0.45).lerp(gray, dk), 0.5, true)   # שפתיים: קו קטן ועדין
+		draw_circle(head + Vector2(-0.8, 2.0), 0.5, Color("d8c070"))   # עגיל
 		if dk > 0.0:   # זוהר של כוח החיים שיוצא ממנה
 			Art.glow(self, sh + Vector2(1.0, 6.0), 14.0 + 8.0 * dk, Color(0.45, 1.0, 0.85, 0.5 * sin(dk * PI) + 0.1))
 	_arm(fs, fh, skin, top, burned)
@@ -361,18 +374,18 @@ func _draw_woman(alive: float) -> void:
 func _arm(shoulder: Vector2, hand: Vector2, skin: Color, sleeve: Color, burned: bool) -> void:
 	var elbow := Art.joint(shoulder, hand, 8.0, 8.0, -1.0)
 	var cuff := shoulder.lerp(elbow, 0.55)
-	Art.limb(self, PackedVector2Array([cuff, elbow, hand]), 3.4, skin)
-	Art.limb(self, PackedVector2Array([shoulder, cuff]), 4.2, sleeve)
-	Art.disc(self, hand, 2.0, skin, Art.OUTLINE, 0.9)
+	Art.limb(self, PackedVector2Array([cuff, elbow, hand]), 2.5, skin)
+	Art.limb(self, PackedVector2Array([shoulder, cuff]), 3.3, sleeve)
+	Art.disc(self, hand, 1.5, skin, Art.OUTLINE, 0.7)
 
 
 func _leg(hip: Vector2, foot: Vector2, pants: Color, boots: Color, burned: bool) -> void:
 	var ankle := foot + Vector2(0, -3.0)
-	var knee := Art.joint(hip, ankle, 11.5, 11.0, 1.0)
-	Art.limb(self, PackedVector2Array([hip, knee, ankle]), 5.2, pants)
-	var top := knee.lerp(ankle, 0.35)
-	Art.limb(self, PackedVector2Array([top, ankle]), 5.6, boots)
-	Art.fill(self, PackedVector2Array([foot + Vector2(-2.5, -3.5), foot + Vector2(2.0, -3.5), foot + Vector2(6.0, -1.2), foot + Vector2(6.0, 0.0), foot + Vector2(-3.0, 0.0)]), boots, Art.OUTLINE, 0.9)
+	var knee := Art.joint(hip, ankle, 10.9, 10.6, 1.0)
+	Art.limb(self, PackedVector2Array([hip, knee, ankle]), 3.9, pants)
+	var top := knee.lerp(ankle, 0.4)
+	Art.limb(self, PackedVector2Array([top, ankle]), 4.2, boots)
+	Art.fill(self, PackedVector2Array([foot + Vector2(-2.0, -3.0), foot + Vector2(1.6, -3.0), foot + Vector2(4.8, -1.0), foot + Vector2(4.8, 0.0), foot + Vector2(-2.4, 0.0)]), boots, Art.OUTLINE, 0.8)
 
 
 # גחלים זוהרים בסדקים של הגוף השרוף, ועשן שעולה
