@@ -16,6 +16,7 @@ enum {
 	CRUMBLER, RETCHER,             # שלב 14
 	BOMBHEAD, MINIGUNNER, STILTER, # שלב 15
 	SWARMER, BROODMOTHER,          # שלב 16
+	STRANGER,                      # "החבר" מסצנת הפתיחה (ui/intro_cutscene.gd)
 }
 
 const FIRST := 20
@@ -58,6 +59,7 @@ const TYPES := {
 	STILTER: "res://enemies/types/stilter.gd",
 	SWARMER: "res://enemies/types/swarmer.gd",
 	BROODMOTHER: "res://enemies/types/broodmother.gd",
+	STRANGER: "res://enemies/types/stranger.gd",
 }
 
 static var _stats_cache := {}

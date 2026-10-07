@@ -243,3 +243,17 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   the same kind adds uses. Perk BANDOLIER (`grenade_pouch`) = +1 use per find. No starting grenades anymore; SUPPLY crates = 3 ammo boxes.
 * **Accuracy** (`game_state.gd`): every trigger pull gets `Game.shot_id`; bullets carry it (`bullet.gd` `shot`), and a shot counts as a hit
   once no matter how many pellets / pierced zombies it hit (was up to 200%+). Taser hits count too. Clamped to 100%.
+
+## Level 1 opening cutscene - "FIRST ENCOUNTER"
+
+* `ui/intro_cutscene.gd` - in-engine cinematic with the game's own characters, started from `main.gd` on level 1
+  (once: `Game.intro_seen` is saved; never after TRY AGAIN / checkpoint / practice). ENTER or SPACE = skip.
+  Own Camera2D with shots (wide push-in, close-ups, two-shot, a slow pan behind the player, hard-cut extreme close-up),
+  letterbox bars, typed subtitles with speaker names ("???" / "YOU"), voices, then cut to black + boom + "THEY LEARN",
+  and the normal stage title. Everything is frozen during the scene; props between the two are hidden and come back under the black.
+  Edit the dialogue / shots / actions in `BEATS`.
+* Voices: `sounds/intro/p01-p05.mp3` (player - same voice + FX as the monologue), `z01-z08.mp3` (the zombie: Kokoro bm_george,
+  slower, slightly lower, small room, faint rasp - calm, almost friendly).
+* The zombie = `enemies/types/stranger.gd` (registry `STRANGER`): tall flayed "revenant" - skull with red eyes and a lipless grin,
+  ribs and guts, metal braces, a cannon arm with red hoses, a hooked metal claw, metal knee braces and toe claws.
+  Controls from the scene: `talking`, `tilt`, `smile`, `look_back`. Recurring character - he disappears in the black, not killed.

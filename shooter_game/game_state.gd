@@ -221,6 +221,7 @@ var _practice_backup := {}
 var attempt_seed := 0             # מבנה השלב בניסיון הזה (0 = אקראי)
 var checkpoint := {}              # {"level", "x", "slots", "special", "special_uses", "seed", "run_score", "scrap"}
 var use_checkpoint := false       # השלב הבא שנטען מתחיל מנקודת הביקורת
+var intro_seen := false           # סצנת הפתיחה של שלב 1 כבר הוצגה (ui/intro_cutscene.gd)
 
 
 func has_progress() -> bool:
@@ -304,7 +305,7 @@ func save_dict() -> Dictionary:
 		best[str(k)] = level_best[k]
 	return {"game": "THEY LEARN", "version": 1, "completed": comp, "level_best": best, "weapon_slots": weapon_slots,
 		"scrap": scrap, "upgrades": upgrades, "seen_weapons": seen_weapons, "ability_slots": ability_slots, "trophies": trophies, "high_scores": high_scores, "lifetime": lifetime,
-		"difficulty": Settings.difficulty, "checkpoint": checkpoint}
+		"difficulty": Settings.difficulty, "checkpoint": checkpoint, "intro_seen": intro_seen}
 
 
 func load_dict(d: Dictionary) -> bool:
@@ -781,6 +782,7 @@ func _load() -> void:
 		var asl = d.get("ability_slots", [])
 		if asl is Array and asl.size() == 5:
 			ability_slots = asl.duplicate()
+		intro_seen = bool(d.get("intro_seen", false))
 		var cp = d.get("checkpoint", {})
 		if cp is Dictionary and cp.has("level") and cp.has("slots"):
 			checkpoint = cp

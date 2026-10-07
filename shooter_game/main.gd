@@ -280,7 +280,7 @@ func _ready() -> void:
 	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
-	label.text = "A/D move (x2 run)  W jump/climb  S crouch (SxS drop)  LMB fire  R reload  Q wheel  1-5  C ability (6-0)  G drop  E grenade  SHIFT roll  F hook  RMB scope"
+	label.text = "A/D move (x2 run)  W jump/climb  S crouch (SxS drop)  LMB fire  R reload  Q wheel  1-5  C ability (6-0)  G drop  E special  SHIFT roll  F hook  RMB scope"
 	label.position = Vector2(12, 8)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
@@ -307,6 +307,14 @@ func _ready() -> void:
 	var wheel = WheelScript.new()   # גלגל נשקים (TAB)
 	wheel.player = player
 	hud.add_child(wheel)
+	# סצנת הפתיחה של שלב 1 (פעם אחת, לא אחרי TRY AGAIN / נקודת ביקורת)
+	if Game.level == 1 and not Game.intro_seen and not Game.use_checkpoint and not Game.practice:
+		var intro = preload("res://ui/intro_cutscene.gd").new()
+		intro.main = self
+		intro.player = player
+		intro.hud_layer = hud
+		intro.hud_bar = bar
+		add_child(intro)
 
 
 # ============================================================
