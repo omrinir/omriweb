@@ -19,6 +19,9 @@ extends "res://enemies/zombie_type.gd"
 const SOUNDS := {
 	"mr_pop": [["W", 900, 1500, 0.0, 0.22, 0.0, 6.0, 0.35, 1.0, 0.0], ["N", 0, 0, 0.0, 0.18, 0.0, 9.0, 0.2, 0.6, 0]],
 	"mr_hum": [["S", 180, 260, 0.0, 0.6, 0.15, 2.0, 0.25, 1.0, 0.05]],
+	# העתק מתפורר לחול: רחש חול ארוך + צלצול זכוכית שיורד + גרגרים
+	"mr_dissolve": [["N", 0, 0, 0.0, 0.9, 0.04, 2.2, 0.32, 0.75, 0], ["S", 1900, 640, 0.0, 0.75, 0.0, 3.2, 0.13, 1.0, 0.02],
+		["S", 2850, 980, 0.05, 0.6, 0.0, 3.8, 0.08, 1.0, 0.02], ["C", 0, 0, 0.06, 0.65, 0.0, 3.0, 0.22, 1.0, 0]],
 }
 
 const COPIES := [2, 2, 3]          # כמה העתקים (קל / רגיל / קשה)
@@ -108,11 +111,10 @@ func _alive_copies() -> Array:
 func vanish() -> void:
 	if not is_instance_valid(z) or z.is_queued_for_deletion():
 		return
-	Sfx.play("mr_pop", z.global_position, -2.0, 0.2, 4)
-	var fx := Shimmer.new()
+	Sfx.play("mr_dissolve", z.global_position, 0.0, 0.15, 4)
+	var fx := Dissolve.new()   # הדמות מתפוררת לגרגרי חול שנופלים ונסחפים ברוח
 	fx.position = z.global_position
-	fx.sc = z.sc
-	fx.col = z.shirt
+	fx.setup(z.sc * z.wf, z.sc, z._dir, [z.shirt, z.skin, z.pants, z.shirt.lerp(Color("e8dcc0"), 0.3)])
 	z.get_parent().add_child(fx)
 	z.remove_from_group("zombies")
 	z.queue_free()
@@ -352,3 +354,62 @@ class Shimmer extends Node2D:
 		for i in 7:
 			var a := float(i) / 7.0 * TAU
 			draw_circle(Vector2(cos(a) * k * 20.0 * sc, -24.0 * sc + sin(a) * k * 26.0 * sc), 2.0 * (1.0 - k) + 0.5, Color(1.0, 0.98, 0.9, 0.6 * (1.0 - k)))
+
+
+# ============================================================
+#  התפוררות של העתק: הצללית של הדמות הופכת לגרגרי חול (בצבעים של הדמות),
+#  שמתפרקים מלמעלה למטה, נסחפים ברוח ונופלים, עם גל חום קצר. ~1 שנייה.
+# ============================================================
+class Dissolve extends Node2D:
+	const LIFE := 1.1
+	var parts: Array = []   # [מיקום, מהירות, צבע, גודל, השהיה]
+	var t := 0.0
+	var _h := 56.0
+
+	func _ready() -> void:
+		z_index = 3
+
+	# sx/sy = גודל הדמות, dir = כיוון, cols = [גלימה, עור, מכנסיים, כיסוי ראש]
+	func setup(sx: float, sy: float, dir: float, cols: Array) -> void:
+		_h = 58.0 * sy
+		var wind := Vector2(-dir * 1.0, 0.0)
+		var y := 0.0
+		while y < 58.0:
+			var half := 3.5 if y < 24.0 else (7.0 if y < 46.0 else 5.5)   # רגליים / גלימה / ראש
+			var c: Color = cols[2] if y < 14.0 else (cols[1] if y < 24.0 else (cols[0] if y < 47.0 else cols[3]))
+			var x := -half
+			while x <= half:
+				var p := Vector2((x + randf_range(-0.8, 0.8)) * sx * dir, -(y + randf_range(-0.8, 0.8)) * sy)
+				var v := Vector2(randf_range(-25.0, 25.0) + wind.x * randf_range(30.0, 90.0), randf_range(-60.0, -10.0))
+				var delay := (58.0 - y) / 58.0 * 0.28 + randf_range(0.0, 0.08)   # מתפרק מהראש למטה
+				parts.append([p, v, c.lerp(Color(0.95, 0.88, 0.7), randf_range(0.0, 0.35)), randf_range(1.2, 2.4) * sy, delay])
+				x += 2.6
+			y += 2.6
+
+	func _process(delta: float) -> void:
+		t += delta
+		if t > LIFE:
+			queue_free()
+			return
+		for q in parts:
+			if t < q[4]:
+				continue
+			q[1].y += 260.0 * delta   # חול נופל
+			q[1].x *= 1.0 - 0.6 * delta
+			q[0] += q[1] * delta
+			if q[0].y > 2.0:   # נוחת על הקרקע ומחליק
+				q[0].y = 2.0
+				q[1] = Vector2(q[1].x * 0.5, 0.0)
+		queue_redraw()
+
+	func _draw() -> void:
+		var fade := clampf((LIFE - t) / 0.45, 0.0, 1.0)
+		for i in 3:   # גל חום קצר במקום הדמות
+			var k := clampf(t / 0.35, 0.0, 1.0)
+			var yy := -_h * (0.25 + 0.3 * float(i))
+			var off := sin(t * 40.0 + float(i) * 2.0) * 3.0
+			draw_line(Vector2(-12.0 - k * 14.0 + off, yy), Vector2(12.0 + k * 14.0 + off, yy), Color(1.0, 0.97, 0.88, 0.35 * (1.0 - k)), 2.0)
+		for q in parts:
+			var a := fade if t >= q[4] else 1.0
+			var sz: float = q[3] * (1.0 if t < q[4] else lerpf(1.0, 0.55, clampf((t - q[4]) / 0.7, 0.0, 1.0)))
+			draw_rect(Rect2(q[0] - Vector2(sz, sz) * 0.5, Vector2(sz, sz)), Color(q[2], a))
