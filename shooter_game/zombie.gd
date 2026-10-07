@@ -39,6 +39,7 @@ const FireScript := preload("res://fire.gd")
 const PickupScript := preload("res://pickup.gd")
 const DebrisScript := preload("res://debris.gd")
 const Particles := preload("res://particles.gd")
+const FleshFx := preload("res://effects/flesh_fx.gd")
 const GrenadeScript := preload("res://grenade.gd")
 const Boom := preload("res://explosion.gd")
 const Brain := preload("res://ai/zombie_brain.gd")             # המוח (טקטיקה, תורות, איגוף) - ai/zombie_brain.gd
@@ -1098,6 +1099,9 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		if _wounds.size() < 6:
 			var lx := (hit_pos.x - global_position.x) * _dir / (sc * wf)
 			_wounds.append(Vector2(clampf(lx, -6.0, 6.0), clampf(ly, -40.0, -22.0)))
+	# חתיכות בשר נתלשות (אפור + אדום) - effects/flesh_fx.gd
+	if dmg > 0 and kind != MECH and (type_mod == null or bool(type_mod.stats().get("flesh", true))):
+		FleshFx.burst(get_parent(), hit_pos, dir, skin, zone, hp <= 0, explosive)
 	if hp <= 0:
 		_die(dir)
 	else:
