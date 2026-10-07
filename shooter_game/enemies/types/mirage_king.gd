@@ -26,7 +26,7 @@ func _want_copies() -> int:
 
 
 func _regen_time() -> float:
-	return 4.5
+	return 2.5
 
 
 func on_damage(amount: int, hit_pos: Vector2, dir: Vector2, src: Dictionary) -> bool:
@@ -45,29 +45,11 @@ func logic(pl: Node, d: Vector2, delta: float, speed: float) -> float:
 	return super.logic(pl, d, delta, speed)
 
 
-# מתחלף במקום עם אחד ההעתקים (הבהוב בשניהם)
+# מתחלף במקום עם אחד ההעתקים (הבהוב בשניהם) - לפי טיימר, בנוסף להחלפה כשנפגע
 func _shuffle() -> void:
 	_shuffle_t = randf_range(SHUFFLE_T.x, SHUFFLE_T.y)
 	_hits = 0
-	var alive := _alive_copies()
-	if alive.is_empty():
-		return
-	var c = alive[randi() % alive.size()]
-	var a: Vector2 = z.global_position
-	var b: Vector2 = c.global_position
-	for p in [a, b]:
-		var fx := Shimmer.new()
-		fx.position = p
-		fx.sc = z.sc
-		fx.col = z.shirt
-		z.get_parent().add_child(fx)
-	z.global_position = b
-	c.global_position = a
-	var dd: float = c._dir
-	c._dir = z._dir
-	z._dir = dd
-	Sfx.play("mr_hum", z.global_position, 0.0, 0.1, 2, 0.7)
-	Sfx.play("mr_pop", a, 0.0, 0.1, 2, 0.6)
+	_swap_with_copy()
 
 
 # כתר של גולגולת אייל + גלימה ארוכה

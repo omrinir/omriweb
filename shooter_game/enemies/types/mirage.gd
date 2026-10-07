@@ -2,15 +2,18 @@ extends "res://enemies/zombie_type.gd"
 # ============================================================
 #  MIRAGE (שלב 17, "THE DRY RIVER") - "THEY LEARNED TO LIE".
 #  זומבי מיובש מהשמש, עטוף בסמרטוטים בהירים וכיסוי ראש. הולך בתוך החום עם 2-3 העתקים (מיראז'ים).
-#  הכלל (ככה מזהים את האמיתי): **רק לאמיתי יש צל ואבק מתחת לרגליים.** ההעתקים בלי צל ורועדים קצת.
-#   * העתק: קליע אחד מפוצץ אותו (נעלם בהבהוב) - בלי ניקוד, בלי דם, לא נספר כהריגה. נגיעה בשחקן = נעלם, בלי נזק.
-#     אבל ההעתקים רצים קדימה וחוסמים את הקליעים - זה בזבוז תחמושת וזמן (השעון!).
+#  הכלל (ככה מזהים את האמיתי): **רק לאמיתי יש צל** - צל ארוך וכהה שנופל על הקרקע (השמש מימין למעלה),
+#    ואבק מתחת לרגליים. ההעתקים בלי צל, ורועדים קצת.
+#   * העתק: קליע אחד מפוצץ אותו (בלי ניקוד, בלי דם, לא נספר כהריגה) - אבל חוזר תוך REGEN שניות,
+#     אז אין טעם "לנקות" אותם: צריך למצוא את האמיתי. ההעתקים רצים קדימה וחוסמים קליעים.
+#   * העתק שנוגע בך: נעלם, אבל אתה מסונוור מהחום (player.daze): חצי מהירות והכוונת רועדת.
 #   * האמיתי (THEY LEARN): מחכה מאחורי ההעתקים במרחק שבו אתה בדרך כלל יורה (PlayerMemory.avg_distance),
-#     ותוקף כשאתה טוען / כשנגמרו ההעתקים. כל REGEN שניות מייצר העתק חדש במקום אחד שהתפוצץ.
-#   * האמיתי מת -> כל ההעתקים שלו מתפוגגים.
+#     וקופץ עליך (LUNGE) כשאתה טוען / מסונוור / כשנגמרו ההעתקים.
+#     נפגע -> מתחלף במקום עם אחד ההעתקים (הבהוב, SWAP_CD) - צריך למצוא את הצל שוב.
+#   * ההעתקים נוצרים רק כשאתה מתקרב (WAKE_DIST) - חוסך ביצועים. האמיתי מת -> כל ההעתקים שלו מתפוגגים.
 #  בוס: enemies/types/mirage_king.gd (משתמש באותו קוד העתקים).
 #  צלילים: "mr_pop" (העתק מתפוגג), "mr_hum" (זמזום חום כשנוצר העתק).
-#  לשנות: COPIES, REGEN, HOLD.
+#  לשנות: COPIES, REGEN, HOLD, DAZE_T, SWAP_CD, LUNGE.
 # ============================================================
 
 const SOUNDS := {
@@ -18,9 +21,14 @@ const SOUNDS := {
 	"mr_hum": [["S", 180, 260, 0.0, 0.6, 0.15, 2.0, 0.25, 1.0, 0.05]],
 }
 
-const COPIES := [2, 2, 3]          # כמה העתקים (קל / רגיל / קשה)
-const REGEN := 7.0                  # שניות עד שהעתק שהתפוצץ חוזר
+const COPIES := [2, 3, 4]          # כמה העתקים (קל / רגיל / קשה)
+const REGEN := 3.0                  # שניות עד שהעתק שהתפוצץ חוזר
 const HOLD := Vector2(200.0, 420.0) # טווח המרחק שבו האמיתי מחכה מאחורי ההעתקים
+const DAZE_T := 1.8                 # כמה זמן מסונוורים מנגיעה של העתק
+const SWAP_CD := 3.5                # אחרי החלפת מקום - כמה זמן עד ההחלפה הבאה
+const LUNGE := 2.1                  # מכפיל מהירות כשהוא קופץ עליך (אתה טוען / מסונוור)
+const WAKE_DIST := 1150.0           # ההעתקים נוצרים כשאתה מתקרב
+const SHADOW_COL := Color(0.16, 0.08, 0.02, 0.6)
 
 static var _spawning_copy := false  # main._spawn_zombie -> setup() של העתק (לא מייצר העתקים משלו)
 
@@ -32,6 +40,8 @@ var _fade := 1.0                     # העתק: נכנס בהדרגה (0->1)
 var _dust: Array = []                # אבק מהרגליים (רק לאמיתי): [מיקום מקומי, גיל]
 var _dust_t := 0.0
 var _seed := 0.0
+var _spawned := false
+var _swap_cd := 0.0
 
 
 func stats() -> Dictionary:
@@ -53,7 +63,6 @@ func setup() -> void:
 		z.corpse_time = 0.1
 		return
 	_regen_t = 1.0
-	_spawn_copies.call_deferred(_want_copies())
 
 
 func _want_copies() -> int:
@@ -109,13 +118,39 @@ func vanish() -> void:
 	z.queue_free()
 
 
-func on_damage(_amount: int, _hit_pos: Vector2, _dir: Vector2, _src: Dictionary) -> bool:
+func on_damage(amount: int, _hit_pos: Vector2, _dir: Vector2, _src: Dictionary) -> bool:
 	if is_copy:   # קליע עובר דרך אוויר רועד: רק "פופ"
 		if not z.is_queued_for_deletion():
 			z._popup("MIRAGE", Color(1.0, 0.95, 0.8, 0.8), 13, -70.0)
 		vanish()
 		return false
+	if _swap_cd <= 0.0 and amount < z.hp:   # נפגע (ולא מת): מתחלף במקום עם העתק
+		_swap_cd = SWAP_CD
+		_swap_with_copy.call_deferred()
 	return true
+
+
+# מתחלף במקום עם אחד ההעתקים (הבהוב בשניהם)
+func _swap_with_copy() -> void:
+	var alive := _alive_copies()
+	if alive.is_empty() or z.dead:
+		return
+	var c = alive[randi() % alive.size()]
+	var a: Vector2 = z.global_position
+	var b: Vector2 = c.global_position
+	for p in [a, b]:
+		var fx := Shimmer.new()
+		fx.position = p
+		fx.sc = z.sc
+		fx.col = z.shirt
+		z.get_parent().add_child(fx)
+	z.global_position = b
+	c.global_position = a
+	var dd: float = c._dir
+	c._dir = z._dir
+	z._dir = dd
+	Sfx.play("mr_hum", b, -2.0, 0.1, 2, 0.8)
+	Sfx.play("mr_pop", a, -4.0, 0.1, 2, 0.7)
 
 
 func can_bite() -> bool:
@@ -139,32 +174,41 @@ func physics(pl: Node, delta: float) -> bool:
 		if master == null or not is_instance_valid(master) or master.dead:
 			vanish()
 			return true
-		if pl != null and not pl.dead and pl.global_position.distance_to(z.global_position) < 26.0 * z.sc:
-			vanish()   # הגיע אליך: אוויר
+		if pl != null and not pl.dead and pl.global_position.distance_to(z.global_position + Vector2(0.0, -10.0)) < 30.0 * z.sc:
+			if pl.has_method("daze") and pl.get("_invuln") != null and float(pl._invuln) <= 0.0:
+				pl.daze(DAZE_T)   # הגיע אליך: אוויר חם בפנים - מסונוור
+			vanish()
 			return true
+		return false
+	# אמיתי: ההעתקים נוצרים כשאתה מתקרב, וחוזרים כל REGEN שניות
+	_swap_cd = maxf(_swap_cd - delta, 0.0)
+	if pl != null and not z.dead and absf(pl.global_position.x - z.global_position.x) < WAKE_DIST:
+		if not _spawned:
+			_spawned = true
+			_spawn_copies(_want_copies())
+		_regen_t -= delta
+		if _alive_copies().size() < _want_copies() and _regen_t <= 0.0:
+			_regen_t = _regen_time()
+			_make_copy(z.global_position.x - z._dir * randf_range(30.0, 70.0))
 	return false
 
 
 func logic(pl: Node, d: Vector2, delta: float, speed: float) -> float:
 	_update_dust(delta)
 	if is_copy:
-		return speed * 1.15   # ההעתקים רצים קדימה (מושכים את האש)
-	# אמיתי: ייצור מחדש של העתקים
-	_regen_t -= delta
+		return speed * 1.25   # ההעתקים רצים קדימה (מושכים את האש ומסנוורים)
 	var alive := _alive_copies()
-	var want := _want_copies()
-	if alive.size() < want and _regen_t <= 0.0:
-		_regen_t = _regen_time()
-		_make_copy(z.global_position.x - z._dir * randf_range(30.0, 60.0))
 	if pl == null:
 		return speed
 	var dist := absf(d.x)
 	var adapt: float = z.brain.adapt_k() if z.brain != null else 0.0
 	# THEY LEARN: מחכה בדיוק מחוץ למרחק שבו אתה בדרך כלל יורה
 	var hold: float = clampf(lerpf(260.0, PlayerMemory.avg_distance + 50.0, clampf(0.4 + adapt, 0.0, 1.0)), HOLD.x, HOLD.y)
-	var exposed: bool = pl.has_method("is_reloading") and pl.is_reloading()
-	if alive.is_empty() or exposed or dist > hold + 160.0:
-		return speed * (1.3 if exposed else 1.0)   # אין מגן / אתה טוען: מסתער
+	var exposed: bool = (pl.has_method("is_reloading") and pl.is_reloading()) or (pl.has_method("is_dazed") and pl.is_dazed())
+	if exposed and dist < 360.0:
+		return speed * LUNGE   # אתה טוען / מסונוור: קופץ עליך
+	if alive.is_empty() or dist > hold + 160.0:
+		return speed * 1.15   # אין מגן: מסתער
 	if dist < hold - 30.0:
 		return -speed * 0.6   # נסוג אל מאחורי ההעתקים
 	return 0.0
@@ -191,9 +235,9 @@ func draw() -> bool:
 	var a := 1.0
 	if is_copy:
 		a = _fade * (0.88 + 0.06 * sin(z._time * 9.0 + _seed))
-	else:   # צל חזק + אבק (הסימן לאמיתי)
+	else:   # צל ארוך על הקרקע + אבק (הסימן לאמיתי)
 		if z.is_on_floor() and not z.dead:
-			Art.oval(z, Vector2(0.0, -0.5), 17.0 * z.sc, 3.6 * z.sc, Color(0.12, 0.08, 0.04, 0.45), 0.0, Art.NONE)
+			_cast_shadow()
 		for p in _dust:
 			var k: float = p[1] / 0.6
 			z.draw_circle(p[0] + Vector2(-z._dir * k * 10.0, -k * 6.0), 2.5 + k * 5.0, Color(0.85, 0.75, 0.58, 0.45 * (1.0 - k)))
@@ -212,6 +256,22 @@ func draw() -> bool:
 
 func _extras() -> void:   # לבוס: כתר עצמות וכו'
 	pass
+
+
+# צל השמש: צללית של הגוף "מושכבת" על הקרקע ונמתחת שמאלה (השמש מימין למעלה).
+# טרנספורם: נקודה בגובה y מעל הרגליים -> זזה שמאלה (0.85*y) ויורדת אל פס הקרקע (0.24*y)
+func _cast_shadow() -> void:
+	var sc: float = z.sc
+	z.draw_set_transform_matrix(Transform2D(Vector2(z.wf * sc, 0.0), Vector2(0.85 * sc, -0.24 * sc), Vector2(0.0, 1.0)))
+	var c := SHADOW_COL
+	z.draw_colored_polygon(Art.ellipse(Vector2(0.0, -2.0), 9.0, 3.0, 0.0, 10), c)
+	z.draw_line(Vector2(-3.0, 0.0), Vector2(-1.0, -25.0), c, 4.5)   # רגליים
+	z.draw_line(Vector2(3.0, 0.0), Vector2(1.0, -25.0), c, 4.5)
+	z.draw_colored_polygon(Art.ellipse(Vector2(0.0, -35.0), 8.0, 12.0, 0.0, 12), c)   # גוף
+	z.draw_circle(Vector2(3.0, -52.0), 7.0, c)   # ראש
+	z.draw_line(Vector2(-6.0, -40.0), Vector2(-9.0, -26.0), c, 3.5)   # ידיים
+	z.draw_line(Vector2(6.0, -40.0), Vector2(10.0, -27.0), c, 3.5)
+	z.draw_set_transform_matrix(Transform2D.IDENTITY)
 
 
 func _body() -> void:

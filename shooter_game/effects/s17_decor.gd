@@ -7,7 +7,9 @@ extends RefCounted
 #    reeds         - קני סוף יבשים ושלדי סירות קרובים
 #    Riverbed      - (עולם) קרקעית בוץ סדוקה מעל הכביש: משושים של סדקים, מלח, עצמות דגים
 #    RiverJunk     - (עולם, מאחורי הדמויות) סירות משיטה הפוכות, צמיגים, שלדי דגים, קני סוף
-#    Obstacle      - (מוצק) "boat" סירת דייגים תקועה / "rock" סלע נהר / "log" גזע סחף
+#    Obstacle      - (מוצק + מחסה לזומבים) "boat" סירת דייגים / "trawler" ספינת דייגים חלודה גדולה (אפשר לעלות עליה)
+#                    / "rock" סלע נהר / "log" גזע סחף
+#    MudBank       - (מוצק, הולכים עליו) גדת בוץ מוגבהת באמצע הנהר - שיפועים וגובה, מחסה מקליעים
 #    HeatHaze      - (מסך) שיידר: האוויר רועד מעל הקרקע (חזק יותר למטה), קצת סנוור
 # ============================================================
 
@@ -236,6 +238,8 @@ class Obstacle extends Node2D:
 		var body := StaticBody2D.new()
 		body.collision_layer = 1
 		body.add_to_group("no_outline")   # מצייר קו מתאר משלו (סלע עגול / סירה) - בלי מלבן של התנגשות
+		if size.y >= 30.0:   # זומבים מתחבאים מאחוריו (zombie.gd -> _try_cover)
+			add_to_group("cover")
 		var cs := CollisionShape2D.new()
 		var sh := RectangleShape2D.new()
 		sh.size = size
@@ -244,6 +248,9 @@ class Obstacle extends Node2D:
 		body.add_child(cs)
 		add_child(body)
 
+	func cover_rect() -> Rect2:
+		return Rect2(global_position + Vector2(0.0, -size.y), size)
+
 	func _draw() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
@@ -251,6 +258,26 @@ class Obstacle extends Node2D:
 		var w := size.x
 		var h := size.y
 		match kind:
+			"trawler":   # ספינת דייגים חלודה על הצד: גוף גבוה, בית הגה, כננת, רשת קרועה
+				var hull := PackedVector2Array([Vector2(0, -h * 0.35), Vector2(w * 0.1, 0), Vector2(w * 0.9, 0), Vector2(w, -h * 0.5),
+					Vector2(w * 0.98, -h * 0.78), Vector2(w * 0.02, -h * 0.75)])
+				Art.fill_shaded(self, hull, Color("8a4a32"), 0.12, 0.35, Art.OUTLINE, 1.6)
+				draw_rect(Rect2(w * 0.02, -h * 0.78, w * 0.96, h * 0.08), Color("c8b8a0"))   # פס עליון דהוי
+				for i in 9:   # ניטים + פסי חלודה שנוזלים
+					var px := w * (0.08 + 0.1 * float(i))
+					draw_circle(Vector2(px, -h * 0.62), 1.6, Color("5a2e1e"))
+					draw_line(Vector2(px, -h * 0.6), Vector2(px + r.randf_range(-2.0, 2.0), -h * r.randf_range(0.1, 0.4)), Color(0.45, 0.2, 0.08, 0.5), 2.0)
+				var wh := Rect2(w * 0.58, -h * 1.0, w * 0.26, h * 0.24)   # בית הגה
+				draw_rect(wh, Color("d8ccb4"))
+				draw_rect(wh, Art.OUTLINE, false, 1.4)
+				for q in 3:
+					draw_rect(Rect2(wh.position + Vector2(5.0 + float(q) * wh.size.x * 0.3, 4.0), Vector2(wh.size.x * 0.2, wh.size.y * 0.4)), Color("2e3a40"))
+				draw_line(Vector2(w * 0.3, -h * 0.78), Vector2(w * 0.24, -h * 1.45), S.WOOD_D, 4.0)   # תורן
+				draw_line(Vector2(w * 0.24, -h * 1.45), Vector2(w * 0.05, -h * 0.8), Color(0.25, 0.2, 0.15, 0.7), 1.2)   # כבל
+				for q in 6:   # רשת דייגים קרועה תלויה
+					var nx := w * 0.06 + float(q) * 7.0
+					draw_line(Vector2(nx, -h * 0.82), Vector2(nx + 3.0, -h * 0.5), Color(0.3, 0.32, 0.28, 0.7), 1.0)
+				draw_line(Vector2(w * 0.06, -h * 0.68), Vector2(w * 0.06 + 38.0, -h * 0.66), Color(0.3, 0.32, 0.28, 0.7), 1.0)
 			"boat":   # סירת דייגים על הצד: גוף, פסי צבע דהויים, חלון קבינה, חבל
 				var hull := PackedVector2Array([Vector2(0, -h * 0.25), Vector2(w * 0.08, 0), Vector2(w * 0.92, 0), Vector2(w, -h * 0.35),
 					Vector2(w * 0.97, -h * 0.72), Vector2(w * 0.05, -h * 0.7)])
@@ -284,6 +311,75 @@ class Obstacle extends Node2D:
 				Art.fill_shaded(self, pts, Color("a89a88"), 0.12, 0.35, Art.OUTLINE, 1.4)
 				draw_line(Vector2(w * 0.25, -h * 0.75), Vector2(w * 0.55, -h * 0.9), Color(1, 1, 1, 0.3), 2.0)
 				draw_rect(Rect2(0, -h * 0.18, w, h * 0.18), Color(0.92, 0.9, 0.85, 0.25))   # קו מים ישן (מלח)
+
+
+# ============================================================
+#  גדת בוץ מוגבהת (מוצקה, הולכים עליה): צורת "קוסינוס מורם" כמו הדיונות של שלב 13 (שיפוע עד ~30 מעלות),
+#  בוץ סדוק עם שכבות, קני סוף על הרכס. קליעים לא עוברים דרכה = מחסה.
+# ============================================================
+class MudBank extends StaticBody2D:
+	var w := 500.0
+	var h := 80.0
+	var seed_v := 0
+	const N := 24
+
+	func _ready() -> void:
+		collision_layer = 1
+		collision_mask = 0
+		add_to_group("no_outline")
+		var cp := CollisionPolygon2D.new()
+		var pts := PackedVector2Array()
+		for i in N + 1:
+			var x := w * float(i) / float(N)
+			pts.append(Vector2(x, -_height(x)))
+		pts.append(Vector2(w, 14.0))
+		pts.append(Vector2(0.0, 14.0))
+		cp.polygon = pts
+		add_child(cp)
+		z_index = 1
+
+	func _height(x: float) -> float:
+		var u := clampf(x / w, 0.0, 1.0)
+		return h * (0.5 - 0.5 * cos(u * TAU))
+
+	func surface_y(gx: float) -> float:
+		var lx := gx - global_position.x
+		if lx < 0.0 or lx > w:
+			return INF
+		return global_position.y - _height(lx)
+
+	func _draw() -> void:
+		var S := preload("res://effects/s17_decor.gd")
+		var r := RandomNumberGenerator.new()
+		r.seed = seed_v
+		var top := PackedVector2Array()
+		for i in N + 1:
+			var x := w * float(i) / float(N)
+			top.append(Vector2(x, -_height(x)))
+		var body := top.duplicate()
+		body.append(Vector2(w, 3.0))
+		body.append(Vector2(0.0, 3.0))
+		draw_colored_polygon(body, S.MUD)
+		for k in 3:   # שכבות בוץ (פסים כהים יותר למטה)
+			var band := PackedVector2Array()
+			for i in N + 1:
+				var x := w * float(i) / float(N)
+				band.append(Vector2(x, -_height(x) * (0.66 - 0.22 * float(k))))
+			band.append(Vector2(w, 3.0))
+			band.append(Vector2(0.0, 3.0))
+			draw_colored_polygon(band, Color(S.MUD_D, 0.25 + 0.15 * float(k)))
+		draw_polyline(top, S.MUD_L, 3.0)
+		draw_polyline(top, Art.OUTLINE, 1.6)
+		for i in int(w / 26.0):   # סדקים
+			var x := r.randf_range(10.0, w - 10.0)
+			var y := -_height(x) * r.randf_range(0.1, 0.8)
+			draw_line(Vector2(x, y), Vector2(x + r.randf_range(-8.0, 8.0), y + r.randf_range(5.0, 14.0)), S.CRACK, 1.2)
+		for c in 2:   # קני סוף על הרכס
+			var cx := w * r.randf_range(0.3, 0.7)
+			for i in 7:
+				var bx := cx + float(i) * 4.0
+				var by := -_height(bx)
+				draw_line(Vector2(bx, by), Vector2(bx + 5.0, by - r.randf_range(22.0, 42.0)), Color("a8946a"), 1.4)
 
 
 # ============================================================

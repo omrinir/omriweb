@@ -60,6 +60,7 @@ var glove_color := Color("141418")
 @export var controllable := true
 ## לאן הדמות מכוונת כשהיא לא נשלטת
 var idle_aim := Vector2(-1.0, 0.25).normalized()
+var _daze_t := 0.0     # MIRAGE (שלב 17): העתק נגע בך - מסונוור מהחום: איטי, והכוונת רועדת
 var auto_walk := 0.0   # כשלא בשליטה (סצנה): כיוון ומהירות הליכה אוטומטית (-1..1)
 var calm := false      # בסצנת סיפור: נשימה חלשה (בתקריב הנשימה הרגילה נראית כמו "עלייה")
 var unarmed := false   # בסצנת סיפור: בלי נשק וידיים מצוירות - רק הספרייט (הידיים שלו)
@@ -277,6 +278,7 @@ func _physics_process(delta: float) -> void:
 	_roll_t -= delta
 	_roll_cd -= delta
 	_slide_t -= delta
+	_daze_t = maxf(_daze_t - delta, 0.0)
 	if _dodge_slow > 0.0:
 		_dodge_slow -= delta
 		if _dodge_slow <= 0.0 and not boosts.has(PickupScript.BULLET_TIME):
@@ -398,6 +400,8 @@ func _physics_process(delta: float) -> void:
 		speed = run_speed
 	if boosts.has(PickupScript.ADRENALINE):
 		speed *= 1.4
+	if _daze_t > 0.0:   # מסונוור: חצי מהירות
+		speed *= 0.5
 	if in_water and is_on_floor():   # מים מאטים
 		speed *= 0.78
 	var acc := accel if is_on_floor() else accel * air_control
@@ -569,6 +573,8 @@ func _physics_process(delta: float) -> void:
 		_aim = idle_aim
 	elif to_mouse.length() > 4.0 and not _fire_test:
 		_aim = to_mouse.normalized()
+		if _daze_t > 0.0:   # מסונוור: הכוונת רועדת
+			_aim = _aim.rotated(sin(_time * 7.0) * 0.16 + sin(_time * 11.3) * 0.07)
 	var trigger := controllable and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not get_tree().paused and not wheel_open
 	# צלף: לחצן ימני = כוונת והזמן מאט
 	var scope := controllable and weapon == GUN and gun == SNIPER and not wheel_open and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not get_tree().paused
@@ -679,6 +685,19 @@ func collect(p: Node) -> bool:
 			Sfx.play("heal", null)
 	_say(p.label(), p.color())
 	return true
+
+
+# MIRAGE: מסונוור מהחום ל-t שניות
+func daze(t: float) -> void:
+	if dead:
+		return
+	if _daze_t <= 0.0:
+		_say("DAZED BY THE HEAT", Color(1.0, 0.85, 0.5))
+	_daze_t = maxf(_daze_t, t)
+
+
+func is_dazed() -> bool:
+	return _daze_t > 0.0
 
 
 func _say(text: String, col: Color) -> void:
@@ -1339,6 +1358,10 @@ func _draw() -> void:
 	for d in _dust:   # אבק ריצה
 		var dk: float = d[2] / d[3]
 		draw_circle(d[0] - global_position, d[4], Color(0.62, 0.57, 0.5, 0.35 * (1.0 - dk)))
+	if _daze_t > 0.0:   # מסונוור: נקודות אור מסתובבות מעל הראש
+		for i in 3:
+			var a := _time * 6.0 + float(i) * TAU / 3.0
+			draw_circle(Vector2(cos(a) * 10.0, -60.0 + sin(a) * 3.0), 2.0, Color(1.0, 0.92, 0.6, minf(_daze_t * 2.0, 1.0)))
 	# חלקיקי קסם (עדינים מאוד)
 	for m in _magic:
 		var k: float = m[2] / m[3]
