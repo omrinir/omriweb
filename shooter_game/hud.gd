@@ -1,4 +1,5 @@
 extends Node2D
+const Arsenal := preload("res://progression/arsenal.gd")
 # ============================================================
 #  HUD: לבבות, מגן, נשק ותחמושת, בוסטים, ניקוד + קומבו, מספר שלב,
 #  בר חיים של הבוס, צבע של BULLET TIME והודעת GAME OVER.
@@ -173,8 +174,10 @@ func _draw() -> void:
 			elif msize > 0 and player.mag == 0 and player.ammo > 0:
 				_text(Vector2(x, wy + 16.0), "R  RELOAD", 12, Color(1.0, 0.5, 0.4, 0.6 + 0.4 * sin(_intro_t * 8.0)))
 		else:
-			_text(Vector2(x, wy), "GRENADE  x%d" % player.grenades, 16, Color("ff6050") if player.grenades == 0 else Color.WHITE)
-		_text(Vector2(x + 210.0, wy), "G x%d" % player.grenades if _weapon == 0 else "A %d" % player.ammo, 13, Color(1, 1, 1, 0.6))
+			var sn: String = str(Arsenal.SPECIALS[player.special].name) if player.special != "" else "NONE"
+			_text(Vector2(x, wy), "%s  x%d" % [sn, player.special_uses], 16, Color.WHITE if player.special != "" else Color("ff6050"))
+		if _weapon != 0:   # (הפריט עצמו מוצג במשבצת E בבר הנשקים)
+			_text(Vector2(x + 210.0, wy), "A %d" % player.ammo, 13, Color(1, 1, 1, 0.6))
 	if difficulty != "":
 		_text(Vector2(x + 280.0, wy), difficulty, 16, difficulty_color)
 	# בר הנשקים מצויר ב-weapon_wheel.gd

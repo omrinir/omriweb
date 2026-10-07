@@ -27,7 +27,7 @@ var arrow := false                         # חץ: עף בקשת (כבידה), �
 var gravity := 0.0
 var _stuck := -1.0                         # חץ שננעץ: כמה זמן נשאר
 var sniper := false                        # צלף: נזק כפול בראש, פי 1.5 בגוף
-var count_hit := true                      # false = לא נספר לדיוק (כדורי שוטגאן נוספים)
+var shot := 0                              # מספר הירייה (Game.shot_id) - לחישוב הדיוק
 var _dist := 0.0
 var velocity := Vector2.ZERO
 var _exclude: Array[RID] = []
@@ -87,7 +87,7 @@ func _physics_process(delta: float) -> void:
 		if mh.hit_test(from, to):
 			mh.pop(velocity.normalized())
 	_dist += from.distance_to(to)
-	var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary, "sniper": sniper, "counted": not count_hit}
+	var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary, "sniper": sniper, "shot": shot}
 	src["dmg_mult"] = dmg_mult
 	src["head_mult"] = head_mult
 	src["knockback"] = knockback

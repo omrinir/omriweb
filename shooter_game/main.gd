@@ -650,7 +650,8 @@ func _start_at_checkpoint(player: Node2D) -> void:
 	var cp: Dictionary = Game.checkpoint
 	player.position.x = _checkpoint.position.x + 30.0
 	player.slots = (cp.slots as Array).duplicate(true)
-	player.grenades = int(cp.get("grenades", player.grenades))
+	player.special = str(cp.get("special", ""))
+	player.special_uses = int(cp.get("special_uses", 0))
 	for i in player.slots.size():
 		if player.slots[i] != null:
 			player.cur_slot = i
@@ -673,6 +674,18 @@ func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
 		add_child(mk)
 		for i in kinds.size():
 			_place_pickup(kinds[i], Vector2(x + float(i) * 26.0 - float(kinds.size() - 1) * 13.0, floor_y - 30.0))
+	# פריטי נפץ (SPECIAL): 1-2 בשלב, במקום אקראי (רימונים / מולוטוב / משגר רימונים / משגר טילים)
+	var sp_list: Array = Arsenal.specials_for_level(Game.level, _rng)
+	for si in sp_list.size():
+		var k: String = sp_list[si]
+		var lo: float = lerpf(Arsenal.SPECIAL_FINDS.x, Arsenal.SPECIAL_FINDS.y, float(si) / float(sp_list.size()))   # כל אחד בחלק אחר של השלב
+		var hi: float = lerpf(Arsenal.SPECIAL_FINDS.x, Arsenal.SPECIAL_FINDS.y, float(si + 1) / float(sp_list.size()))
+		var spc = PickupScript.new()
+		spc.kind = PickupScript.SPECIAL
+		spc.special = k
+		spc.life = 100000.0
+		add_child(spc)
+		spc.setup(Vector2(_free_spot(level_w * _rng.randf_range(lo, hi)), floor_y - 30.0), Vector2.ZERO)
 	# נשקים: החדש של השלב בהתחלה (NEW WEAPON), ומטמון של נשק ישן שאין לך באמצע השלב
 	var owned := []
 	for s in Game.weapon_slots:

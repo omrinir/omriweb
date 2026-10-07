@@ -233,3 +233,13 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   are PRACTICE (`start_practice`): stage-appropriate loadout, nothing is saved and the real save is restored on return (`end_practice`).
 * **Performance**: death budget in `zombie.gd` - from the 3rd death within 1 s (`DEATH_HEAVY`) the death is "lite": no ragdoll, a third of
   the blood drops, one flesh chunk, one spray layer. Blood drops capped (`MAX_BLOOD`). Landed flesh chunks stop redrawing (fade by modulate).
+
+## Special items + accuracy
+
+* **SPECIAL items** (`progression/arsenal.gd` -> `SPECIALS`): grenades (3 uses), molotovs (2), grenade launcher (4), rocket launcher (2).
+  Not weapons: not in the weapon bar / wheel / shop / progression (`"special": true` in weapon_db -> `WeaponDB.removed()` = true).
+  1-2 random finds per stage (`specials_for_level`, one in each half of `SPECIAL_FINDS`), rarer/stronger ones from later stages (`"from"`).
+  E = switch to it, fire = use. Last use -> it's dumped and you're back on your gun. Holding one: a different find replaces it,
+  the same kind adds uses. Perk BANDOLIER (`grenade_pouch`) = +1 use per find. No starting grenades anymore; SUPPLY crates = 3 ammo boxes.
+* **Accuracy** (`game_state.gd`): every trigger pull gets `Game.shot_id`; bullets carry it (`bullet.gd` `shot`), and a shot counts as a hit
+  once no matter how many pellets / pierced zombies it hit (was up to 200%+). Taser hits count too. Clamped to 100%.

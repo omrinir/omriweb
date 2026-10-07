@@ -2,8 +2,9 @@ extends Node2D
 # ============================================================
 #  חפץ שאפשר לאסוף (עוברים עליו):
 #    AMMO     - קופסת תחמושת (+12 קליעים)
-#    GRENADE  - רימון אחד
-#    SUPPLY   - ארגז ציוד צבאי מניצולה שחסת עליה (2 קופסאות תחמושת + רימון)
+#    GRENADE  - (ישן) = SPECIAL "grenade"
+#    SUPPLY   - ארגז ציוד צבאי (3 קופסאות תחמושת)
+#    SPECIAL  - פריט נפץ (special = grenade / molotov / launcher / rocket, progression/arsenal.gd -> SPECIALS)
 #    BOOST    - כוח מיוחד לכמה שניות (boost = סוג הבוסט)
 #    HEALTH   - ערכת עזרה ראשונה: +1 לב (נשארת על הרצפה אם הלבבות מלאים)
 #  נופל עם קשת קטנה, מרחף ומהבהב לפני שהוא נעלם.
@@ -11,7 +12,8 @@ extends Node2D
 
 const Art := preload("res://art.gd")
 
-enum { AMMO, GRENADE, SUPPLY, BOOST, WEAPON, HEALTH }
+enum { AMMO, GRENADE, SUPPLY, BOOST, WEAPON, HEALTH, SPECIAL }
+const Arsenal := preload("res://progression/arsenal.gd")
 enum { ADRENALINE, PIERCING, BULLET_TIME, SHIELD, INCENDIARY }
 
 const BOOST_NAMES := ["ADRENALINE", "PIERCING ROUNDS", "BULLET TIME", "SHIELD", "INCENDIARY"]
@@ -19,6 +21,7 @@ const BOOST_COLORS := [Color("ff4a3a"), Color("4aa8ff"), Color("b0b8c8"), Color(
 
 var kind := AMMO
 var boost := ADRENALINE
+var special := "grenade"    # SPECIAL: איזה פריט
 var weapon_id := 1          # WEAPON: איזה נשק (1 שוטגאן, 2 קשת, 3 צלף, 4 טייזר)
 var ammo_amount := -1       # WEAPON: כמה תחמושת בפנים (-1 = רגיל)
 var pick_delay := 0.0       # נשק שנזרק: אי אפשר להרים אותו מיד
@@ -66,8 +69,9 @@ func _physics_process(delta: float) -> void:
 func label() -> String:
 	match kind:
 		AMMO: return "+AMMO"
-		GRENADE: return "+1 GRENADE"
-		SUPPLY: return "AMMO + GRENADE"
+		GRENADE: return "+GRENADES"
+		SUPPLY: return "+AMMO x3"
+		SPECIAL: return "+" + str(Arsenal.SPECIALS[special].name)
 		WEAPON: return str(Game.WEAPON_NAMES[weapon_id]) + "!"
 		HEALTH: return "+1 HEART"
 		_: return BOOST_NAMES[boost]
@@ -77,6 +81,7 @@ func color() -> Color:
 	match kind:
 		AMMO: return Color("d8c070")
 		GRENADE: return Color("8aa040")
+		SPECIAL: return Arsenal.SPECIALS[special].color
 		SUPPLY: return Color("a8b870")
 		WEAPON: return Game.WEAPON_COLORS[weapon_id]
 		HEALTH: return Color("ff5a5a")
@@ -119,6 +124,15 @@ func _draw() -> void:
 			draw_rect(Rect2(bob + Vector2(-2.5, -6), Vector2(5, 12)), Color("e02a2a"))
 			draw_rect(Rect2(bob + Vector2(-6, -2.5), Vector2(12, 5)), Color("e02a2a"))
 			draw_rect(Rect2(bob + Vector2(-4, -11), Vector2(8, 3)), Color("8a8a90"))   # ידית
+		SPECIAL:   # פריט נפץ: רימון / בקבוק / המשגר עצמו
+			var wid: int = int(Arsenal.SPECIALS[special].weapon)
+			if special == "grenade":
+				for i in 2:
+					var gp := bob + Vector2(-5.0 + float(i) * 10.0, 0.0)
+					Art.oval_shaded(self, gp, 5.0, 6.0, Color("6d8236"), 0.0, Art.OUTLINE, 1.2)
+					Art.fill(self, PackedVector2Array([gp + Vector2(-1.6, -6), gp + Vector2(1.6, -6), gp + Vector2(1.6, -9), gp + Vector2(-1.6, -9)]), Color("9a9aa2"), Art.OUTLINE, 0.7)
+			elif wid >= 0:
+				load("res://weapon_wheel.gd").draw_weapon(self, bob, wid, 0.6)
 		WEAPON:   # צללית של הנשק
 			load("res://weapon_wheel.gd").draw_weapon(self, bob, weapon_id, 0.62)   # אותו ציור כמו בגלגל הנשקים
 		BOOST:

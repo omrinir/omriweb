@@ -190,7 +190,7 @@ func _section(sx: float, i: int) -> void:
 	reserve(Rect2(sx + w * 0.25, floor_y - FLOOR2, w * 0.6, FLOOR2))
 	# הפרס במסלול המסוכן: תחמושת / רימונים
 	var p = PickupScript.new()
-	p.kind = PickupScript.AMMO if i % 2 == 0 else PickupScript.GRENADE
+	p.kind = PickupScript.AMMO if i % 2 == 0 else PickupScript.SUPPLY
 	p.life = 100000.0
 	main.add_child(p)
 	p.setup(Vector2(sx + w * 0.66, floor_y - 30.0), Vector2.ZERO)

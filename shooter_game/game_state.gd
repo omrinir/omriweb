@@ -219,7 +219,7 @@ func level_playable(lv: int) -> bool:
 var practice := false             # תרגול: לא שומרים לקובץ
 var _practice_backup := {}
 var attempt_seed := 0             # מבנה השלב בניסיון הזה (0 = אקראי)
-var checkpoint := {}              # {"level", "x", "slots", "grenades", "seed", "run_score", "scrap"}
+var checkpoint := {}              # {"level", "x", "slots", "special", "special_uses", "seed", "run_score", "scrap"}
 var use_checkpoint := false       # השלב הבא שנטען מתחיל מנקודת הביקורת
 
 
@@ -275,7 +275,7 @@ func end_practice() -> void:
 
 
 func reach_checkpoint(x: float, player: Node) -> void:
-	checkpoint = {"level": level, "x": x, "slots": player.slots.duplicate(true), "grenades": int(player.grenades),
+	checkpoint = {"level": level, "x": x, "slots": player.slots.duplicate(true), "special": player.special, "special_uses": int(player.special_uses),
 		"seed": attempt_seed, "run_score": run_score + level_score, "scrap": scrap}
 	_save()
 
@@ -414,6 +414,7 @@ func reset_level() -> void:
 	style = 0.0
 	_bullet_kills.clear()
 	_blast_kills.clear()
+	_hit_shots.clear()
 	stats = {"kills": 0, "headshots": 0, "shots": 0, "hits": 0, "drained": 0, "spared": 0,
 		"hearts_lost": 0, "time": 0.0, "survivors": 0}
 	Engine.time_scale = 1.0
@@ -537,14 +538,23 @@ func add_score(points: int) -> void:
 # ============================================================
 #  אירועים מהמשחק
 # ============================================================
+# דיוק = כמה יריות (לחיצות הדק) פגעו במשהו. ירייה אחת = פגיעה אחת לכל היותר
+# (שוטגאן עם 7 כדורים / קליע שעובר דרך כמה זומבים - לא נספרים כמה פעמים). היה יוצא 200%.
+var shot_id := 0
+var _hit_shots := {}
+
+
 func on_shot() -> void:
 	stats.shots += 1
+	shot_id += 1
 
 
 # info: zone, explosive, source ("bullet" / "grenade" / "barrel" / "car" / "fire"), bullet, blast, hidden
 func on_zombie_hit(info: Dictionary) -> void:
-	if info.get("source", "") == "bullet" and not info.get("counted", false):
-		stats.hits += 1
+	var sid: int = int(info.get("shot", 0))
+	if sid != 0 and not _hit_shots.has(sid):
+		_hit_shots[sid] = true
+		stats.hits = mini(stats.hits + 1, stats.shots)
 	if info.get("source", "") == "bullet":
 		if info.get("zone", "") == "head":
 			_head_streak += 1
@@ -669,7 +679,7 @@ func make_noise(pos: Vector2, radius: float) -> void:
 # מחזיר את התוצאות למסך הסיום
 func finish_level(time_sec: float) -> Dictionary:
 	stats.time = time_sec
-	var acc := float(stats.hits) / float(maxi(stats.shots, 1))
+	var acc := clampf(float(stats.hits) / float(maxi(stats.shots, 1)), 0.0, 1.0)
 	var stars := 1
 	if acc >= 0.45 or stats.shots == 0:
 		stars = 2

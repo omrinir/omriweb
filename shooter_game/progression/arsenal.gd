@@ -20,6 +20,40 @@ const DROP_CHANCE := Vector2(0.03, 0.2)   # סיכוי שזומבי מפיל ת�
 const EMPTY_DROP := 0.35             # כשאין תחמושת בכלל בשום נשק
 
 
+# ============================================================
+#  SPECIAL ITEMS - נשקי נפץ שהם לא "נשק" (לא בגלגל, לא בחנות): מוצאים 1-2 בכל שלב במקום אקראי,
+#  יש להם כמה שימושים (E = מחליף אליהם, ירייה = שימוש), ואחרי השימוש האחרון - נזרקים.
+#  מחזיקים רק אחד: מציאה של אחר מחליפה אותו (אותו סוג = עוד שימושים).
+#  "from" = מאיזה שלב הוא יכול להופיע, "weight" = כמה נפוץ, "weapon" = איך לצייר (weapon_db id).
+# ============================================================
+const SPECIALS := {
+	"grenade": {"name": "GRENADES", "uses": 3, "from": 1, "weight": 3.0, "color": Color("8aa040"), "weapon": -1},
+	"molotov": {"name": "MOLOTOVS", "uses": 2, "from": 3, "weight": 2.0, "color": Color("ff8a30"), "weapon": 8},
+	"launcher": {"name": "GRENADE LAUNCHER", "uses": 4, "from": 5, "weight": 1.6, "color": Color("80b060"), "weapon": 9},
+	"rocket": {"name": "ROCKET LAUNCHER", "uses": 2, "from": 8, "weight": 1.0, "color": Color("e05a30"), "weapon": 11},
+}
+const SPECIAL_FINDS := Vector2(0.15, 0.85)   # איפה בשלב (יחסי) הם יכולים להיות
+
+
+# 1-2 מציאות לשלב, לפי מה שכבר זמין בשלב הזה
+static func specials_for_level(lv: int, rng: RandomNumberGenerator) -> Array:
+	var pool := []
+	var total := 0.0
+	for k in SPECIALS:
+		if int(SPECIALS[k].from) <= lv:
+			pool.append(k)
+			total += float(SPECIALS[k].weight)
+	var out := []
+	for i in (2 if rng.randf() < 0.5 else 1):
+		var r := rng.randf() * total
+		for k in pool:
+			r -= float(SPECIALS[k].weight)
+			if r <= 0.0:
+				out.append(k)
+				break
+	return out
+
+
 static func usable(id: int) -> bool:
 	return id >= 0 and id < WeaponDB.count() and not WeaponDB.removed(id)
 

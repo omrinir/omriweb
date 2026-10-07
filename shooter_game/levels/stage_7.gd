@@ -236,7 +236,7 @@ func extra_spawns() -> void:
 	# רימונים נוספים לאורך המפעל
 	for k in 3:
 		var p = PickupScript.new()
-		p.kind = PickupScript.GRENADE
+		p.kind = PickupScript.AMMO   # רימונים = SPECIAL (1-2 בשלב)
 		p.life = 100000.0
 		main.add_child(p)
 		p.setup(Vector2(level_w * (0.25 + 0.25 * float(k)), floor_y - FLOOR2 - 30.0), Vector2.ZERO)

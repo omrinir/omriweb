@@ -37,7 +37,7 @@ const ABILITY_TRACKS := {
 }
 const PERKS := [
 	{"id": "vitality", "name": "VITALITY", "desc": "+1 max heart", "max": 3, "base": 120, "tier": 3},
-	{"id": "grenade_pouch", "name": "GRENADE POUCH", "desc": "+1 grenade at the start of a stage", "max": 3, "base": 70, "tier": 1},
+	{"id": "grenade_pouch", "name": "BANDOLIER", "desc": "+1 use on every special item you find (grenades, molotovs, launchers)", "max": 3, "base": 70, "tier": 1},
 	{"id": "scavenger", "name": "SCAVENGER", "desc": "Ammo boxes give 25% more", "max": 3, "base": 60, "tier": 2},
 	{"id": "long_boosts", "name": "LONG BOOSTS", "desc": "Boosts last 30% longer", "max": 2, "base": 60, "tier": 2},
 	{"id": "laser_sight", "name": "LASER SIGHT", "desc": "A laser line shows your aim", "max": 1, "base": 90, "tier": 1},

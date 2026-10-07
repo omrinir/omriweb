@@ -1072,7 +1072,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		perfect = hit_pos.distance_to(hc) < 6.0 * sc
 		if perfect:
 			dmg *= 2
-	_last_info = {"zone": zone, "source": source, "perfect": perfect, "bullet": src.get("bullet", 0), "blast": src.get("blast", 0),
+	_last_info = {"zone": zone, "source": source, "perfect": perfect, "bullet": src.get("bullet", 0), "blast": src.get("blast", 0), "shot": src.get("shot", 0),
 		"hidden": _cover_state == 2}
 	Game.on_zombie_hit(_last_info)
 	Sfx.play("headshot" if zone == "head" else "hit", hit_pos, -4.0, 0.15, 4)

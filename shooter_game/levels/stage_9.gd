@@ -198,7 +198,7 @@ func _tunnels() -> void:
 		# הפרס במסלול המסוכן
 		for k in 3:
 			var p = PickupScript.new()
-			p.kind = [PickupScript.AMMO, PickupScript.GRENADE, PickupScript.AMMO][k]
+			p.kind = [PickupScript.AMMO, PickupScript.SUPPLY, PickupScript.AMMO][k]
 			p.life = 100000.0
 			main.add_child(p)
 			p.setup(Vector2(lerpf(x0, x1, 0.3 + 0.2 * float(k)), by - 30.0), Vector2.ZERO)

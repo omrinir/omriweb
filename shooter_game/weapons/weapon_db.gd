@@ -61,15 +61,15 @@ const WEAPONS := [
 	{"name": "ASSAULT RIFLE", "unlock_level": 6, "color": Color("9ad070"), "damage": 0.45, "head_mult": 0.5, "fire_rate": 0.2, "magazine_size": 30, "reload_time": 0.9,
 		"range": 2000.0, "spread": 0.05, "recoil": 0.25, "kick": 0.012, "bullet_speed": 2800.0, "knockback": 50.0, "projectile": "bullet",
 		"ammo_type": "rifle", "ammo_start": 60, "ammo_box": 24, "ammo_max": 120, "sound": "ar", "sound_db": -1.0, "style": "ar", "barrel": 26.0, "category": "auto"},
-	{"name": "MOLOTOV", "unlock_level": 7, "color": Color("ff8a30"), "fire_rate": 0.9, "magazine_size": 0, "recoil": 0.0, "bullet_speed": 640.0, "projectile": "molotov",
+	{"name": "MOLOTOV", "special": true, "unlock_level": 7, "color": Color("ff8a30"), "fire_rate": 0.9, "magazine_size": 0, "recoil": 0.0, "bullet_speed": 640.0, "projectile": "molotov",
 		"ammo_type": "bottle", "ammo_start": 3, "ammo_box": 1, "ammo_max": 6, "sound": "throw", "style": "bottle", "barrel": 10.0, "category": "explosive"},
-	{"name": "GRENADE LAUNCHER", "unlock_level": 8, "color": Color("80b060"), "fire_rate": 1.1, "magazine_size": 4, "reload_time": 1.4, "recoil": 0.9,
+	{"name": "GRENADE LAUNCHER", "special": true, "unlock_level": 8, "color": Color("80b060"), "fire_rate": 1.1, "magazine_size": 4, "reload_time": 1.4, "recoil": 0.9,
 		"bullet_speed": 950.0, "knockback": 0.0, "projectile": "launcher",
 		"ammo_type": "40mm", "ammo_start": 6, "ammo_box": 2, "ammo_max": 12, "sound": "launcher", "style": "launcher", "barrel": 24.0, "category": "explosive"},
-	{"name": "ASSAULT SHOTGUN", "unlock_level": 9, "color": Color("ff5a3a"), "falloff": [11.0, 2.0, 460.0], "fire_rate": 0.32, "magazine_size": 8, "reload_time": 1.3,
+	{"name": "ASSAULT SHOTGUN", "unlock_level": 7, "color": Color("ff5a3a"), "falloff": [11.0, 2.0, 460.0], "fire_rate": 0.32, "magazine_size": 8, "reload_time": 1.3,
 		"range": 950.0, "spread": 0.19, "recoil": 1.5, "bullet_speed": 2400.0, "knockback": 170.0, "pellets": 7, "projectile": "bullet",
 		"ammo_type": "shell", "ammo_start": 16, "ammo_box": 6, "ammo_max": 40, "sound": "ashotgun", "style": "ashotgun", "barrel": 24.0, "category": "shotgun"},
-	{"name": "ROCKET LAUNCHER", "unlock_level": 12, "color": Color("e05a30"), "damage": 1.0, "fire_rate": 0.95, "magazine_size": 2, "reload_time": 1.2, "recoil": 1.3,
+	{"name": "ROCKET LAUNCHER", "special": true, "unlock_level": 12, "color": Color("e05a30"), "damage": 1.0, "fire_rate": 0.95, "magazine_size": 2, "reload_time": 1.2, "recoil": 1.3,
 		"bullet_speed": 640.0, "knockback": 0.0, "projectile": "rocket",
 		"ammo_type": "rocket", "ammo_start": 4, "ammo_box": 2, "ammo_max": 10, "sound": "rocket", "style": "rocket", "barrel": 30.0, "category": "explosive"},
 ]
@@ -78,9 +78,11 @@ const WEAPONS := [
 enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, GRENADE_LAUNCHER, ASSAULT_SHOTGUN, ROCKET_LAUNCHER }
 
 
-# נשק שהוסר מהמשחק ("removed": true) - נשאר ברשימה רק כדי שה-id של השאר לא ישתנו
+# נשק שהוסר מהמשחק ("removed": true) או שהוא SPECIAL ("special": true - מולוטוב / משגר רימונים / משגר טילים:
+# פריט חד-פעמי שמוצאים בשלב, progression/arsenal.gd -> SPECIALS) - לא בגלגל, לא בחנות, לא בהתקדמות.
+# נשארים ברשימה רק כדי שה-id של השאר לא ישתנו (והנתונים שלהם משמשים את ה-SPECIAL).
 static func removed(id: int) -> bool:
-	return id < 0 or id >= WEAPONS.size() or bool(WEAPONS[id].get("removed", false))
+	return id < 0 or id >= WEAPONS.size() or bool(WEAPONS[id].get("removed", false)) or bool(WEAPONS[id].get("special", false))
 
 
 static func count() -> int:

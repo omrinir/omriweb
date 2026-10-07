@@ -151,10 +151,8 @@ func _open_trunk() -> void:
 	_trunk_open = true
 	var r := randf()
 	var p = PickupScript.new()
-	if r < 0.6:
+	if r < 0.85:   # (רימונים = SPECIAL, רק 1-2 בשלב - progression/arsenal.gd)
 		p.kind = PickupScript.AMMO
-	elif r < 0.85:
-		p.kind = PickupScript.GRENADE
 	else:
 		p.kind = PickupScript.BOOST
 		p.boost = randi() % 5

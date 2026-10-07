@@ -1,4 +1,5 @@
 extends Node2D
+const Arsenal := preload("res://progression/arsenal.gd")
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 const AbilityDB := preload("res://abilities/ability_db.gd")
 const Upgrades := preload("res://progression/upgrade_db.gd")
@@ -311,9 +312,17 @@ func _draw_bar() -> void:
 	gsb.border_color = Color(0.55, 0.65, 0.3, 0.95 if not gun_on else 0.35)
 	gsb.set_border_width_all(2 if not gun_on else 1)
 	draw_style_box(gsb, gr)
-	draw_circle(gr.get_center() + Vector2(-6, 0), 6.0, Color("5d7030"))
-	draw_rect(Rect2(gr.get_center() + Vector2(-8, -9), Vector2(4, 4)), Color("9a9aa2"))
-	draw_string(f, gr.position + Vector2(0, 24), "x%d" % player.grenades, HORIZONTAL_ALIGNMENT_RIGHT, 40, 13, Color.WHITE)
+	# פריט נפץ (SPECIAL): רימון / מולוטוב / משגר. ריק = מקום אפור
+	if player.special == "":
+		draw_string(f, gr.position + Vector2(0, 24), "-", HORIZONTAL_ALIGNMENT_CENTER, 44, 14, Color(1, 1, 1, 0.3))
+	else:
+		var swid: int = int(Arsenal.SPECIALS[player.special].weapon)
+		if swid < 0:
+			draw_circle(gr.get_center() + Vector2(-6, 0), 6.0, Color("5d7030"))
+			draw_rect(Rect2(gr.get_center() + Vector2(-8, -9), Vector2(4, 4)), Color("9a9aa2"))
+		else:
+			draw_weapon(self, gr.get_center() + Vector2(-2, 0), swid, 0.42)
+		draw_string(f, gr.position + Vector2(0, 24), "x%d" % player.special_uses, HORIZONTAL_ALIGNMENT_RIGHT, 40, 13, Color.WHITE)
 	draw_string(f, gr.position + Vector2(3, 11), "E", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1, 1, 1, 0.45))
 	_draw_ability_bar(Vector2(org.x, org.y + bh + 30.0))
 	# שם הנשק קופץ אחרי החלפה
