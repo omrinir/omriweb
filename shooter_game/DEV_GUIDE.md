@@ -244,21 +244,22 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 * **Accuracy** (`game_state.gd`): every trigger pull gets `Game.shot_id`; bullets carry it (`bullet.gd` `shot`), and a shot counts as a hit
   once no matter how many pellets / pierced zombies it hit (was up to 200%+). Taser hits count too. Clamped to 100%.
 
-## Level 1 opening cutscene - "FIRST ENCOUNTER"
+## Story scenes (in-level conversations)
 
-* `ui/intro_cutscene.gd` - in-engine cinematic with the game's own characters, started from `main.gd` on level 1
-  (once per version: `Game.intro_seen` stores the version seen, bump `Game.INTRO_VERSION` when the scene changes; never after
-  TRY AGAIN / checkpoint / practice). Menu button WATCH INTRO plays it any time (level 1 as practice). ENTER or SPACE = skip.
-  Opens with a walk-in: the player auto-walks (`player.auto_walk`, only used while `controllable` is false), spots the zombie,
-  stops and raises the gun, then approaches slowly (WALK_IN / SPOT_DIST / DIST). Things on the path are hidden AND disabled
-  (pickups passed on the way are moved just ahead of the player at the end; wide bricks = the floor are never touched).
-  Own Camera2D with shots (two-shot, close-ups, a slow pan behind the player, hard-cut close-up). Every shot goes through
-  `_frame()` so the feet sit low in the frame and a strip of ground is always visible.
-  letterbox bars, typed subtitles with speaker names ("???" / "YOU"), voices, then cut to black + boom + "THEY LEARN",
-  and the normal stage title. Everything is frozen during the scene; props between the two are hidden and come back under the black.
-  Edit the dialogue / shots / actions in `BEATS`.
-* Voices: `sounds/intro/p01-p05.mp3` (player - same voice + FX as the monologue), `z01-z08.mp3` (the zombie: Kokoro bm_lewis,
-  fast villain delivery: speed 1.1, pitched down without slowing, rasp layer, thin metallic comb = half-robot). Generator kept outside the repo.
+* Part of the level, not a video: a character stands in the level, the player walks to it himself, and when he gets
+  `spot` px away (on the floor) the game takes control - stops, raises the gun, walks slowly to `dist`, and they talk.
+  Then the ending (`vanish` = cut to black + boom, the character is gone) and play continues from the same spot.
+* `story/story_db.gd` - list of scenes. `story/scenes/l01_stranger.gd` - level 1 scene (copy it for new levels:
+  level, x, actor = registry name, voices folder, names, beats). `story/story_trigger.gd` places the actor, clears the
+  path (props / cover / small bricks removed, pickups moved past the actor) and starts `story/story_scene.gd`
+  (letterbox, own camera, typed subtitles, voices, ENTER / SPACE = skip; zombies frozen, player invulnerable).
+* Plays once per run of the level: `Game.story_seen` resets when a level is started (map / next / CONTINUE / practice),
+  not on TRY AGAIN. Starting from a checkpoint past the scene = no scene.
+* Shots go through `_frame()` so the feet sit low in the frame and a strip of ground is always visible.
+  `player.auto_walk` (used only while `controllable` is false) does the scripted walk; `player.calm` softens the idle
+  breathing during the scene (in close-ups it looked like the player rising).
+* Level 1 voices: `sounds/story/l01_stranger/` - player = Kokoro am_onyx + monologue FX, zombie = Kokoro bm_lewis,
+  fast villain delivery (speed 1.1, pitched down without slowing, rasp layer, thin metallic comb = half-robot).
 * The zombie = `enemies/types/stranger.gd` (registry `STRANGER`, scale 1.1 - a bit taller than the player): flayed "revenant" - skull with red eyes and a lipless grin,
   ribs and guts, metal braces, a cannon arm with red hoses, a hooked metal claw, metal knee braces and toe claws.
   Controls from the scene: `talking`, `tilt`, `smile`, `look_back`. Recurring character - he disappears in the black, not killed.

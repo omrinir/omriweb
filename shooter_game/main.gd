@@ -307,16 +307,14 @@ func _ready() -> void:
 	var wheel = WheelScript.new()   # גלגל נשקים (TAB)
 	wheel.player = player
 	hud.add_child(wheel)
-	# סצנת הפתיחה של שלב 1 (פעם אחת לכל גרסה, לא אחרי TRY AGAIN / נקודת ביקורת; או מכפתור WATCH INTRO)
-	var want_intro: bool = Game.watch_intro or (Game.intro_seen < Game.INTRO_VERSION and not Game.practice)
-	Game.watch_intro = false
-	if Game.level == 1 and not Game.use_checkpoint and want_intro:
-		var intro = preload("res://ui/intro_cutscene.gd").new()
-		intro.main = self
-		intro.player = player
-		intro.hud_layer = hud
-		intro.hud_bar = bar
-		add_child(intro)
+	# סצנות סיפור בתוך השלב (story/story_db.gd): דמות עומדת בשלב, מגיעים אליה -> שיחה. פעם אחת בכל משחק של השלב
+	for sc in preload("res://story/story_db.gd").for_level(Game.level):
+		if not Game.story_seen.has(sc.id):
+			var trig = preload("res://story/story_trigger.gd").new()
+			trig.data = sc
+			trig.main = self
+			trig.hud_layer = hud
+			add_child(trig)
 
 
 # ============================================================

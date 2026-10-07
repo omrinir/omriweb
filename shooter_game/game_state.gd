@@ -221,9 +221,7 @@ var _practice_backup := {}
 var attempt_seed := 0             # מבנה השלב בניסיון הזה (0 = אקראי)
 var checkpoint := {}              # {"level", "x", "slots", "special", "special_uses", "seed", "run_score", "scrap"}
 var use_checkpoint := false       # השלב הבא שנטען מתחיל מנקודת הביקורת
-const INTRO_VERSION := 2          # מעלים כשסצנת הפתיחה משתנה -> מי שראה גרסה ישנה יראה אותה שוב פעם אחת
-var intro_seen := 0               # איזו גרסה של סצנת הפתיחה של שלב 1 כבר הוצגה (ui/intro_cutscene.gd)
-var watch_intro := false          # כפתור WATCH INTRO בתפריט: מציג אותה עכשיו בכל מקרה
+var story_seen := {}              # סצנות סיפור שכבר הוצגו במשחק הנוכחי של השלב (story/) - מתאפס בכניסה לשלב, לא ב-TRY AGAIN
 
 
 func has_progress() -> bool:
@@ -254,6 +252,7 @@ func start_practice(lv: int) -> void:
 		_practice_backup = save_dict().duplicate(true)
 	practice = true
 	level = lv
+	story_seen = {}
 	weapon_slots = Arsenal.loadout_for(lv)
 	run_score = 0
 	level_score = 0
@@ -286,6 +285,7 @@ func reach_checkpoint(x: float, player: Node) -> void:
 # מתחילים שלב מהמפה (הנשקים, השדרוגים והגרוטאות נשמרים)
 func start_level(lv: int) -> void:
 	level = lv
+	story_seen = {}
 	attempt_seed = (randi() % 1000000) + 1   # מבנה חדש לשלב, נשמר לכל הניסיונות החוזרים
 	use_checkpoint = false
 	if not checkpoint.is_empty() and int(checkpoint.level) != lv:
@@ -307,7 +307,7 @@ func save_dict() -> Dictionary:
 		best[str(k)] = level_best[k]
 	return {"game": "THEY LEARN", "version": 1, "completed": comp, "level_best": best, "weapon_slots": weapon_slots,
 		"scrap": scrap, "upgrades": upgrades, "seen_weapons": seen_weapons, "ability_slots": ability_slots, "trophies": trophies, "high_scores": high_scores, "lifetime": lifetime,
-		"difficulty": Settings.difficulty, "checkpoint": checkpoint, "intro_seen": intro_seen}
+		"difficulty": Settings.difficulty, "checkpoint": checkpoint}
 
 
 func load_dict(d: Dictionary) -> bool:
@@ -784,7 +784,6 @@ func _load() -> void:
 		var asl = d.get("ability_slots", [])
 		if asl is Array and asl.size() == 5:
 			ability_slots = asl.duplicate()
-		intro_seen = int(d.get("intro_seen", 0))   # שמירות ישנות: true = גרסה 1
 		var cp = d.get("checkpoint", {})
 		if cp is Dictionary and cp.has("level") and cp.has("slots"):
 			checkpoint = cp

@@ -61,6 +61,7 @@ var glove_color := Color("141418")
 ## לאן הדמות מכוונת כשהיא לא נשלטת
 var idle_aim := Vector2(-1.0, 0.25).normalized()
 var auto_walk := 0.0   # כשלא בשליטה (סצנה): כיוון ומהירות הליכה אוטומטית (-1..1)
+var calm := false      # בסצנת סיפור: נשימה חלשה (בתקריב הנשימה הרגילה נראית כמו "עלייה")
 ## עיניים זוהרות בתוך הברדס (false = רק חושך, כמו בתמונה)
 @export var glowing_eyes := false
 var eye_color := Color("ff3030")
@@ -1476,7 +1477,7 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	var air := not is_on_floor() and not limp
 	var p := _walk_phase
 	# נשימה: החזה עולה ויורד, הראש נוטה קצת אחורה בשאיפה, והמשקל עובר מרגל לרגל
-	var idle := 0.0 if limp else _idle_k
+	var idle := 0.0 if limp else _idle_k * (0.2 if calm else 1.0)
 	var br := sin(_time * BREATH_SPEED) * idle
 	var sway := sin(_time * 0.55) * idle
 	var breathe := sin(_time * 2.2) * 0.6 * (1.0 - speed_k) * (1.0 - idle)

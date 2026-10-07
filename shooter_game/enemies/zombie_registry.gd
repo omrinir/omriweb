@@ -16,7 +16,7 @@ enum {
 	CRUMBLER, RETCHER,             # שלב 14
 	BOMBHEAD, MINIGUNNER, STILTER, # שלב 15
 	SWARMER, BROODMOTHER,          # שלב 16
-	STRANGER,                      # "החבר" מסצנת הפתיחה (ui/intro_cutscene.gd)
+	STRANGER,                      # "החבר" מסצנת הסיפור של שלב 1 (story/)
 }
 
 const FIRST := 20
