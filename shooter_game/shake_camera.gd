@@ -5,11 +5,14 @@ extends Camera2D
 #      get_viewport().get_camera_2d().shake(10.0, 0.3)
 #  "זום קטן" (למשל בקפיצה):  ...get_camera_2d().punch_zoom(0.03)
 #  (0.03 = 3% זום פנימה, נכנס בעדינות ודועך חזרה לזום הרגיל)
+#  הזום עובר דרך שני שלבי החלקה ברצף -> עקומת S: מתחיל לאט, מאיץ, ונרגע (בלי "קפיצה" בהתחלה).
+#  שיא אחרי ~0.33 שנ' (כ-80% מהכמות), מחזיק רגע (punch_hold) ודועך חזרה תוך ~שנייה.
 # ============================================================
 
-## כמה מהר הזום הקטן נכנס / דועך חזרה
-@export var punch_in_speed := 26.0
-@export var punch_out_speed := 3.0
+## כמה מהר הזום הקטן נכנס (החלקה) / כמה זמן מחזיק בשיא / כמה מהר דועך חזרה
+@export var punch_in_speed := 10.0
+@export var punch_hold := 0.18
+@export var punch_out_speed := 2.2
 # ============================================================
 
 ## כמה מהר הרעידה נחלשת
@@ -21,6 +24,8 @@ var _duration := 0.0
 var _base_zoom := Vector2.ONE
 var _punch_target := 0.0
 var _punch := 0.0
+var _punch_mid := 0.0       # שלב ההחלקה הראשון (השני = _punch)
+var _punch_hold_t := 0.0
 var _anchor_off := Vector2.ZERO   # הזזה שמשאירה את השחקן במקום על המסך בזמן הזום
 
 
@@ -31,7 +36,9 @@ func _ready() -> void:
 
 # amount = כמה זום להוסיף (0.03 = 3%). זום חזק יותר דורס חלש יותר
 func punch_zoom(amount: float) -> void:
-	_punch_target = maxf(_punch_target, amount)
+	if amount >= _punch_target:
+		_punch_target = amount
+		_punch_hold_t = punch_hold
 
 
 # strength = כמה פיקסלים המסך זז, duration = כמה שניות
@@ -43,12 +50,17 @@ func shake(strength := 8.0, duration := 0.25) -> void:
 
 
 func _process(delta: float) -> void:
-	# זום קטן: נכנס מהר אל היעד, והיעד דועך חזרה לאפס
-	_punch = lerpf(_punch, _punch_target, 1.0 - exp(-punch_in_speed * delta))
-	_punch_target *= exp(-punch_out_speed * delta)
+	# זום קטן: היעד מחזיק רגע ואז דועך; הזום עצמו עוקב אחריו דרך שתי החלקות (עקומת S רכה)
+	if _punch_hold_t > 0.0:
+		_punch_hold_t -= delta
+	else:
+		_punch_target *= exp(-punch_out_speed * delta)
 	if _punch_target < 0.0005:
 		_punch_target = 0.0
-	if _punch > 0.0005 or _punch_target > 0.0:
+	var kp := 1.0 - exp(-punch_in_speed * delta)
+	_punch_mid = lerpf(_punch_mid, _punch_target, kp)
+	_punch = lerpf(_punch, _punch_mid, kp)
+	if _punch > 0.0005 or _punch_mid > 0.0005 or _punch_target > 0.0:
 		zoom = _base_zoom * (1.0 + _punch)
 		# הזום "נכנס" אל השחקן (לא אל מרכז המסך): מזיזים את המצלמה כך שהשחקן נשאר באותה נקודה במסך
 		var p := get_parent() as Node2D
