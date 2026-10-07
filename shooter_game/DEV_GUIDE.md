@@ -248,7 +248,9 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 
 * Part of the level, not a video: a character stands in the level, the player walks to it himself, and when he gets
   `spot` px away (on the floor) the game takes control - stops, raises the gun, walks slowly to `dist`, and they talk.
-  Then the ending (`vanish` = cut to black + boom, the character is gone) and play continues from the same spot.
+  Then the ending (`leap` = crouches and jumps up out of the frame, `vanish` = cut to black + boom) and play continues.
+  The player holds the gun low the whole scene (`LOW_READY`) - level aim showed the sprite's hanging hand next to the drawn ones.
+  Subtitle names come from `names` ("" = no name, e.g. the stranger before he is known).
 * `story/story_db.gd` - list of scenes. `story/scenes/l01_stranger.gd` - level 1 scene (copy it for new levels:
   level, x, actor = registry name, voices folder, names, beats). `story/story_trigger.gd` places the actor, clears the
   path (props / cover / small bricks removed, pickups moved past the actor) and starts `story/story_scene.gd`

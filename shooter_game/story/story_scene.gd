@@ -12,6 +12,7 @@ const Art := preload("res://art.gd")
 const Sfx := preload("res://sfx.gd")
 const FONT_PATH := "res://fonts/Bangers-Regular.ttf"
 const BAR_H := 78.0            # גובה הפסים השחורים (במסך)
+const LOW_READY := Vector2(1.0, 0.8)   # השחקן מחזיק את הנשק למטה באלכסון (מכסה את היד השנייה שבספרייט)
 
 var data: Dictionary = {}      # הסצנה (story/scenes/*.gd -> SCENE)
 var main: Node = null
@@ -57,7 +58,7 @@ func _ready() -> void:
 	player.controllable = false
 	player.auto_walk = 0.0
 	player.calm = true
-	player.idle_aim = Vector2.RIGHT   # רואה אותו -> מרים נשק
+	player.idle_aim = LOW_READY.normalized()
 	for zz in get_tree().get_nodes_in_group("zombies"):   # כולם קופאים בזמן הסצנה
 		if zz.is_physics_processing():
 			zz.set_physics_process(false)
@@ -147,6 +148,10 @@ func _run() -> void:
 	if done:
 		return
 	match String(data.get("ending", "vanish")):
+		"leap":   # מתכופף, וקופץ גבוה החוצה מהמסך (דמות חוזרת)
+			_line = ""
+			await _leap()
+			await _wait(0.8)
 		_:   # vanish: חיתוך לשחור + בום, הדמות נעלמת בחושך (דמות חוזרת)
 			_black = 1.0
 			_line = ""
@@ -156,6 +161,27 @@ func _run() -> void:
 				actor = null
 			await _wait(1.1)
 	_finish()
+
+
+func _leap() -> void:
+	if actor == null or not is_instance_valid(actor):
+		return
+	actor.set_physics_process(false)
+	var p0: Vector2 = actor.position
+	var away := signf(actor.global_position.x - player.global_position.x)
+	var tw := create_tween()
+	tw.tween_property(actor, "scale", Vector2(1.08, 0.82), 0.22).set_trans(Tween.TRANS_SINE)   # מתכופף
+	tw.parallel().tween_property(actor, "position:y", p0.y + 3.0, 0.22)
+	tw.tween_callback(func(): Sfx.play("jump", actor.global_position, 2.0, 0.0, 1, 0.7))
+	tw.tween_callback(func(): Sfx.play("whoosh", actor.global_position, 0.0, 0.0, 1, 0.8))
+	tw.tween_property(actor, "scale", Vector2(0.9, 1.15), 0.08)   # נמתח בזינוק
+	tw.tween_property(actor, "position:y", p0.y - 520.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(actor, "position:x", p0.x + away * 160.0, 0.5)
+	tw.parallel().tween_property(actor, "rotation", away * 0.35, 0.5)
+	await _wait(0.85)
+	if actor != null and is_instance_valid(actor):
+		actor.queue_free()
+		actor = null
 
 
 # הליכה אוטומטית עד x (אם משהו חוסם - אחרי max_t שניות ממשיכים מאיפה שהוא)
@@ -254,8 +280,8 @@ func _act(a: String) -> void:
 	match a:
 		"aim":   # מכוון לראש
 			player.idle_aim = Vector2(1.0, -0.12).normalized()
-		"lower":   # מוריד קצת את הרובה
-			player.idle_aim = Vector2(1.0, 0.4).normalized()
+		"lower":   # מוריד את הרובה (מצב ברירת המחדל בסצנה)
+			player.idle_aim = LOW_READY.normalized()
 		"tilt":
 			if tm != null:
 				create_tween().tween_property(tm, "tilt", 0.22, 0.4)
@@ -345,16 +371,22 @@ func _on_draw() -> void:
 	if _black > 0.0:
 		_draw.draw_rect(Rect2(Vector2.ZERO, vs), Color(0, 0, 0, _black))
 	if _line != "" and _black < 0.5:
-		var name: String = data.get("names", {}).get(_who, "???" if _who != "P" else "YOU")
+		var name: String = data.get("names", {}).get(_who, "YOU" if _who == "P" else "")
 		var col := Color(0.75, 0.88, 1.0) if _who == "P" else Color(1.0, 0.35, 0.28)
-		var txt := _line.substr(0, int(_shown))
-		var y := vs.y - 30.0
-		var w := f.get_string_size(name + "   " + _line, HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
-		var x := (vs.x - w) * 0.5
-		_draw.draw_string_outline(f, Vector2(x, y), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)
-		_draw.draw_string(f, Vector2(x, y), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, col)
-		var nx := x + f.get_string_size(name + "   ", HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
-		_draw.draw_string_outline(f, Vector2(nx, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)
-		_draw.draw_string(f, Vector2(nx, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(0.96, 0.95, 0.9))
+		if name == "":   # בלי שם: רק הטקסט, באמצע
+			var tw0 := f.get_string_size(_line, HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
+			var p0 := Vector2((vs.x - tw0) * 0.5, vs.y - 30.0)
+			_draw.draw_string_outline(f, p0, _line.substr(0, int(_shown)), HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)
+			_draw.draw_string(f, p0, _line.substr(0, int(_shown)), HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(0.96, 0.95, 0.9))
+		else:
+			var txt := _line.substr(0, int(_shown))
+			var y := vs.y - 30.0
+			var w := f.get_string_size(name + "   " + _line, HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
+			var x := (vs.x - w) * 0.5
+			_draw.draw_string_outline(f, Vector2(x, y), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)
+			_draw.draw_string(f, Vector2(x, y), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, col)
+			var nx := x + f.get_string_size(name + "   ", HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
+			_draw.draw_string_outline(f, Vector2(nx, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)
+			_draw.draw_string(f, Vector2(nx, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(0.96, 0.95, 0.9))
 	if not done and _bars > 0.5:
 		_draw.draw_string(f, Vector2(vs.x - 150.0, 50.0), "ENTER  -  SKIP", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, 0.45))
