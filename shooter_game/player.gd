@@ -134,7 +134,8 @@ var _magic := []                 # חלקיקי קסם עדינים סביב ה�
 var _magic_t := 0.0
 var _flames := []                # GOD MODE: להבות אדומות על כל הגוף [מיקום בעולם, מהירות, גיל, חיים, גודל]
 var _flame_t := 0.0
-const GOD_TIME := 13.0           # כמה זמן GOD MODE נמשך
+const GOD_TIME := 23.0           # כמה זמן GOD MODE נמשך
+const GOD_RAMP := 2.5            # בהתחלה מעט להבות, ותוך 2.5 שניות עולה לכמות הרגילה
 var _dust := []                  # אבק מהרגליים בריצה: [מיקום בעולם, מהירות, גיל, חיים, גודל]
 var _base_xf := Transform2D.IDENTITY
 var _aim := Vector2.RIGHT
@@ -578,13 +579,13 @@ func _physics_process(delta: float) -> void:
 		m[0] += m[1] * delta
 	_magic = _magic.filter(func(m): return m[2] < m[3])
 	# GOD MODE: הגוף בוער - להבות אדומות עולות מכל הגוף
-	_flame_t -= delta
+	# (בלי GOD MODE הטיימר לא רץ - אחרת הוא "צובר" ופולט אלפי להבות בבת אחת כששותים)
+	_flame_t = maxf(_flame_t - delta, -0.05) if god_mode() and not dead else 0.0
 	while god_mode() and not dead and _flame_t <= 0.0:
-		_flame_t += 0.022
+		var ramp := clampf((GOD_TIME - float(boosts.get(PickupScript.GOD, 0.0))) / GOD_RAMP, 0.2, 1.0)
+		_flame_t += 0.022 / ramp
 		var fo := Vector2(randf_range(-10.0, 10.0), randf_range(-54.0, -2.0))
 		_flames.append([global_position + fo, Vector2(randf_range(-14.0, 14.0) + velocity.x * 0.15, randf_range(-95.0, -45.0)), 0.0, randf_range(0.22, 0.42), randf_range(1.2, 2.5)])
-	if _flame_t > 0.05:
-		_flame_t = 0.0
 	for f in _flames:
 		f[2] += delta
 		f[0] += f[1] * delta
@@ -1541,7 +1542,8 @@ func _draw_flames() -> void:
 		var p: Vector2 = f[0] - global_position
 		var c := Color(1.0, 0.9, 0.55).lerp(Color(1.0, 0.15, 0.06), minf(k * 2.2, 1.0)).lerp(Color(0.35, 0.02, 0.02), maxf(k * 2.0 - 1.0, 0.0))
 		var r: float = f[4] * (1.0 - k * 0.55)
-		draw_circle(p, r * 2.4, Color(1.0, 0.1, 0.04, 0.12 * (1.0 - k)))
+		if int(f[4] * 100.0) % 2 == 0:   # הילה רק לחצי מהלהבות (חוסך ציור)
+			draw_circle(p, r * 2.4, Color(1.0, 0.1, 0.04, 0.14 * (1.0 - k)))
 		draw_circle(p, r, Color(c, 0.9 * (1.0 - k * k)))
 	draw_set_transform_matrix(_base_xf)
 

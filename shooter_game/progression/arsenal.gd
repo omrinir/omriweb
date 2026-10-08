@@ -31,7 +31,7 @@ const SPECIALS := {
 	"molotov": {"name": "MOLOTOVS", "uses": 2, "from": 3, "weight": 2.0, "color": Color("ff8a30"), "weapon": 8},
 	"launcher": {"name": "GRENADE LAUNCHER", "uses": 4, "from": 5, "weight": 1.6, "color": Color("80b060"), "weapon": 9},
 	"rocket": {"name": "ROCKET LAUNCHER", "uses": 2, "from": 8, "weight": 1.0, "color": Color("e05a30"), "weapon": 11},
-	# שיקוי GOD MODE: מתחיל מיד כשלוקחים אותו (player.collect). 13 שניות: הגוף בוער, קליעי אש אדומים, נזק פי 4 (+300%)
+	# שיקוי GOD MODE: מתחיל מיד כשלוקחים אותו (player.collect). 23 שניות: הגוף בוער, קליעי אש אדומים, נזק פי 4 (+300%)
 	# לא נופל באקראי ("from" 999) - מופיע רק בשלבים של potion_levels()
 	"god": {"name": "GOD MODE", "uses": 1, "from": 999, "weight": 0.0, "color": Color("ff2a2a"), "weapon": -2},
 }
