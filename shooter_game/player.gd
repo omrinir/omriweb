@@ -185,6 +185,9 @@ var _step_t := 0.0               # צעדים (צליל)
 var _dist := 0.0                 # כמה הלכנו (לקצב פריימי ההליכה / הריצה)
 var _air_t := 0.0
 var _land_t := 0.0
+var _land_anim := 0.0   # אנימציית נחיתה (כריעה וקימה) - רק ויזואלי
+var _flip_t := 0.0      # סלטה בקפיצה הכפולה
+const FLIP_T := 0.4
 var _hurt_t := 0.0
 var _anim := "idle"
 var _was_floor := true
@@ -493,6 +496,7 @@ func _physics_process(delta: float) -> void:
 			velocity.y = jump_velocity * 0.85
 			Sfx.play("whoosh", global_position, -2.0)
 			_jump_zoom(DOUBLE_JUMP_ZOOM)
+			_flip_t = FLIP_T
 			preload("res://particles.gd").burst(get_parent(), global_position, "smoke", Vector2.DOWN, 6)
 	_jump_was = jump
 
@@ -517,6 +521,8 @@ func _physics_process(delta: float) -> void:
 	# קצב האנימציה
 	_hurt_t -= delta
 	_land_t -= delta
+	_land_anim -= delta
+	_flip_t -= delta
 	if is_on_floor():
 		_dist += absf(velocity.x) * delta
 		_air_t = 0.0
@@ -532,6 +538,9 @@ func _physics_process(delta: float) -> void:
 				var back := -signf(velocity.x)
 				for i in 3:
 					_dust.append([global_position + Vector2(back * randf_range(2.0, 8.0), -1.5), Vector2(back * randf_range(25.0, 70.0), randf_range(-28.0, -8.0)), 0.0, randf_range(0.35, 0.55), randf_range(2.0, 3.6)])
+	if is_on_floor() and not _was_floor and fall_v > 120.0:
+		_land_anim = 0.3 if fall_v > 250.0 else 0.16
+		_flip_t = 0.0
 	if is_on_floor() and not _was_floor and fall_v > 250.0:
 		_land_t = 0.12   # פריים נחיתה
 		Sfx.play("splash" if in_water else "land", global_position, -2.0)
@@ -1426,14 +1435,24 @@ func _hero_frame() -> Array:
 		return ["slide", clampi(int((1.0 - _slide_t / 0.55) * 3.0), 0, 2)]
 	if _hurt_t > 0.0:
 		return ["hurt", clampi(int((0.3 - _hurt_t) / 0.1), 0, 2)]
-	if not is_on_floor() and _air_t > 0.05:
-		if velocity.y < -250.0:
-			return ["jump", 2]
-		if velocity.y < 80.0:
+	if _flip_t > 0.0:
+		return ["jump", 3]   # מקופל בזמן הסלטה
+	if not is_on_floor() and _air_t > 0.03:
+		# המראה -> עולה -> שיא -> נופל (לפי המהירות האנכית)
+		var vy := velocity.y
+		if vy < -250.0:
+			return ["jump", 1 if _air_t < 0.12 else 2]
+		if vy < -70.0:
 			return ["jump", 3]
-		return ["fall", mini(int((_air_t) * 4.0), 2)]
-	if _land_t > 0.0:
-		return ["jump", 4]
+		if vy < 110.0:
+			return ["jump", 4]
+		if vy < 380.0:
+			return ["fall", 0]
+		return ["fall", 3]   # נפילה ארוכה: רגליים למטה, מוכן לנחיתה
+	if _land_anim > 0.0 and absf(velocity.x) < 30.0:
+		return ["land", [2, 1, 4][clampi(int((1.0 - _land_anim / 0.3) * 3.0), 0, 2)]]
+	if _land_anim > 0.0:
+		return ["jump", 7]
 	if _crouching:
 		if absf(velocity.x) > 20.0:
 			return ["crouch", [0, 4][int(_dist / 22.0) % 2]]
@@ -1456,9 +1475,14 @@ func _draw_hero(la: Vector2) -> void:
 	var s := SPRITE_SCALE
 	if HeroAnim.FLIP.has(fi[0]):   # פריים שמצויר בדף לכיוון השני
 		draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(-1.0, 1.0), 0.0, Vector2.ZERO))
+	var flip := _flip_t > 0.0
+	if flip:   # סלטה קדימה סביב מרכז הגוף
+		var k := 1.0 - _flip_t / FLIP_T
+		var piv := Vector2(0.0, -24.0)
+		draw_set_transform_matrix(_base_xf * Transform2D(0.0, piv) * Transform2D(TAU * (k * k * (3.0 - 2.0 * k)), Vector2.ZERO) * Transform2D(0.0, -piv))
 	draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s), Rect2(fr[0], fr[1], fr[2], fr[3]))
 	draw_set_transform_matrix(_base_xf)
-	if dead or _melee_t > 0.0 or _roll_t > 0.0 or _slide_t > 0.0 or unarmed:
+	if dead or _melee_t > 0.0 or _roll_t > 0.0 or _slide_t > 0.0 or unarmed or flip:
 		return
 	# ידיים + נשק מעל הספרייט (מכוונים לעכבר)
 	var c := _crouch_k
