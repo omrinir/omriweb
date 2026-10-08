@@ -285,8 +285,13 @@ const SAMPLES := {
 	"scream": ["fscream1", "fscream2", "fscream3"],     # SCREAMER
 	"fscream": ["fscream1", "fscream2", "fscream3"],    # צרחה נשית (MIMIC משתנה)
 	"fwail": ["fwail1", "fwail2"],                      # יללת מוות נשית
+	# יריות אמיתיות (sounds/guns): רובה כמו שהוא, אקדח מהיר יותר, נשקים אוטומטיים קצרים ומהירים
+	"rifle": ["res://sounds/guns/rifle_shot"],
+	"pistol": ["res://sounds/guns/pistol_shot"],
+	"smg": ["res://sounds/guns/auto_shot"],
+	"ar": ["res://sounds/guns/auto_shot"],
 }
-const SAMPLE_GAIN := {"groan": 8.0, "_": 7.5}
+const SAMPLE_GAIN := {"groan": 8.0, "rifle": 0.0, "pistol": -1.0, "smg": -2.0, "ar": -1.0, "_": 7.5}
 static var _samples := {}
 
 
@@ -296,7 +301,7 @@ static func _check_samples() -> void:
 	var missing := []
 	for k in SAMPLES:
 		for f in SAMPLES[k]:
-			var path: String = SAMPLE_DIR + str(f) + ".mp3"
+			var path: String = _sample_path(str(f))
 			if ResourceLoader.exists(path) or FileAccess.file_exists(path):
 				total += 1
 			elif not missing.has(path):
@@ -307,6 +312,10 @@ static func _check_samples() -> void:
 		push_warning("[ZOMBIE VOICES] missing %d clip(s), e.g. %s - copy the sounds/zombies folder into the game folder" % [missing.size(), missing[0]])
 
 
+static func _sample_path(file: String) -> String:   # שם קצר = sounds/zombies, או נתיב מלא (res://...)
+	return (file if file.begins_with("res://") else SAMPLE_DIR + file) + ".mp3"
+
+
 static func _sample(name: String) -> AudioStream:
 	if not SAMPLES.has(name):
 		return null
@@ -314,7 +323,7 @@ static func _sample(name: String) -> AudioStream:
 	var file: String = list[randi() % list.size()]
 	if _samples.has(file):
 		return _samples[file]
-	var path := SAMPLE_DIR + file + ".mp3"
+	var path := _sample_path(file)
 	var st: AudioStream = null
 	if ResourceLoader.exists(path):
 		st = load(path) as AudioStream
