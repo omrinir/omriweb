@@ -1440,13 +1440,13 @@ func _hero_frame() -> Array:
 		return ["crouch", 1]
 	if absf(velocity.x) > 30.0:
 		var back := signf(velocity.x) != _face()   # הולך אחורה (מכוון לצד השני): הפריימים הפוך
-		# הליכה וריצה: פריימי ההליכה המלאים (פריימי הריצה בגיליון חתוכים), בריצה מהר יותר + הטיה קדימה
-		var nw: int = HeroAnim.FRAMES["walk"].size()
-		var i := int(_dist / (8.5 if _running else 6.5)) % nw
+		var an := "run" if _running else "walk"
+		var nf: int = HeroAnim.FRAMES[an].size()
+		var i := int(_dist / (17.0 if _running else 11.0)) % nf
 		if back:
-			i = nw - 1 - i
-		return ["walk", i]
-	return ["idle", int(_time * 7.0) % 8]
+			i = nf - 1 - i
+		return [an, i]
+	return ["idle", int(_time * 6.0) % HeroAnim.FRAMES["idle"].size()]
 
 
 func _draw_hero(la: Vector2) -> void:
@@ -1456,9 +1456,6 @@ func _draw_hero(la: Vector2) -> void:
 	var s := SPRITE_SCALE
 	if HeroAnim.FLIP.has(fi[0]):   # פריים שמצויר בדף לכיוון השני
 		draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(-1.0, 1.0), 0.0, Vector2.ZERO))
-	if _running and fi[0] == "walk" and is_on_floor():   # ריצה: הטיה קדימה (סביב כפות הרגליים) + קפיצה קטנה בכל צעד
-		var bob := -absf(sin(_dist / 68.0 * PI)) * 1.5
-		draw_set_transform_matrix(_base_xf * Transform2D(0.13, Vector2(0.0, bob)))
 	draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s), Rect2(fr[0], fr[1], fr[2], fr[3]))
 	draw_set_transform_matrix(_base_xf)
 	if dead or _melee_t > 0.0 or _roll_t > 0.0 or _slide_t > 0.0 or unarmed:
@@ -1469,8 +1466,8 @@ func _draw_hero(la: Vector2) -> void:
 	# הנשק והידיים קטנים יותר (מתאים לדמות הרזה מהספרייט), סביב הכתף
 	var ws := 0.72
 	draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(ws, ws), 0.0, sh * (1.0 - ws)))
-	if _running and is_on_floor() and _anim == "walk":   # ריצה: הגוף נוטה קדימה (ראה _draw_hero) - הידיים איתו
-		sh += Vector2(4.8, 0.3)
+	if _anim == "run":   # ריצה: הגוף בפריימים נוטה קדימה - הידיים איתו
+		sh += Vector2(2.0, 7.0)
 	elif _anim == "hurt":
 		sh += Vector2(-2.0, 4.0)
 	var hand := sh + la * 15.0 - la * 2.5 * _recoil
