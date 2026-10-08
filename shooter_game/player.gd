@@ -792,7 +792,9 @@ func aim_spread() -> float:
 
 # קו מנוקד עדין מהקנה (כמו My Friend Pedro / Katana Zero). שוטגאן: שני קווים = הקונוס
 func _draw_aim_guide() -> void:
-	if Settings.aim_guide < 2 or not controllable or dead or unarmed or weapon != GUN or gun == BOW:
+	if Settings.aim_guide < 2 or Settings.difficulty != Settings.EASY:   # הקו המנוקד רק ב-EASY (הכוונת בכל הרמות)
+		return
+	if not controllable or dead or unarmed or weapon != GUN or gun == BOW:
 		return
 	if Upgrades.perk("laser_sight") > 0 or _scoping or _drain_target != null or wheel_open:
 		return   # לייזר (שדרוג) / כוונת צלף כבר מראים את הקו
@@ -1314,9 +1316,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.physical_keycode == KEY_R and not dead:   # R = טעינה
 		reload()
 	elif event.physical_keycode == KEY_L:   # מדריך כוונה: כוונת + קו / רק כוונת / כבוי
-		Settings.aim_guide = (Settings.aim_guide + 2) % 3
+		if Settings.difficulty == Settings.EASY:   # EASY: כוונת + קו / רק כוונת / כבוי
+			Settings.aim_guide = (Settings.aim_guide + 2) % 3
+		else:   # NORMAL / HARD: אין קו - רק כוונת / כבוי
+			Settings.aim_guide = 0 if Settings.aim_guide > 0 else 2
 		Settings._save()
-		_say("AIM: " + Settings.AIM_NAMES[Settings.aim_guide], Color(0.9, 0.9, 0.85))
+		var nm: String = Settings.AIM_NAMES[Settings.aim_guide] if Settings.difficulty == Settings.EASY or Settings.aim_guide == 0 else "CROSSHAIR"
+		_say("AIM: " + nm, Color(0.9, 0.9, 0.85))
 	elif event.physical_keycode == KEY_K:
 		_invuln = 0.0
 		boosts.erase(PickupScript.GOD)
