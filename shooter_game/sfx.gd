@@ -290,8 +290,11 @@ const SAMPLES := {
 	"pistol": ["res://sounds/guns/pistol_shot"],
 	"smg": ["res://sounds/guns/auto_shot"],
 	"ar": ["res://sounds/guns/auto_shot"],
+	# ירייה בראש: 2 קולות פגיעה x 3 מהירויות (רגיל / מהיר / מהיר מאוד) = 6, נבחר אקראית
+	"headshot": ["res://sounds/guns/headshot1_1", "res://sounds/guns/headshot1_2", "res://sounds/guns/headshot1_3",
+		"res://sounds/guns/headshot2_1", "res://sounds/guns/headshot2_2", "res://sounds/guns/headshot2_3"],
 }
-const SAMPLE_GAIN := {"groan": 8.0, "rifle": 0.0, "pistol": -1.0, "smg": -2.0, "ar": -1.0, "_": 7.5}
+const SAMPLE_GAIN := {"groan": 8.0, "rifle": 0.0, "pistol": -1.0, "smg": -2.0, "ar": -1.0, "headshot": 2.0, "_": 7.5}
 static var _samples := {}
 
 
