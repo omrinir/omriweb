@@ -1382,6 +1382,8 @@ func _draw() -> void:
 		var k: float = m[2] / m[3]
 		var a := 0.32 * minf(k * 5.0, 1.0) * (1.0 - k)
 		var c: Color = m[5]
+		if health == 1 and not dead:   # חיים אחרונים: החלקיקים אדומים-בהירים
+			c = Color(1.0, 0.5 + 0.2 * fposmod(m[4] * 7.0, 1.0), 0.55)
 		var p: Vector2 = m[0] - global_position
 		draw_circle(p, m[4] * 3.2, Color(c, a * 0.18))
 		draw_circle(p, m[4], Color(c.lerp(Color.WHITE, 0.4), a))
