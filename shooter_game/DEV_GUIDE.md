@@ -305,7 +305,7 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   (`actor_props: {"no_shadow": true}`); ending "shimmer" = he dissolves like a mirage.
 
 ## GOD MODE potion
-- Special item `"god"` (progression/arsenal.gd SPECIALS, never random). Placed by main.gd: level 3 at the start (x 420), then `Arsenal.potion_levels()` (every 2-3 levels, fixed seed) at a random spot.
+- Special item `"god"` (progression/arsenal.gd SPECIALS, never random). Placed by main.gd on `Arsenal.potion_levels()` (3, then every 2-3 levels, fixed seed) in the middle of the level (POTION_MID 42-58%), at the spot with the most zombies around. Player cannot be hurt while it lasts (player.hurt).
 - Picking it up starts it at once (player.collect -> `_drink_god`, not stored as a special): `boosts[PickupScript.GOD] = player.GOD_TIME` (13 s, HUD boost row shows it). Light on particles: body flames ~15 alive, 1 bullet ember per 2 frames (max 8), 14-part hit burst.
 - While active: body flames (`player._flames`), bullets get `god = true` (red ember trail + `GodBurst` on hit, bullet.gd), zombie.gd multiplies damage x4 when `src.god`.
 - Potion art: `PickupScript.draw_potion(ci, pos, scale, time)` (ground, HUD slot, hand, boost icon).

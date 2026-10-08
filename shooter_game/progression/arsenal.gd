@@ -36,7 +36,8 @@ const SPECIALS := {
 	"god": {"name": "GOD MODE", "uses": 1, "from": 999, "weight": 0.0, "color": Color("ff2a2a"), "weapon": -2},
 }
 const SPECIAL_FINDS := Vector2(0.15, 0.85)   # איפה בשלב (יחסי) הם יכולים להיות
-const POTION_FIRST := 3        # שיקוי GOD MODE: בתחילת שלב 3, ואז כל 2-3 שלבים (מקום אקראי בשלב)
+const POTION_FIRST := 3        # שיקוי GOD MODE: שלב 3, ואז כל 2-3 שלבים
+const POTION_MID := Vector2(0.42, 0.58)   # איפה בשלב (יחסי): באמצע, איפה שיש זומבים
 const POTION_SEED := 1717      # הסדר קבוע (אותם שלבים בכל משחק)
 
 

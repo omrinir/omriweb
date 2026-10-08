@@ -1259,6 +1259,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		reload()
 	elif event.physical_keycode == KEY_K:
 		_invuln = 0.0
+		boosts.erase(PickupScript.GOD)
 		hurt(health, Vector2.ZERO)
 
 
@@ -1326,6 +1327,8 @@ func is_draining() -> bool:
 # נקרא ע"י זומבים, רגליים שנזרקות ורימונים
 func hurt(amount: int, knock_dir: Vector2) -> void:
 	if dead or _invuln > 0.0 or _drain_target != null:
+		return
+	if god_mode():   # GOD MODE: שום דבר לא פוגע
 		return
 	if _roll_t > 0.0:   # בגלגול לא נפגעים. ברגע האחרון = הזמן מאט לרגע
 		if _dodge_slow <= 0.0:
