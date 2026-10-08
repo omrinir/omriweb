@@ -211,7 +211,7 @@ func _ready() -> void:
 	add_to_group("player")
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # הספרייט מוקטן - חלק ונקי
 	collision_layer = 2   # שכבה 2 = שחקן
-	collision_mask = 1 | 16   # מתנגש בעולם (1) ובקומות (16, one-way - S+קפיצה = ירידה)
+	collision_mask = 1 | 16 | 512   # מתנגש בעולם (1), בקומות (16, one-way - S+קפיצה = ירידה) ובקיר "הם מאחוריך" (512, pass_barrier.gd)
 	_shape = CollisionShape2D.new()
 	_shape.shape = RectangleShape2D.new()
 	add_child(_shape)

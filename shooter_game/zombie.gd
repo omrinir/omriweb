@@ -262,6 +262,9 @@ var _throw_anim := 0.0
 # אחרי המוות
 var _spin := 0.0
 var _rag: RefCounted = null      # גופה רכה (effects/ragdoll.gd). null = גופה "קשיחה" רגילה
+var _splat_pending := false      # הגופה עפה מהירייה: צליל "שפריץ" כשהיא נוחתת (לא תמיד)
+const SPLAT_CHANCE := 0.5
+static var _splat_last := 0       # זמן הצליל האחרון (לא כמה ביחד במולטי-קיל)
 var _last_hit := Vector2.ZERO    # איפה הפגיעה האחרונה (קובע איך הגופה נופלת)
 var _last_boom := false
 var _angle := 0.0
@@ -1241,6 +1244,7 @@ func _die(dir: Vector2) -> void:
 		var t_fall := (-vy0 + sqrt(vy0 * vy0 + 2.0 * 650.0 * h)) / 650.0
 		velocity = Vector2(clampf((tx - global_position.x) / t_fall, -900.0, 900.0), vy0)
 	_spin = randf_range(8.0, 14.0) * signf(velocity.x if velocity.x != 0.0 else 1.0)
+	_splat_pending = kind != RAT and kind != JETPACK and kind != MECH and randf() < SPLAT_CHANCE
 	if _ragdoll_kind() and not _lite:   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל: גופה פשוטה)
 		_rag = RagdollScript.new()
 		_rag.setup(self, velocity, dir, _last_hit if _last_hit != Vector2.ZERO else global_position + Vector2(0, -30) * sc, _last_boom)
@@ -1296,6 +1300,8 @@ func _dead_process(delta: float) -> void:
 	if _rag != null:   # גופה רכה: מדמה עד שהיא נרגעת, ואז רק מצוירת
 		if _rag.step(delta) and Art.on_screen(self, global_position, 400.0):
 			queue_redraw()
+		if _splat_pending:
+			_try_splat(_rag.on_ground())
 		return
 	velocity.y += gravity * delta
 	var impact_speed := velocity.length()
@@ -1310,6 +1316,8 @@ func _dead_process(delta: float) -> void:
 				_bled_on[key] = _dead_t + 0.15
 				col.add_blood(c.get_position(), c.get_normal(), clampf(impact_speed / 200.0, 1.0, 3.0))
 				_spray_blood(c.get_position(), c.get_normal(), 5, 160.0)
+	if _splat_pending:
+		_try_splat(is_on_floor())
 	if is_on_floor():
 		velocity.x = move_toward(velocity.x, 0.0, 900.0 * delta)
 		_spin = move_toward(_spin, 0.0, 30.0 * delta)
@@ -1322,6 +1330,20 @@ func _dead_process(delta: float) -> void:
 	_angle += _spin * delta
 	_maybe_redraw()
 
+
+# הגופה נחתה על הריצפה אחרי שהירייה העיפה אותה: אחד מ-3 צלילי "שפריץ" (אקראי)
+func _try_splat(landed: bool) -> void:
+	if _dead_t > 1.5:   # לא נחתה (נתקעה / נפלה לבור) - מוותרים
+		_splat_pending = false
+		return
+	if not landed or _dead_t < 0.12:
+		return
+	_splat_pending = false
+	var now := Time.get_ticks_msec()
+	if now - _splat_last < 250 or not Art.on_screen(self, global_position, 200.0):
+		return
+	_splat_last = now
+	Sfx.play("corpse_splat", global_position, -2.0, 0.1, 2)
 
 func _spray_blood(pos: Vector2, dir: Vector2, n: int, power: float) -> void:
 	var lite := _lite or death_load() >= DEATH_HEAVY - 1   # מולטי-קיל: שליש מהטיפות
@@ -1587,7 +1609,7 @@ func _maybe_redraw() -> void:
 	if not Art.on_screen(self, global_position):
 		return
 	_vis_count += 1
-	var every := 2 if _vis_prev <= 3 else 3
+	var every := 2 if _vis_prev <= 3 else (3 if _vis_prev <= 10 else 4)   # הרבה זומבים על המסך: כל אחד מתעדכן פחות (חוסך ציור)
 	_redraw_tick += 1
 	if _redraw_tick % every == 0 or _flash > 0.0:
 		queue_redraw()

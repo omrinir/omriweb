@@ -295,9 +295,11 @@ const SAMPLES := {
 		"res://sounds/guns/headshot2_1", "res://sounds/guns/headshot2_2", "res://sounds/guns/headshot2_3"],
 	# פגיעת קליע בזומבי (גוף/רגל): חבטה, המקור + 3 מהירויות, נבחר אקראית
 	"hit": ["res://sounds/guns/hit_1", "res://sounds/guns/hit_2", "res://sounds/guns/hit_3", "res://sounds/guns/hit_4"],
+	# גופה שעפה מהירייה ונוחתת: שפריץ / חבטת בשר / שפריץ רטוב (לא בכל מוות - zombie.gd SPLAT_CHANCE)
+	"corpse_splat": ["res://sounds/guns/corpse_splat1", "res://sounds/guns/corpse_splat2", "res://sounds/guns/corpse_splat3"],
 }
 # יריות ופגיעות חזקות יותר (שישמעו מעל המוזיקה והזומבים)
-const SAMPLE_GAIN := {"groan": 8.0, "rifle": 4.0, "pistol": 3.5, "smg": 2.5, "ar": 3.0, "headshot": 7.0, "hit": 5.5, "_": 7.5}
+const SAMPLE_GAIN := {"groan": 8.0, "rifle": 4.0, "pistol": 3.5, "smg": 2.5, "ar": 3.0, "headshot": 7.0, "hit": 5.5, "corpse_splat": 4.0, "_": 7.5}
 # קולות הזומבים: 20% שקטים יותר (כ-3 דציבל)
 const ZOMBIE_VOICES := {"zscream": true, "zhit": true, "zdeath": true, "groan": true, "roar": true, "scream": true, "growl": true, "zcall": true, "zcommand": true}
 const ZOMBIE_QUIET_DB := -3.0

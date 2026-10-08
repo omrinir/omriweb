@@ -310,6 +310,10 @@ func _ready() -> void:
 	var wheel = WheelScript.new()   # גלגל נשקים (TAB)
 	wheel.player = player
 	hud.add_child(wheel)
+	# קיר שקוף: מי שרץ קדימה ומשאיר 4+ זומבים ערים מאחור - חייב להרוג אותם (environment/pass_barrier.gd)
+	var barrier = preload("res://environment/pass_barrier.gd").new()
+	barrier.main = self
+	add_child(barrier)
 	# סצנות סיפור בתוך השלב (story/story_db.gd): דמות עומדת בשלב, מגיעים אליה -> שיחה. פעם אחת בכל משחק של השלב
 	for sc in preload("res://story/story_db.gd").for_level(Game.level):
 		if not Game.story_seen.has(sc.id):

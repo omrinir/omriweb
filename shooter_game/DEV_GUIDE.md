@@ -309,3 +309,11 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - E + fire = drink -> `boosts[PickupScript.GOD] = player.GOD_TIME` (13 s, HUD boost row shows it).
 - While active: body flames (`player._flames`), bullets get `god = true` (red ember trail + `GodBurst` on hit, bullet.gd), zombie.gd multiplies damage x4 when `src.god`.
 - Potion art: `PickupScript.draw_potion(ci, pos, scale, time)` (ground, HUD slot, hand, boost icon).
+
+## Pass barrier ("THEY'RE BEHIND YOU")
+- environment/pass_barrier.gd, created by main.gd each level. If 4+ awake zombies that already noticed the player are 220-1300 px behind him, a red energy wall rises 230 px ahead (StaticBody2D layer 512 - only the player's mask has 512; zombies and bullets pass).
+- It opens when all locked zombies are dead (or got >1700 px away / frozen), or after 40 s as a safety net. Paused during story scenes.
+- Why: running past zombies made a growing crowd follow the player; measured in level 16 physics frame time rose from ~6 ms to 12-17 ms with 10-17 chasers near.
+
+## Corpse splat
+- zombie.gd `_try_splat`: 50% of deaths (SPLAT_CHANCE), played when the flung body first lands (ragdoll `on_ground()` or is_on_floor), on screen only, at most one per 250 ms. Sounds: sfx.gd "corpse_splat" (3 clips in sounds/guns).

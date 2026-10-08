@@ -94,6 +94,13 @@ func setup(zz: Node2D, vel: Vector2, dir: Vector2, hit: Vector2, boom: bool) -> 
 
 
 # מדמה צעד אחד. מחזיר true אם משהו זז (צריך לצייר מחדש)
+func on_ground() -> bool:   # נקודה כלשהי של הגופה נוגעת בקרקע
+	for gy in ground:
+		if gy != INF:
+			return true
+	return false
+
+
 func step(delta: float) -> bool:
 	if asleep:
 		return false
