@@ -293,8 +293,14 @@ const SAMPLES := {
 	# ירייה בראש: 2 קולות פגיעה x 3 מהירויות (רגיל / מהיר / מהיר מאוד) = 6, נבחר אקראית
 	"headshot": ["res://sounds/guns/headshot1_1", "res://sounds/guns/headshot1_2", "res://sounds/guns/headshot1_3",
 		"res://sounds/guns/headshot2_1", "res://sounds/guns/headshot2_2", "res://sounds/guns/headshot2_3"],
+	# פגיעת קליע בזומבי (גוף/רגל): חבטה, המקור + 3 מהירויות, נבחר אקראית
+	"hit": ["res://sounds/guns/hit_1", "res://sounds/guns/hit_2", "res://sounds/guns/hit_3", "res://sounds/guns/hit_4"],
 }
-const SAMPLE_GAIN := {"groan": 8.0, "rifle": 0.0, "pistol": -1.0, "smg": -2.0, "ar": -1.0, "headshot": 2.0, "_": 7.5}
+# יריות ופגיעות חזקות יותר (שישמעו מעל המוזיקה והזומבים)
+const SAMPLE_GAIN := {"groan": 8.0, "rifle": 4.0, "pistol": 3.5, "smg": 2.5, "ar": 3.0, "headshot": 7.0, "hit": 5.5, "_": 7.5}
+# קולות הזומבים: 20% שקטים יותר (כ-3 דציבל)
+const ZOMBIE_VOICES := {"zscream": true, "zhit": true, "zdeath": true, "groan": true, "roar": true, "scream": true, "growl": true, "zcall": true, "zcommand": true}
+const ZOMBIE_QUIET_DB := -3.0
 static var _samples := {}
 
 
@@ -344,6 +350,8 @@ static func play(name: String, pos: Variant = null, vol := 0.0, pitch_var := 0.0
 		vol += float(SAMPLE_GAIN.get(name, SAMPLE_GAIN["_"]))
 	elif not has_sound(name):
 		return
+	if ZOMBIE_VOICES.has(name):
+		vol += ZOMBIE_QUIET_DB
 	var base := name
 	var vars := [name]
 	for k in [2, 3, 4]:   # גרסאות שונות של אותו צליל (step_water2...)

@@ -56,6 +56,16 @@ func _ensure_buses() -> void:
 			var i := AudioServer.bus_count - 1
 			AudioServer.set_bus_name(i, b)
 			AudioServer.set_bus_send(i, "Master")
+	# לימיטר על הערוץ הראשי: יריות ופגיעות חזקות לא "נשברות" (עיוות) כשהרבה צלילים יחד
+	var m := AudioServer.get_bus_index("Master")
+	var has_lim := false
+	for e in AudioServer.get_bus_effect_count(m):
+		if AudioServer.get_bus_effect(m, e) is AudioEffectHardLimiter:
+			has_lim = true
+	if not has_lim:
+		var lim := AudioEffectHardLimiter.new()
+		lim.ceiling_db = -0.5
+		AudioServer.add_bus_effect(m, lim)
 
 
 func apply_volumes() -> void:
