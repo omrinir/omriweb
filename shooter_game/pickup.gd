@@ -14,10 +14,10 @@ const Art := preload("res://art.gd")
 
 enum { AMMO, GRENADE, SUPPLY, BOOST, WEAPON, HEALTH, SPECIAL }
 const Arsenal := preload("res://progression/arsenal.gd")
-enum { ADRENALINE, PIERCING, BULLET_TIME, SHIELD, INCENDIARY }
+enum { ADRENALINE, PIERCING, BULLET_TIME, SHIELD, INCENDIARY, GOD }   # GOD = שיקוי GOD MODE (פריט מיוחד, לא נופל כבוסט)
 
-const BOOST_NAMES := ["ADRENALINE", "PIERCING ROUNDS", "BULLET TIME", "SHIELD", "INCENDIARY"]
-const BOOST_COLORS := [Color("ff4a3a"), Color("4aa8ff"), Color("b0b8c8"), Color("40e0e8"), Color("ff9a20")]
+const BOOST_NAMES := ["ADRENALINE", "PIERCING ROUNDS", "BULLET TIME", "SHIELD", "INCENDIARY", "GOD MODE"]
+const BOOST_COLORS := [Color("ff4a3a"), Color("4aa8ff"), Color("b0b8c8"), Color("40e0e8"), Color("ff9a20"), Color("ff2a2a")]
 
 var kind := AMMO
 var boost := ADRENALINE
@@ -126,7 +126,9 @@ func _draw() -> void:
 			draw_rect(Rect2(bob + Vector2(-4, -11), Vector2(8, 3)), Color("8a8a90"))   # ידית
 		SPECIAL:   # פריט נפץ: רימון / בקבוק / המשגר עצמו
 			var wid: int = int(Arsenal.SPECIALS[special].weapon)
-			if special == "grenade":
+			if special == "god":   # שיקוי אדום מבעבע
+				draw_potion(self, bob, 1.0, _t)
+			elif special == "grenade":
 				for i in 2:
 					var gp := bob + Vector2(-5.0 + float(i) * 10.0, 0.0)
 					Art.oval_shaded(self, gp, 5.0, 6.0, Color("6d8236"), 0.0, Art.OUTLINE, 1.2)
@@ -159,6 +161,27 @@ static func draw_boost_icon(ci: CanvasItem, c: Vector2, b: int, col: Color) -> v
 			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-5, -5), c + Vector2(5, -5), c + Vector2(5, 0), c + Vector2(0, 6), c + Vector2(-5, 0)]), col)
 		INCENDIARY:   # להבה
 			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -7), c + Vector2(4, 0), c + Vector2(3, 5), c + Vector2(-3, 5), c + Vector2(-4, 0), c + Vector2(-1, -2)]), col)
+		GOD:          # שיקוי
+			draw_potion(ci, c + Vector2(0, 1), 0.6, Time.get_ticks_msec() / 1000.0)
+
+
+# שיקוי GOD MODE: בקבוק עגול עם נוזל אדום זוהר ובועות שעולות (s = גודל, t = זמן לאנימציה)
+static func draw_potion(ci: CanvasItem, c: Vector2, s: float, t: float) -> void:
+	var r := 7.5 * s
+	var body := c + Vector2(0, 2.5 * s)
+	ci.draw_circle(body, r * 2.1, Color(1.0, 0.1, 0.05, 0.12 + 0.05 * sin(t * 6.0)))   # זוהר
+	ci.draw_rect(Rect2(c + Vector2(-2.2, -9.5) * s, Vector2(4.4, 6.0) * s), Color(0.75, 0.85, 0.9, 0.55))   # צוואר
+	ci.draw_rect(Rect2(c + Vector2(-2.8, -12.0) * s, Vector2(5.6, 3.0) * s), Color("8a5a32"))              # פקק
+	ci.draw_circle(body, r + 1.2 * s, Color(0.08, 0.02, 0.02))                                              # קו מתאר
+	ci.draw_circle(body, r, Color("b0101a"))
+	ci.draw_circle(body + Vector2(0, 1.5) * s, r * 0.8, Color("e0202a"))
+	ci.draw_arc(body, r * 0.75, PI * 1.1, PI * 1.45, 6, Color(1, 1, 1, 0.55), 1.4 * s, true)               # ברק זכוכית
+	for i in 4:   # בועות שעולות בתוך הבקבוק
+		var ph := fposmod(t * 0.9 + float(i) * 0.27, 1.0)
+		var bp := body + Vector2(sin(t * 3.0 + float(i) * 2.1) * 2.5, (4.0 - ph * 13.0)) * s
+		ci.draw_circle(bp, (0.7 + 0.5 * float(i % 2)) * s, Color(1.0, 0.75, 0.7, 0.85 * (1.0 - ph)))
+	var top := fposmod(t * 1.3, 1.0)   # בועה שיוצאת מהפקק
+	ci.draw_circle(c + Vector2(sin(t * 4.0) * 1.5, -13.0 - top * 7.0) * s, 1.1 * s, Color(1.0, 0.3, 0.25, 0.7 * (1.0 - top)))
 
 
 func _icon(c: Vector2, b: int, col: Color) -> void:

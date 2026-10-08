@@ -132,6 +132,9 @@ var _breath_was_up := false
 var _mist := []                  # (לא בשימוש)
 var _magic := []                 # חלקיקי קסם עדינים סביב הדמות: [מיקום בעולם, מהירות, גיל, חיים, גודל, צבע]
 var _magic_t := 0.0
+var _flames := []                # GOD MODE: להבות אדומות על כל הגוף [מיקום בעולם, מהירות, גיל, חיים, גודל]
+var _flame_t := 0.0
+const GOD_TIME := 13.0           # כמה זמן GOD MODE נמשך
 var _dust := []                  # אבק מהרגליים בריצה: [מיקום בעולם, מהירות, גיל, חיים, גודל]
 var _base_xf := Transform2D.IDENTITY
 var _aim := Vector2.RIGHT
@@ -574,6 +577,19 @@ func _physics_process(delta: float) -> void:
 		m[1].x += sin(_time * 2.0 + m[4] * 9.0) * 10.0 * delta   # מתפתל קצת
 		m[0] += m[1] * delta
 	_magic = _magic.filter(func(m): return m[2] < m[3])
+	# GOD MODE: הגוף בוער - להבות אדומות עולות מכל הגוף
+	_flame_t -= delta
+	while god_mode() and not dead and _flame_t <= 0.0:
+		_flame_t += 0.016
+		var fo := Vector2(randf_range(-10.0, 10.0), randf_range(-54.0, -2.0))
+		_flames.append([global_position + fo, Vector2(randf_range(-14.0, 14.0) + velocity.x * 0.15, randf_range(-95.0, -45.0)), 0.0, randf_range(0.22, 0.42), randf_range(1.2, 2.5)])
+	if _flame_t > 0.05:
+		_flame_t = 0.0
+	for f in _flames:
+		f[2] += delta
+		f[0] += f[1] * delta
+		f[1].x *= 0.96
+	_flames = _flames.filter(func(f): return f[2] < f[3])
 	for d in _dust:
 		d[2] += delta
 		d[1] *= 1.0 - 3.0 * delta
@@ -655,6 +671,8 @@ func _boosts_process(delta: float) -> void:
 		boosts[b] -= delta
 		if boosts[b] <= 0.0:
 			boosts.erase(b)
+			if b == PickupScript.GOD:
+				_say("GOD MODE ENDED", Color(1, 0.6, 0.55, 0.85))
 			if b == PickupScript.BULLET_TIME:
 				Engine.time_scale = 1.0
 
@@ -814,6 +832,7 @@ func _fire() -> void:
 			var spread := randf_range(-sp, sp)
 			b.pierce = int(w.get("pierce", 0)) + (3 if boosts.has(PickupScript.PIERCING) else 0)
 			b.incendiary = boosts.has(PickupScript.INCENDIARY)
+			b.god = boosts.has(PickupScript.GOD)
 			b.dmg_mult = w.get("damage", 1.0)
 			b.head_mult = w.get("head_mult", 1.0)
 			b.knockback = w.get("knockback", 60.0)
@@ -841,7 +860,7 @@ func _fire() -> void:
 # ============================================================
 func take_special(kind: String) -> void:
 	var info: Dictionary = Arsenal.SPECIALS[kind]
-	var n: int = int(info.uses) + Upgrades.perk("grenade_pouch")
+	var n: int = int(info.uses) + (0 if kind == "god" else Upgrades.perk("grenade_pouch"))
 	if special == kind:
 		special_uses += n
 	else:
@@ -849,6 +868,20 @@ func take_special(kind: String) -> void:
 		special_uses = n
 	Sfx.play("weapon", null)
 	_say("+%s  x%d   (E)" % [info.name, special_uses], info.color)
+
+
+func _drink_god() -> void:
+	boosts[PickupScript.GOD] = GOD_TIME
+	Sfx.play("heal", null)
+	Sfx.play("boost", null, 2.0)
+	_say("GOD MODE", Color("ff3a2a"))
+	_jump_zoom(DOUBLE_JUMP_ZOOM)
+	for i in 40:   # פרץ להבות ראשון
+		_flames.append([global_position + Vector2(randf_range(-14.0, 14.0), randf_range(-56.0, 0.0)), Vector2(randf_range(-90.0, 90.0), randf_range(-160.0, -30.0)), 0.0, randf_range(0.3, 0.7), randf_range(2.0, 3.6)])
+
+
+func god_mode() -> bool:
+	return boosts.has(PickupScript.GOD)
 
 
 func _special_weapon() -> int:   # איזה נשק מ-weapon_db מייצג את הפריט (לנתונים ולציור), -1 = רימון / אין
@@ -859,6 +892,16 @@ func _use_special(sh: Vector2) -> void:
 	if special == "" or special_uses <= 0:
 		weapon = GUN
 		weapon_changed.emit(weapon)
+		return
+	if special == "god":   # שותים את השיקוי
+		_drink_god()
+		_cooldown = 0.4
+		special_uses -= 1
+		if special_uses <= 0:
+			special = ""
+			special_uses = 0
+			weapon = GUN
+			weapon_changed.emit(weapon)
 		return
 	var wid := _special_weapon()
 	var w: Dictionary = WeaponDB.WEAPONS[wid] if wid >= 0 else {}
@@ -1350,6 +1393,7 @@ func _draw() -> void:
 	if jetpack != null:   # על הגב, מאחורי הגוף
 		jetpack.draw_pack(self)
 	_draw_hero(la)
+	_draw_flames()
 	# קרן כוח החיים: מהניצולה אל המכשיר
 	if _drain_target != null and is_instance_valid(_drain_target):
 		var tgt: Vector2 = _drain_target.chest() - global_position
@@ -1382,11 +1426,14 @@ func _draw() -> void:
 		var k: float = m[2] / m[3]
 		var a := 0.32 * minf(k * 5.0, 1.0) * (1.0 - k)
 		var c: Color = m[5]
-		if health == 1 and not dead:   # חיים אחרונים: החלקיקים אדומים-בהירים
-			c = Color(1.0, 0.5 + 0.2 * fposmod(m[4] * 7.0, 1.0), 0.55)
+		var sz: float = m[4]
+		if health == 1 and not dead:   # חיים אחרונים: החלקיקים אדומים, גדולים ובולטים
+			c = Color(1.0, 0.25 + 0.2 * fposmod(m[4] * 7.0, 1.0), 0.25)
+			a = minf(a * 2.8, 0.95)
+			sz *= 1.5
 		var p: Vector2 = m[0] - global_position
-		draw_circle(p, m[4] * 3.2, Color(c, a * 0.18))
-		draw_circle(p, m[4], Color(c.lerp(Color.WHITE, 0.4), a))
+		draw_circle(p, sz * 3.2, Color(c, a * (0.3 if health == 1 else 0.18)))
+		draw_circle(p, sz, Color(c.lerp(Color.WHITE, 0.15 if health == 1 else 0.4), a))
 	# לייזר (שדרוג)
 	# קשת: קו נקודות שמראה לאן החץ יעוף
 	if weapon == GUN and gun == BOW and controllable and _drain_target == null and not dead:
@@ -1472,6 +1519,29 @@ func _hero_frame() -> Array:
 	return ["idle", int(_time * 6.0) % HeroAnim.FRAMES["idle"].size()]
 
 
+# GOD MODE: הילה אדומה + להבות על הגוף (בקואורדינטות העולם)
+func _draw_flames() -> void:
+	if _flames.is_empty() and not god_mode():
+		return
+	draw_set_transform_matrix(Transform2D.IDENTITY)
+	if god_mode():
+		var left: float = boosts[PickupScript.GOD]
+		var fade := clampf(left / 1.5, 0.0, 1.0)   # בשנייה וחצי האחרונות דועך (מהבהב)
+		if left < 3.0 and int(left * 8.0) % 2 == 0:
+			fade *= 0.4
+		var pulse := 0.8 + 0.2 * sin(_time * 9.0)
+		draw_circle(Vector2(0, -27), 30.0, Color(1.0, 0.08, 0.04, 0.10 * pulse * fade))
+		draw_circle(Vector2(0, -27), 20.0, Color(1.0, 0.15, 0.05, 0.10 * pulse * fade))
+	for f in _flames:
+		var k: float = f[2] / f[3]
+		var p: Vector2 = f[0] - global_position
+		var c := Color(1.0, 0.9, 0.55).lerp(Color(1.0, 0.15, 0.06), minf(k * 2.2, 1.0)).lerp(Color(0.35, 0.02, 0.02), maxf(k * 2.0 - 1.0, 0.0))
+		var r: float = f[4] * (1.0 - k * 0.55)
+		draw_circle(p, r * 2.4, Color(1.0, 0.1, 0.04, 0.12 * (1.0 - k)))
+		draw_circle(p, r, Color(c, 0.9 * (1.0 - k * k)))
+	draw_set_transform_matrix(_base_xf)
+
+
 func _land_squash() -> float:
 	if _land_anim <= 0.0 or not is_on_floor():
 		return 0.0
@@ -1522,6 +1592,8 @@ func _draw_hero(la: Vector2) -> void:
 		_draw_rifle(hand, la)
 		_draw_id = -1
 		_draw_held(rp.support, la, rp.held)
+	elif special == "god":   # השיקוי ביד
+		PickupScript.draw_potion(self, hand + la * 2.0 + Vector2(0, -2), 0.55, _time)
 	else:
 		var g := hand + la * 3.0
 		Art.disc(self, g, 4.3, Color("4a5a2c"))
@@ -1682,6 +1754,8 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 		_draw_rifle(hand, rp.la)
 		_draw_id = -1
 		_draw_held(rp.support, rp.la, rp.held)
+	elif special == "god":   # השיקוי ביד
+		PickupScript.draw_potion(self, hand + la * 2.0 + Vector2(0, -2), 0.55, _time)
 	else:
 		var g := hand + la * 3.0
 		Art.disc(self, g, 4.3, Color("4a5a2c"))

@@ -317,7 +317,9 @@ func _draw_bar() -> void:
 		draw_string(f, gr.position + Vector2(0, 24), "-", HORIZONTAL_ALIGNMENT_CENTER, 44, 14, Color(1, 1, 1, 0.3))
 	else:
 		var swid: int = int(Arsenal.SPECIALS[player.special].weapon)
-		if swid < 0:
+		if player.special == "god":
+			player.PickupScript.draw_potion(self, gr.get_center() + Vector2(-6, 2), 0.85, Time.get_ticks_msec() / 1000.0)
+		elif swid < 0:
 			draw_circle(gr.get_center() + Vector2(-6, 0), 6.0, Color("5d7030"))
 			draw_rect(Rect2(gr.get_center() + Vector2(-8, -9), Vector2(4, 4)), Color("9a9aa2"))
 		else:

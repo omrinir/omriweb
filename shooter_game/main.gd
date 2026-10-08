@@ -699,6 +699,15 @@ func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
 		spc.life = 100000.0
 		add_child(spc)
 		spc.setup(Vector2(_free_spot(level_w * _rng.randf_range(lo, hi)), floor_y - 30.0), Vector2.ZERO)
+	# שיקוי GOD MODE: שלב 3 - ממש בהתחלה, אחר כך כל 2-3 שלבים במקום אקראי (progression/arsenal.gd)
+	if Arsenal.has_potion(Game.level):
+		var pot = PickupScript.new()
+		pot.kind = PickupScript.SPECIAL
+		pot.special = "god"
+		pot.life = 100000.0
+		add_child(pot)
+		var px: float = 420.0 if Game.level == Arsenal.POTION_FIRST else level_w * _rng.randf_range(Arsenal.SPECIAL_FINDS.x, Arsenal.SPECIAL_FINDS.y)
+		pot.setup(Vector2(_free_spot(px), floor_y - 30.0), Vector2.ZERO)
 	# נשקים: החדש של השלב בהתחלה (NEW WEAPON), ומטמון של נשק ישן שאין לך באמצע השלב
 	var owned := []
 	for s in Game.weapon_slots:

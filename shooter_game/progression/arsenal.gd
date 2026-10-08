@@ -31,8 +31,28 @@ const SPECIALS := {
 	"molotov": {"name": "MOLOTOVS", "uses": 2, "from": 3, "weight": 2.0, "color": Color("ff8a30"), "weapon": 8},
 	"launcher": {"name": "GRENADE LAUNCHER", "uses": 4, "from": 5, "weight": 1.6, "color": Color("80b060"), "weapon": 9},
 	"rocket": {"name": "ROCKET LAUNCHER", "uses": 2, "from": 8, "weight": 1.0, "color": Color("e05a30"), "weapon": 11},
+	# שיקוי GOD MODE: לוחצים E ויורים = שותים. 13 שניות: הגוף בוער, קליעי אש אדומים, נזק פי 4 (+300%)
+	# לא נופל באקראי ("from" 999) - מופיע רק בשלבים של potion_levels()
+	"god": {"name": "GOD MODE", "uses": 1, "from": 999, "weight": 0.0, "color": Color("ff2a2a"), "weapon": -2},
 }
 const SPECIAL_FINDS := Vector2(0.15, 0.85)   # איפה בשלב (יחסי) הם יכולים להיות
+const POTION_FIRST := 3        # שיקוי GOD MODE: בתחילת שלב 3, ואז כל 2-3 שלבים (מקום אקראי בשלב)
+const POTION_SEED := 1717      # הסדר קבוע (אותם שלבים בכל משחק)
+
+
+static func potion_levels() -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = POTION_SEED
+	var out := []
+	var lv := POTION_FIRST
+	while lv <= 60:
+		out.append(lv)
+		lv += rng.randi_range(2, 3)
+	return out
+
+
+static func has_potion(lv: int) -> bool:
+	return potion_levels().has(lv)
 
 
 # 1-2 מציאות לשלב, לפי מה שכבר זמין בשלב הזה

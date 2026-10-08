@@ -285,7 +285,7 @@ func _draw() -> void:
 			draw_rect(Rect2(Vector2(bx, 66), Vector2(30, 30)), Color(0, 0, 0, 0.55))
 			draw_rect(Rect2(Vector2(bx, 66), Vector2(30, 30)), col, false, 1.5)
 			PickupScript.draw_boost_icon(self, Vector2(bx + 15, 81), b, col)
-			var k := clampf(left / player.boost_time, 0.0, 1.0)
+			var k := clampf(left / (player.GOD_TIME if b == PickupScript.GOD else player.boost_time), 0.0, 1.0)
 			draw_rect(Rect2(Vector2(bx, 98), Vector2(30 * k, 3)), col)
 			bx += 36.0
 	# ---- שלב, ניקוד, קומבו (ימין למעלה) ----

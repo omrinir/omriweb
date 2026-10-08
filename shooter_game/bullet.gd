@@ -18,6 +18,8 @@ var damage := 0                            # הנזק נקבע בזומבי לפ
 
 var pierce := 0                            # בוסט: כמה זומבים נוספים הקליע עובר דרכם
 var incendiary := false                    # בוסט: הקליע מצית זומבים
+var god := false                           # GOD MODE: קליע בוער אדום (שובל חלקיקים, פיצוץ חלקיקים קטן בפגיעה, נזק פי 4)
+var _embers := []                          # GOD MODE: [מיקום בעולם, מהירות, גיל, חיים, גודל]
 var falloff := []                          # שוטגאן: [נזק קרוב, נזק רחוק, מרחק] - הנזק יורד עם המרחק
 var fixed_damage := []                     # [min, max] נזק קבוע (חץ)
 var dmg_mult := 1.0                        # מכפיל נזק של הנשק (weapon_db.gd)
@@ -57,6 +59,8 @@ func _physics_process(delta: float) -> void:
 	if gravity != 0.0:
 		velocity.y += gravity * delta
 		rotation = velocity.angle()
+	if god:
+		_update_embers(delta)
 	life_time -= delta
 	if life_time <= 0.0:
 		queue_free()
@@ -89,6 +93,8 @@ func _physics_process(delta: float) -> void:
 			mh.pop(velocity.normalized())
 	_dist += from.distance_to(to)
 	var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary, "sniper": sniper, "shot": shot}
+	if god:
+		src["god"] = true
 	src["dmg_mult"] = dmg_mult
 	src["head_mult"] = head_mult
 	src["knockback"] = knockback
@@ -111,6 +117,8 @@ func _physics_process(delta: float) -> void:
 		if hit.collider.has_method("take_damage"):
 			# שולחים גם את כיוון הקליע - לפיו הזומבי עף כשהוא מת
 			hit.collider.take_damage(damage, hit.position, velocity.normalized(), false, src)
+			if god:
+				_god_burst(hit.position)
 			if pierce > 0:   # קליע חודר: ממשיך לזומבי הבא
 				pierce -= 1
 				_exclude.append(hit.rid)
@@ -124,6 +132,8 @@ func _physics_process(delta: float) -> void:
 				_stuck = 8.0
 				Sfx.play("arrow_hit", global_position, -4.0)
 				return
+			if god:
+				_god_burst(hit.position)
 			if randf() < 0.35:
 				Sfx.play("ricochet", hit.position, -8.0, 0.25, 2)
 			var fx := Impact.new()   # ניצוצות רק על לבנים
@@ -148,7 +158,33 @@ func _dist_to_edge(r: Rect2, p: Vector2, d: Vector2) -> float:
 	return maxf(t - 0.5, 0.0)
 
 
+# GOD MODE: גיצים אדומים שנשארים מאחור ודועכים
+func _update_embers(delta: float) -> void:
+	for i in 3:
+		_embers.append([global_position - velocity * delta * randf(), Vector2(randf_range(-30.0, 30.0), randf_range(-60.0, -10.0)) - velocity * 0.04, 0.0, randf_range(0.12, 0.28), randf_range(1.2, 2.6)])
+	for e in _embers:
+		e[2] += delta
+		e[0] += e[1] * delta
+	_embers = _embers.filter(func(e): return e[2] < e[3])
+	if _embers.size() > 30:
+		_embers = _embers.slice(_embers.size() - 30)
+	queue_redraw()
+
+
+func _god_burst(at: Vector2) -> void:
+	var fx := GodBurst.new()
+	get_parent().add_child(fx)
+	fx.global_position = at
+
+
 func _draw() -> void:
+	if god:   # שובל אש אדום (בקואורדינטות העולם -> מקומי)
+		for e in _embers:
+			var k: float = e[2] / e[3]
+			var p := to_local(e[0])
+			var c := Color(1.0, 0.85, 0.5).lerp(Color(1.0, 0.12, 0.08), minf(k * 2.0, 1.0))
+			draw_circle(p, e[4] * 2.2 * (1.0 - k), Color(1.0, 0.1, 0.05, 0.18 * (1.0 - k)))
+			draw_circle(p, e[4] * (1.0 - k * 0.6), Color(c, 1.0 - k))
 	if arrow:   # חץ: מוט עץ, ראש מתכת ונוצות
 		draw_line(Vector2(-22.0, 0.0), Vector2(4.0, 0.0), Color("8a6a40"), 1.6, true)
 		draw_colored_polygon(PackedVector2Array([Vector2(4, -2.5), Vector2(10, 0), Vector2(4, 2.5)]), Color("b8b8c0"))
@@ -173,6 +209,11 @@ func _draw() -> void:
 		light = Color("90c8ff")
 		dark = Color("2a5a9a")
 		draw_line(Vector2(-40.0, 0.0), Vector2(-6.0, 0.0), Color(0.4, 0.7, 1.0, 0.35), 3.0, true)
+	elif god:  # GOD MODE - אדום בוער
+		light = Color("ff6a50")
+		dark = Color("a00a0a")
+		draw_line(Vector2(-44.0, 0.0), Vector2(-6.0, 0.0), Color(1.0, 0.15, 0.08, 0.5), 4.0, true)
+		draw_circle(Vector2(1.0, 0.0), 7.0, Color(1.0, 0.2, 0.1, 0.35))
 	elif incendiary:  # קליע אש - כתום
 		light = Color("ffc060")
 		dark = Color("c04010")
@@ -207,3 +248,34 @@ class Impact extends Node2D:
 		var k := t / duration
 		for d in dirs:
 			draw_circle(d * t, 2.2 * (1.0 - k), Color(1.0, 0.8, 0.3, 1.0 - k))
+
+
+# ---- GOD MODE: פיצוץ קטן של חלקיקים אדומים בנקודת הפגיעה ----
+class GodBurst extends Node2D:
+	var t := 0.0
+	const DUR := 0.5
+	var parts := []   # [מהירות, גודל, חיים]
+
+	func _ready() -> void:
+		z_index = 11
+		for i in 22:
+			parts.append([Vector2.from_angle(randf() * TAU) * randf_range(50.0, 210.0), randf_range(1.4, 3.2), randf_range(0.25, DUR)])
+
+	func _process(delta: float) -> void:
+		t += delta
+		queue_redraw()
+		if t >= DUR:
+			queue_free()
+
+	func _draw() -> void:
+		var k := t / DUR
+		draw_circle(Vector2.ZERO, 6.0 + 22.0 * k, Color(1.0, 0.15, 0.08, 0.35 * (1.0 - k)))   # הבזק
+		draw_arc(Vector2.ZERO, 4.0 + 26.0 * k, 0.0, TAU, 20, Color(1.0, 0.45, 0.3, 0.6 * (1.0 - k)), 1.5, true)
+		for pr in parts:
+			var pk: float = t / float(pr[2])
+			if pk >= 1.0:
+				continue
+			var v: Vector2 = pr[0]
+			var pos := v * t * (1.0 - 0.45 * pk) + Vector2(0.0, 60.0 * t * t)
+			var c := Color(1.0, 0.8, 0.45).lerp(Color(0.9, 0.08, 0.05), pk)
+			draw_circle(pos, float(pr[1]) * (1.0 - pk * 0.7), Color(c, 1.0 - pk))
