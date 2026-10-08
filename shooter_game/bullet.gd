@@ -1,4 +1,5 @@
 extends Node2D
+const VIS_SCALE := 0.62   # גודל הקליע על המסך (רק ויזואלי)
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  קליע. נוצר ע"י player.gd בכל ירייה.
@@ -154,6 +155,8 @@ func _draw() -> void:
 		draw_colored_polygon(PackedVector2Array([Vector2(-22, 0), Vector2(-17, -3.5), Vector2(-14, -3.5), Vector2(-18, 0)]), Color("d04030"))
 		draw_colored_polygon(PackedVector2Array([Vector2(-22, 0), Vector2(-17, 3.5), Vector2(-14, 3.5), Vector2(-18, 0)]), Color("d04030"))
 		return
+	# הציור בלבד קטן יותר (VIS_SCALE) - ההתנגשות נשארת באותו גודל (קל לפגוע)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(VIS_SCALE, VIS_SCALE))
 	# שובל אוויר דק ושקוף (כדי שיהיה אפשר לראות את הקליע זז)
 	draw_line(Vector2(-34.0, 0.0), Vector2(-6.0, 0.0), Color(0.9, 0.9, 0.95, 0.12), 2.0, true)
 	draw_line(Vector2(-18.0, 0.0), Vector2(-6.0, 0.0), Color(0.9, 0.9, 0.95, 0.22), 1.2, true)
@@ -180,6 +183,7 @@ func _draw() -> void:
 	draw_polyline(closed, Color(0.15, 0.08, 0.04, 0.9), 0.8, true)
 	draw_line(Vector2(-5.0, -0.7), Vector2(2.5, -0.7), Color(1.0, 0.9, 0.7, 0.7), 0.6, true)   # ברק של מתכת
 	draw_line(Vector2(-6.0, -1.6), Vector2(-6.0, 1.6), Color(0.25, 0.15, 0.1), 1.0)              # בסיס
+	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 
 # ---- ניצוצות כשהקליע פוגע ----
