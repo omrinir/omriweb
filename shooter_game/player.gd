@@ -1441,9 +1441,10 @@ func _hero_frame() -> Array:
 	if absf(velocity.x) > 30.0:
 		var back := signf(velocity.x) != _face()   # הולך אחורה (מכוון לצד השני): הפריימים הפוך
 		# הליכה וריצה: פריימי ההליכה המלאים (פריימי הריצה בגיליון חתוכים), בריצה מהר יותר + הטיה קדימה
-		var i := int(_dist / (19.0 if _running else 15.0)) % 8
+		var nw: int = HeroAnim.FRAMES["walk"].size()
+		var i := int(_dist / (8.5 if _running else 6.5)) % nw
 		if back:
-			i = 7 - i
+			i = nw - 1 - i
 		return ["walk", i]
 	return ["idle", int(_time * 7.0) % 8]
 
@@ -1456,7 +1457,7 @@ func _draw_hero(la: Vector2) -> void:
 	if HeroAnim.FLIP.has(fi[0]):   # פריים שמצויר בדף לכיוון השני
 		draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(-1.0, 1.0), 0.0, Vector2.ZERO))
 	if _running and fi[0] == "walk" and is_on_floor():   # ריצה: הטיה קדימה (סביב כפות הרגליים) + קפיצה קטנה בכל צעד
-		var bob := -absf(sin(_dist / 19.0 * PI)) * 1.5
+		var bob := -absf(sin(_dist / 68.0 * PI)) * 1.5
 		draw_set_transform_matrix(_base_xf * Transform2D(0.13, Vector2(0.0, bob)))
 	draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s), Rect2(fr[0], fr[1], fr[2], fr[3]))
 	draw_set_transform_matrix(_base_xf)
