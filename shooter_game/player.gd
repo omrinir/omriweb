@@ -1440,11 +1440,11 @@ func _hero_frame() -> Array:
 		return ["crouch", 1]
 	if absf(velocity.x) > 30.0:
 		var back := signf(velocity.x) != _face()   # הולך אחורה (מכוון לצד השני): הפריימים הפוך
-		var n := 6 if _running else 8
-		var i := int(_dist / (26.0 if _running else 15.0)) % n
+		# הליכה וריצה: פריימי ההליכה המלאים (פריימי הריצה בגיליון חתוכים), בריצה מהר יותר + הטיה קדימה
+		var i := int(_dist / (19.0 if _running else 15.0)) % 8
 		if back:
-			i = n - 1 - i
-		return ["run" if _running else "walk", i]
+			i = 7 - i
+		return ["walk", i]
 	return ["idle", int(_time * 7.0) % 8]
 
 
@@ -1455,24 +1455,10 @@ func _draw_hero(la: Vector2) -> void:
 	var s := SPRITE_SCALE
 	if HeroAnim.FLIP.has(fi[0]):   # פריים שמצויר בדף לכיוון השני
 		draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(-1.0, 1.0), 0.0, Vector2.ZERO))
-	if fi[0] == "walk":   # הליכה: הספרייט עד הברכיים + רגליים שזזות בבירור
-		var cut := 0.8
-		draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s * cut), Rect2(fr[0], fr[1], fr[2], float(fr[3]) * cut))
-		var knee_y := (-float(fr[5]) + float(fr[3]) * cut) * s
-		var ph := _dist / 15.0 / 8.0 * TAU * (-1.0 if signf(velocity.x) != _face() else 1.0)
-		for k in 2:
-			var sgn := 1.0 if k == 0 else -1.0
-			var sw := sin(ph) * sgn
-			var lift := maxf(0.0, cos(ph) * sgn) * 3.0
-			var knee := Vector2(1.0 + sw * 2.5, knee_y + 1.0)
-			var foot := Vector2(1.0 + sw * 8.0, -lift)
-			var col := Color("0b0b0e") if k == 0 else Color("16161a")
-			Art.limb(self, PackedVector2Array([knee, knee.lerp(foot, 0.5) + Vector2(-1.0, 0.0), foot + Vector2(0.0, -2.0)]), 3.4, col, Art.NONE)
-			if k == 0:
-				draw_line(knee + Vector2(1.6, 0.0), foot + Vector2(1.4, -3.0), Color(rim_color, 0.55), 0.7, true)   # הארה לבנה
-			Art.fill(self, PackedVector2Array([foot + Vector2(-2.5, -3.5), foot + Vector2(2.0, -3.5), foot + Vector2(4.5, -1.2), foot + Vector2(4.5, 0.0), foot + Vector2(-2.5, 0.0)]), boot_color, Art.NONE)
-	else:
-		draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s), Rect2(fr[0], fr[1], fr[2], fr[3]))
+	if _running and fi[0] == "walk" and is_on_floor():   # ריצה: הטיה קדימה (סביב כפות הרגליים) + קפיצה קטנה בכל צעד
+		var bob := -absf(sin(_dist / 19.0 * PI)) * 1.5
+		draw_set_transform_matrix(_base_xf * Transform2D(0.13, Vector2(0.0, bob)))
+	draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s), Rect2(fr[0], fr[1], fr[2], fr[3]))
 	draw_set_transform_matrix(_base_xf)
 	if dead or _melee_t > 0.0 or _roll_t > 0.0 or _slide_t > 0.0 or unarmed:
 		return
@@ -1482,8 +1468,8 @@ func _draw_hero(la: Vector2) -> void:
 	# הנשק והידיים קטנים יותר (מתאים לדמות הרזה מהספרייט), סביב הכתף
 	var ws := 0.72
 	draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(ws, ws), 0.0, sh * (1.0 - ws)))
-	if _anim == "run":
-		sh += Vector2(5.0, 2.0)
+	if _running and is_on_floor() and _anim == "walk":   # ריצה: הגוף נוטה קדימה (ראה _draw_hero) - הידיים איתו
+		sh += Vector2(4.8, 0.3)
 	elif _anim == "hurt":
 		sh += Vector2(-2.0, 4.0)
 	var hand := sh + la * 15.0 - la * 2.5 * _recoil
