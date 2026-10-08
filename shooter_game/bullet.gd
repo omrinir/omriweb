@@ -160,14 +160,14 @@ func _dist_to_edge(r: Rect2, p: Vector2, d: Vector2) -> float:
 
 # GOD MODE: גיצים אדומים שנשארים מאחור ודועכים
 func _update_embers(delta: float) -> void:
-	for i in 3:
-		_embers.append([global_position - velocity * delta * randf(), Vector2(randf_range(-30.0, 30.0), randf_range(-60.0, -10.0)) - velocity * 0.04, 0.0, randf_range(0.12, 0.28), randf_range(1.2, 2.6)])
+	if Engine.get_physics_frames() % 2 == 0:   # גיץ אחד כל שני פריימים (הרבה קליעים ב-SMG)
+		_embers.append([global_position - velocity * delta * randf(), Vector2(randf_range(-30.0, 30.0), randf_range(-60.0, -10.0)) - velocity * 0.04, 0.0, randf_range(0.12, 0.24), randf_range(1.4, 2.6)])
 	for e in _embers:
 		e[2] += delta
 		e[0] += e[1] * delta
 	_embers = _embers.filter(func(e): return e[2] < e[3])
-	if _embers.size() > 30:
-		_embers = _embers.slice(_embers.size() - 30)
+	if _embers.size() > 8:
+		_embers = _embers.slice(_embers.size() - 8)
 	queue_redraw()
 
 
@@ -258,7 +258,7 @@ class GodBurst extends Node2D:
 
 	func _ready() -> void:
 		z_index = 11
-		for i in 22:
+		for i in 14:
 			parts.append([Vector2.from_angle(randf() * TAU) * randf_range(50.0, 210.0), randf_range(1.4, 3.2), randf_range(0.25, DUR)])
 
 	func _process(delta: float) -> void:

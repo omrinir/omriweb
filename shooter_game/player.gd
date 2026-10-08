@@ -580,7 +580,7 @@ func _physics_process(delta: float) -> void:
 	# GOD MODE: הגוף בוער - להבות אדומות עולות מכל הגוף
 	_flame_t -= delta
 	while god_mode() and not dead and _flame_t <= 0.0:
-		_flame_t += 0.016
+		_flame_t += 0.022
 		var fo := Vector2(randf_range(-10.0, 10.0), randf_range(-54.0, -2.0))
 		_flames.append([global_position + fo, Vector2(randf_range(-14.0, 14.0) + velocity.x * 0.15, randf_range(-95.0, -45.0)), 0.0, randf_range(0.22, 0.42), randf_range(1.2, 2.5)])
 	if _flame_t > 0.05:
@@ -699,6 +699,9 @@ func collect(p: Node) -> bool:
 			take_special("grenade")
 			return true
 		PickupScript.SPECIAL:
+			if p.special == "god":   # שיקוי GOD MODE: מתחיל מיד כשלוקחים אותו (לא נכנס לפריטים המיוחדים)
+				_drink_god()
+				return true
 			take_special(p.special)
 			return true
 		PickupScript.SUPPLY:
@@ -876,8 +879,6 @@ func _drink_god() -> void:
 	Sfx.play("boost", null, 2.0)
 	_say("GOD MODE", Color("ff3a2a"))
 	_jump_zoom(DOUBLE_JUMP_ZOOM)
-	for i in 40:   # פרץ להבות ראשון
-		_flames.append([global_position + Vector2(randf_range(-14.0, 14.0), randf_range(-56.0, 0.0)), Vector2(randf_range(-90.0, 90.0), randf_range(-160.0, -30.0)), 0.0, randf_range(0.3, 0.7), randf_range(2.0, 3.6)])
 
 
 func god_mode() -> bool:
