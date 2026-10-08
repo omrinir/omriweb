@@ -169,6 +169,9 @@ var boosts := {}                 # סוג בוסט -> כמה שניות נשאר
 var boost_time := 12.0           # כמה זמן בוסט נמשך
 var _rt := 1.0                   # פיצוי על BULLET TIME: השחקן זז במהירות רגילה
 var _laser_end := Vector2.ZERO
+var aim_end := Vector2.ZERO        # מדריך כוונה: איפה הירייה תיעצר (קיר / זומבי / העכבר)
+var aim_on_zombie := false         # הקו פוגע בזומבי (הכוונת והקו נהיים אדומים)
+var aim_dist := 300.0              # מרחק מהכתף לעכבר (לחישוב הפיזור בכוונת)
 var _empty_t := 0.0
 # ---- תנועה מתקדמת (SKILL) ----
 var roll_speed := 430.0
@@ -752,6 +755,7 @@ func has_boost(b: int) -> bool:
 
 # קו לייזר (שדרוג): עד הפגיעה הראשונה
 func _update_laser(sh: Vector2) -> void:
+	_update_aim_guide(sh)
 	if (Upgrades.perk("laser_sight") == 0 and not _scoping) or not controllable:
 		return
 	var from := sh + _aim * 30.0
@@ -759,6 +763,57 @@ func _update_laser(sh: Vector2) -> void:
 	var q := PhysicsRayQueryParameters2D.create(from, to, 5)
 	var hit := get_world_2d().direct_space_state.intersect_ray(q)
 	_laser_end = hit.position if hit else to
+
+
+# מדריך כוונה: קרן מהקנה לכיוון העכבר, עד הקיר / הזומבי הראשון (או העכבר)
+func _update_aim_guide(sh: Vector2) -> void:
+	var mouse := get_global_mouse_position()
+	aim_dist = maxf(sh.distance_to(mouse), 40.0)
+	aim_on_zombie = false
+	if Settings.aim_guide <= 0 or not controllable or weapon != GUN:
+		aim_end = mouse
+		return
+	var from := sh + _aim * 30.0
+	var rng: float = float(Upgrades.wval(gun, "range", 1800.0))
+	var to := from + _aim * clampf(aim_dist - 30.0, 30.0, minf(rng, 1400.0))
+	var q := PhysicsRayQueryParameters2D.create(from, to, 5)
+	var hit := get_world_2d().direct_space_state.intersect_ray(q)
+	aim_end = hit.position if hit else to
+	aim_on_zombie = hit and hit.collider != null and hit.collider.is_in_group("zombies")
+
+
+# פיזור הנשק עכשיו (רדיאנים) - לכוונת
+func aim_spread() -> float:
+	if weapon != GUN:
+		return 0.0
+	var sp := float(Upgrades.wval(gun, "spread", 0.0))
+	return sp + _kick * 0.5 + (0.04 if is_dazed() else 0.0)
+
+
+# קו מנוקד עדין מהקנה (כמו My Friend Pedro / Katana Zero). שוטגאן: שני קווים = הקונוס
+func _draw_aim_guide() -> void:
+	if Settings.aim_guide < 2 or not controllable or dead or unarmed or weapon != GUN or gun == BOW:
+		return
+	if Upgrades.perk("laser_sight") > 0 or _scoping or _drain_target != null or wheel_open:
+		return   # לייזר (שדרוג) / כוונת צלף כבר מראים את הקו
+	var from := _front_shoulder() + _aim * 30.0
+	var to := aim_end - global_position
+	var col := Color(1.0, 0.35, 0.3) if aim_on_zombie else Color(1.0, 0.95, 0.8)
+	var sp := aim_spread()
+	var dirs := [0.0] if sp < 0.05 else [-sp, sp]
+	var length := from.distance_to(to)
+	if sp >= 0.05:
+		length = minf(length, 260.0)
+	var flow := fposmod(_time * 40.0, 10.0)
+	for dv in dirs:
+		var d := (to - from).normalized().rotated(dv * _face())
+		var t := flow
+		while t < length:
+			var k := t / maxf(length, 1.0)
+			draw_circle(from + d * t, 1.2, Color(col, 0.5 * (1.0 - k * 0.7)))
+			t += 10.0
+	if dirs.size() == 1:
+		draw_circle(to, 2.0, Color(col, 0.6))
 
 
 func _can_stand() -> bool:
@@ -1258,6 +1313,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		drop_weapon(cur_slot)
 	elif event.physical_keycode == KEY_R and not dead:   # R = טעינה
 		reload()
+	elif event.physical_keycode == KEY_L:   # מדריך כוונה: כוונת + קו / רק כוונת / כבוי
+		Settings.aim_guide = (Settings.aim_guide + 2) % 3
+		Settings._save()
+		_say("AIM: " + Settings.AIM_NAMES[Settings.aim_guide], Color(0.9, 0.9, 0.85))
 	elif event.physical_keycode == KEY_K:
 		_invuln = 0.0
 		boosts.erase(PickupScript.GOD)
@@ -1469,6 +1528,7 @@ func _draw() -> void:
 			end = hand.lerp(end, clampf(tt / 0.12 if tt < 0.12 else (0.27 - tt) / 0.15, 0.0, 1.0))
 		draw_line(hand, end, Color("8a7a60"), 1.6, true)
 		draw_circle(end, 2.5, Color("b0b0b8"))
+	_draw_aim_guide()
 	if (Upgrades.perk("laser_sight") > 0 or _scoping) and controllable and _drain_target == null and weapon == GUN:
 		var from := _front_shoulder() + _aim * 30.0
 		var to := _laser_end - global_position

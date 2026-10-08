@@ -317,3 +317,8 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 
 ## Corpse splat
 - zombie.gd `_try_splat`: 50% of deaths (SPLAT_CHANCE), played when the flung body first lands (ragdoll `on_ground()` or is_on_floor), on screen only, at most one per 250 ms. Sounds: sfx.gd "corpse_splat" (3 clips in sounds/guns).
+
+## Aim guide (L key)
+- `Settings.aim_guide`: 0 off, 1 crosshair, 2 crosshair + dotted line (saved in settings.cfg).
+- ui/crosshair.gd (in the HUD layer, runs while paused): hides the OS cursor in play, draws 4 ticks whose gap = the weapon's real spread at the mouse distance (`player.aim_spread()`), red when `player.aim_on_zombie`. Cursor comes back when paused / weapon wheel / dead.
+- player.gd `_update_aim_guide` (ray from the muzzle to the mouse, stops at walls / first zombie) and `_draw_aim_guide` (faint dotted line; shotgun = 2 cone edges, 260 px). Hidden when the laser perk / sniper scope already show a line, and for the bow (own arc).

@@ -27,6 +27,10 @@ const PRESETS := [
 
 const SAVE_PATH := "user://settings.cfg"
 
+# מדריך כוונה (L מחליף): 0 כבוי, 1 רק כוונת, 2 כוונת + קו מנוקד מהקנה
+const AIM_NAMES := ["OFF", "CROSSHAIR", "CROSSHAIR + LINE"]
+var aim_guide := 2
+
 var difficulty := NORMAL:
 	set(v):
 		difficulty = clampi(v, 0, 2)
@@ -42,6 +46,7 @@ func _ready() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SAVE_PATH) == OK:
 		difficulty = clampi(int(cfg.get_value("game", "difficulty", NORMAL)), 0, 2)
+		aim_guide = clampi(int(cfg.get_value("game", "aim_guide", 2)), 0, 2)
 		music_volume = clampf(float(cfg.get_value("audio", "music", 0.8)), 0.0, 1.0)
 		sfx_volume = clampf(float(cfg.get_value("audio", "sfx", 0.9)), 0.0, 1.0)
 	_ensure_buses()
@@ -97,6 +102,7 @@ func difficulty_name() -> String:
 func _save() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("game", "difficulty", difficulty)
+	cfg.set_value("game", "aim_guide", aim_guide)
 	cfg.set_value("audio", "music", music_volume)
 	cfg.set_value("audio", "sfx", sfx_volume)
 	cfg.save(SAVE_PATH)
