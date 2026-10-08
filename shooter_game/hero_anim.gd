@@ -28,3 +28,6 @@ const FRAMES := {
 
 # פריימים שמצוירים בדף הפוך (פונים שמאלה) - משקפים אותם
 const FLIP := {}
+
+# פריימים מהגיליון החדש (העיגון לפי הראש) - הידיים והנשק מחושבים לפי גובה הפריים
+const NEW_SHEET := {"idle": true, "walk": true, "run": true, "jump": true, "fall": true, "land": true}
