@@ -1442,7 +1442,7 @@ func _hero_frame() -> Array:
 		var back := signf(velocity.x) != _face()   # הולך אחורה (מכוון לצד השני): הפריימים הפוך
 		var an := "run" if _running else "walk"
 		var nf: int = HeroAnim.FRAMES[an].size()
-		var i := int(_dist / (17.0 if _running else 11.0)) % nf
+		var i := int(_dist / (17.0 if _running else 8.5)) % nf
 		if back:
 			i = nf - 1 - i
 		return [an, i]
