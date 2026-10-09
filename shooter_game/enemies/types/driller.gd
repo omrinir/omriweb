@@ -84,6 +84,139 @@ func death_sound() -> String:
 	return "dr_burst"
 
 
+# המכונה מתפרקת: חלקים עפים (מקדח, זחלים, גלגלים, פחים צהובים, זכוכית, צינור, ברגים)
+# ושלד שרוף נשאר על הקרקע ומעלה עשן. הנהג (גופה רכה) עף החוצה כרגיל.
+func on_death() -> void:
+	var par: Node = z.get_parent()
+	var at: Vector2 = z.global_position
+	var s: float = z.sc
+	var d: float = z._dir
+	Sfx.play("explosion", at, -4.0 if not _boss() else 2.0, 0.1, 2)
+	Sfx.play("clang", at, -2.0, 0.15, 2)
+	Particles.burst(par, at + Vector2(0, -24) * s, "fire", Vector2.UP, 8)
+	Particles.burst(par, at + Vector2(0, -24) * s, "smoke", Vector2.UP, 12)
+	var cam: Node = z.get_viewport().get_camera_2d()
+	if cam != null and cam.has_method("shake"):
+		cam.shake(6.0 if not _boss() else 12.0, 0.35)
+	var hull := Scrap.new()   # השלד: נשאר, מעשן
+	hull.kind = "hull"
+	hull.sc = s
+	hull.dir = d
+	hull.life = 9.0
+	par.add_child(hull)
+	hull.launch(at + Vector2(0, -6) * s, Vector2(d * 40.0, -120.0), 0.0)
+	var parts := ["drill", "tread", "tread", "wheel", "wheel", "wheel", "panel", "panel", "panel", "glass", "glass", "pipe", "bolt", "bolt", "bolt"]
+	if _boss():
+		parts += ["panel", "panel", "wheel", "tread", "bolt", "bolt"]
+	for k in parts:
+		var c := Scrap.new()
+		c.kind = k
+		c.sc = s * randf_range(0.85, 1.1)
+		c.dir = d
+		c.life = randf_range(4.0, 6.5)
+		par.add_child(c)
+		var v := Vector2(randf_range(-260.0, 260.0), randf_range(-520.0, -200.0)) * (1.2 if _boss() else 1.0)
+		if k == "drill":   # המקדח עף קדימה
+			v = Vector2(d * randf_range(220.0, 320.0), randf_range(-420.0, -300.0))
+		c.launch(at + Vector2(randf_range(-16.0, 16.0), randf_range(-40.0, -10.0)) * s, v, randf_range(-9.0, 9.0))
+
+
+# ---- חלק מהמכונה: עף, מסתובב, קופץ על הקרקע, נח ונעלם ----
+class Scrap extends Node2D:
+	const ArtS := preload("res://art.gd")
+	var kind := "panel"
+	var sc := 1.0
+	var dir := 1.0
+	var life := 5.0
+	var velocity := Vector2.ZERO
+	var spin := 0.0
+	var _rest := false
+	var _t := 0.0
+	var _smoke := 0.0
+
+	func launch(pos: Vector2, vel: Vector2, sp: float) -> void:
+		global_position = pos
+		velocity = vel
+		spin = sp
+		z_index = 6
+
+	func _physics_process(delta: float) -> void:
+		_t += delta
+		life -= delta
+		if life <= 0.0:
+			queue_free()
+			return
+		modulate.a = clampf(life / 0.8, 0.0, 1.0)
+		if kind == "hull":   # השלד מעשן
+			_smoke -= delta
+			if _smoke <= 0.0:
+				_smoke = 0.25
+				preload("res://particles.gd").burst(get_parent(), global_position + Vector2(randf_range(-10, 10), -16) * sc, "smoke", Vector2.UP, 1)
+		if _rest:
+			return
+		velocity.y += 1100.0 * delta
+		var to := global_position + velocity * delta
+		var hit := get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(global_position, to, 1 | 16))
+		if hit and hit.normal != Vector2.ZERO:
+			global_position = hit.position + hit.normal * 0.5
+			velocity = velocity.bounce(hit.normal) * 0.32
+			velocity.x *= 0.6
+			spin *= 0.5
+			if hit.normal.y < -0.5 and velocity.length() < 50.0:   # נח על הקרקע
+				_rest = true
+				rotation = 0.0 if kind in ["hull", "tread", "panel"] else rotation
+		else:
+			global_position = to
+		rotation += spin * delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var A := ArtS
+		var paint := Color("e2a224")
+		var burnt := Color("5a4630")
+		var steel := Color("8a9098")
+		var dark := Color("2a2a2e")
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(sc * dir, sc))
+		match kind:
+			"hull":   # שלד שרוף: גוף מעוך + זחל, חצי צבע חצי פיח
+				A.fill_shaded(self, PackedVector2Array([Vector2(-22, -2), Vector2(14, -2), Vector2(16, -18), Vector2(4, -24), Vector2(-18, -22)]), paint.lerp(burnt, 0.55), 0.1, 0.4, A.OUTLINE, 1.4)
+				A.fill_shaded(self, PackedVector2Array([Vector2(-20, 0), Vector2(14, 0), Vector2(18, 5), Vector2(14, 9), Vector2(-20, 9), Vector2(-24, 5)]), dark, 0.1, 0.3, A.OUTLINE, 1.2)
+				for i in 4:
+					A.disc(self, Vector2(-16.0 + float(i) * 9.0, 5.0), 2.8, Color("4e545c"))
+				draw_line(Vector2(-12, -22), Vector2(-14, -30), Color("3a3a3a"), 2.5)   # צינור מעוקם
+				draw_circle(Vector2(-4, -12), 5.0, Color(0.1, 0.08, 0.06, 0.6))   # חור פיח
+			"drill":   # המקדח: קונוס פלדה עם ספירלה
+				A.fill_shaded(self, PackedVector2Array([Vector2(-10, -8), Vector2(16, 0), Vector2(-10, 8)]), steel, 0.2, 0.45, A.OUTLINE, 1.3)
+				for i in 4:
+					var x := -10.0 + float(i) * 6.0
+					var hw := 8.0 * (1.0 - float(i) / 4.0)
+					draw_line(Vector2(x, -hw), Vector2(x + 4.0, hw), Color("3e434a"), 1.2)
+				draw_rect(Rect2(-15, -4, 5, 8), Color("4e545c"))
+			"tread":   # קטע זחל עם שני גלגלים
+				A.fill_shaded(self, PackedVector2Array([Vector2(-12, -4), Vector2(12, -4), Vector2(14, 0), Vector2(12, 4), Vector2(-12, 4), Vector2(-14, 0)]), dark, 0.1, 0.3, A.OUTLINE, 1.2)
+				for i in 6:
+					draw_line(Vector2(-11.0 + float(i) * 4.4, -4), Vector2(-11.0 + float(i) * 4.4, -3), Color(0.6, 0.6, 0.62), 1.0)
+				A.disc(self, Vector2(-6, 0), 2.6, Color("4e545c"))
+				A.disc(self, Vector2(6, 0), 2.6, Color("4e545c"))
+			"wheel":
+				A.disc(self, Vector2.ZERO, 4.5, dark, A.OUTLINE, 1.2)
+				A.disc(self, Vector2.ZERO, 2.0, steel)
+				draw_line(Vector2.ZERO, Vector2(3.5, 0), Color("6a7078"), 1.0)
+			"panel":   # פח צהוב מעוקם עם פסי אזהרה
+				var pts := PackedVector2Array([Vector2(-8, -5), Vector2(7, -6), Vector2(9, 3), Vector2(-6, 6)])
+				A.fill_shaded(self, pts, paint, 0.15, 0.4, A.OUTLINE, 1.2)
+				draw_colored_polygon(PackedVector2Array([Vector2(-6, 2), Vector2(-3, 2), Vector2(0, -4), Vector2(-3, -4)]), Color("1e1e20"))
+				draw_colored_polygon(PackedVector2Array([Vector2(0, 3), Vector2(3, 3), Vector2(6, -3), Vector2(3, -3)]), Color("1e1e20"))
+			"glass":   # רסיס זכוכית מהתא
+				draw_colored_polygon(PackedVector2Array([Vector2(-4, -3), Vector2(4, -1), Vector2(0, 4)]), Color(0.65, 0.85, 0.9, 0.7))
+				draw_line(Vector2(-3, -2), Vector2(2, 0), Color(1, 1, 1, 0.8), 0.8)
+			"pipe":   # צינור הפליטה
+				draw_line(Vector2(-8, 0), Vector2(8, 0), A.OUTLINE, 4.5)
+				draw_line(Vector2(-8, 0), Vector2(8, 0), Color("4e545c"), 3.0)
+			_:   # בורג / אום
+				A.disc(self, Vector2.ZERO, 1.8, steel, A.OUTLINE, 0.8)
+
+
 func damage_mult(_zone: String, _src: Dictionary) -> float:
 	return 1.5 if state == STUN else 1.0
 
