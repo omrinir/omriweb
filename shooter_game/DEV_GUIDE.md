@@ -322,3 +322,10 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - `Settings.aim_guide`: 0 off, 1 crosshair, 2 crosshair + dotted line (saved in settings.cfg). The dotted line shows only on EASY; NORMAL/HARD get the crosshair only (L toggles it on/off there).
 - ui/crosshair.gd (in the HUD layer, runs while paused): hides the OS cursor in play, draws 4 ticks whose gap = the weapon's real spread at the mouse distance (`player.aim_spread()`), red when `player.aim_on_zombie`. Cursor comes back when paused / weapon wheel / dead.
 - player.gd `_update_aim_guide` (ray from the muzzle to the mouse, stops at walls / first zombie) and `_draw_aim_guide` (faint dotted line; shotgun = 2 cone edges, 260 px). Hidden when the laser perk / sniper scope already show a line, and for the bow (own arc).
+
+## Stage 18 - "THE QUARRY" ("THEY LEARNED TO DIG")
+- levels/stage_18.gd + effects/s18_decor.gd: bright midday open-pit quarry (blue sky, sun glare, stone terraces, bucket-wheel excavator, conveyors, crane, gravel, orange fences, DANGER signs). World: QuarryGround, Obstacle "blocks" / "truck" / "cart" / "drill_rig", metal "scaffold" floors (SCAFFOLDS, SCAFF_H 120). Screen: SunGlare + light dust.
+- Zombies: DRILLER 0.16, UZI 0.2, BOMBHEAD 0.18 (back from 15), walkers/runners, a few CRUMBLER. UZI on scaffolds, extra DRILLERs between them.
+- enemies/types/driller.gd: DRIVE -> DIG (0.7 s) -> UNDER (invulnerable, moves under obstacles, layer 0) -> WARN (WARN_T = 1.0 s red ring + "!" at the player's spot, locked) -> ERUPT (hurt + launch) -> STUN (1.5 s, x1.5 damage). Boss mode (chase_range > 600): "THE EXCAVATOR", wider eruption, digs again faster.
+- enemies/types/uzi.gd: AIM 0.45 s (red glint) -> BURST 11 shots @ 13/s, each shot climbs CLIMB 0.065 rad upward (recoil) -> RELOAD 1.4 s. Uses the real "smg" gunshot.
+- Main menu PRACTICE buttons now 2-18; region 2 level 9 renamed "The Quarry".
