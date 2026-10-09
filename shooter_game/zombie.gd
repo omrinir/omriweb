@@ -1080,16 +1080,24 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	_last_info = {"zone": zone, "source": source, "perfect": perfect, "bullet": src.get("bullet", 0), "blast": src.get("blast", 0), "shot": src.get("shot", 0),
 		"hidden": _cover_state == 2}
 	Game.on_zombie_hit(_last_info)
-	Sfx.play("headshot" if zone == "head" else "hit", hit_pos, -4.0, 0.15, 4)
+	# זומבי בתוך מכונה (DRILLER): פגיעה בפח = ניצוצות וצליל מתכת, בלי דם. רק חלון התא (ראש) פוגע בנהג
+	var metal: bool = type_mod != null and bool(type_mod.stats().get("metal", false)) and zone != "head" and not explosive
+	if metal:
+		Sfx.play("metal_ping", hit_pos, -2.0, 0.18, 4)
+		Particles.burst(get_parent(), hit_pos, "fire", Vector2(-dir.x, -0.6), 5)
+	else:
+		Sfx.play("headshot" if zone == "head" else "hit", hit_pos, -4.0, 0.15, 4)
 	_last_hit = hit_pos
 	_last_boom = explosive
 	hp -= dmg
 	Game.story.emit("zhit", {"z": self, "zone": zone, "source": source, "was_lying": was_lying})
-	if hp > 0 and (source == "bullet" or source == "melee" or source == "taser"):
+	if hp > 0 and not metal and (source == "bullet" or source == "melee" or source == "taser"):
 		_voice("zhit", 0.85, 3.0)
 	_damage_number(dmg, zone)
 
-	if zone == "head":
+	if metal:
+		pass
+	elif zone == "head":
 		_spray_blood(global_position + Vector2(0.0, -50.0 * sc), Vector2(dir.x, -0.6), 12, 320.0)
 		if hp <= 0:   # HEADSHOT: הראש מתפוצץ
 			_headless = true
@@ -1106,7 +1114,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 			var lx := (hit_pos.x - global_position.x) * _dir / (sc * wf)
 			_wounds.append(Vector2(clampf(lx, -6.0, 6.0), clampf(ly, -40.0, -22.0)))
 	# חתיכות בשר נתלשות (אפור + אדום) - effects/flesh_fx.gd
-	if dmg > 0 and kind != MECH and (type_mod == null or bool(type_mod.stats().get("flesh", true))):
+	if dmg > 0 and kind != MECH and not metal and (type_mod == null or bool(type_mod.stats().get("flesh", true))):
 		FleshFx.burst(get_parent(), hit_pos, dir, skin, zone, hp <= 0, explosive, hp <= 0 and death_load() >= DEATH_HEAVY - 1)
 	if hp <= 0:
 		_die(dir)
