@@ -4,8 +4,8 @@ extends "res://enemies/zombie_type.gd"
 #  מחזור:
 #    WALK   - מתקרב (המוח), שומר מרחק.
 #    AIM    - מרים את העוזי אליך, ניצוץ אדום על הקנה (AIM_T) = אזהרה.
-#    BURST  - צרור של SHOTS כדורים. הכדור הראשון מכוון אליך, וכל כדור שאחריו עולה למעלה
-#             בגלל ההדף (CLIMB לכל ירייה) - הצרור "מטפס". מקרוב / הראשונים מסוכנים, האחרונים עפים מעליך.
+#    BURST  - צרור של SHOTS כדורים. הראשון מכוון לחזה (AIM_H - מעל שחקן כפוף), וכל כדור שאחריו עולה למעלה
+#             בגלל ההדף (CLIMB לכל ירייה) - הצרור "מטפס". מתכופפים (S) = כל הצרור עובר מעליך.
 #    RELOAD - מחליף מחסנית (RELOAD_T): החלון שלך.
 #  צליל: "smg" (הירייה האמיתית מ-sounds/guns), "uz_clip" (מחסנית).
 #  לשנות: RANGE, AIM_T, SHOTS, RATE, CLIMB, SPREAD, RELOAD_T.
@@ -23,6 +23,7 @@ const SHOTS := 11
 const RATE := 13.0          # כדורים בשנייה
 const CLIMB := 0.065        # כמה הקנה עולה בכל ירייה (רדיאנים)
 const SPREAD := 0.035
+const AIM_H := -38.0         # גובה הכיוון: חזה עליון של שחקן עומד - מעל שחקן כפוף (34), כך שהתכופפות = לא נפגעים
 const RELOAD_T := 1.4
 const CD := Vector2(0.8, 1.6)
 
@@ -78,13 +79,13 @@ func physics(pl: Node, delta: float) -> bool:
 					_st = AIM_T
 					z._dir = signf(d.x) if d.x != 0.0 else z._dir
 					_climb = 0.0
-					_base = ((pl.global_position + Vector2(0, -24)) - _pivot()).angle()
+					_base = ((pl.global_position + Vector2(0, AIM_H)) - _pivot()).angle()
 					return _stay(delta)
 			return false
 		AIM:
 			if has_pl:   # עוקב אחריך בזמן שהוא מכוון
 				z._dir = signf(pl.global_position.x - z.global_position.x) if pl.global_position.x != z.global_position.x else z._dir
-				_base = lerp_angle(_base, ((pl.global_position + Vector2(0, -24)) - _pivot()).angle(), delta * 8.0)
+				_base = lerp_angle(_base, ((pl.global_position + Vector2(0, AIM_H)) - _pivot()).angle(), delta * 8.0)
 			if _st <= 0.0:
 				state = BURST
 				bursts += 1
@@ -125,7 +126,7 @@ func _fire() -> void:
 	var b = ZScript.EnemyShot.new()
 	z.get_parent().add_child(b)
 	b.global_position = _muzzle()
-	b.velocity = Vector2.from_angle(_aim_angle() + randf_range(-SPREAD, SPREAD)) * randf_range(900.0, 1000.0)
+	b.velocity = Vector2.from_angle(_aim_angle() - randf_range(0.0, SPREAD) * z._dir) * randf_range(900.0, 1000.0)   # הפיזור רק למעלה
 	b.life = 0.8
 	_flash = 0.035
 	_climb = minf(_climb + CLIMB, 1.0)   # ההדף מרים את הקנה
