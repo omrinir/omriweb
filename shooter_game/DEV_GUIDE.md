@@ -370,8 +370,12 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 ## MIND CONTROL (special item "mind")
 - effects/mind_control.gd. Special in progression/arsenal.gd SPECIALS: 1 use, from level 10, weight 0.7 (rare). Test pickup at the start of stage 19 (levels/stage_19.gd - delete when not needed).
 - Fire (E to select, then shoot): purple beam (ray + small aim assist). Bosses and special zombies (NO_CONTROL) refuse - the use is not consumed. A miss is not consumed either.
-- Session (14 s, DURATION): zombie.possessed = session -> zombie.gd skips its AI and calls session.drive(): A/D move, SHIFT / full stick run, W jump, LMB / aim stick claw (CLAW_DMG in front).
+- Session (25 s, DURATION): zombie.possessed = session -> zombie.gd skips its AI and calls session.drive(): A/D move, SHIFT / full stick run, W jump, LMB / aim stick claw (CLAW_DMG in front).
   Camera reparents to the zombie. Hero: controllable=false, mind_linked=true, invulnerable, purple trance. Touch controls stay visible (mind_linked).
   Other zombies: zombie.mind_traitor (static) -> _traitor_near() makes them chase it (direct, no brain steering) and bite it via zombie.hurt() (x8 damage).
   End: time out / traitor dies -> traitor collapses dead (_die), camera + control return to the hero.
 - Fix: touch layer was drawn once on desktop (Node2D visible by default) - now hidden unless Touch.on.
+- Abilities (effects/mind_abilities.gd): C / RMB (phone: SKILL) = the controlled zombie's own ability, chosen by kind in ability_for():
+  spin (BLADES), pounce (default: LEAPER, AMBUSHER, GHILLIE, walkers...), shoot (UZI, MINIGUNNER, SANDBLASTER, GUNNER), spit (SPITTER, RETCHER, HURLER),
+  slam (BRUTE, TANK, SHIELDED, DEVOURER, CRUMBLER...), scream = stun (SCREAMER, SIREN, COMMANDER, PACK_LEADER), explode (BLOATER, BOMBHEAD - ends the control).
+  Cooldowns in INFO; HUD shows the ability name + ready bar. Hidden types (GHILLIE _k / AMBUSHER _hide) are un-hidden when taken over.

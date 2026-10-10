@@ -1,9 +1,10 @@
 extends RefCounted
 # ============================================================
 #  MIND CONTROL - פריט מיוחד (progression/arsenal.gd -> SPECIALS "mind", שימוש אחד).
-#  יורים קרן סגולה על זומבי -> 14 שניות (DURATION) אתה הזומבי:
+#  יורים קרן סגולה על זומבי -> 25 שניות (DURATION) אתה הזומבי:
 #    A/D הליכה, SHIFT (או ג'ויסטיק עד הסוף בטלפון) ריצה, W/SPACE/JUMP קפיצה,
 #    לחיצה / ג'ויסטיק הירי = שריטה (CLAW_DMG) לזומבים שלפניך.
+#    C / לחצן ימני (בטלפון SKILL) = היכולת המיוחדת של אותו זומבי (effects/mind_abilities.gd: מערבולת, זינוק, ירי, יריקה, מכת קרקע, צרחה, פיצוץ).
 #  הגיבור קפוא בטראנס סגול ולא נפגע. כל שאר הזומבים מזהים את הבוגד ומתנפלים עליו
 #  (zombie.gd: mind_traitor / hurt()). בסוף הזמן (או אם הוא נהרג) - הזומבי קורס מת והשליטה חוזרת.
 #  אי אפשר לשלוט בבוסים ובזומבים מיוחדים (can_control).
@@ -17,8 +18,9 @@ const Registry := preload("res://enemies/zombie_registry.gd")
 const Art := preload("res://art.gd")
 const Sfx := preload("res://sfx.gd")
 const Particles := preload("res://particles.gd")
+const MA := preload("res://effects/mind_abilities.gd")
 
-const DURATION := 14.0
+const DURATION := 25.0
 const RANGE := 760.0
 const ASSIST := 0.2          # רדיאנים: כמה מותר לפספס ועדיין לתפוס זומבי
 const COL := Color("b060ff")
@@ -29,7 +31,7 @@ const WALK_K := 1.25
 const RUN_K := 1.9
 const MIN_SPEED := 110.0
 const JUMP_V := 560.0
-const TRAITOR_HP := 70       # לפחות כמה חיים יש לזומבי בזמן השליטה
+const TRAITOR_HP := 100      # לפחות כמה חיים יש לזומבי בזמן השליטה
 const NO_CONTROL := [Registry.HANGED, Registry.DRILLER, Registry.SWINGER, Registry.WALL_CRAWLER, Registry.IRONWING, Registry.KRAKEN,
 	Registry.BLOODGATE, Registry.BROODMOTHER, Registry.MIRAGE_KING, Registry.STRANGER]   # זומבים מיוחדים שלא הגיוני לשלוט בהם
 
@@ -97,6 +99,8 @@ class Session extends Node:
 	var _cam_pos := Vector2.ZERO
 	var _claw_cd := 0.0
 	var _jump_was := false
+	var _abil_was := false
+	var ability = null        # MA.Ability - היכולת של הזומבי הזה
 	var _ended := false
 	var _aura: Node2D = null
 	var _trance: Node2D = null
@@ -111,6 +115,14 @@ class Session extends Node:
 		z._stagger_t = 0.0
 		z._noticed = true
 		z.hp = maxi(int(z.hp), TRAITOR_HP)
+		var tm = z.type_mod   # זומבים שמתחבאים (GHILLIE / AMBUSHER) - יוצאים מהמחבוא
+		if tm != null:
+			if "_k" in tm:
+				tm._k = 0.0
+			if "_hide" in tm:
+				tm._hide = 0.0
+		ability = MA.Ability.new()
+		ability.id = MA.ability_for(z)
 		player.controllable = false
 		player.mind_linked = true
 		player._invuln = DURATION + 1.0
@@ -134,7 +146,7 @@ class Session extends Node:
 		_hud.add_child(h)
 		add_child(_hud)
 		Sfx.play("boost", null, 2.0)
-		z._popup("MIND CONTROL", COL, 16, -80.0)
+		z._popup("MIND CONTROL  -  " + str(ability.info().name), COL, 16, -80.0)
 		Particles.burst(z.get_parent(), z.global_position + Vector2(0, -30.0 * float(z.sc)), "spark", Vector2.ZERO, 14)
 
 	func _physics_process(delta: float) -> void:
@@ -153,13 +165,15 @@ class Session extends Node:
 			dir += 1.0
 		var run: bool = Input.is_physical_key_pressed(KEY_SHIFT) or (TouchAPI.on() and TouchAPI.node().run)
 		var spd := maxf(float(zz.chase_speed), MIN_SPEED) * (RUN_K if run else WALK_K)
-		if dir != 0.0:
-			zz._dir = dir
-		zz.velocity.x = move_toward(zz.velocity.x, dir * spd, 1500.0 * delta)
+		var by_ability: bool = ability.tick(zz, delta)   # מערבולת / זינוק: היכולת מזיזה אותו
+		if not by_ability:
+			if dir != 0.0:
+				zz._dir = dir
+			zz.velocity.x = move_toward(zz.velocity.x, dir * spd, 1500.0 * delta)
 		if not zz.is_on_floor():
 			zz.velocity.y += zz.gravity * delta
 		var jump := Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_SPACE)
-		if jump and not _jump_was and zz.is_on_floor():
+		if jump and not _jump_was and zz.is_on_floor() and not by_ability:
 			zz.velocity.y = -JUMP_V
 			Sfx.play("jump", zz.global_position, -4.0)
 		_jump_was = jump
@@ -167,6 +181,16 @@ class Session extends Node:
 		zz.global_position.x = clampf(zz.global_position.x, 20.0, float(zz.world_w) - 20.0)
 		if zz.is_on_floor():
 			zz._walk_phase += delta * absf(zz.velocity.x) * 0.075 / float(zz.sc)
+		# היכולת המיוחדת: C / לחצן ימני / SKILL
+		var ab: bool = Input.is_physical_key_pressed(KEY_C) or (not TouchAPI.on() and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT))
+		if ab and not _abil_was and not zz.get_tree().paused:
+			var aim := _aim_dir(zz)
+			if absf(aim.x) > 0.2:
+				zz._dir = signf(aim.x)
+			ability.start(zz, aim)
+		_abil_was = ab
+		if zz.dead:   # פיצוץ עצמי
+			return
 		# שריטה
 		_claw_cd -= delta
 		var atk: bool = TouchAPI.node().fire if TouchAPI.on() else Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
@@ -179,6 +203,15 @@ class Session extends Node:
 				if absf(mx) > 4.0:
 					zz._dir = signf(mx)
 			_claw(zz)
+
+	# לאן מכוונים (ירי / יריקה): העכבר, או בטלפון הג'ויסטיק הימני (אחרת - קדימה)
+	func _aim_dir(zz: Node) -> Vector2:
+		var from: Vector2 = zz.global_position + Vector2(0.0, -36.0 * float(zz.sc))
+		if TouchAPI.on():
+			var t = TouchAPI.node()
+			return t.aim_dir if t.aiming else Vector2(zz._dir, 0.0)
+		var v: Vector2 = zz.get_global_mouse_position() - from
+		return v.normalized() if v.length() > 4.0 else Vector2(zz._dir, 0.0)
 
 	func _claw(zz: Node) -> void:
 		_claw_cd = CLAW_CD
@@ -310,10 +343,17 @@ class Hud extends Node2D:
 		draw_string(font, Vector2(vs.x * 0.5 - tw * 0.5, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.9, 0.75, 1.0))
 		draw_rect(Rect2(vs.x * 0.5 - 120.0, y + 10.0, 240.0, 6.0), Color(0, 0, 0, 0.5))
 		draw_rect(Rect2(vs.x * 0.5 - 120.0, y + 10.0, 240.0 * k, 6.0), COL)
+		var ab = session.ability
+		if ab != null:   # היכולת + טעינה
+			var label := ("SKILL: " if TouchAPI.on() else "C / RMB: ") + str(ab.info().name)
+			var lw := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+			var ready: bool = ab.ready_k() >= 1.0
+			draw_string(font, Vector2(vs.x * 0.5 - lw * 0.5, y + 36.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.85, 0.4) if ready else Color(1, 1, 1, 0.5))
+			draw_rect(Rect2(vs.x * 0.5 - 60.0, y + 42.0, 120.0 * ab.ready_k(), 3.0), Color(1.0, 0.85, 0.4, 0.8))
 		if not TouchAPI.on():
 			var hint := "A/D move   SHIFT run   W jump   LMB claw"
 			var hw := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-			draw_string(font, Vector2(vs.x * 0.5 - hw * 0.5, y + 36.0), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.7))
+			draw_string(font, Vector2(vs.x * 0.5 - hw * 0.5, y + 62.0), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.7))
 
 
 # ============================================================
