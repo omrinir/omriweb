@@ -3,7 +3,7 @@
 //  OpenSCAD 2021.01+   (all dimensions in mm)
 //
 //  Export one part:  openscad -D 'part="head_front"' -o head_front.stl robot_cute.scad
-//  Parts: base_floor, base_shell, body, head_front, head_back, face_plate,
+//  Parts: base_floor, base_shell, body, head_front, head_back, face_plate, cheek (x2),
 //         ear_ring, ear_cap, antenna_stem, antenna_ball, arm_right, arm_left, sign
 //  Previews: assembly, exploded, cutaway
 //
@@ -94,6 +94,9 @@ head_split  = 6;
 oled_z      = 34;
 visor       = [64, 44, 18];   // black face screen: w, h, corner r
 visor_z     = 36;
+cheek_d     = 9;
+cheek_x     = 21;
+cheek_z     = 25;
 oled_win    = [23, 12];
 oled_glass  = [27.2, 19.8, 1.4];
 ear_z       = 38;
@@ -288,8 +291,10 @@ module face_plate() {
         }
         translate([0, y0-1, oled_z]) rotate([-90,0,0]) linear_extrude(10) rrect(oled_win[0], oled_win[1], 1);
         translate([0, y0+wall+1.2-oled_glass[2], oled_z]) rotate([-90,0,0]) linear_extrude(5) square([oled_glass[0], oled_glass[1]], center=true);
+        for (x=[-cheek_x, cheek_x]) translate([x, y0-1, cheek_z]) rotate([-90,0,0]) cylinder(d=cheek_d+0.3, h=1+0.8);   // cheek pockets
     }
 }
+module cheek() cylinder(d=cheek_d, h=1.2);     // print 2 in pink, press into the face plate
 module ear_ring() difference() {
     union() { rotate_extrude() polygon([[7,0],[15,0],[15,4],[13.5,5.5],[7,5.5]]); translate([0,0,-2.5]) ring(7, 5.4, 2.5+eps); }
     translate([0,0,2]) cylinder(d=17, h=10);
@@ -413,3 +418,4 @@ else if (part == "antenna_ball") antenna_ball();
 else if (part == "arm_right")    translate([0,0,arm_t]) rotate([0,90,0]) arm_shape();
 else if (part == "arm_left")     mirror([1,0,0]) translate([0,0,arm_t]) rotate([0,90,0]) arm_shape();
 else if (part == "sign")         sign_flat();
+else if (part == "cheek")        cheek();
