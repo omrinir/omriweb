@@ -120,7 +120,8 @@ func _frame(x: float, z: float, low := 0.25) -> Vector2:
 func _unhandled_input(event: InputEvent) -> void:
 	if done or _skip_t < 0.6:
 		return
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+	if (event is InputEventKey and event.pressed and not event.echo and event.physical_keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]) \
+			or (Touch.on and event is InputEventScreenTouch and event.pressed):   # טלפון: נגיעה = דילוג
 		get_viewport().set_input_as_handled()
 		_finish()
 

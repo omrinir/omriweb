@@ -196,6 +196,8 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _select != null or _leaving:
 		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_hover = region_at(event.position)   # טלפון: אין ריחוף לפני הנגיעה - בודקים בנקודת הלחיצה
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and _hover > 0:
 		var r := _hover - 1
 		if Game.region_unlocked(r):

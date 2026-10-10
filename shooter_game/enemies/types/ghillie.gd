@@ -107,7 +107,7 @@ func _watched(pl: Node) -> bool:
 	if pl == null or pl.dead or not Art.on_screen(z, z.global_position):
 		return false
 	var c: Vector2 = z.global_position + Vector2(0.0, -20.0 * z.sc)
-	var m: Vector2 = pl.get_global_mouse_position()
+	var m: Vector2 = pl.aim_world()
 	if m.distance_to(c) < WATCH_R * z.sc:
 		return true
 	var sh: Vector2 = pl.global_position + Vector2(0.0, -40.0)

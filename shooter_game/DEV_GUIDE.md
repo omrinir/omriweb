@@ -354,3 +354,13 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - HANGED (enemies/types/hanged.gd): hangs from a noose (Bough node it creates at the anchor), pendulum sway (hits push it), pistol: AIM (red sight line + glint, AIM_T) -> SHOTS shots that LEAD the player's velocity (LEAD) -> COOL. Death: rope snaps (Bough.cut), corpse falls (collision restored in on_death). Placed by stage_20 HANGED_AT, never over tree platforms.
 - particles.gd: new "leaf" burst kind.
 - Fix: s19_decor near_plants palm frond polygon self-intersected ("triangulation failed" spam every frame in stages 19/20) - now a strip along the spine.
+
+## Android (phone) build
+- Touch controls: ui/touch_controls.gd (autoload "Touch"). On only on mobile (OS feature "mobile") or with `-- --touch` on desktop for testing.
+  Left floating stick = A/D (+run at RUN_AT, down = S, up = W climb). Right floating stick = aim + auto-fire, with a small aim assist (ASSIST / ASSIST_RANGE).
+  Buttons press the real keys via Input.parse_input_event, so all keyboard code works unchanged. Only aim/fire are read directly: player.aim_world() / Touch.fire.
+  Menus: taps become mouse clicks (Godot emulate_mouse_from_touch). Android back button = ESC in game, quit in menus (config/quit_on_go_back=false).
+- Export: preset "Android" in export_presets.cfg (arm64, no gradle, signed with the Godot debug keystore - fine for sideloading, not for the Play Store).
+  Needs the Android export templates (android_release.apk) and an SDK path whose build-tools contain apksigner (in the cloud box: /root/android-sdk with apksigner/zipalign from apt).
+  `Godot --headless --path . --export-release "Android" build/TheyLearn.apk`
+- Icon: icon.png (+ android_icons/ for the launcher).

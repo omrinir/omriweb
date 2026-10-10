@@ -404,6 +404,8 @@ func _physics_process(delta: float) -> void:
 	_d_was = kd
 	if dir == 0.0 or (dir < 0.0 and not ka) or (dir > 0.0 and not kd):
 		_running = false
+	elif Touch.on:   # טלפון: ג'ויסטיק דחוף עד הסוף = ריצה (ui/touch_controls.gd)
+		_running = Touch.run
 	if grabbed_by != null:   # יד מהביוב: לוחצים A/D לסירוגין כדי להשתחרר
 		if not is_instance_valid(grabbed_by) or grabbed_by.dead:
 			grabbed_by = null
@@ -613,14 +615,14 @@ func _physics_process(delta: float) -> void:
 
 	# כיוון ויריה
 	var sh := global_position + _front_shoulder()
-	var to_mouse := get_global_mouse_position() - sh
+	var to_mouse := aim_world() - sh
 	if not controllable:
 		_aim = idle_aim
 	elif to_mouse.length() > 4.0 and not _fire_test:
 		_aim = to_mouse.normalized()
 		if _daze_t > 0.0:   # מסונוור: הכוונת רועדת
 			_aim = _aim.rotated(sin(_time * 7.0) * 0.16 + sin(_time * 11.3) * 0.07)
-	var trigger := controllable and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not get_tree().paused and not wheel_open
+	var trigger := controllable and (Touch.fire if Touch.on else Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) and not get_tree().paused and not wheel_open
 	# צלף: לחצן ימני = כוונת והזמן מאט
 	var scope := controllable and weapon == GUN and gun == SNIPER and not wheel_open and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not get_tree().paused
 	if scope != _scoping:
@@ -777,7 +779,7 @@ func _update_laser(sh: Vector2) -> void:
 
 # מדריך כוונה: קרן מהקנה לכיוון העכבר, עד הקיר / הזומבי הראשון (או העכבר)
 func _update_aim_guide(sh: Vector2) -> void:
-	var mouse := get_global_mouse_position()
+	var mouse := aim_world()
 	aim_dist = maxf(sh.distance_to(mouse), 40.0)
 	aim_on_zombie = false
 	if Settings.aim_guide <= 0 or not controllable or weapon != GUN:
@@ -806,6 +808,13 @@ func _add_bloom(w: Dictionary) -> void:
 	var b: Vector2 = BLOOM_AUTO if str(w.get("category", "")) == "auto" else BLOOM_SEMI
 	_bloom = minf(1.0, _bloom + b.x)
 	_bloom_hold = 0.16
+
+
+# לאן מכוונים בעולם: העכבר, או בטלפון - הג'ויסטיק הימני (ui/touch_controls.gd)
+func aim_world() -> Vector2:
+	if Touch.on:
+		return Touch.aim_point(global_position + _front_shoulder())
+	return get_global_mouse_position()
 
 
 func aim_bloom() -> float:

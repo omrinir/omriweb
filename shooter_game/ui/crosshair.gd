@@ -44,6 +44,8 @@ func _draw() -> void:
 	if not _shown:
 		return
 	var m := get_viewport().get_mouse_position()
+	if Touch.on:   # טלפון: הכוונת בנקודה שהג'ויסטיק מכוון אליה
+		m = get_viewport().get_canvas_transform() * player.aim_world()
 	# סגורה במנוחה; נפתחת עם הירי (ירי ממושך = נפתחת עוד ועוד) וחוזרת כשמפסיקים
 	var gap := 4.0 + 26.0 * float(player.aim_bloom()) + 3.0 * _pop
 	var hot: bool = player.aim_on_zombie
