@@ -135,7 +135,7 @@ func _process(delta: float) -> void:
 # שלבים זוגיים = רכבת תחתית
 # העולמות מתחלפים: 0 = רחוב, 1 = רכבת תחתית, 2 = מפעל
 # איזה עולם בכל שלב: 0 רחוב, 1 רכבת תחתית, 2 מפעל, 3 רחוב בלילה עם גשם
-const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12, 14: 13, 15: 14, 16: 15, 17: 16, 18: 17}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
+const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12, 14: 13, 15: 14, 16: 15, 17: 16, 18: 17, 19: 18}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
 func world() -> int:
 	return LEVEL_WORLD.get(level, (level - 1) % 4)
 
@@ -160,14 +160,14 @@ func is_factory() -> bool:
 #  מפה: 7 אזורים, 9 שלבים בכל אזור (כרגע 3 השלבים הראשונים קיימים)
 # ============================================================
 const LEVELS_PER_REGION := 9
-const IMPLEMENTED := 18           # כמה שלבים כבר בנויים
+const IMPLEMENTED := 19           # כמה שלבים כבר בנויים
 const REGIONS := [
 	{"name": "NORTHERN AMAZON", "color": Color(0.45, 0.85, 0.3), "desc": "Where it started. The first ones only hunger.",
 		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Ruined District", "Highrise", "The Works", "Research Site", "Zone Zero"]},
 	{"name": "NORTHEAST", "color": Color(1.0, 0.8, 0.25), "desc": "Sun, salt and sand. They learned to wait in the heat.",
 		"levels": ["Salt Flats", "Sun-Bleached Town", "The Lighthouse", "Dunes of Bone", "Fishermen's Grave", "Carnival of the Dead", "The Flood", "The Dry River", "The Quarry"]},
 	{"name": "CENTRAL PLATEAU", "color": Color(0.35, 0.65, 1.0), "desc": "Endless roads. They learned to hunt in packs.",
-		"levels": ["Savanna Road", "Cattle Ghosts", "Glass Capital", "The Dam", "Highway 7", "Burning Fields", "Radio Tower", "The Bunker", "Plateau Gate"]},
+		"levels": ["The Green Wall", "Cattle Ghosts", "Glass Capital", "The Dam", "Highway 7", "Burning Fields", "Radio Tower", "The Bunker", "Plateau Gate"]},
 	{"name": "ANDES", "color": Color(0.78, 0.5, 1.0), "desc": "Thin air, deep mines. They learned to climb.",
 		"levels": ["Cloud Pass", "Mine of Echoes", "Frozen Village", "Condor Peak", "Lost Temple", "Avalanche Road", "Observatory", "Skull Glacier", "The Summit"]},
 	{"name": "SOUTHEAST", "color": Color(1.0, 0.55, 0.2), "desc": "The megacities. They learned to use our machines.",
@@ -390,6 +390,7 @@ const LEVEL_TITLES := [
 	["THEY COME IN WAVES", "There are always more of them than bullets."],
 	["THEY LEARNED TO LIE", "In the heat, not everything you see is real. Watch their shadows."],
 	["THEY LEARNED TO DIG", "The ground is not a floor anymore. When it shakes - move."],
+	["THEY LEARNED THE TREES", "Look up. Then look again. The jungle has arms."],
 ]
 func level_title() -> Array:
 	var t: Array = LEVEL_TITLES[(level - 1) % LEVEL_TITLES.size()].duplicate()
