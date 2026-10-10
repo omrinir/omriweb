@@ -108,7 +108,7 @@ arm_S   = [arm_shaft_y, shoulder_z];
 arm_H   = [-16, 9];
 sign_w  = 70;
 sign_h  = 38;
-sign_t  = 2.4;
+sign_t  = 3;                  // 3 mm laser-cut plywood
 
 // =====================================================================
 module rrect(w, d, r) offset(r) square([w-2*r, d-2*r], center=true);
@@ -166,7 +166,7 @@ module base_shell() {
         for (a=boss_angles) rotate(a) translate([boss_r_pos,0,floor_top-eps]) cylinder(d=2.6, h=10);
         for (p=body_pillars) translate([p[0],p[1],ceil_z-3]) cylinder(d=3.4, h=10);
         translate([0,0,ceil_z-1]) cylinder(d=16, h=10);
-        for (x=[-sign_tab_x, sign_tab_x]) translate([x-5.1, sign_y-1.4, ceil_z-5]) cube([10.2, 2.8, 10]);
+        for (x=[-sign_tab_x, sign_tab_x]) translate([x-5.2, sign_y-(sign_t+0.4)/2, ceil_z-5]) cube([10.4, sign_t+0.4, 10]);
         translate([-5, sensor_y-3, ceil_z-3]) cube([10, 6, 10]);
         translate([-sensor_pcb[0]/2, sensor_y-sensor_pcb[1]/2, ceil_z-2-eps]) cube([sensor_pcb[0], sensor_pcb[1], 1.2]);
         // USB-C of the charger at the back, switch in the side wall
@@ -339,9 +339,9 @@ module sign_2d() {
     translate([-sign_w/2, 0]) offset(r=8) offset(delta=-8) square([sign_w, sign_h]);
     for (x=[-sign_tab_x, sign_tab_x]) translate([x-5, -5]) square([10, 5.5]);
 }
-module sign_flat() difference() {
+module sign_flat() difference() {     // wooden sign: laser-cut the outline (part="sign_outline" -> DXF/SVG)
     linear_extrude(sign_t) sign_2d();
-    translate([0, sign_h/2, sign_t-1.2]) cylinder(d=26, h=2);
+    translate([0, sign_h/2, sign_t-1.2]) cylinder(d=26, h=2);       // only used if you 3D print the sign
 }
 
 // =====================================================================
@@ -418,4 +418,5 @@ else if (part == "antenna_ball") antenna_ball();
 else if (part == "arm_right")    translate([0,0,arm_t]) rotate([0,90,0]) arm_shape();
 else if (part == "arm_left")     mirror([1,0,0]) translate([0,0,arm_t]) rotate([0,90,0]) arm_shape();
 else if (part == "sign")         sign_flat();
+else if (part == "sign_outline") sign_2d();     // export as .dxf or .svg for the laser cutter
 else if (part == "cheek")        cheek();
