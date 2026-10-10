@@ -363,4 +363,5 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - Export: preset "Android" in export_presets.cfg (arm64, no gradle, signed with the Godot debug keystore - fine for sideloading, not for the Play Store).
   Needs the Android export templates (android_release.apk) and an SDK path whose build-tools contain apksigner (in the cloud box: /root/android-sdk with apksigner/zipalign from apt).
   `Godot --headless --path . --export-release "Android" build/TheyLearn.apk`
+- Size: the upload limit for sending files is 30MB. The phone uses light 64k copies of the music (music/mobile/*.ogg, picked in main._load_music when OS has "mobile"); the Android preset excludes the full music, the Windows preset excludes music/mobile. map/continent.png is imported lossy (WebP 0.85).
 - Icon: icon.png (+ android_icons/ for the launcher).

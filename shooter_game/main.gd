@@ -820,6 +820,10 @@ func _start_music() -> void:
 # טוען מוזיקה. אם העורך עוד לא ייבא את הקובץ - קוראים אותו ישירות (OGG / MP3)
 func _load_music(path: String) -> AudioStream:
 	var stream: AudioStream = null
+	if OS.has_feature("mobile"):   # טלפון: גרסה קלה של המוזיקה (music/mobile/*.ogg 64k - רק בבניית אנדרואיד, כדי שה-APK יהיה קטן)
+		var light := "res://music/mobile/" + path.get_file().get_basename() + ".ogg"
+		if ResourceLoader.exists(light):
+			path = light
 	if ResourceLoader.exists(path):
 		stream = load(path) as AudioStream
 	if stream == null and FileAccess.file_exists(path):
