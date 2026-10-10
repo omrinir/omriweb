@@ -308,11 +308,12 @@ module antenna_stem() difference() {
         hull() { cylinder(d=13, h=1); cylinder(d=11, h=2); }
         cylinder(d=6, h=9);
     }
-    translate([0,0,-8]) cylinder(d=2.5, h=30);
+    translate([0,0,-8]) cylinder(d=3, h=30);            // LED wires
 }
 module antenna_ball() difference() {
     intersection() { translate([0,0,6.3]) sphere(r=8.5, $fn=sph_fn); translate([0,0,50]) cube(100, center=true); }
     translate([0,0,-eps]) cylinder(d=6.3, h=3.5);
+    translate([0,0,3]) cylinder(d=5.4, h=7.5);          // pocket for a 5 mm addressable LED (PL9823 / WS2812D)
 }
 
 // =====================================================================
