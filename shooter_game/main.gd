@@ -65,6 +65,8 @@ var _stage: Node = null
 
 ## זום של המצלמה (גדול יותר = הדמויות נראות גדולות יותר)
 @export var camera_zoom := 1.25
+const MOBILE_ZOOM := 1.6           # טלפון: מסך קטן - מקרבים כדי שהדמויות יהיו גדולות
+const MOBILE_LEAD := 0.25          # טלפון: השחקן ברבע השמאלי של המסך (רואים יותר קדימה)
 
 @export_group("Obstacles")
 ## איזה חלק מגובה הקפיצה של הדמות מותר שיהיה גובה מכשול (0.7 = 70%).
@@ -254,6 +256,8 @@ func _ready() -> void:
 		_start_at_checkpoint(player)
 
 	# מצלמה שעוקבת אחרי השחקן ונעצרת בקצוות הרמה
+	if Touch.on:
+		camera_zoom = MOBILE_ZOOM
 	var cam = CameraScript.new()
 	cam.limit_left = 0
 	cam.limit_right = int(level_w)
@@ -265,6 +269,8 @@ func _ready() -> void:
 	if _stage != null and _stage.underground_depth() > 0.0:   # שלב עם תת-קרקע: המצלמה יורדת אחרי השחקן
 		cam.limit_bottom = int(vp.y + _stage.underground_depth())
 		cam.position = Vector2(0.0, -(floor_y - (vp.y - vp.y * 0.5 / camera_zoom)))   # על הכביש: אותה תמונה כמו תמיד. במנהרה: יורדת
+	if Touch.on:
+		cam.base_offset = Vector2(vp.x / camera_zoom * (0.5 - MOBILE_LEAD), 0.0)
 	player.add_child(cam)
 	cam.make_current()
 	cam.reset_smoothing()

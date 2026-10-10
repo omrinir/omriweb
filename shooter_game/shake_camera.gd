@@ -27,6 +27,7 @@ var _punch := 0.0
 var _punch_mid := 0.0       # שלב ההחלקה הראשון (השני = _punch)
 var _punch_hold_t := 0.0
 var _anchor_off := Vector2.ZERO   # הזזה שמשאירה את השחקן במקום על המסך בזמן הזום
+var base_offset := Vector2.ZERO   # הזזה קבועה (טלפון: השחקן ברבע השמאלי של המסך במקום באמצע)
 
 
 func _ready() -> void:
@@ -65,7 +66,7 @@ func _process(delta: float) -> void:
 		# הזום "נכנס" אל השחקן (לא אל מרכז המסך): מזיזים את המצלמה כך שהשחקן נשאר באותה נקודה במסך
 		var p := get_parent() as Node2D
 		if p != null:
-			var center := get_screen_center_position() - offset
+			var center := get_screen_center_position() - (offset - base_offset)
 			var focus := p.global_position + Vector2(0.0, -40.0)
 			_anchor_off = (focus - center) * (1.0 - 1.0 / (1.0 + _punch))
 	else:
@@ -77,4 +78,4 @@ func _process(delta: float) -> void:
 		_time_left -= delta
 		var k := pow(clampf(_time_left / _duration, 0.0, 1.0), decay)
 		shake_off = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _strength * k
-	offset = _anchor_off + shake_off
+	offset = base_offset + _anchor_off + shake_off

@@ -7,7 +7,8 @@ extends CanvasLayer
 #        למטה = כריעה (S), למעלה = טיפוס בסולם (W).
 #    ג'ויסטיק ימני (צף, בחצי הימני): כיוון + ירי אוטומטי כל עוד מחזיקים. עזרת כיוון קטנה (ASSIST)
 #        אל הזומבי הקרוב לכיוון הירי.
-#    כפתורים: JUMP (W), ROLL (SHIFT), RELOAD (R), SWAP (נשק הבא), HOOK (F), GRENADE (E), SKILL (C), II = הפסקה (ESC).
+#    כפתורים: JUMP (W) מימין; RELOAD (R), SWAP (נשק הבא), GREN (E), HOOK (F), SKILL (C) למעלה משמאל; II = הפסקה (ESC).
+#  מצלמה בטלפון (main.gd): זום MOBILE_ZOOM, והשחקן ברבע השמאלי של המסך (shake_camera.base_offset).
 #  איך זה עובד: הכפתורים "לוחצים" על המקשים האמיתיים (Input.parse_input_event), כך שכל הקוד של
 #  המקלדת עובד בלי שינוי. רק הכיוון והירי נקראים ישירות: player.gd -> Touch.aim_point() / Touch.fire.
 #  תפריטים: נגיעה = לחיצת עכבר (emulate_mouse_from_touch של Godot) - עובד לבד.
@@ -27,19 +28,19 @@ var aim_dir := Vector2.RIGHT
 var aiming := false
 
 # [id, מרכז, רדיוס, מקש (0 = פעולה מיוחדת), תווית]
+# ימין: רק ג'ויסטיק הירי + JUMP. שאר הכפתורים בשורה למעלה משמאל (מתחת ל-HUD). בלי ROLL.
 var buttons := [
-	["jump", Vector2(1200, 628), 54.0, KEY_W, "JUMP"],
-	["roll", Vector2(1205, 508), 40.0, KEY_SHIFT, "ROLL"],
-	["reload", Vector2(1210, 412), 34.0, KEY_R, "RELOAD"],
-	["grenade", Vector2(1210, 326), 32.0, KEY_E, "GREN"],
-	["hook", Vector2(1128, 326), 32.0, KEY_F, "HOOK"],
-	["swap", Vector2(1046, 326), 32.0, 0, "SWAP"],
-	["skill", Vector2(964, 326), 32.0, KEY_C, "SKILL"],
+	["jump", Vector2(1196, 620), 60.0, KEY_W, "JUMP"],
+	["reload", Vector2(44, 212), 32.0, KEY_R, "RELOAD"],
+	["swap", Vector2(122, 212), 32.0, 0, "SWAP"],
+	["grenade", Vector2(200, 212), 32.0, KEY_E, "GREN"],
+	["hook", Vector2(278, 212), 32.0, KEY_F, "HOOK"],
+	["skill", Vector2(356, 212), 32.0, KEY_C, "SKILL"],
 	["pause", Vector2(905, 52), 26.0, KEY_ESCAPE, "II"],
 ]
 
 var _touch := {}            # אינדקס אצבע -> "move" / "aim" / id של כפתור
-var _move_c := Vector2(190, 560)
+var _move_c := Vector2(120, 615)
 var _move := Vector2.ZERO
 var _aim_c := Vector2(1010, 560)
 var _aim := Vector2.ZERO
@@ -165,7 +166,7 @@ func _input(event: InputEvent) -> void:
 			if role != "":
 				_touch[event.index] = role
 				_press(role)
-			elif p.x < 560.0 and p.y > 200.0:
+			elif p.x < 560.0 and p.y > 260.0:
 				_touch[event.index] = "move"
 				_move_c = p
 				_move = Vector2.ZERO
@@ -249,7 +250,7 @@ func _on_draw() -> void:
 	var held := _touch.values()
 	# ג'ויסטיקים
 	var mv: bool = held.has("move")
-	_stick(_move_c if mv else Vector2(190, 560), _move, mv, Color(0.6, 0.85, 1.0))
+	_stick(_move_c if mv else Vector2(120, 615), _move, mv, Color(0.6, 0.85, 1.0))
 	var am: bool = held.has("aim")
 	_stick(_aim_c if am else Vector2(1010, 560), _aim, am, Color(1.0, 0.45, 0.35))
 	# כפתורים

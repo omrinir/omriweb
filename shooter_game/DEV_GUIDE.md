@@ -357,6 +357,7 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 
 ## Android (phone) build
 - Touch controls: ui/touch_controls.gd (autoload "Touch"). On only on mobile (OS feature "mobile") or with `-- --touch` on desktop for testing.
+  Phone camera: zoom MOBILE_ZOOM (1.6) and the player sits at the left quarter of the screen (MOBILE_LEAD, via shake_camera.base_offset). Right side = aim stick + JUMP only; RELOAD/SWAP/GREN/HOOK/SKILL in a row at the top-left; no ROLL button.
   Left floating stick = A/D (+run at RUN_AT, down = S, up = W climb). Right floating stick = aim + auto-fire, with a small aim assist (ASSIST / ASSIST_RANGE).
   Buttons press the real keys via Input.parse_input_event, so all keyboard code works unchanged. Only aim/fire are read directly: player.aim_world() / Touch.fire.
   Menus: taps become mouse clicks (Godot emulate_mouse_from_touch). Android back button = ESC in game, quit in menus (config/quit_on_go_back=false).
