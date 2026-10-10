@@ -7,7 +7,9 @@ extends RefCounted
 #                  אותם צבעים כמו חליפת ה-GHILLIE (enemies/types/ghillie.gd SUIT) - הוא נבלע בהם.
 #                  קבוצה "s20_bush" - ה-GHILLIE מתמקם בהם.
 #    Curtain     - (מלפני הדמויות, z 6) וילון ליאנות ועלים שתלוי מהצמרת בחלק העליון של המסך
-#    BushFader   - שיח שהשחקן בתוכו נהיה שקוף (רואים את עצמך ואת מי שאיתך בשיח)
+#    BushFader   - שיח שהשחקן בתוכו נהיה שקוף (רואים את עצמך ואת מי שאיתך בשיח),
+#                  ושיח שזומבי זז בתוכו מתנער לצדדים (skew - בלי לצייר מחדש) = רואים אותו מגיע.
+#                  GHILLIE שקפא לא מזיז את השיח - רק כשהוא זוחל.
 #  לשנות: BUSH, BUSH_ALPHA, FADE_ALPHA.
 # ============================================================
 
@@ -15,6 +17,9 @@ const BUSH := [Color("1d3a20"), Color("27482a"), Color("335a30"), Color("3f6a36"
 const FERN := [Color("2f5a2c"), Color("3d6e35"), Color("4a7a3a")]
 const BUSH_ALPHA := 0.94
 const FADE_ALPHA := 0.42
+const SHAKE := 0.085        # כמה השיח מתנער (רדיאנים של skew - הבסיס נשאר, הצמרת זזה)
+const SHAKE_SPEED := 22.0
+const SHAKE_VX := 15.0      # מאיזו מהירות זומבי נחשב "זז"
 
 
 # ---- שרכים ועשב מאחורי הדמויות (חתיכה של 1024) ----
@@ -53,6 +58,7 @@ class Bush extends Node2D:
 	var w := 110.0
 	var h := 80.0
 	var seed_v := 0
+	var shake := 0.0      # 1 = זומבי זז בתוכו עכשיו (BushFader)
 
 	func _ready() -> void:
 		z_index = 6
@@ -138,8 +144,24 @@ class BushFader extends Node:
 				return
 		var S := preload("res://effects/s20_decor.gd")
 		var px: float = _pl.global_position.x
+		# זומבים שזזים ליד השחקן (רק הם יכולים לנער שיח שרואים)
+		var movers: Array = []
+		for z in get_tree().get_nodes_in_group("zombies"):
+			if absf(z.global_position.x - px) < 900.0 and not z.dead and absf(z.velocity.x) > S.SHAKE_VX:
+				movers.append(z.global_position)
+		var t := Time.get_ticks_msec() * 0.001
 		for b in bushes:
-			if absf(b.global_position.x - px) > 260.0 and b.modulate.a >= S.BUSH_ALPHA:
+			var bx: float = b.global_position.x
+			if absf(bx - px) > 900.0:
+				continue
+			for m in movers:
+				if b.covers(m + Vector2(0, -10)):
+					b.shake = 1.0
+					break
+			if b.shake > 0.0:
+				b.shake = maxf(b.shake - delta * 2.5, 0.0)
+				b.skew = sin(t * S.SHAKE_SPEED + bx) * S.SHAKE * b.shake
+			if absf(bx - px) > 260.0 and b.modulate.a >= S.BUSH_ALPHA:
 				continue
 			var target: float = S.FADE_ALPHA if b.covers(_pl.global_position + Vector2(0, -20)) else S.BUSH_ALPHA
 			b.modulate.a = move_toward(b.modulate.a, target, delta * 3.0)
