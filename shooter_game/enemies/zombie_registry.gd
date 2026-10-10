@@ -20,6 +20,7 @@ enum {
 	MIRAGE, MIRAGE_KING,           # שלב 17
 	DRILLER, UZI,                  # שלב 18
 	SWINGER, BLADES,               # שלב 19 (ג'ונגל)
+	GHILLIE, HANGED,               # שלב 20 (ג'ונגל צפוף)
 }
 
 const FIRST := 20
@@ -69,6 +70,8 @@ const TYPES := {
 	UZI: "res://enemies/types/uzi.gd",
 	SWINGER: "res://enemies/types/swinger.gd",
 	BLADES: "res://enemies/types/blades.gd",
+	GHILLIE: "res://enemies/types/ghillie.gd",
+	HANGED: "res://enemies/types/hanged.gd",
 }
 
 static var _stats_cache := {}

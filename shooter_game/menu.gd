@@ -159,15 +159,15 @@ func _build_ui(vp: Vector2) -> void:
 		play.pressed.connect(_open_map)   # PLAY = מפת היבשת
 		first = play
 
-	# תרגול: קפיצה ישר לשלב 2-19 עם ציוד מתאים (לא נשמר, לא נוגע בשמירה)
+	# תרגול: קפיצה ישר לשלב 2-20 עם ציוד מתאים (לא נשמר, לא נוגע בשמירה)
 	var plbl := Caption.new()
 	plbl.text = "PRACTICE  (NOT SAVED)"
 	plbl.size = 15
 	plbl.position = Vector2(396, 250)
 	ui.add_child(plbl)
-	var accents := [Color("3a8acc"), Color("d8902a"), Color("6a5acd"), Color("c04a3a"), Color("4a90a0"), Color("c0a030"), Color("40b0a0"), Color("d02040"), Color("e8b84a"), Color("8a6ad0"), Color("c03a2a"), Color("d8c49c"), Color("5a8aa0"), Color("e8483a"), Color("d89a5a"), Color("e0c070"), Color("f0a020"), Color("4aa060")]
-	for i in 18:
-		var lb := _button(root, str(i + 2), Vector2(394 + i * 47, 262), Vector2(44, 44), 20, 0.25 + 0.03 * float(i))
+	var accents := [Color("3a8acc"), Color("d8902a"), Color("6a5acd"), Color("c04a3a"), Color("4a90a0"), Color("c0a030"), Color("40b0a0"), Color("d02040"), Color("e8b84a"), Color("8a6ad0"), Color("c03a2a"), Color("d8c49c"), Color("5a8aa0"), Color("e8483a"), Color("d89a5a"), Color("e0c070"), Color("f0a020"), Color("4aa060"), Color("2e7a40")]
+	for i in 19:
+		var lb := _button(root, str(i + 2), Vector2(394 + i * 45, 262), Vector2(42, 44), 20, 0.25 + 0.03 * float(i))
 		lb.accent = accents[i]
 		lb.pressed.connect(_start_game.bind(i + 2))
 

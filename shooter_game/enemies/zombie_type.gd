@@ -100,6 +100,11 @@ func on_release() -> void:
 	pass
 
 
+# false = הציור לא השתנה, לא צריך לצייר מחדש בפריים הזה (חוסך ביצועים לזומבי שעומד בלי לזוז)
+func wants_redraw() -> bool:
+	return true
+
+
 # ציור. להחזיר true = ציירנו בעצמנו. false = הציור הרגיל של zombie.gd
 func draw() -> bool:
 	return false

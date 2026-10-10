@@ -1617,6 +1617,8 @@ func _maybe_redraw() -> void:
 	if not Art.on_screen(self, global_position):
 		return
 	_vis_count += 1
+	if type_mod != null and _flash <= 0.0 and not type_mod.wants_redraw():   # סוג שעומד בלי לזוז (GHILLIE מתחבא) - הציור הקודם נשאר
+		return
 	var every := 2 if _vis_prev <= 3 else (3 if _vis_prev <= 10 else 4)   # הרבה זומבים על המסך: כל אחד מתעדכן פחות (חוסך ציור)
 	_redraw_tick += 1
 	if _redraw_tick % every == 0 or _flash > 0.0:

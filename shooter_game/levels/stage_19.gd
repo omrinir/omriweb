@@ -25,7 +25,7 @@ func zombie_weights() -> Dictionary:
 
 
 func zombie_density() -> float:
-	return 0.9 * float(HARDER[clampi(Settings.difficulty, 0, 2)])
+	return 1.05 * float(HARDER[clampi(Settings.difficulty, 0, 2)])
 
 
 func generators() -> Array:

@@ -178,11 +178,14 @@ static func near_plants(ci: CanvasItem, sc: float, v: Vector2, y: float, t: floa
 						var tip := root + Vector2.from_angle(a2) * 62.0 + Vector2(0, 22.0)
 						var mid := root.lerp(tip, 0.5) + Vector2(0, -16.0)
 						ci.draw_polyline(PackedVector2Array([root, mid, tip]), col, 2.0)
-						var comb := PackedVector2Array([root])
-						for u in 6:
-							var p0 := root.lerp(mid, float(u) / 3.0) if u < 3 else mid.lerp(tip, float(u - 3) / 3.0)
-							comb.append(p0 + Vector2(0, 16.0 - float(u) * 2.0))
-						comb.append(tip)
+						# רצועת עלים לאורך עמוד השדרה, בצד אחד (ניצב לעמוד) - פוליגון פשוט בלי חיתוכים
+						var spine := PackedVector2Array()
+						for u in 7:
+							spine.append(root.lerp(mid, float(u) / 3.0) if u <= 3 else mid.lerp(tip, float(u - 3) / 3.0))
+						var comb := spine.duplicate()
+						for u in range(5, 0, -1):
+							var nrm := (spine[u + 1] - spine[u - 1]).orthogonal().normalized()
+							comb.append(spine[u] + nrm * (13.0 - float(u) * 1.8))
 						ci.draw_colored_polygon(comb, col)
 	ci.draw_rect(Rect2(0, y - 6.0, v.x, v.y - y + 6.0), UNDER[0])
 

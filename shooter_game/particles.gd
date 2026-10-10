@@ -28,6 +28,10 @@ static func burst(parent: Node, pos: Vector2, kind: String, dir := Vector2.ZERO,
 				b.gravity = 260.0
 				var c := Color(0.55, 0.8, 1.0).lerp(Color.WHITE, randf())
 				b._p.append([Vector2.ZERO, Vector2.from_angle(a) * randf_range(90, 260), 0.0, randf_range(0.15, 0.35), randf_range(1.0, 2.2), c])
+			"leaf":    # עלים ירוקים שנתלשים ונופלים (GHILLIE בשלב 20)
+				b.gravity = 120.0
+				var c := Color("2f5a2c").lerp(Color("5a8a3a"), randf())
+				b._p.append([Vector2(randf_range(-8, 8), randf_range(-8, 8)), Vector2.from_angle(a) * randf_range(30, 110) + Vector2(0, -50), 0.0, randf_range(0.5, 0.9), randf_range(1.8, 3.0), c])
 			"smoke":   # עשן אפור שעולה וגדל
 				b.gravity = -60.0
 				b.grow = 10.0

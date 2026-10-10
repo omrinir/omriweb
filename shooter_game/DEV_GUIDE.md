@@ -343,3 +343,13 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - player.gd `_bloom` (0..1): each shot adds BLOOM_AUTO.x (0.075, SMG / assault rifle) or BLOOM_SEMI.x (0.22); after 0.16 s without firing it decays at BLOOM_DECAY 1.4/s. Sniper and bow: none.
 - Extra bullet spread = max * bloom^1.6: auto up to 0.05 rad (~2.9 deg after ~2 s of continuous fire), semi up to 0.015 rad.
 - ui/crosshair.gd: gap = 4 + 26 * bloom (+ a small pop per shot) - closed at rest, opens the longer you hold the trigger.
+
+## Stage 20 - "GREEN HELL" ("THEY LEARNED TO BLEND IN") - jungle, region 3 level 2
+- levels/stage_20.gd: reuses the stage 19 backdrop / ground / obstacles / JungleFX (effects/s19_decor.gd) + dense static foliage from effects/s20_decor.gd:
+  Undergrowth (z 2, behind characters), Bush (z 6, IN FRONT of characters, group "s20_bush"), Curtain (z 6, vines hanging from the canopy at the top), BushFader (the bush the player stands in fades to FADE_ALPHA).
+  All foliage is static (drawn once) - keep it that way; the backdrop layers are the ones that redraw every frame.
+- GHILLIE (enemies/types/ghillie.gd): leaf suit in the same colors as Bush (SUIT == BUSH). HIDE in a bush -> STALK creeps only while the crosshair is NOT on / pointing at it (_watched: WATCH_R, WATCH_DOT), freezes into a "bush" when watched -> lunges at LUNGE_R (or after FREEZE_MAX frozen, or when shot) -> after a bite RETREATs to another bush. Tells: "gh_rustle" + leaf particles while moving, eye glint every few seconds while hiding. Boss mode = "THE THICKET" (stage 20 boss).
+  wants_redraw() (new zombie_type hook, used by zombie._maybe_redraw): false while motionless in HIDE - skips redraws.
+- HANGED (enemies/types/hanged.gd): hangs from a noose (Bough node it creates at the anchor), pendulum sway (hits push it), pistol: AIM (red sight line + glint, AIM_T) -> SHOTS shots that LEAD the player's velocity (LEAD) -> COOL. Death: rope snaps (Bough.cut), corpse falls (collision restored in on_death). Placed by stage_20 HANGED_AT, never over tree platforms.
+- particles.gd: new "leaf" burst kind.
+- Fix: s19_decor near_plants palm frond polygon self-intersected ("triangulation failed" spam every frame in stages 19/20) - now a strip along the spine.
