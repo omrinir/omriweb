@@ -4,6 +4,7 @@ extends Node2D
 #  וזומבים מסתובבים ברחוב. בצד שמאל: כותרת, כפתור PLAY, רמת קושי ו-QUIT.
 # ============================================================
 
+const TouchAPI := preload("res://ui/touch_api.gd")   # שליטה במגע בטלפון (ui/touch_controls.gd)
 const BackgroundScript := preload("res://background.gd")
 const LeavesScript := preload("res://leaves.gd")
 const FogScript := preload("res://fog.gd")
@@ -207,7 +208,7 @@ func _build_ui(vp: Vector2) -> void:
 	hint.color = Color(1, 1, 1, 0.55)
 	hint.text = "A/D move   W jump   S crouch   MOUSE aim   LMB fire   Q wheel   1-5 weapons   G drop   E grenade   SHIFT roll   F grapple   ESC pause"
 	hint.position = Vector2(20, vp.y - 18.0)
-	hint.visible = not Touch.on
+	hint.visible = not TouchAPI.on()
 	ui.add_child(hint)
 
 	first.call_deferred("grab_focus")

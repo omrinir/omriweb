@@ -356,7 +356,7 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - Fix: s19_decor near_plants palm frond polygon self-intersected ("triangulation failed" spam every frame in stages 19/20) - now a strip along the spine.
 
 ## Android (phone) build
-- Touch controls: ui/touch_controls.gd (autoload "Touch"). On only on mobile (OS feature "mobile") or with `-- --touch` on desktop for testing.
+- Touch controls: ui/touch_controls.gd (autoload "Touch"). Scripts reach it ONLY through ui/touch_api.gd (TouchAPI.on() / TouchAPI.node()), which creates the layer itself if the autoload is missing from project.godot - never write `Touch.` directly. On only on mobile (OS feature "mobile") or with `-- --touch` on desktop for testing.
   Phone camera: zoom MOBILE_ZOOM (1.6) and the player sits at the left quarter of the screen (MOBILE_LEAD, via shake_camera.base_offset). Right side = aim stick + JUMP only; RELOAD/SWAP/GREN/HOOK/SKILL in a row at the top-left; no ROLL button.
   Left floating stick = A/D (+run at RUN_AT, down = S, up = W climb). Right floating stick = aim + auto-fire, with a small aim assist (ASSIST / ASSIST_RANGE).
   Buttons press the real keys via Input.parse_input_event, so all keyboard code works unchanged. Only aim/fire are read directly: player.aim_world() / Touch.fire.

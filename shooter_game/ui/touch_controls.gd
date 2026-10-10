@@ -21,7 +21,7 @@ const ASSIST := 0.22        # רדיאנים: זומבי בזווית הזו מ�
 const ASSIST_RANGE := 820.0
 const AIM_DIST := 260.0
 
-var on := false
+var on := OS.has_feature("mobile") or "--touch" in OS.get_cmdline_user_args()   # נקבע מיד (גם לפני _ready)
 var fire := false
 var run := false
 var aim_dir := Vector2.RIGHT
@@ -50,7 +50,6 @@ var _draw: Node2D
 
 
 func _ready() -> void:
-	on = OS.has_feature("mobile") or "--touch" in OS.get_cmdline_user_args()
 	layer = 95
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_draw = Node2D.new()

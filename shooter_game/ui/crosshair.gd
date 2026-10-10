@@ -7,6 +7,7 @@ extends Node2D
 #  רץ גם כשהמשחק עצור: מחזיר את חץ העכבר בתפריטים, בגלגל הנשקים ובחנות.
 # ============================================================
 
+const TouchAPI := preload("res://ui/touch_api.gd")   # שליטה במגע בטלפון (ui/touch_controls.gd)
 var player: Node = null
 var _shown := false
 var _pop := 0.0          # קפיצה קטנה בכל ירייה
@@ -44,7 +45,7 @@ func _draw() -> void:
 	if not _shown:
 		return
 	var m := get_viewport().get_mouse_position()
-	if Touch.on:   # טלפון: הכוונת בנקודה שהג'ויסטיק מכוון אליה
+	if TouchAPI.on():   # טלפון: הכוונת בנקודה שהג'ויסטיק מכוון אליה
 		m = get_viewport().get_canvas_transform() * player.aim_world()
 	# סגורה במנוחה; נפתחת עם הירי (ירי ממושך = נפתחת עוד ועוד) וחוזרת כשמפסיקים
 	var gap := 4.0 + 26.0 * float(player.aim_bloom()) + 3.0 * _pop

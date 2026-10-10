@@ -8,6 +8,7 @@ extends Node
 #  הסצנות עצמן (טקסט, קולות, שוטים) = קבצים ב-story/scenes/, רשומים ב-story/story_db.gd.
 # ============================================================
 
+const TouchAPI := preload("res://ui/touch_api.gd")   # שליטה במגע בטלפון (ui/touch_controls.gd)
 const Art := preload("res://art.gd")
 const Sfx := preload("res://sfx.gd")
 const FONT_PATH := "res://fonts/Bangers-Regular.ttf"
@@ -121,7 +122,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if done or _skip_t < 0.6:
 		return
 	if (event is InputEventKey and event.pressed and not event.echo and event.physical_keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]) \
-			or (Touch.on and event is InputEventScreenTouch and event.pressed):   # טלפון: נגיעה = דילוג
+			or (TouchAPI.on() and event is InputEventScreenTouch and event.pressed):   # טלפון: נגיעה = דילוג
 		get_viewport().set_input_as_handled()
 		_finish()
 

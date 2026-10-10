@@ -11,6 +11,7 @@ extends RefCounted
 #  לשנות: DURATION, RANGE, CLAW_DMG, CLAW_CD, WALK_K, RUN_K, JUMP_V, TRAITOR_HP.
 # ============================================================
 
+const TouchAPI := preload("res://ui/touch_api.gd")   # שליטה במגע בטלפון (ui/touch_controls.gd)
 const ZScript := preload("res://zombie.gd")
 const Registry := preload("res://enemies/zombie_registry.gd")
 const Art := preload("res://art.gd")
@@ -150,7 +151,7 @@ class Session extends Node:
 			dir -= 1.0
 		if Input.is_physical_key_pressed(KEY_D):
 			dir += 1.0
-		var run: bool = Input.is_physical_key_pressed(KEY_SHIFT) or (Touch.on and Touch.run)
+		var run: bool = Input.is_physical_key_pressed(KEY_SHIFT) or (TouchAPI.on() and TouchAPI.node().run)
 		var spd := maxf(float(zz.chase_speed), MIN_SPEED) * (RUN_K if run else WALK_K)
 		if dir != 0.0:
 			zz._dir = dir
@@ -168,11 +169,11 @@ class Session extends Node:
 			zz._walk_phase += delta * absf(zz.velocity.x) * 0.075 / float(zz.sc)
 		# שריטה
 		_claw_cd -= delta
-		var atk: bool = Touch.fire if Touch.on else Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+		var atk: bool = TouchAPI.node().fire if TouchAPI.on() else Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 		if atk and _claw_cd <= 0.0 and not zz.get_tree().paused:
-			if Touch.on:
-				if Touch.aiming and absf(Touch.aim_dir.x) > 0.2:
-					zz._dir = signf(Touch.aim_dir.x)
+			if TouchAPI.on():
+				if TouchAPI.node().aiming and absf(TouchAPI.node().aim_dir.x) > 0.2:
+					zz._dir = signf(TouchAPI.node().aim_dir.x)
 			else:
 				var mx: float = zz.get_global_mouse_position().x - zz.global_position.x
 				if absf(mx) > 4.0:
@@ -309,7 +310,7 @@ class Hud extends Node2D:
 		draw_string(font, Vector2(vs.x * 0.5 - tw * 0.5, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.9, 0.75, 1.0))
 		draw_rect(Rect2(vs.x * 0.5 - 120.0, y + 10.0, 240.0, 6.0), Color(0, 0, 0, 0.5))
 		draw_rect(Rect2(vs.x * 0.5 - 120.0, y + 10.0, 240.0 * k, 6.0), COL)
-		if not Touch.on:
+		if not TouchAPI.on():
 			var hint := "A/D move   SHIFT run   W jump   LMB claw"
 			var hw := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 			draw_string(font, Vector2(vs.x * 0.5 - hw * 0.5, y + 36.0), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.7))

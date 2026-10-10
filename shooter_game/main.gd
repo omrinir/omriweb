@@ -1,4 +1,5 @@
 extends Node2D
+const TouchAPI := preload("res://ui/touch_api.gd")   # שליטה במגע בטלפון (ui/touch_controls.gd)
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  הסצנה הראשית: בונה רמה ארוכה ואקראית עם רקעים, לבנים, זומבים ושחקן.
@@ -256,7 +257,7 @@ func _ready() -> void:
 		_start_at_checkpoint(player)
 
 	# מצלמה שעוקבת אחרי השחקן ונעצרת בקצוות הרמה
-	if Touch.on:
+	if TouchAPI.on():
 		camera_zoom = MOBILE_ZOOM
 	var cam = CameraScript.new()
 	cam.limit_left = 0
@@ -269,7 +270,7 @@ func _ready() -> void:
 	if _stage != null and _stage.underground_depth() > 0.0:   # שלב עם תת-קרקע: המצלמה יורדת אחרי השחקן
 		cam.limit_bottom = int(vp.y + _stage.underground_depth())
 		cam.position = Vector2(0.0, -(floor_y - (vp.y - vp.y * 0.5 / camera_zoom)))   # על הכביש: אותה תמונה כמו תמיד. במנהרה: יורדת
-	if Touch.on:
+	if TouchAPI.on():
 		cam.base_offset = Vector2(vp.x / camera_zoom * (0.5 - MOBILE_LEAD), 0.0)
 	player.add_child(cam)
 	cam.make_current()
@@ -291,7 +292,7 @@ func _ready() -> void:
 	var label := Label.new()
 	label.text = "A/D move (x2 run)  W jump/climb  S crouch (SxS drop)  LMB fire  R reload  Q wheel  1-5  C ability (6-0)  G drop  E special  SHIFT roll  F hook  RMB scope  L aim"
 	label.position = Vector2(12, 8)
-	label.visible = not Touch.on   # טלפון: אין מקלדת
+	label.visible = not TouchAPI.on()   # טלפון: אין מקלדת
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	label.add_theme_constant_override("shadow_offset_x", 1)

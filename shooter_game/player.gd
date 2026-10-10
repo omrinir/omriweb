@@ -1,4 +1,5 @@
 extends CharacterBody2D
+const TouchAPI := preload("res://ui/touch_api.gd")   # שליטה במגע בטלפון (ui/touch_controls.gd)
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  השחקן: דמות עם מעיל ארוך שחור וכובע שחור. נוצר ע"י main.gd.
@@ -406,8 +407,8 @@ func _physics_process(delta: float) -> void:
 	_d_was = kd
 	if dir == 0.0 or (dir < 0.0 and not ka) or (dir > 0.0 and not kd):
 		_running = false
-	elif Touch.on:   # טלפון: ג'ויסטיק דחוף עד הסוף = ריצה (ui/touch_controls.gd)
-		_running = Touch.run
+	elif TouchAPI.on():   # טלפון: ג'ויסטיק דחוף עד הסוף = ריצה (ui/touch_controls.gd)
+		_running = TouchAPI.node().run
 	if grabbed_by != null:   # יד מהביוב: לוחצים A/D לסירוגין כדי להשתחרר
 		if not is_instance_valid(grabbed_by) or grabbed_by.dead:
 			grabbed_by = null
@@ -624,7 +625,7 @@ func _physics_process(delta: float) -> void:
 		_aim = to_mouse.normalized()
 		if _daze_t > 0.0:   # מסונוור: הכוונת רועדת
 			_aim = _aim.rotated(sin(_time * 7.0) * 0.16 + sin(_time * 11.3) * 0.07)
-	var trigger := controllable and (Touch.fire if Touch.on else Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) and not get_tree().paused and not wheel_open
+	var trigger: bool = controllable and (TouchAPI.node().fire if TouchAPI.on() else Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) and not get_tree().paused and not wheel_open
 	# צלף: לחצן ימני = כוונת והזמן מאט
 	var scope := controllable and weapon == GUN and gun == SNIPER and not wheel_open and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not get_tree().paused
 	if scope != _scoping:
@@ -814,8 +815,8 @@ func _add_bloom(w: Dictionary) -> void:
 
 # לאן מכוונים בעולם: העכבר, או בטלפון - הג'ויסטיק הימני (ui/touch_controls.gd)
 func aim_world() -> Vector2:
-	if Touch.on:
-		return Touch.aim_point(global_position + _front_shoulder())
+	if TouchAPI.on():
+		return TouchAPI.node().aim_point(global_position + _front_shoulder())
 	return get_global_mouse_position()
 
 
