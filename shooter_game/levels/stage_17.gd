@@ -12,6 +12,7 @@ extends "res://levels/stage_base.gd"
 # ============================================================
 
 const Decor := preload("res://effects/s17_decor.gd")
+const MindControl := preload("res://effects/mind_control.gd")
 const PickupScript := preload("res://pickup.gd")
 
 const PIERS := [[0.17, 360.0], [0.34, 300.0], [0.52, 420.0], [0.7, 340.0], [0.84, 300.0]]   # [מיקום יחסי, רוחב]
@@ -200,7 +201,7 @@ class Freezer extends Node:
 		if pl == null:
 			return
 		for z in get_tree().get_nodes_in_group("zombies"):
-			var awake: bool = absf(z.global_position.x - pl.global_position.x) < FREEZE_DIST or z.is_boss()
+			var awake: bool = MindControl.near_focus(z, pl.global_position.x, FREEZE_DIST) or z.is_boss()   # (גם ליד הזומבי שבשליטת MIND CONTROL)
 			if z.is_physics_processing() != awake:
 				z.set_physics_process(awake)
 

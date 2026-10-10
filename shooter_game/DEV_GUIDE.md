@@ -379,3 +379,5 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   spin (BLADES), pounce (default: LEAPER, AMBUSHER, GHILLIE, walkers...), shoot (UZI, MINIGUNNER, SANDBLASTER, GUNNER), spit (SPITTER, RETCHER, HURLER),
   slam (BRUTE, TANK, SHIELDED, DEVOURER, CRUMBLER...), scream = stun (SCREAMER, SIREN, COMMANDER, PACK_LEADER), explode (BLOATER, BOMBHEAD - ends the control).
   Cooldowns in INFO; HUD shows the ability name + ready bar. Hidden types (GHILLIE _k / AMBUSHER _hide) are un-hidden when taken over.
+- Fix (stuck in the last seconds): stages 16/17 freeze zombies > FREEZE_DIST from the hero, and zombie.gd sleeps zombies > 1400 px from the hero.
+  Both now also keep zombies awake near the controlled zombie (MindControl.near_focus / zombie._traitor_near), so walking it far away no longer freezes it.

@@ -449,7 +449,7 @@ func _physics_process(delta: float) -> void:
 		if kind != RAT and kind != HAND and kind != MECH and (type_mod == null or type_mod.can_groan()) and Art.on_screen(self, global_position):
 			Sfx.play("growl" if kind == DOG or kind == HOUND else ("roar" if is_boss() else "groan"), global_position, 0.0 if not is_boss() else 3.0, 0.08, 3, _vp)
 	# רחוק מאוד מהשחקן: הזומבי "ישן" (חוסך המון ביצועים)
-	if player != null and absf(player.global_position.x - global_position.x) > 1400.0 and is_on_floor() and _carry == null:
+	if player != null and absf(player.global_position.x - global_position.x) > 1400.0 and is_on_floor() and _carry == null and not _traitor_near():   # (ליד הזומבי של MIND CONTROL - ער)
 		return
 	if _drop_t > 0.0:   # ירד דרך קומה: חוזר להתנגש בקומות
 		_drop_t -= delta

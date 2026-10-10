@@ -36,6 +36,15 @@ const NO_CONTROL := [Registry.HANGED, Registry.DRILLER, Registry.SWINGER, Regist
 	Registry.BLOODGATE, Registry.BROODMOTHER, Registry.MIRAGE_KING, Registry.STRANGER]   # זומבים מיוחדים שלא הגיוני לשלוט בהם
 
 
+# זומבי "קרוב לפעולה": קרוב לשחקן, או (בזמן MIND CONTROL) קרוב לזומבי שבשליטה.
+# שלבים שמקפיאים זומבים רחוקים (16 / 17) משתמשים בזה - אחרת הזומבי שבשליטה קופא כשמתרחקים מהגיבור.
+static func near_focus(z: Node, px: float, dist: float) -> bool:
+	if absf(z.global_position.x - px) < dist or z.possessed != null:
+		return true
+	var tr = ZScript.mind_traitor
+	return tr != null and is_instance_valid(tr) and not tr.dead and absf(z.global_position.x - tr.global_position.x) < dist
+
+
 static func can_control(z: Node) -> bool:
 	if z == null or z.dead or z.is_boss() or float(z.chase_range) > 600.0 or z.on_ceiling:
 		return false

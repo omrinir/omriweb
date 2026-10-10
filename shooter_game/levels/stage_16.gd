@@ -12,6 +12,7 @@ extends "res://levels/stage_base.gd"
 
 const WeaponDB := preload("res://weapons/weapon_db.gd")
 const Decor := preload("res://effects/s16_decor.gd")
+const MindControl := preload("res://effects/mind_control.gd")
 const PickupScript := preload("res://pickup.gd")
 
 const SCAFFOLDS := [[0.09, 760.0], [0.25, 900.0], [0.43, 820.0], [0.6, 980.0], [0.77, 800.0]]   # [מיקום יחסי, רוחב]
@@ -202,7 +203,7 @@ class HordeDirector extends Node:
 		if _freeze_t <= 0.0:
 			_freeze_t = 0.25
 			for z in (get_tree().get_nodes_in_group("zombies") if get_tree().get_first_node_in_group("story_scene") == null else []):
-				var awake: bool = absf(z.global_position.x - px) < FREEZE_DIST or z.is_boss()
+				var awake: bool = MindControl.near_focus(z, px, FREEZE_DIST) or z.is_boss()   # (גם ליד הזומבי שבשליטת MIND CONTROL)
 				if z.is_physics_processing() != awake:
 					z.set_physics_process(awake)
 		var near_boss: bool = px > stage.level_w - 1500.0
