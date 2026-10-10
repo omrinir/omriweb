@@ -116,6 +116,13 @@ func build_world() -> void:
 		reserve(Rect2(ox - 20.0, floor_y - TREE_H, w + 40.0, TREE_H))
 		_spans.append([ox, ox + w])
 		_pickup(PickupScript.AMMO if th[0] < 0.6 else PickupScript.HEALTH, Vector2(ox + w * 0.6, floor_y - TREE_H - 30.0))
+	# בדיקה: מכשיר MIND CONTROL בתחילת השלב (effects/mind_control.gd). אפשר למחוק כשלא צריך
+	var mc = PickupScript.new()
+	mc.kind = PickupScript.SPECIAL
+	mc.special = "mind"
+	mc.life = 100000.0
+	main.add_child(mc)
+	mc.setup(Vector2(320.0, floor_y - 30.0), Vector2.ZERO)
 
 
 func _pickup(kind: int, pos: Vector2) -> void:

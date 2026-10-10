@@ -18,6 +18,7 @@ const MolotovScript := preload("res://weapons/molotov.gd")
 const RocketScript := preload("res://weapons/rocket.gd")
 const DebrisScript := preload("res://debris.gd")
 const PickupScript := preload("res://pickup.gd")
+const MindControl := preload("res://effects/mind_control.gd")
 const TextScript := preload("res://zombie.gd")
 const HeroAnim := preload("res://hero_anim.gd")       # אנימציות הדמות (SPRITE SHEET)
 var HERO_TEX: Texture2D = preload("res://tex_load.gd").get_tex("res://sprites/hero.png")   # נטען בזמן ריצה (לא נשבר אם עוד לא יובא)
@@ -163,6 +164,7 @@ var mag: int:                    # כמה כדורים במחסנית של הנ�
 			slots[cur_slot]["mag"] = maxi(v, 0)
 var special := ""               # פריט נפץ שמחזיקים (progression/arsenal.gd -> SPECIALS): grenade / molotov / launcher / rocket
 var special_uses := 0           # כמה שימושים נשארו. 0 = נזרק
+var mind_linked := false        # MIND CONTROL: השחקן שולט בזומבי (effects/mind_control.gd) - הגיבור בטראנס
 var _draw_id := -1              # ציור: איזה נשק לצייר ביד (SPECIAL), -1 = הנשק הרגיל
 var shield_hits := 0             # כמה פגיעות המגן עוד יספוג
 var boosts := {}                 # סוג בוסט -> כמה שניות נשארו
@@ -961,7 +963,7 @@ func _fire() -> void:
 # ============================================================
 func take_special(kind: String) -> void:
 	var info: Dictionary = Arsenal.SPECIALS[kind]
-	var n: int = int(info.uses) + (0 if kind == "god" else Upgrades.perk("grenade_pouch"))
+	var n: int = int(info.uses) + (0 if kind == "god" or kind == "mind" else Upgrades.perk("grenade_pouch"))
 	if special == kind:
 		special_uses += n
 	else:
@@ -1001,6 +1003,16 @@ func _use_special(sh: Vector2) -> void:
 			special_uses = 0
 			weapon = GUN
 			weapon_changed.emit(weapon)
+		return
+	if special == "mind":   # MIND CONTROL: קרן. נגמר רק אם תפסנו זומבי
+		_cooldown = 0.5
+		_muzzle_flash = 0.05
+		if not MindControl.fire(self, sh, _aim):
+			return
+		special = ""
+		special_uses = 0
+		weapon = GUN
+		weapon_changed.emit(weapon)
 		return
 	var wid := _special_weapon()
 	var w: Dictionary = WeaponDB.WEAPONS[wid] if wid >= 0 else {}
@@ -1704,6 +1716,8 @@ func _draw_hero(la: Vector2) -> void:
 		_draw_rifle(hand, la)
 		_draw_id = -1
 		_draw_held(rp.support, la, rp.held)
+	elif special == "mind":   # מכשיר MIND CONTROL ביד
+		MindControl.draw_device(self, hand, la, _time)
 	elif special == "god":   # השיקוי ביד
 		PickupScript.draw_potion(self, hand + la * 2.0 + Vector2(0, -2), 0.55, _time)
 	else:
@@ -1866,6 +1880,8 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 		_draw_rifle(hand, rp.la)
 		_draw_id = -1
 		_draw_held(rp.support, rp.la, rp.held)
+	elif special == "mind":   # מכשיר MIND CONTROL ביד
+		MindControl.draw_device(self, hand, la, _time)
 	elif special == "god":   # השיקוי ביד
 		PickupScript.draw_potion(self, hand + la * 2.0 + Vector2(0, -2), 0.55, _time)
 	else:

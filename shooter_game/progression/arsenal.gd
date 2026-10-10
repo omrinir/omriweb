@@ -34,6 +34,8 @@ const SPECIALS := {
 	# שיקוי GOD MODE: מתחיל מיד כשלוקחים אותו (player.collect). 23 שניות: הגוף בוער, קליעי אש אדומים, נזק פי 4 (+300%)
 	# לא נופל באקראי ("from" 999) - מופיע רק בשלבים של potion_levels()
 	"god": {"name": "GOD MODE", "uses": 1, "from": 999, "weight": 0.0, "color": Color("ff2a2a"), "weapon": -2},
+	# MIND CONTROL: קרן שהופכת אותך לזומבי ל-14 שניות (effects/mind_control.gd). שימוש אחד, נדיר, משלב 10
+	"mind": {"name": "MIND CONTROL", "uses": 1, "from": 10, "weight": 0.7, "color": Color("b060ff"), "weapon": -3},
 }
 const SPECIAL_FINDS := Vector2(0.15, 0.85)   # איפה בשלב (יחסי) הם יכולים להיות
 const POTION_FIRST := 3        # שיקוי GOD MODE: שלב 3, ואז כל 2-3 שלבים

@@ -128,6 +128,8 @@ func _draw() -> void:
 			var wid: int = int(Arsenal.SPECIALS[special].weapon)
 			if special == "god":   # שיקוי אדום מבעבע
 				draw_potion(self, bob, 1.0, _t)
+			elif special == "mind":   # מכשיר MIND CONTROL
+				preload("res://effects/mind_control.gd").draw_device(self, bob + Vector2(-8, 0), Vector2.RIGHT, _t, 1.5)
 			elif special == "grenade":
 				for i in 2:
 					var gp := bob + Vector2(-5.0 + float(i) * 10.0, 0.0)

@@ -55,6 +55,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_draw = Node2D.new()
 	_draw.draw.connect(_on_draw)
+	_draw.visible = false   # במחשב: לא מציירים כלום
 	add_child(_draw)
 	set_process(on)
 	set_process_input(on)
@@ -75,7 +76,7 @@ func _player() -> Node:
 
 func _active() -> bool:
 	var p := _player()
-	return on and p != null and not p.dead and p.controllable and not get_tree().paused
+	return on and p != null and not p.dead and (p.controllable or p.mind_linked) and not get_tree().paused
 
 
 func _process(_delta: float) -> void:
@@ -244,6 +245,8 @@ func _swap() -> void:
 #  ציור
 # ============================================================
 func _on_draw() -> void:
+	if not on:
+		return
 	var font := ThemeDB.fallback_font
 	var base := Color(1, 1, 1, 0.16)
 	var ring := Color(1, 1, 1, 0.45)

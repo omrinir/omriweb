@@ -139,6 +139,8 @@ const KINDS := [
 ]
 
 var chase_range := 520.0         # מאיזה מרחק הוא מתחיל לרדוף
+var possessed: Node = null       # MIND CONTROL (effects/mind_control.gd): השחקן שולט בו - הסשן מזיז אותו
+static var mind_traitor: Node = null   # הזומבי שבשליטת השחקן כרגע: כל השאר מתנפלים עליו
 var throw_range := 430.0         # מאיזה מרחק הוא זורק רגל
 var jump_velocity := -560.0
 var gravity := 1500.0
@@ -382,6 +384,10 @@ func _physics_process(delta: float) -> void:
 			return
 		_dead_process(delta)
 		return
+	if possessed != null and is_instance_valid(possessed):   # MIND CONTROL: השחקן מזיז אותו
+		possessed.drive(self, delta)
+		_maybe_redraw()
+		return
 
 	var player := get_tree().get_first_node_in_group("player")
 	# שוכב על הריצפה עד שהשחקן מתקרב
@@ -468,7 +474,7 @@ func _physics_process(delta: float) -> void:
 	_chasing = false
 	if _cover_state != 0:
 		target_speed = _cover_process(delta, player)
-	elif player != null and not player.dead and (global_position.distance_to(player.global_position) < chase_range * (0.45 if Game.player_dark and not is_boss() else 1.0) or _alert_t > 0.0):   # בחושך רואים פחות
+	elif player != null and not player.dead and (global_position.distance_to(player.global_position) < chase_range * (0.45 if Game.player_dark and not is_boss() else 1.0) or _alert_t > 0.0 or _traitor_near()):   # בחושך רואים פחות
 		_chasing = true
 		var tp: Node = _target_for_brain(player)   # DECOY ECHO: אולי הולך אחרי עותק הרפאים
 		_dir = signf(tp.global_position.x - global_position.x)
@@ -488,7 +494,7 @@ func _physics_process(delta: float) -> void:
 			target_speed *= 1.35
 		var d: Vector2 = tp.global_position - global_position
 		# המוח: תורות התקפה, איגוף, המתנה, נסיגה, גבהים (ai/zombie_brain.gd)
-		if brain != null:
+		if brain != null and tp == player:   # (הבוגד של MIND CONTROL: הולכים אליו ישר)
 			var bs: float = brain.steer(self, tp, d, delta, target_speed)
 			if brain.steer_movement:
 				target_speed = bs
@@ -893,6 +899,8 @@ func stagger(t: float) -> void:
 # DECOY ECHO (abilities/types/decoy.gd): זומבים שהמוח מזיז הולכים אחרי עותק הרפאים אם הוא קרוב.
 # משלב 8 חלק מהם "מזהים" את הטריק (adaptation_level)
 func _target_for_brain(player: Node) -> Node:
+	if _traitor_near():   # MIND CONTROL: מתנפלים על הזומבי שבשליטת השחקן
+		return mind_traitor
 	if brain == null or not brain.steer_movement:
 		return player
 	var dc := get_tree().get_first_node_in_group("decoys")
@@ -902,6 +910,20 @@ func _target_for_brain(player: Node) -> Node:
 		_decoy_id = dc.get_instance_id()
 		_decoy_fooled = randf() > float(brain.p.get("adaptation_level", 0.0)) * 0.35
 	return dc if _decoy_fooled else player
+
+
+# MIND CONTROL: יש זומבי בוגד קרוב (לא אני)
+func _traitor_near() -> bool:
+	return mind_traitor != null and mind_traitor != self and is_instance_valid(mind_traitor) and not mind_traitor.dead \
+		and absf(mind_traitor.global_position.x - global_position.x) < 600.0 and absf(mind_traitor.global_position.y - global_position.y) < 200.0
+
+
+# זומבי אחר נשך אותי (רק כשאני בשליטת השחקן - MIND CONTROL)
+func hurt(amount: int, knock_dir: Vector2) -> void:
+	if dead or possessed == null:
+		return
+	var n: int = amount * 8
+	take_damage(n, global_position + Vector2(0.0, -30.0 * sc), knock_dir, false, {"source": "zombie", "fixed": n})
 
 
 # ---- קומות (one-way, שכבה 16): קפיצה למעלה לקומה / ירידה דרכה ----

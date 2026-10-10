@@ -366,3 +366,12 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   `Godot --headless --path . --export-release "Android" build/TheyLearn.apk`
 - Size: the upload limit for sending files is 30MB. The phone uses light 64k copies of the music (music/mobile/*.ogg, picked in main._load_music when OS has "mobile"); the Android preset excludes the full music, the Windows preset excludes music/mobile. map/continent.png is imported lossy (WebP 0.85).
 - Icon: icon.png (+ android_icons/ for the launcher).
+
+## MIND CONTROL (special item "mind")
+- effects/mind_control.gd. Special in progression/arsenal.gd SPECIALS: 1 use, from level 10, weight 0.7 (rare). Test pickup at the start of stage 19 (levels/stage_19.gd - delete when not needed).
+- Fire (E to select, then shoot): purple beam (ray + small aim assist). Bosses and special zombies (NO_CONTROL) refuse - the use is not consumed. A miss is not consumed either.
+- Session (14 s, DURATION): zombie.possessed = session -> zombie.gd skips its AI and calls session.drive(): A/D move, SHIFT / full stick run, W jump, LMB / aim stick claw (CLAW_DMG in front).
+  Camera reparents to the zombie. Hero: controllable=false, mind_linked=true, invulnerable, purple trance. Touch controls stay visible (mind_linked).
+  Other zombies: zombie.mind_traitor (static) -> _traitor_near() makes them chase it (direct, no brain steering) and bite it via zombie.hurt() (x8 damage).
+  End: time out / traitor dies -> traitor collapses dead (_die), camera + control return to the hero.
+- Fix: touch layer was drawn once on desktop (Node2D visible by default) - now hidden unless Touch.on.
