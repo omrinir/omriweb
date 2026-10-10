@@ -37,6 +37,7 @@ const SPECIALS := {
 	# MIND CONTROL: קרן שהופכת אותך לזומבי ל-14 שניות (effects/mind_control.gd). שימוש אחד, נדיר, משלב 10
 	"mind": {"name": "MIND CONTROL", "uses": 1, "from": 10, "weight": 0.7, "color": Color("b060ff"), "weapon": -3},
 }
+const TEST_MIND_EVERY_LEVEL := true   # בדיקה: מכשיר MIND CONTROL בתחילת כל שלב (main.gd). false = רק המציאות הרגילות (משלב 10)
 const SPECIAL_FINDS := Vector2(0.15, 0.85)   # איפה בשלב (יחסי) הם יכולים להיות
 const POTION_FIRST := 3        # שיקוי GOD MODE: שלב 3, ואז כל 2-3 שלבים
 const POTION_MID := Vector2(0.42, 0.58)   # איפה בשלב (יחסי): באמצע, איפה שיש זומבים

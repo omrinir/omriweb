@@ -714,6 +714,14 @@ func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
 		spc.life = 100000.0
 		add_child(spc)
 		spc.setup(Vector2(_free_spot(level_w * _rng.randf_range(lo, hi)), floor_y - 30.0), Vector2.ZERO)
+	# בדיקה: מכשיר MIND CONTROL ליד נקודת ההתחלה של כל שלב (Arsenal.TEST_MIND_EVERY_LEVEL)
+	if Arsenal.TEST_MIND_EVERY_LEVEL:
+		var mc = PickupScript.new()
+		mc.kind = PickupScript.SPECIAL
+		mc.special = "mind"
+		mc.life = 100000.0
+		add_child(mc)
+		mc.setup(Vector2(get_viewport_rect().size.x * 0.12 + 180.0, floor_y - 30.0), Vector2.ZERO)
 	# שיקוי GOD MODE: שלב 3, ואז כל 2-3 שלבים - באמצע השלב, שם יש זומבים (progression/arsenal.gd)
 	if Arsenal.has_potion(Game.level):
 		var pot = PickupScript.new()

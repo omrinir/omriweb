@@ -368,7 +368,7 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - Icon: icon.png (+ android_icons/ for the launcher).
 
 ## MIND CONTROL (special item "mind")
-- effects/mind_control.gd. Special in progression/arsenal.gd SPECIALS: 1 use, from level 10, weight 0.7 (rare). Test pickup at the start of stage 19 (levels/stage_19.gd - delete when not needed).
+- effects/mind_control.gd. Special in progression/arsenal.gd SPECIALS: 1 use, from level 10, weight 0.7 (rare). TEST: a pickup near the start of EVERY level while Arsenal.TEST_MIND_EVERY_LEVEL = true (placed in main.gd) - set false when done testing.
 - Fire (E to select, then shoot): purple beam (ray + small aim assist). Bosses and special zombies (NO_CONTROL) refuse - the use is not consumed. A miss is not consumed either.
 - Session (25 s, DURATION): zombie.possessed = session -> zombie.gd skips its AI and calls session.drive(): A/D move, SHIFT / full stick run, W jump, LMB / aim stick claw (CLAW_DMG in front).
   Camera reparents to the zombie. Hero: controllable=false, mind_linked=true, invulnerable, purple trance. Touch controls stay visible (mind_linked).
