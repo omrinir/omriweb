@@ -44,8 +44,8 @@ Suggested settings: 0.2 mm layers, 3 walls, 15–20 % infill. No supports should
 | VL53L0X | Glued into the pocket under the base top, in front of the sign, looking up through the small window |
 | NTAG213 | Sticker in the pocket on the back of the sign, so the customer taps the sign |
 | 0.96" SSD1306 OLED | Glass sits in the pocket behind the face plate (hot glue the PCB) |
-| USB-C 5V breakout | Back of the base, left opening (9.8 × 4.2 mm) |
-| Mini rocker switch (KCD11, 19 × 13 mm) | Back of the base, right opening |
+| USB-C 5V breakout | Back of the base, the narrow slot (9.8 × 4.2 mm) |
+| Mini rocker switch (KCD11, 19 × 13 mm) | Back of the base, the big rectangle |
 | 1000 µF capacitor | Saddle on the deck, wired across 5V/GND near the LED ring |
 | 330 Ω resistor | Inline on the LED ring data wire |
 
