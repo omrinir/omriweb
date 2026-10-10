@@ -1,8 +1,8 @@
 extends Node2D
 # ============================================================
 #  CROSSHAIR - כוונת דינמית במקום חץ העכבר (כמו Enter the Gungeon / Nuclear Throne)
-#  4 קווים סביב העכבר. הרווח ביניהם = הפיזור האמיתי של הנשק במרחק הזה
-#  (רובה צר, שוטגאן רחב, SMG נפתח כשהקנה מטפס). אדום = הירייה תפגע בזומבי.
+#  4 קווים סביב העכבר: סגורה במנוחה, נפתחת עם כל ירייה (ירי ממושך = עוד ועוד, player._bloom)
+#  וחוזרת כשמפסיקים. אדום = הירייה תפגע בזומבי.
 #  הקו המנוקד מהקנה מצויר ב-player.gd (_draw_aim_guide). L = מחליף מצב (Settings.aim_guide).
 #  רץ גם כשהמשחק עצור: מחזיר את חץ העכבר בתפריטים, בגלגל הנשקים ובחנות.
 # ============================================================
@@ -44,11 +44,8 @@ func _draw() -> void:
 	if not _shown:
 		return
 	var m := get_viewport().get_mouse_position()
-	var cam := get_viewport().get_camera_2d()
-	var zoom: float = cam.zoom.x if cam != null else 1.0
-	var spread: float = player.aim_spread()
-	var dist: float = player.aim_dist
-	var gap := clampf(5.0 + tan(spread) * dist * zoom + 4.0 * _pop, 5.0, 90.0)
+	# סגורה במנוחה; נפתחת עם הירי (ירי ממושך = נפתחת עוד ועוד) וחוזרת כשמפסיקים
+	var gap := 4.0 + 26.0 * float(player.aim_bloom()) + 3.0 * _pop
 	var hot: bool = player.aim_on_zombie
 	var col := Color(1.0, 0.3, 0.25, 0.95) if hot else Color(0.95, 0.95, 0.9, 0.85)
 	var sh := Color(0, 0, 0, 0.55)

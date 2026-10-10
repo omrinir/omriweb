@@ -51,10 +51,9 @@ static func jungle_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
 		var k := float(i) / float(steps - 1)
 		ci.draw_rect(Rect2(0, v.y * k, v.x, v.y / float(steps) + 1.0), Color("1f4a32").lerp(Color("c8e0a0"), pow(k, 0.8)))
 	var sun := Vector2(v.x * 0.35, 150.0)
-	for r in [260.0, 170.0, 100.0]:
-		ci.draw_circle(sun, r, Color(1.0, 0.98, 0.75, 0.1))
+	ci.draw_circle(sun, 150.0, Color(1.0, 0.98, 0.75, 0.12))
 	ci.draw_circle(sun, 46.0, Color(1.0, 1.0, 0.88, 0.85))
-	for i in 7:   # קרני אור אלכסוניות
+	for i in 5:   # קרני אור אלכסוניות
 		var x0 := sun.x - 220.0 + float(i) * 90.0
 		var w := 26.0 + float(i % 3) * 14.0
 		var a := 0.07 + 0.03 * sin(t * 0.5 + float(i))
@@ -113,8 +112,10 @@ static func mid_trees(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float)
 			ci.draw_line(Vector2(tx - tw * 0.2, -40.0), Vector2(tx - tw * 0.2, y), Color(0, 0, 0, 0.18), 3.0)
 			for s in [-1.0, 1.0]:   # שורשי תמך
 				ci.draw_colored_polygon(PackedVector2Array([Vector2(tx + s * tw * 0.4, y - 90.0), Vector2(tx + s * tw * 1.6, y), Vector2(tx + s * tw * 0.3, y)]), bark)
-			for q in 3:   # טחב על הגזע
-				_blob(ci, Vector2(tx + r.randf_range(-tw * 0.3, tw * 0.3), y - r.randf_range(60.0, 300.0)), tw * 0.35, 12.0, Color(MOSS, 0.8))
+			for q in 3:   # טחב על הגזע: פסים כהים לאורך הקליפה
+				var my := y - r.randf_range(60.0, 300.0)
+				var mx := tx + r.randf_range(-tw * 0.35, tw * 0.15)
+				ci.draw_colored_polygon(PackedVector2Array([Vector2(mx, my - 40.0), Vector2(mx + tw * 0.25, my - 30.0), Vector2(mx + tw * 0.2, my + 30.0), Vector2(mx - 2.0, my + 40.0)]), Color(0.24, 0.34, 0.2, 0.55))
 			for q in 3:   # ליאנות תלויות מתנדנדות
 				var lx := tx + r.randf_range(-tw * 2.0, tw * 2.0)
 				var ll := r.randf_range(160.0, 320.0)
@@ -126,58 +127,64 @@ static func mid_trees(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float)
 				ci.draw_polyline(pts, Color("2e4a22"), 2.4, true)
 				for i in 4:
 					_leaf(ci, pts[2 + i], Vector2(1.0 if i % 2 == 0 else -1.0, 0.6).normalized(), 9.0, LEAF)
-		if r.randf() < 0.5:   # ראש אבן ענקי (חורבות)
-			var hx := x + r.randf_range(150.0, 950.0)
-			var hc := Vector2(hx, y - 60.0)
-			_blob(ci, hc, 58.0, 62.0, STONE_D, 16)
-			_blob(ci, hc + Vector2(-4, -4), 52.0, 56.0, STONE, 16)
-			for s2 in [-1.0, 1.0]:
-				ci.draw_rect(Rect2(hc + Vector2(s2 * 22.0 - 10.0, -16.0), Vector2(20.0, 8.0)), Color(0.3, 0.32, 0.28))
-			ci.draw_rect(Rect2(hc + Vector2(-18.0, 22.0), Vector2(36.0, 7.0)), Color(0.32, 0.34, 0.3))
-			ci.draw_line(hc + Vector2(0, -8), hc + Vector2(0, 14), Color(0.4, 0.42, 0.36), 6.0)
-			for q in 5:
-				_blob(ci, hc + Vector2(r.randf_range(-50, 50), r.randf_range(-60, -20)), 16.0, 8.0, Color(MOSS, 0.9))
+		if r.randf() < 0.5:   # חורבה: קיר אבן מתפורר עם קשת, טחב רק בשוליים
+			var hx := x + r.randf_range(150.0, 900.0)
+			var ww := r.randf_range(120.0, 190.0)
+			var wh := r.randf_range(90.0, 140.0)
+			var sc1 := Color(0.33, 0.38, 0.32)
+			ci.draw_colored_polygon(PackedVector2Array([Vector2(hx, y), Vector2(hx, y - wh), Vector2(hx + ww * 0.3, y - wh - 12.0), Vector2(hx + ww * 0.55, y - wh + 18.0), Vector2(hx + ww, y - wh * 0.6), Vector2(hx + ww, y)]), sc1)
+			ci.draw_rect(Rect2(hx + ww * 0.35, y - wh * 0.55, ww * 0.28, wh * 0.55), Color(0.16, 0.2, 0.16))   # פתח הקשת
+			for q in 4:   # שורות אבנים
+				var yy := y - wh * (0.2 + 0.2 * float(q))
+				ci.draw_line(Vector2(hx + 4.0, yy), Vector2(hx + ww - 4.0, yy), Color(0.26, 0.3, 0.25), 1.5)
+			ci.draw_colored_polygon(PackedVector2Array([Vector2(hx - 6.0, y - wh - 4.0), Vector2(hx + ww * 0.3, y - wh - 16.0), Vector2(hx + ww * 0.5, y - wh + 10.0), Vector2(hx + ww * 0.2, y - wh + 6.0)]), Color(0.2, 0.32, 0.2))   # טחב מעל
 
 
-# ---- שרכים, כפות דקל, מונסטרה, פרחים ----
+# ---- צמחייה קרובה: צלליות כהות ומציאותיות (עשב גבוה, עלים רחבים, כפות דקל) - מעט מצולעים ----
+const UNDER := [Color("172a1a"), Color("1f3622"), Color("27422a")]
+
+
 static func near_plants(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> void:
-	var period := 800.0
+	var period := 900.0
 	var start := int(floor(sc / period)) - 1
 	for k in range(start, start + int(ceil(v.x / period)) + 3):
 		var x := float(k) * period - sc
 		var r := _rng(k * 223 + 41)
-		for i in 5:
+		for i in 6:
 			var px := x + r.randf_range(0.0, period)
-			var kind := r.randi() % 3
-			var wind := sin(t * 1.4 + px * 0.02) * 0.12
-			match kind:
-				0:   # שרך: הרבה עלים דקים מתעקלים
-					for q in 9:
-						var a := -PI * 0.5 + (float(q) - 4.0) * 0.28 + wind
-						var dirv := Vector2.from_angle(a)
-						var base := Vector2(px, y)
-						var pts := PackedVector2Array()
-						for u in 6:
-							pts.append(base + dirv * float(u) * 11.0 + Vector2(0, float(u * u) * 1.4))
-						ci.draw_polyline(pts, LEAF_D, 2.0, true)
-						for u in range(1, 6):
-							_leaf(ci, pts[u], dirv.rotated(0.9), 7.0, LEAF)
-							_leaf(ci, pts[u], dirv.rotated(-0.9), 7.0, LEAF_L)
-				1:   # מונסטרה: עלים גדולים
-					for q in 3:
-						var a2 := -PI * 0.5 + (float(q) - 1.0) * 0.6 + wind
-						var stem_end := Vector2(px, y) + Vector2.from_angle(a2) * 46.0
-						ci.draw_line(Vector2(px, y), stem_end, LEAF_D, 2.0)
-						_blob(ci, stem_end + Vector2.from_angle(a2) * 16.0, 22.0, 15.0, LEAF.lerp(LEAF_L, float(q) * 0.3))
-						for h in 3:   # חורים
-							ci.draw_circle(stem_end + Vector2.from_angle(a2) * (8.0 + float(h) * 8.0) + Vector2.from_angle(a2 + 1.4) * 8.0, 2.5, LEAF_D)
-				_:   # פרחים אדומים / כתומים
+			var col: Color = UNDER[r.randi() % 3]
+			var wind := sin(t * 1.1 + px * 0.013) * 0.06
+			match r.randi() % 3:
+				0:   # גוש עשב גבוה: להבים דקים בפוליגון אחד כל אחד
+					for q in 7:
+						var bx := px + float(q) * 6.0 - 18.0
+						var h := r.randf_range(40.0, 78.0)
+						var lean := (float(q) - 3.0) * 4.0 + wind * h
+						ci.draw_colored_polygon(PackedVector2Array([Vector2(bx - 2.5, y), Vector2(bx + lean, y - h), Vector2(bx + 2.5, y)]), col)
+				1:   # צמח עלים רחבים (אוזן פיל): 3-4 עלים מחודדים
 					for q in 4:
-						var fp := Vector2(px + float(q) * 10.0 - 15.0, y - 18.0 - float(q % 2) * 10.0)
-						ci.draw_line(Vector2(fp.x, y), fp, LEAF_D, 1.6)
-						for pt in 5:
-							ci.draw_circle(fp + Vector2.from_angle(float(pt) * TAU / 5.0 + t * 0.2) * 4.0, 3.0, Color("e0402a") if q % 2 == 0 else Color("f08a20"))
-						ci.draw_circle(fp, 2.0, Color("f4d040"))
+						var a := -PI * 0.5 + (float(q) - 1.5) * 0.55 + wind
+						var dirv := Vector2.from_angle(a)
+						var base := Vector2(px, y) + dirv * r.randf_range(18.0, 34.0)
+						var ln := r.randf_range(34.0, 50.0)
+						var n := dirv.orthogonal() * ln * 0.32
+						ci.draw_line(Vector2(px, y), base, col, 2.0)
+						ci.draw_colored_polygon(PackedVector2Array([base, base + dirv * ln * 0.45 + n, base + dirv * ln, base + dirv * ln * 0.45 - n]), col)
+						ci.draw_line(base, base + dirv * ln * 0.85, Color(1, 1, 1, 0.05), 1.0)
+				_:   # כף דקל נמוכה: עמוד שדרה מתעקל + פוליגון מסורק
+					for q in 3:
+						var a2 := -PI * 0.5 + (float(q) - 1.0) * 0.8 + wind
+						var root := Vector2(px, y)
+						var tip := root + Vector2.from_angle(a2) * 62.0 + Vector2(0, 22.0)
+						var mid := root.lerp(tip, 0.5) + Vector2(0, -16.0)
+						ci.draw_polyline(PackedVector2Array([root, mid, tip]), col, 2.0)
+						var comb := PackedVector2Array([root])
+						for u in 6:
+							var p0 := root.lerp(mid, float(u) / 3.0) if u < 3 else mid.lerp(tip, float(u - 3) / 3.0)
+							comb.append(p0 + Vector2(0, 16.0 - float(u) * 2.0))
+						comb.append(tip)
+						ci.draw_colored_polygon(comb, col)
+	ci.draw_rect(Rect2(0, y - 6.0, v.x, v.y - y + 6.0), UNDER[0])
 
 
 # ---- קרקע הג'ונגל ----
@@ -329,16 +336,18 @@ class JungleFX extends Node2D:
 			draw_circle(b[0], 1.2, Color(0.95, 1.0, 0.6, a))
 		for l in _leaves:   # עלים נושרים
 			S._leaf(self, l[0], Vector2.from_angle(l[2]), l[3] * 2.0, Color(S.LEAF_L, 0.85))
-		var x := -40.0   # צמרת תלויה בראש המסך
+		# צמרת תלויה בראש המסך: פוליגון אחד עם שוליים לא אחידים + כמה ליאנות
+		var edge := PackedVector2Array([Vector2(-10, -10), Vector2(vp.x + 10.0, -10)])
+		var x := vp.x + 10.0
 		var i2 := 0
-		while x < vp.x + 40.0:
-			var sway := sin(_t * 0.8 + float(i2)) * 6.0
-			S._blob(self, Vector2(x, -6.0), 46.0, 26.0, Color(S.LEAF_D, 0.95))
-			for q in 3:
-				S._leaf(self, Vector2(x + float(q) * 14.0 - 14.0, 12.0), Vector2(0.15 * float(q - 1) + sway * 0.02, 1.0).normalized(), 22.0, Color(S.LEAF, 0.95))
-			if i2 % 3 == 0:   # ליאנה מהצמרת
-				var ll := 60.0 + float(i2 % 5) * 18.0
-				draw_line(Vector2(x + 10.0, 10.0), Vector2(x + 10.0 + sway, ll), Color("2e4a22"), 2.0)
-				S._leaf(self, Vector2(x + 10.0 + sway, ll), Vector2(0.3, 1.0).normalized(), 10.0, S.LEAF)
-			x += 58.0
+		while x > -20.0:
+			var d := 18.0 + 14.0 * sin(float(i2) * 1.7) + 8.0 * sin(float(i2) * 0.6 + _t * 0.6)
+			edge.append(Vector2(x, d))
+			x -= 34.0
 			i2 += 1
+		draw_colored_polygon(edge, Color(S.LEAF_D.darkened(0.25), 0.95))
+		for q in 7:   # ליאנות
+			var lx := vp.x * (0.07 + 0.14 * float(q))
+			var ll := 50.0 + float(q % 3) * 26.0
+			var sway := sin(_t * 0.8 + float(q)) * 5.0
+			draw_line(Vector2(lx, 12.0), Vector2(lx + sway, ll), Color("1e3418"), 2.0)

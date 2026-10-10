@@ -157,15 +157,26 @@ func _hold(delta: float, vx: float, acc := 900.0) -> bool:
 #  ציור
 # ============================================================
 func _blade(root: Vector2, tip_dir: Vector2, length: float, flat: float) -> void:
-	# להב מצ'טה: רחב ליד היד, מתעקל ומתחדד. flat = 0..1 כמה הוא "פונה אלינו" (לסיבוב)
-	var n := tip_dir.orthogonal() * (3.2 * maxf(flat, 0.25))
-	var tip := root + tip_dir * length
-	var mid := root + tip_dir * length * 0.6 + n * 1.4
-	var poly := PackedVector2Array([root + n, mid + n * 1.2, tip, mid - n * 0.4, root - n])
-	var steel := col(Color("c8ced6").lerp(Color("8a929c"), 1.0 - flat))
-	Art.fill(z, poly, steel, Art.OUTLINE, 1.1)
-	z.draw_line(root + n * 0.6, tip - tip_dir * 2.0, Color(1, 1, 1, 0.55 * flat), 0.9)   # ברק על הלהב
-	z.draw_line(mid, mid + tip_dir * 4.0, col(Color("7a1010")), 1.6)   # דם על הלהב
+	# מצ'טה גדולה וברורה: ידית עטופה, להב פלדה בהיר רחב שמתעקל לחוד, גב כהה, קצה לבן מבריק, דם בקצה.
+	# flat = 0..1 כמה הוא "פונה אלינו" (בסיבוב הלהב נראה צר יותר כשהוא בצד)
+	var w := 4.6 * maxf(flat, 0.3)
+	var n := tip_dir.orthogonal()
+	var grip := root - tip_dir * 3.0
+	z.draw_line(grip, root + tip_dir * 4.0, Art.OUTLINE, 5.0)   # ידית
+	z.draw_line(grip, root + tip_dir * 4.0, col(Color("5a3a22")), 3.2)
+	z.draw_line(root + tip_dir * 3.5 - n * 4.0, root + tip_dir * 3.5 + n * 4.0, col(Color("3a3a40")), 2.4)   # מגן
+	var b0 := root + tip_dir * 4.0
+	var tip := root + tip_dir * length + n * w * 0.6
+	var belly := b0 + tip_dir * length * 0.62 + n * w * 1.5
+	var poly := PackedVector2Array([b0 + n * w * 0.5, belly, tip, b0 + tip_dir * length * 0.7 - n * w * 0.35, b0 - n * w * 0.5])
+	Art.fill(z, poly, col(Color("e6eaf0").lerp(Color("9aa2ac"), 1.0 - flat)), Art.OUTLINE, 1.5)
+	z.draw_line(b0 - n * w * 0.25, b0 + tip_dir * length * 0.68 - n * w * 0.2, col(Color("6a727c")), 1.2)   # גב הלהב
+	z.draw_line(b0 + n * w * 0.6, belly, Color(1, 1, 1, 0.85 * flat + 0.15), 1.0)   # קצה חד מבריק
+	z.draw_line(belly, tip, Color(1, 1, 1, 0.85 * flat + 0.15), 1.0)
+	z.draw_line(tip - tip_dir * 6.0 + n * w * 0.5, tip, col(Color("8a1010")), 2.0)   # דם בקצה
+	var gl := 0.5 + 0.5 * sin(z._time * 3.0 + root.x)
+	if gl > 0.92 and flat > 0.5:   # ברק שעובר על הלהב
+		Art.glow(z, b0 + tip_dir * length * 0.45 + n * w, 4.0, Color(1, 1, 1, 0.8))
 
 
 func draw() -> bool:
@@ -183,7 +194,7 @@ func draw() -> bool:
 		f = [Vector2(2.0, 0.0), Vector2(-2.0, 0.0)]
 	z._leg(hip + Vector2(-2, 0), f[1], col(Art.shade(z.pants, 0.25)), col(Art.shade(z.skin, 0.2)), col(z.shoe))
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
-	var blen := 26.0
+	var blen := 32.0
 	if state == SPIN:
 		# מערבולת: שני להבים מסתובבים סביב הגוף (בצד: האורך שלהם "מתקצר" כשהם פונים אלינו)
 		z.draw_arc(Vector2(0, -32.0), blen + 2.0, 0.0, TAU, 24, Color(0.85, 0.9, 1.0, 0.12), 6.0)
@@ -219,11 +230,13 @@ func draw() -> bool:
 		_blade(shoulder_b + Vector2(-4, 0), Vector2(-1.0, 0.15).normalized(), blen, 0.7)
 		if int(z._time * 16.0) % 2 == 0:
 			Art.glow(z, shoulder_f + Vector2(4 + blen, 4), 6.0, Color(1, 1, 1, 0.9))
-	else:   # נגררים למטה-קדימה
-		var sw := sin(p) * 0.15
-		z._arm(shoulder_b, shoulder_b + Vector2(-2, 7), Art.shade(sk, 0.25), Art.shade(shirt, 0.3))
-		_blade(shoulder_b + Vector2(-2, 7), Vector2(0.5 - sw, 1.0).normalized(), blen * 0.95, 0.6)
-		z._arm(shoulder_f, shoulder_f + Vector2(3, 8), sk, shirt)
-		_blade(shoulder_f + Vector2(3, 8), Vector2(0.75 + sw, 0.9).normalized(), blen, 0.9)
+	else:   # עמידת לוחם: להב קדמי מכוון קדימה, אחורי מאחור - ברור שיש לו חרבות
+		var sw := sin(p) * 0.12
+		var hb := shoulder_b + Vector2(-5, 8)
+		z._arm(shoulder_b, hb, Art.shade(sk, 0.25), Art.shade(shirt, 0.3))
+		_blade(hb, Vector2(-0.85, 0.45 + sw).normalized(), blen * 0.95, 0.7)
+		var hf := shoulder_f + Vector2(7, 6)
+		z._arm(shoulder_f, hf, sk, shirt)
+		_blade(hf, Vector2(1.0, 0.18 - sw).normalized(), blen, 1.0)
 	end_draw()
 	return true

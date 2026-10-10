@@ -172,6 +172,13 @@ var _laser_end := Vector2.ZERO
 var aim_end := Vector2.ZERO        # מדריך כוונה: איפה הירייה תיעצר (קיר / זומבי / העכבר)
 var aim_on_zombie := false         # הקו פוגע בזומבי (הכוונת והקו נהיים אדומים)
 var aim_dist := 300.0              # מרחק מהכתף לעכבר (לחישוב הפיזור בכוונת)
+# ירי ממושך: "התנפחות" (0..1) שעולה עם כל ירייה ויורדת כשמפסיקים. בנשקים אוטומטיים היא מוסיפה פיזור קטן
+# (הדיוק יורד בהדרגה ובעדינות), והכוונת נפתחת לפיה.
+var _bloom := 0.0
+var _bloom_hold := 0.0
+const BLOOM_AUTO := Vector2(0.075, 0.05)   # [כמה כל ירייה מוסיפה, פיזור נוסף מקסימלי ברדיאנים] - SMG / רובה סער
+const BLOOM_SEMI := Vector2(0.22, 0.015)   # אקדח / רובה / שוטגאן: בעיקר הכוונת קופצת, כמעט בלי השפעה על הדיוק
+const BLOOM_DECAY := 1.4                   # כמה מהר היא יורדת (לשנייה) אחרי שמפסיקים
 var _empty_t := 0.0
 # ---- תנועה מתקדמת (SKILL) ----
 var roll_speed := 430.0
@@ -300,6 +307,9 @@ func _physics_process(delta: float) -> void:
 	_time += delta
 	_cooldown -= delta
 	_kick = move_toward(_kick, 0.0, delta * 0.5)
+	_bloom_hold -= delta
+	if _bloom_hold <= 0.0:
+		_bloom = move_toward(_bloom, 0.0, delta * BLOOM_DECAY)
 	if _reload_t > 0.0:
 		var k0 := _reload_k()
 		_reload_t -= delta
@@ -782,6 +792,26 @@ func _update_aim_guide(sh: Vector2) -> void:
 	aim_on_zombie = hit and hit.collider != null and hit.collider.is_in_group("zombies")
 
 
+# ירי ממושך: כמה פיזור נוסף יש עכשיו (רק נשקים אוטומטיים מרגישים את זה באמת)
+func _bloom_spread(w: Dictionary) -> float:
+	if gun == SNIPER or gun == BOW:
+		return 0.0
+	var b: Vector2 = BLOOM_AUTO if str(w.get("category", "")) == "auto" else BLOOM_SEMI
+	return b.y * pow(_bloom, 1.6)
+
+
+func _add_bloom(w: Dictionary) -> void:
+	if gun == SNIPER or gun == BOW:
+		return
+	var b: Vector2 = BLOOM_AUTO if str(w.get("category", "")) == "auto" else BLOOM_SEMI
+	_bloom = minf(1.0, _bloom + b.x)
+	_bloom_hold = 0.16
+
+
+func aim_bloom() -> float:
+	return _bloom
+
+
 # פיזור הנשק עכשיו (רדיאנים) - לכוונת
 func aim_spread() -> float:
 	if weapon != GUN:
@@ -910,7 +940,8 @@ func _fire() -> void:
 			if w.has("fixed_damage"):
 				b.fixed_damage = w.fixed_damage
 			b.life_time = float(w.get("range", 1800.0)) / spd
-			b.setup(sh + aim * 30.0, aim.rotated(spread) * spd, sh)
+			b.setup(sh + aim * 30.0, aim.rotated(spread + randf_range(-1.0, 1.0) * _bloom_spread(w)) * spd, sh)
+		_add_bloom(w)
 	else:
 		_use_special(sh)
 

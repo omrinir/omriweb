@@ -337,3 +337,9 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - enemies/types/swinger.gd: WALK -> THROW (jumps up JUMP_V, vine catches at the apex) -> SWING (real pendulum; anchor halfway to the player at a height that keeps the bottom of the arc CLEAR above the ground; released at the far apex) -> DROP (lands LAND_GAP from the player; landing on him = hit). x1.5 damage while swinging.
 - enemies/types/blades.gd: WALK (blades scrape sparks) -> WINDUP 0.5 s (blades out, glint) -> SPIN 0.9 s whirlwind dash 330 px/s (contact = hit, DEFLECT 50% of bullets with sparks + metal ping) -> DIZZY 1 s (stars, x1.5 damage). Boss spins twice.
 - Main menu PRACTICE buttons now 2-19 (narrower buttons); region 3 level 1 renamed "The Green Wall".
+- Perf note (stage 19): the backdrop redraws every layer every frame - keep each layer to a few dozen polygons. The first version's fern/flower layer cost ~11.7 ms/frame; now the whole jungle backdrop is ~5.7 ms (stage 18 ~2.4 ms). Near foliage = dark silhouettes (grass blades, broad leaves, palm fronds), no cartoon flowers.
+
+## Crosshair bloom + sustained-fire accuracy
+- player.gd `_bloom` (0..1): each shot adds BLOOM_AUTO.x (0.075, SMG / assault rifle) or BLOOM_SEMI.x (0.22); after 0.16 s without firing it decays at BLOOM_DECAY 1.4/s. Sniper and bow: none.
+- Extra bullet spread = max * bloom^1.6: auto up to 0.05 rad (~2.9 deg after ~2 s of continuous fire), semi up to 0.015 rad.
+- ui/crosshair.gd: gap = 4 + 26 * bloom (+ a small pop per shot) - closed at rest, opens the longer you hold the trigger.
