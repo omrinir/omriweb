@@ -32,15 +32,17 @@ base_r      = 50;
 foot_h      = 3;              // printed feet: the ring light spills out under the base
 floor_t     = 1.2;            // translucent
 shell_h     = 32;
-top_t       = 1.6;
-shell_f     = 6;
+top_t       = 1.2;
+shell_f     = 10;             // big round top edge
+shell_fb    = 6;              // round bottom edge
 base_z0     = foot_h;                       // shell bottom = floor bottom
 floor_top   = base_z0 + floor_t;            // 4.2
 base_h      = base_z0 + shell_h;            // 35
 ceil_z      = base_h - top_t;               // 33.4
 inner_r     = base_r - wall;
-boss_r_pos  = 44;
-boss_angles = [60, 120, 168, 345];
+boss_r_pos  = 40;
+boss_angles = [60, 120, 190, 345];
+floor_r     = base_r - shell_fb - 0.5;   // floor fills the flat part of the bottom
 ring16      = [44.5, 31.7, 3.4];
 // battery: single 18650 holder (about 77 x 21 x 19) on two rails above the ring
 bat         = [77, 21, 19];
@@ -48,17 +50,17 @@ bat_y       = 16;
 bat_lift    = 6;
 // Nano on two grooved end blocks, also lifted over the ring
 nano        = [43.6, 18.4];
-nano_y      = -26;
+nano_y      = -25;
 nano_lift   = 6;
 // USB-C charge + 5V boost board (IP5306 / "18650 boost charger" type)
 chg         = [25, 20];
-chg_y       = 37;
+chg_y       = 32.6;              // tucked under the battery holder edge
 usb_port    = [9.8, 4.2];
 // switch (KCD11 mini rocker) in the side wall
 sw_a        = 90;    // back wall, above the USB-C port
 sw_hole     = [19.2, 13];
 // sensor + sign
-sensor_y    = -40;
+sensor_y    = -34;
 sensor_pcb  = [26, 11.5];
 sign_tab_x  = 22;
 sign_y      = -27.7;          // centre of the sign slot
@@ -109,6 +111,10 @@ sign_t  = 2.4;
 module rrect(w, d, r) offset(r) square([w-2*r, d-2*r], center=true);
 module ring(ro, ri, h) difference() { cylinder(r=ro, h=h); translate([0,0,-eps]) cylinder(r=ri, h=h+2*eps); }
 module rcyl(r, h, f) hull() { cylinder(r=r, h=h-f); translate([0,0,h-f]) rotate_extrude() translate([r-f,0]) circle(f); }
+module pillow(r, h, ft, fb, o=0) hull() {      // cylinder with round top and bottom edges, shrunk by o
+    translate([0,0,fb]) rotate_extrude() translate([r-fb,0]) circle(fb-o);
+    translate([0,0,h-ft]) rotate_extrude() translate([r-ft,0]) circle(ft-o);
+}
 module arc2d(r, t, a0, a1)
     intersection() { difference() { circle(r+t/2); circle(r-t/2); }
                      polygon(concat([[0,0]], [for (a=[a0:5:a1]) 40*[cos(a), sin(a)]])); }
@@ -120,19 +126,19 @@ module at_wall(a, z) rotate(a) translate([inner_r-1, 0, z]) rotate([0,90,0]) chi
 module base_floor() {    // translucent; LED ring glued on top, LEDs facing down
     difference() {
         union() {
-            translate([0,0,base_z0]) cylinder(r=inner_r-fit, h=floor_t);
-            for (a=[45,135,225,315]) rotate(a) translate([40,0,0]) cylinder(d1=7, d2=9, h=foot_h+eps);   // feet
+            translate([0,0,base_z0]) cylinder(r=floor_r, h=floor_t);
+            for (a=[45,135,225,315]) rotate(a) translate([34,0,0]) cylinder(d1=7, d2=9, h=foot_h+eps);   // feet
             // ring locator
-            translate([0,0,floor_top-eps]) ring(ring16[0]/2+1.4, ring16[0]/2+0.3, 1.5);
+            for (a=[210, 270, 330]) rotate(a) translate([ring16[0]/2+0.3, -3, floor_top-eps]) cube([1.4, 6, 1.5]);   // 3 tabs, the back stays free for the charger
             // battery rails
-            for (s=[-1,1]) translate([s>0 ? 30 : -36, bat_y-bat[1]/2, floor_top-eps]) cube([6, bat[1], bat_lift+eps]);
+            for (s=[-1,1]) translate([s>0 ? 29 : -35, bat_y-bat[1]/2, floor_top-eps]) cube([6, bat[1]-3, bat_lift+eps]);
             // Nano end blocks with grooves
             for (s=[-1,1]) translate([s>0 ? nano[0]/2-2 : -nano[0]/2-2, nano_y-nano[1]/2-1.5, floor_top-eps]) difference() {
                 cube([4, nano[1]+3, nano_lift+3]);
                 translate([s>0 ? -1 : 2, 1.3, nano_lift]) cube([3, nano[1]+0.4, 1.8]);
             }
             // charger board guides
-            for (x=[-chg[0]/2-1.2, chg[0]/2]) translate([x, chg_y-chg[1]/2, floor_top-eps]) cube([1.2, chg[1], 2.5]);
+            for (x=[-chg[0]/2-1.2, chg[0]/2]) translate([x, chg_y-chg[1]/2, floor_top-eps]) cube([1.2, chg[1]-4, 2.5]);
         }
         for (a=boss_angles) rotate(a) translate([boss_r_pos,0,-1]) {
             cylinder(d=3.4, h=20);
@@ -145,13 +151,14 @@ module base_shell() {
     difference() {
         union() {
             difference() {
-                translate([0,0,base_z0]) rcyl(base_r, shell_h, shell_f);
-                translate([0,0,base_z0-eps]) cylinder(r=inner_r, h=shell_h-top_t+eps);
+                translate([0,0,base_z0]) pillow(base_r, shell_h, shell_f, shell_fb);
+                translate([0,0,base_z0]) pillow(base_r, shell_h, shell_f, shell_fb, wall);
+                translate([0,0,base_z0-1]) cylinder(r=base_r-shell_fb-0.3, h=1+wall+0.3);      // bottom opening for the floor
             }
-            for (a=boss_angles) rotate(a) translate([boss_r_pos,0,floor_top]) cylinder(d=7, h=ceil_z-floor_top+eps);
-            for (p=body_pillars) translate([p[0],p[1],ceil_z-2]) cylinder(d=7, h=2+eps);           // screw pads
-            for (x=[-sign_tab_x, sign_tab_x]) translate([x-6, sign_y-3.2, ceil_z-4]) cube([12, 6.4, 4+eps]);   // sign sockets
-            translate([-sensor_pcb[0]/2-1.2, sensor_y-sensor_pcb[1]/2-1.2, ceil_z-2]) cube([sensor_pcb[0]+2.4, sensor_pcb[1]+2.4, 2+eps]);
+            for (a=boss_angles) rotate(a) translate([boss_r_pos,0,floor_top]) cylinder(d=7, h=ceil_z-floor_top+0.3);
+            for (p=body_pillars) translate([p[0],p[1],ceil_z-2]) cylinder(d=7, h=2+0.3);           // screw pads
+            for (x=[-sign_tab_x, sign_tab_x]) translate([x-6, sign_y-3.2, ceil_z-4]) cube([12, 6.4, 4+0.3]);   // sign sockets
+            translate([-sensor_pcb[0]/2-1.2, sensor_y-sensor_pcb[1]/2-1.2, ceil_z-2]) cube([sensor_pcb[0]+2.4, sensor_pcb[1]+2.4, 2+0.3]);
         }
         for (a=boss_angles) rotate(a) translate([boss_r_pos,0,floor_top-eps]) cylinder(d=2.6, h=10);
         for (p=body_pillars) translate([p[0],p[1],ceil_z-3]) cylinder(d=3.4, h=10);
@@ -160,8 +167,8 @@ module base_shell() {
         translate([-5, sensor_y-3, ceil_z-3]) cube([10, 6, 10]);
         translate([-sensor_pcb[0]/2, sensor_y-sensor_pcb[1]/2, ceil_z-2-eps]) cube([sensor_pcb[0], sensor_pcb[1], 1.2]);
         // USB-C of the charger at the back, switch in the side wall
-        at_wall(90, floor_top+1.6+1.6) linear_extrude(5) rrect(usb_port[1], usb_port[0], usb_port[1]/2-0.01);
-        at_wall(sw_a, base_z0+18.5) linear_extrude(5) square([sw_hole[1], sw_hole[0]], center=true);
+        at_wall(90, floor_top+1.6+1.6) linear_extrude(5) rrect(7.5, 13, 3.7);       // room for the plug body
+        at_wall(sw_a, base_z0+16) linear_extrude(5) square([sw_hole[1], sw_hole[0]], center=true);
     }
 }
 
@@ -359,7 +366,7 @@ module electronics_dummy() {
     }
     color([0.85,0.2,0.2]) translate([-chg[0]/2, chg_y-chg[1]/2, floor_top]) cube([chg[0], chg[1], 1.6]);
     color([0.6,0.1,0.6]) translate([-sensor_pcb[0]/2+0.5, sensor_y-sensor_pcb[1]/2+0.5, ceil_z-2.8]) cube([sensor_pcb[0]-1, sensor_pcb[1]-1, 1.6]);
-    color([0.9,0.1,0.1]) at_wall(sw_a, base_z0+18.5) translate([0,0,-15]) linear_extrude(16.5) square([sw_hole[1]-0.4, sw_hole[0]-0.4], center=true);
+    color([0.9,0.1,0.1]) at_wall(sw_a, base_z0+16) translate([0,0,-15]) linear_extrude(16.5) square([sw_hole[1]-0.4, sw_hole[0]-0.4], center=true);
     color([0.1,0.3,0.6]) translate([0, -head_d/2+wall+1.2, base_h+body_h+head_gap+oled_z]) rotate([90,0,0]) translate([-13.6,-14,-1.6]) cube([27.2, 28, 1.6]);
 }
 
