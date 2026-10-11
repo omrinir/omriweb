@@ -400,3 +400,15 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - The pictures are real in-game shots: each level is loaded, the HUD is hidden, the camera zooms in (2.1x) and the level's signature zombies + its boss are posed facing the hero
   (GLIDER gliding, BLADES spinning, UZI / REVOLVER aiming...). Then cropped + graded (scratchpad tools t_thumb.gd + make_cards.py).
   New level -> ask for its picture to be generated (until then its card is plain).
+
+## Stage 22 - "THE DAM" ("THEY LEARNED TO SET TRAPS") - grey rainy morning at a giant dam, region 3 level 4
+- levels/stage_22.gd + effects/s22_decor.gd: overcast sky, dam wall with spillway waterfalls, power pylons, pines, reeds + fence. World: wet concrete DamGround,
+  steel CATWALKS at TIER 140 (harpooners stand there), Obstacle "barrier" / "drums" / "timber" (tall cover). DamFX: drizzle + spray mist.
+- Trap: LogTrap (LOG_TRAPS positions): a visible tripwire (red flags) under an A-frame holding a log. Touch the wire -> creak (DELAY) -> log falls (DROP_DMG 2)
+  -> rolls toward you (ROLL_DMG, ROLL_T) -> stops and becomes solid cover. Kills zombies it hits (lure them under it).
+- GOLIATH (enemies/types/goliath.gd): huge butcher. Falls apart in order by HP (LOSE_AT): front arm, back arm, back leg (hops), front leg (crawls), head on death.
+  Tactics change: 2 arms = SMASH (windup + ground slam), 1 arm = faster swipe, no arms = CHARGE (headbutt rush, then STUN), no legs = crawl + bite.
+  Boss THE BUTCHER (stage 22 boss). Limbs fly as Limb nodes.
+- HARPOONER (enemies/types/harpooner.gd): diver with a spear gun. AIM (red line) -> Spear on a rope -> hit = 1 damage + reels you in (REEL_PULL, HOLD_T)
+  using player._push_t; miss / wall = spear reels back by itself; RELOAD window.
+- Mind control: HARPOONER -> shoot, GOLIATH -> slam. Map picture: map/thumbs/level_22.png. Menu practice row 2-22 (spacing 41, size 38).
