@@ -381,3 +381,15 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   Cooldowns in INFO; HUD shows the ability name + ready bar. Hidden types (GHILLIE _k / AMBUSHER _hide) are un-hidden when taken over.
 - Fix (stuck in the last seconds): stages 16/17 freeze zombies > FREEZE_DIST from the hero, and zombie.gd sleeps zombies > 1400 px from the hero.
   Both now also keep zombies awake near the controlled zombie (MindControl.near_focus / zombie._traitor_near), so walking it far away no longer freezes it.
+
+## Stage 21 - "CLIFFSIDE" ("THEY LEARNED TO FLY") - mountain cliffs at dusk, region 3 level 3
+- levels/stage_21.gd + effects/s21_decor.gd: dusk sky, snowy peaks, cliffs with pagodas / waterfalls / rope bridges, pines (backdrop, few polygons).
+  World: CliffGround (built between the pits), wooden WALKWAYS at TIER 150 (the "second level") with prayer Flags, Obstacle "rock" / "lantern" (tall cover) / "crate".
+- Trap: SpikePit (extends hazard.gd), one per main._pits (pits() = SPIKE_PITS 6): player takes 1 and is bounced out (bounce), zombies take 60 per tick.
+  SMART_HOP 0.75: most zombies jump over a pit when they reach its edge, the rest fall in and die (lure them!).
+- GLIDER (enemies/types/glider.gd): WALK -> CLIMB (ballistic jump onto the nearest platform, _platform_target / _climb_to) -> PERCH -> GLIDE
+  (descent aimed at your chest, leads your movement) -> HOP (small jump timed to land on you) -> RECOVER. Shooting it while gliding tears the wings (falls). x1.5 damage in the air.
+- REVOLVER (enemies/types/revolver.gd): AIM (red line, AIM_T) -> one heavy Slug (DAMAGE 2) -> RUN a little (away if close, else sideways / to cover) -> repeat.
+  Boss THE SHERIFF (stage 21 boss): 2 shots per volley, the second leads more.
+- Mind control: REVOLVER -> "shoot" ability; GLIDER -> default "pounce".
+- Menu practice row: 2-21 (spacing 43, size 40).

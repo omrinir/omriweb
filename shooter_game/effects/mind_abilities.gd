@@ -44,7 +44,7 @@ static func ability_for(z: Node) -> String:
 			return "shoot"
 	if k == Registry.BLADES:
 		return "spin"
-	if k in [Registry.UZI, Registry.MINIGUNNER, Registry.SANDBLASTER]:
+	if k in [Registry.UZI, Registry.MINIGUNNER, Registry.SANDBLASTER, Registry.REVOLVER]:
 		return "shoot"
 	if k in [Registry.RETCHER]:
 		return "spit"
