@@ -404,8 +404,9 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 ## Stage 22 - "THE DAM" ("THEY LEARNED TO SET TRAPS") - grey rainy morning at a giant dam, region 3 level 4
 - levels/stage_22.gd + effects/s22_decor.gd: overcast sky, dam wall with spillway waterfalls, power pylons, pines, reeds + fence. World: wet concrete DamGround,
   steel CATWALKS at TIER 140 (harpooners stand there), Obstacle "barrier" / "drums" / "timber" (tall cover). DamFX: drizzle + spray mist.
-- Trap: LogTrap (LOG_TRAPS positions): a visible tripwire (red flags) under an A-frame holding a log. Touch the wire -> creak (DELAY) -> log falls (DROP_DMG 2)
-  -> rolls toward you (ROLL_DMG, ROLL_T) -> stops and becomes solid cover. Kills zombies it hits (lure them under it).
+- Trap: LogTrap (LOG_TRAPS positions): a visible tripwire (red flags) with a rope to a wooden tower AHEAD (300 px) holding a round log on a ramp (chock).
+  Touch the wire -> chock flies out -> the log rolls down the ramp, falls + bounces (DROP_DMG) -> rolls back at you, spinning (ROLL_DMG, ROLL_V, ROLL_DIST) - jump over it.
+  Drawn end-on (round cross-section with bark + rings) as a rolling log looks in side view. Stops at an obstacle / after ROLL_DIST and stays as cover. Kills zombies in its path.
 - GOLIATH (enemies/types/goliath.gd): huge butcher. Falls apart in order by HP (LOSE_AT): front arm, back arm, back leg (hops), front leg (crawls), head on death.
   Tactics change: 2 arms = SMASH (windup + ground slam), 1 arm = faster swipe, no arms = CHARGE (headbutt rush, then STUN), no legs = crawl + bite.
   Boss THE BUTCHER (stage 22 boss). Limbs fly as Limb nodes.

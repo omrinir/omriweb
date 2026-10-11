@@ -57,7 +57,7 @@ func custom_gen(gname: String, x: float) -> float:
 func _near_trap(x0: float, x1: float) -> bool:
 	for f in LOG_TRAPS:
 		var tx := level_w * float(f)
-		if x1 > tx - 110.0 and x0 < tx + 110.0:
+		if x1 > tx - 110.0 and x0 < tx + 400.0:   # החוט + המגדל שקדימה (LogTrap.AHEAD)
 			return true
 	return false
 
@@ -118,7 +118,7 @@ func build_world() -> void:
 		var tx := level_w * float(f)
 		var lt := Decor.LogTrap.new()
 		add_world(lt, Vector2(tx, floor_y))
-		reserve(Rect2(tx - 80.0, floor_y - 40.0, 160.0, 40.0))
+		reserve(Rect2(tx - 60.0, floor_y - 40.0, 420.0, 40.0))   # החוט + המגדל שקדימה
 
 
 func _pickup(kind: int, pos: Vector2) -> void:

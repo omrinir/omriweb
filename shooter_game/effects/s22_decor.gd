@@ -7,9 +7,9 @@ extends RefCounted
 #    mid_pylons    - (רקע) עמודי חשמל עם כבלים, אורנים, מגדל קליטה
 #    near_bank     - (רקע) קנים וגדר רשת קרובים
 #    DamGround     - (עולם) בטון רטוב: לוחות, שלוליות, פסים צהובים, ניקוז
-#    LogTrap       - (עולם, מלכודת) חוט מתיחה על הקרקע + מסגרת עץ עם בול עץ למעלה. נוגעים בחוט ->
-#                    החבל נקרע, הבול נופל עליך (DROP_DMG) ואז מתגלגל לכיוונך (ROLL_DMG) - קפוץ מעליו.
-#                    פוגע גם בזומבים. אחרי שנעצר - נשאר על הקרקע כמחסה.
+#    LogTrap       - (עולם, מלכודת) חוט מתיחה על הקרקע + מגדל עץ קדימה עם בול על רמפה. נוגעים בחוט ->
+#                    הטריז עף, הבול מתגלגל מהרמפה, נופל וקופץ, ומתגלגל אליך (מסתובב) - קפוץ מעליו.
+#                    פוגע גם בזומבים. אחרי שנעצר - נשאר על הקרקע כמכשול.
 #    Obstacle      - (מוצק + מחסה) "barrier" מחסום בטון / "drums" חביות / "timber" ערימת בולים
 #    DamFX         - (מסך) טפטוף גשם ורסס ערפל
 # ============================================================
@@ -174,38 +174,38 @@ class DamGround extends Node2D:
 				draw_line(Vector2(px + 4 + float(q) * 7.0, 12), Vector2(px + 4 + float(q) * 7.0, 20), S.CONCRETE, 1.5)
 
 
-# ---- מלכודת בול עץ ----
+# ---- מלכודת בול עץ: מגדל עם בול על רמפה, חבל לחוט מתיחה. נוגעים בחוט -> הבול נופל ומתגלגל אליך ----
+# הבול מצויר מהצד כמו שרואים בול שמתגלגל: עיגול (חתך) עם קליפה, טבעות וסדק - מסתובב בזמן הגלגול.
 class LogTrap extends Node2D:
-	const DROP_DMG := 2
-	const ROLL_DMG := 1
-	const HEIGHT := 175.0        # גובה הבול מעל הקרקע
-	const DELAY := 0.3           # מהחוט עד שהחבל נקרע (חריקה)
-	const ROLL_V := 270.0
-	const ROLL_T := 1.6
-	const LOG_R := 15.0          # רדיוס הבול
-	var wire_w := 70.0           # רוחב חוט המתיחה (ממורכז מתחת לבול)
-	var log_w := 110.0
-	var state := 0               # 0 = מחכה, 1 = חורק, 2 = נופל, 3 = מתגלגל, 4 = נח
+	const DROP_DMG := 2          # פגיעה בזמן הנפילה
+	const ROLL_DMG := 2          # פגיעה בזמן הגלגול
+	const R := 24.0              # רדיוס הבול
+	const AHEAD := 300.0         # המגדל נמצא קדימה מהחוט (הבול מתגלגל אחורה - אליך)
+	const RAMP_H := 135.0        # גובה הרמפה
+	const ROLL_V := 330.0
+	const ROLL_DIST := 900.0     # כמה רחוק הוא מתגלגל לפני שנעצר
+	var wire_w := 70.0
+	var state := 0               # 0 = מחכה, 1 = מתגלגל על הרמפה, 2 = נופל, 3 = מתגלגל על הקרקע, 4 = נעצר
 	var triggered := 0           # לבדיקות
 	var hit_player := 0
-	var _t := 0.0
-	var _logp := Vector2.ZERO    # מרכז הבול (מקומי)
-	var _vy := 0.0
-	var _dir := 1.0
-	var _spin := 0.0
+	var _c := Vector2.ZERO       # מרכז הבול (מקומי)
+	var _v := Vector2.ZERO
+	var _ang := 0.0
+	var _rolled := 0.0
+	var _chock := 0.0            # הטריז שעף
 	var _hit_zs := []
-	var _body: StaticBody2D = null
+	var _bounced := false
 
 	func _ready() -> void:
 		z_index = 2
 		add_to_group("hazards")
-		_logp = Vector2(0, -HEIGHT)
+		_c = _rest_pos()
 
-	# זומבים חכמים נזהרים (ai/zombie_brain.gd)
-	func danger_at(p: Vector2, margin := 0.0) -> bool:
-		if state >= 2 and state <= 3:
-			return absf(p.x - (global_position.x + _logp.x)) < log_w * 0.5 + margin
-		return false
+	func _rest_pos() -> Vector2:
+		return Vector2(AHEAD + 26.0, -RAMP_H - 18.0 - R + 2.0)
+
+	func danger_at(p: Vector2, margin := 0.0) -> bool:   # זומבים חכמים נזהרים מבול שמתגלגל
+		return state >= 2 and state <= 3 and absf(p.x - (global_position.x + _c.x)) < R + margin
 
 	func _physics_process(delta: float) -> void:
 		var pl := get_tree().get_first_node_in_group("player")
@@ -215,110 +215,131 @@ class LogTrap extends Node2D:
 					var wr := Rect2(global_position + Vector2(-wire_w * 0.5, -10.0), Vector2(wire_w, 12.0))
 					if wr.intersects(pl.body_rect()):
 						state = 1
-						_t = DELAY
 						triggered += 1
 						Sfx.play("clink", global_position, 2.0)
-						Sfx.play("servo", global_position + Vector2(0, -HEIGHT), 0.0)
-						_dir = signf(pl.velocity.x) if absf(pl.velocity.x) > 10.0 else 1.0
+						Sfx.play("whoosh", global_position + Vector2(AHEAD, -RAMP_H), 0.0)
 						queue_redraw()
 				return
-			1:
-				_t -= delta
-				_logp.x = sin(_t * 60.0) * 1.5   # רועד
-				if _t <= 0.0:
+			1:   # מתגלגל במורד הרמפה
+				_chock += delta
+				_c += Vector2(-1.0, 0.33).normalized() * 260.0 * delta
+				_ang -= 260.0 * delta / R
+				if _c.x < AHEAD - 30.0:
 					state = 2
-					_vy = 0.0
-					Sfx.play("whoosh", global_position, 2.0)
-			2:
-				_vy += 1500.0 * delta
-				_logp.y += _vy * delta
-				_hurt_under(pl, DROP_DMG)
-				if _logp.y >= -LOG_R:
-					_logp.y = -LOG_R
-					state = 3
-					_t = ROLL_T
-					Sfx.play("land", global_position, 6.0)
-					var cam := get_viewport().get_camera_2d()
-					if cam != null and cam.has_method("shake"):
-						cam.shake(6.0, 0.25)
-					preload("res://particles.gd").burst(get_parent(), global_position, "smoke", Vector2.UP, 10)
-					if pl != null and not pl.dead:   # מתגלגל לכיוון השחקן
-						_dir = signf(pl.global_position.x - global_position.x) if absf(pl.global_position.x - global_position.x) > 8.0 else _dir
-			3:
-				_t -= delta
-				var v := ROLL_V * clampf(_t / ROLL_T + 0.3, 0.0, 1.0)
-				var step := _dir * v * delta
-				var gp := global_position + _logp + Vector2(step + _dir * log_w * 0.5, -4.0)
-				if not get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(gp - Vector2(_dir * 6.0, 0), gp, 1)).is_empty():
-					_t = 0.0   # נתקע במכשול
+					_v = Vector2(-200.0, 40.0)
+			2:   # נופל מהרמפה
+				_chock += delta
+				_v.y += 1500.0 * delta
+				_c += _v * delta
+				_ang += _v.x * delta / R
+				_hurt(pl, DROP_DMG)
+				if _c.y >= -R:
+					_c.y = -R
+					if not _bounced and _v.y > 300.0:   # קפיצה קטנה בנחיתה
+						_bounced = true
+						_v.y = -_v.y * 0.3
+						Sfx.play("land", global_position + _c, 6.0)
+						_shake(6.0)
+						preload("res://particles.gd").burst(get_parent(), global_position + _c + Vector2(0, R), "smoke", Vector2.UP, 8)
+					else:
+						state = 3
+						_v = Vector2(-ROLL_V, 0.0)
+			3:   # מתגלגל על הקרקע אליך
+				var step := _v.x * delta
+				var front: Vector2 = global_position + _c + Vector2(signf(_v.x) * (R + 2.0), 0.0)
+				if not get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(front, front + Vector2(step, 0.0), 1)).is_empty() or _rolled > ROLL_DIST:
+					_stop()
 				else:
-					_logp.x += step
-					_spin += step / LOG_R
-				_hurt_under(pl, ROLL_DMG)
-				if _t <= 0.0:
-					state = 4
-					_make_solid()
+					_c.x += step
+					_rolled += absf(step)
+					_ang += step / R
+					if _rolled > ROLL_DIST * 0.7:   # מאט בסוף
+						_v.x = move_toward(_v.x, -60.0 * signf(-_v.x), 260.0 * delta)
+					_hurt(pl, ROLL_DMG)
+					if Engine.get_physics_frames() % 10 == 0 and Art.on_screen(self, global_position + _c):
+						preload("res://particles.gd").burst(get_parent(), global_position + _c + Vector2(0, R), "smoke", Vector2(-signf(_v.x), -0.5), 1)
 			_:
 				return
 		queue_redraw()
 
-	func _hurt_under(pl: Node, dmg: int) -> void:
-		var lr := Rect2(global_position + _logp + Vector2(-log_w * 0.5, -LOG_R), Vector2(log_w, LOG_R * 2.0))
-		if pl != null and not pl.dead and lr.intersects(pl.body_rect()):
-			if pl._invuln <= 0.0:
-				hit_player += 1
-			pl.hurt(dmg, Vector2(_dir * 1.6 if state == 3 else signf(pl.global_position.x - lr.get_center().x) * 1.4, -1.0))
+	func _hurt(pl: Node, dmg: int) -> void:
+		var c: Vector2 = global_position + _c
+		if pl != null and not pl.dead:
+			var r: Rect2 = pl.body_rect()
+			var nearest := Vector2(clampf(c.x, r.position.x, r.end.x), clampf(c.y, r.position.y, r.end.y))
+			if nearest.distance_to(c) < R:
+				if pl._invuln <= 0.0:
+					hit_player += 1
+				pl.hurt(dmg, Vector2(signf(_v.x if _v.x != 0.0 else -1.0) * 1.8, -1.0))
 		for z in get_tree().get_nodes_in_group("zombies"):
 			if z.dead or _hit_zs.has(z):
 				continue
-			if lr.has_point(z.global_position + Vector2(0, -20)):
+			if (z.global_position + Vector2(0, -20.0 * float(z.sc))).distance_to(c) < R + 14.0 * float(z.wf):
 				_hit_zs.append(z)
-				z.take_damage(60, z.global_position + Vector2(0, -20), Vector2(_dir, -0.5), true, {"source": "hazard"})
+				z.take_damage(60, z.global_position + Vector2(0, -20), Vector2(signf(_v.x), -0.5), true, {"source": "hazard"})
 
-	# אחרי שנעצר: מכשול מוצק (אפשר לעמוד עליו / להסתתר מאחוריו)
-	func _make_solid() -> void:
-		_body = StaticBody2D.new()
-		_body.collision_layer = 1
-		_body.add_to_group("no_outline")
+	func _stop() -> void:
+		state = 4
+		_v = Vector2.ZERO
+		var body := StaticBody2D.new()   # נשאר כמכשול (אפשר לעמוד עליו / להסתתר מאחוריו)
+		body.collision_layer = 1
+		body.add_to_group("no_outline")
 		var cs := CollisionShape2D.new()
 		var sh := RectangleShape2D.new()
-		sh.size = Vector2(log_w, LOG_R * 2.0)
+		sh.size = Vector2(R * 1.7, R * 2.0)
 		cs.shape = sh
-		cs.position = _logp
-		_body.add_child(cs)
-		add_child(_body)
+		cs.position = _c
+		body.add_child(cs)
+		add_child(body)
+		queue_redraw()
+
+	func _shake(st: float) -> void:
+		var cam := get_viewport().get_camera_2d()
+		if cam != null and cam.has_method("shake"):
+			cam.shake(st, 0.25)
 
 	func _draw() -> void:
 		var S := preload("res://effects/s22_decor.gd")
-		# מסגרת A מעץ שמחזיקה את הבול (נשארת)
-		var fx := log_w * 0.5 + 8.0
-		for s in [-1.0, 1.0]:
-			draw_line(Vector2(s * fx, 0), Vector2(s * (fx - 18.0), -HEIGHT - 6.0), S.WOOD_D, 5.0)
-			draw_line(Vector2(s * fx, 0), Vector2(s * (fx + 14.0), -HEIGHT * 0.5), S.WOOD_D, 3.0)
-		draw_line(Vector2(-fx + 14.0, -HEIGHT + LOG_R + 4.0), Vector2(fx - 14.0, -HEIGHT + LOG_R + 4.0), S.WOOD, 4.0)   # קורה
-		if state == 0 or state == 1:   # החבל שמחזיק
-			draw_line(Vector2(fx - 18.0, -HEIGHT - 6.0), Vector2(log_w * 0.3, -HEIGHT - LOG_R), Color("c8b080"), 1.6)
-		elif state >= 2:   # קצה חבל קרוע
-			draw_line(Vector2(fx - 18.0, -HEIGHT - 6.0), Vector2(fx - 26.0, -HEIGHT + 10.0), Color("c8b080"), 1.4)
+		var tx := AHEAD
+		# מגדל עץ: שני עמודים, חיזוקים, רמפה משופעת למעלה
+		for px in [tx - 14.0, tx + 44.0]:
+			draw_line(Vector2(px, 0), Vector2(px, -RAMP_H - (18.0 if px > tx else 0.0)), S.WOOD_D, 6.0)
+		draw_line(Vector2(tx - 14, -RAMP_H * 0.35), Vector2(tx + 44, -RAMP_H * 0.75), S.WOOD_D, 3.0)
+		draw_line(Vector2(tx - 14, -RAMP_H * 0.75), Vector2(tx + 44, -RAMP_H * 0.35), S.WOOD_D, 3.0)
+		var r0 := Vector2(tx + 52.0, -RAMP_H - 20.0)
+		var r1 := Vector2(tx - 30.0, -RAMP_H + 6.0)
+		draw_line(r0, r1, S.WOOD_D, 8.0)
+		draw_line(r0 + Vector2(0, -3), r1 + Vector2(0, -3), S.WOOD, 4.0)
+		# טריז שמחזיק את הבול (עף כשמשחררים)
+		var ch := r1.lerp(r0, 0.35) + Vector2(0, -6)
+		if state == 0:
+			draw_colored_polygon(PackedVector2Array([ch + Vector2(-6, 2), ch + Vector2(4, -10), ch + Vector2(6, 2)]), Color("c8a060"))
+		elif _chock < 1.2:
+			var cp := ch + Vector2(-60.0 * _chock, -120.0 * _chock + 220.0 * _chock * _chock)
+			draw_colored_polygon(PackedVector2Array([cp + Vector2(-6, 2), cp + Vector2(4, -10), cp + Vector2(6, 2)]), Color("c8a060"))
+		# החבל מהחוט אל הטריז
+		if state == 0:
+			draw_line(Vector2(wire_w * 0.5, -3), Vector2(tx - 14, -6), Color(0.85, 0.8, 0.65, 0.8), 1.0)
+			draw_line(Vector2(tx - 14, -6), ch, Color(0.85, 0.8, 0.65, 0.8), 1.0)
 		# חוט המתיחה + יתדות עם סרט אדום (רואים אותו - הוגן)
 		if state == 0:
-			draw_line(Vector2(-wire_w * 0.5, -3), Vector2(wire_w * 0.5, -3), Color(0.85, 0.85, 0.8, 0.85), 1.0)
-		for s in [-1.0, 1.0]:
-			draw_line(Vector2(s * wire_w * 0.5, 0), Vector2(s * wire_w * 0.5, -8), S.WOOD_D, 2.0)
-			draw_colored_polygon(PackedVector2Array([Vector2(s * wire_w * 0.5, -8), Vector2(s * wire_w * 0.5 + 6, -6), Vector2(s * wire_w * 0.5, -4)]), Color("c83a2a"))
-		# הבול
-		var c := _logp
-		draw_rect(Rect2(c + Vector2(-log_w * 0.5, -LOG_R), Vector2(log_w, LOG_R * 2.0)), S.BARK)
-		draw_rect(Rect2(c + Vector2(-log_w * 0.5, -LOG_R), Vector2(log_w, 4.0)), Color(S.BARK.lightened(0.15)))
-		for q in 4:   # קליפה (מסתובבת כשהוא מתגלגל)
-			var lx := fposmod(float(q) * 30.0 + _spin * LOG_R, log_w) - log_w * 0.5
-			draw_line(c + Vector2(lx, -LOG_R + 2), c + Vector2(lx + 4, LOG_R - 2), Color(0, 0, 0, 0.3), 1.5)
-		for s in [-1.0, 1.0]:   # קצוות עם טבעות
-			var e := c + Vector2(s * log_w * 0.5, 0)
-			draw_circle(e, LOG_R, Color("b08a5a"))
-			draw_arc(e, LOG_R * 0.6, 0, TAU, 14, Color("8a6a40"), 1.2)
-			draw_arc(e, LOG_R * 0.25, 0, TAU, 10, Color("8a6a40"), 1.0)
-			draw_arc(e, LOG_R, 0, TAU, 18, Art.OUTLINE, 1.4)
+			draw_line(Vector2(-wire_w * 0.5, -3), Vector2(wire_w * 0.5, -3), Color(0.9, 0.9, 0.85, 0.9), 1.2)
+		for sx in [-1.0, 1.0]:
+			draw_line(Vector2(sx * wire_w * 0.5, 0), Vector2(sx * wire_w * 0.5, -9), S.WOOD_D, 2.0)
+			draw_colored_polygon(PackedVector2Array([Vector2(sx * wire_w * 0.5, -9), Vector2(sx * wire_w * 0.5 + 6, -7), Vector2(sx * wire_w * 0.5, -5)]), Color("c83a2a"))
+		# הבול (חתך עגול עם עומק קטן מאחור)
+		var c := _c
+		draw_circle(c + Vector2(5, -3), R, Color("3a2816"))   # צד אחורי (עומק)
+		draw_circle(c, R + 1.5, Art.OUTLINE)
+		draw_circle(c, R, S.BARK)                            # קליפה
+		draw_circle(c, R - 4.0, Color("c8a070"))              # עץ
+		for ring in [0.72, 0.48, 0.24]:
+			draw_arc(c, (R - 4.0) * ring, 0.0, TAU, 20, Color("9a7448"), 1.3)
+		for k in 6:   # בליטות בקליפה (מסתובבות)
+			var a := _ang + float(k) * TAU / 6.0
+			draw_line(c + Vector2.from_angle(a) * (R - 3.0), c + Vector2.from_angle(a) * (R + 1.0), Color("2a1c10"), 2.0)
+		draw_line(c, c + Vector2.from_angle(_ang + 0.6) * (R - 6.0), Color("6a4a28"), 1.6)   # סדק
+		draw_circle(c, 2.0, Color("7a5430"))
 
 
 # ---- מכשולים ----
