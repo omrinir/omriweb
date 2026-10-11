@@ -431,3 +431,18 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 ## Killing spree sound
 - ui/kill_streak.gd: in each streak a kill number between SPREE_SOUND_AT (5-7) is picked; with SPREE_SOUND_CHANCE (0.6) "spree_die" plays there
   (sounds/streak/spree_die.mp3, SPREE_SOUND_PITCH 1.15 = 15% faster). Registered in sfx.gd SAMPLES (+ SAMPLE_GAIN).
+
+## Stage 24 - "BURNING FIELDS" ("THEY LEARNED TO STAND STILL") - burning wheat fields at night, region 3 level 6
+- levels/stage_24.gd + effects/s24_decor.gd: red smoky night sky + orange moon, fire line along the hills, red barn / silos / turning windmill / fences,
+  swaying wheat with burning patches. World: FieldGround (dirt road, straw, burnt spots), wooden HAYLOFTS at TIER 140 with ladders,
+  Obstacle "bale" (round hay bales, cover) / "fence" / "cart". FieldFX: embers + red glow.
+- SCARECROW_FIELDS: 4 posts per field, 1-2 of them are SCARECROW zombies, the rest are decor Scarecrows (most with a crow on them).
+  Tell: the real ones have no crow and their head slowly turns to follow you.
+- Trap: BearTrap (BEAR_TRAPS) hidden in the grass, teeth glint every few seconds. Player steps in -> 1 damage + held (player.grab, HOLD_T 1.5 s, A/D mashing frees sooner).
+  A zombie that steps in is stuck (Z_HOLD) and takes Z_DMG. Smart zombies (hazard_awareness) hop over it (danger_at + world_rect).
+- SCARECROW (enemies/types/scarecrow.gd): POSE on a post (setup() lifts it POST_H onto a Post node; drawn with the same scarecrow_body() as the decor)
+  -> wakes when you pass it (WAKE_PASS), stand next to it (NEAR_T) or shoot it -> DROP behind you -> STALK (fast, hunched, sickle) -> SWING (raised sickle = warning, DAMAGE 2) -> BACK hop.
+- TORCH (enemies/types/torch.gd): burning zombie, immune to fire. Keeps range, backs off when close (BACKOFF). WIND (lit bottle held back = warning)
+  -> Bottle in an arc, leading your movement -> fire_zone (FIRE_W, FIRE_T). Dies -> bursts into a fire zone. Boss THE PYRE: 3 bottles in a fan, 3 fire zones on death.
+- Mind control: SCARECROW -> spin, TORCH -> spit. Map picture: map/thumbs/level_24.png.
+- Fix: LogTrap (s22) and BearTrap now have world_rect() (zombie_brain calls it when hopping over a hazard).

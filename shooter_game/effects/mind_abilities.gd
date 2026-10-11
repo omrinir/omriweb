@@ -42,11 +42,11 @@ static func ability_for(z: Node) -> String:
 			return "explode"
 		ZScript.GUNNER:
 			return "shoot"
-	if k == Registry.BLADES:
+	if k in [Registry.BLADES, Registry.SCARECROW]:
 		return "spin"
 	if k in [Registry.UZI, Registry.MINIGUNNER, Registry.SANDBLASTER, Registry.REVOLVER, Registry.HARPOONER]:
 		return "shoot"
-	if k in [Registry.RETCHER]:
+	if k in [Registry.RETCHER, Registry.TORCH]:
 		return "spit"
 	if k in [Registry.GOLIATH, Registry.SHOVER, Registry.TANK, Registry.SHIELDED, Registry.SHIELD_ELITE, Registry.DEVOURER, Registry.CRUMBLER, Registry.SPARE_PARTS, Registry.SPLITJAW]:
 		return "slam"

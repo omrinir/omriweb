@@ -207,6 +207,9 @@ class LogTrap extends Node2D:
 	func danger_at(p: Vector2, margin := 0.0) -> bool:   # זומבים חכמים נזהרים מבול שמתגלגל
 		return state >= 2 and state <= 3 and absf(p.x - (global_position.x + _c.x)) < R + margin
 
+	func world_rect() -> Rect2:   # (ai/zombie_brain.gd: קופצים מעל סכנה קטנה)
+		return Rect2(global_position + _c - Vector2(R, R), Vector2(R * 2.0, R * 2.0))
+
 	func _physics_process(delta: float) -> void:
 		var pl := get_tree().get_first_node_in_group("player")
 		match state:
