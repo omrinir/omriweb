@@ -446,3 +446,17 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   -> Bottle in an arc, leading your movement -> fire_zone (FIRE_W, FIRE_T). Dies -> bursts into a fire zone. Boss THE PYRE: 3 bottles in a fan, 3 fire zones on death.
 - Mind control: SCARECROW -> spin, TORCH -> spit. Map picture: map/thumbs/level_24.png.
 - Fix: LogTrap (s22) and BearTrap now have world_rect() (zombie_brain calls it when hopping over a hazard).
+
+## Stage 25 - "RADIO TOWER" ("THEY LEARNED TO CALL FOR HELP") - stormy night at a radio station on a hill, region 3 level 7
+- levels/stage_25.gd + effects/s25_decor.gd: storm sky with moving clouds, giant lattice mast with blinking red lights + guy wires, satellite dishes,
+  equipment huts, pines, razor-wire fence, wind-blown wet grass. World: HillGround (wet mud + gravel), steel CATWALKS at TIER 150 with ladders,
+  Obstacle "cabinet" (tall cover) / "spool" / "generator".
+- StormFX (screen layer, group "storm"): rain + lightning on a schedule (PERIOD). warning() = the WARN seconds before a flash, flashing() = the flash.
+  It is the clock for the trap. strike_flash() = small flash for ROD strikes.
+- Trap: Puddle (PUDDLES) with a broken power pole and its cable lying in the water. During warning() it glows blue and sparks;
+  on the flash it electrifies: DMG 2 to the player standing in it, Z_DMG to zombies in it. Smart zombies wait outside while it is live (danger_at).
+- SIGNALER (enemies/types/signaler.gd): radio backpack + antenna. Keeps range (backs off inside BACKOFF), kneels and TRANSMITs (TRANSMIT_T, waves + progress bar).
+  Done -> CALL_N zombies run in from both sides + make_noise (MAX_CALLS per signaler, LEVEL_CAP per level). Any hit while transmitting = "SIGNAL LOST".
+- ROD (enemies/types/rod.gd): lineman in a yellow rain coat with a copper-tipped iron rod. RAISE (sparks) -> Strike: a warning circle on the ground under you (WARN_T),
+  then a bolt (DAMAGE 2, also hurts zombies in the circle). Move when the circle appears. Boss THE STORMBRINGER: 3 strikes (on you, ahead, behind).
+- Mind control: ROD -> shoot, SIGNALER -> scream. Map picture: map/thumbs/level_25.png. Game.IMPLEMENTED = 25.

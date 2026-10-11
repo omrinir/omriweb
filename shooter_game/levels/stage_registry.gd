@@ -24,6 +24,7 @@ const STAGES := {
 	22: "res://levels/stage_22.gd",   # אזור שלישי, שלב 4 (הסכר)
 	23: "res://levels/stage_23.gd",   # אזור שלישי, שלב 5 (כביש מהיר)
 	24: "res://levels/stage_24.gd",   # אזור שלישי, שלב 6 (שדות בוערים)
+	25: "res://levels/stage_25.gd",   # אזור שלישי, שלב 7 (תורן רדיו)
 }
 
 

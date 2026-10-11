@@ -25,6 +25,7 @@ enum {
 	GOLIATH, HARPOONER,            # שלב 22 (הסכר)
 	BIKER, SHOVER,                 # שלב 23 (כביש מהיר)
 	SCARECROW, TORCH,              # שלב 24 (שדות בוערים)
+	SIGNALER, ROD,                 # שלב 25 (תורן רדיו)
 }
 
 const FIRST := 20
@@ -84,6 +85,8 @@ const TYPES := {
 	SHOVER: "res://enemies/types/shover.gd",
 	SCARECROW: "res://enemies/types/scarecrow.gd",
 	TORCH: "res://enemies/types/torch.gd",
+	SIGNALER: "res://enemies/types/signaler.gd",
+	ROD: "res://enemies/types/rod.gd",
 }
 
 static var _stats_cache := {}
