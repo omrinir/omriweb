@@ -9,8 +9,8 @@ if (test == "arm_servo_pad")    rotate([0,90,0]) translate([-body_w/2, 0, 0]) cu
 if (test == "head_servo_plate") translate([0,0,body_h]) rotate([180,0,0]) cut([-11, -26, body_tt-2], [11, 16, body_h]) body();
 // Nano end blocks on the floor
 if (test == "nano_blocks")      translate([0,0,-base_z0]) cut([-26, nano_y-14, base_z0-0.01], [26, nano_y+14, floor_top+12]) base_floor();
-// one sign slot in the base top (try it with your 3 mm plywood)
-if (test == "sign_slot")        translate([0,0,base_h]) rotate([180,0,0]) cut([sign_tab_x-10, sign_y-8, ceil_z-6], [sign_tab_x+10, sign_y+8, base_h]) base_shell();
+// hand of the arm: try your 3 mm plywood in the slot and the M2 screw
+if (test == "hand_slot")        translate([0,0,arm_t]) rotate([0,90,0]) cut([-1, arm_H[0]-10, arm_H[1]-10], [arm_t+1, arm_H[0]+10, arm_H[1]+10]) arm_shape();
 // arm shoulder: the single-arm horn presses into the pocket
 if (test == "arm_horn")         translate([0,0,arm_t]) rotate([0,90,0]) cut([-1, arm_shaft_y-13, shoulder_z-13], [arm_t+1, arm_shaft_y+13, shoulder_z+13]) arm_shape();
 // head neck: the head servo horn presses into the slot under the head

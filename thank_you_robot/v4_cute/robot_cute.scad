@@ -60,10 +60,9 @@ usb_port    = [9.8, 4.2];
 sw_a        = 90;    // back wall, above the USB-C port
 sw_hole     = [19.2, 13];
 // sensor + sign
-sensor_y    = -34;
+sensor_z    = base_z0 + 15;   // VL53L0X looks forward through a window in the front wall
 sensor_pcb  = [26, 11.5];
-sign_tab_x  = 22;
-sign_y      = -27.7;          // centre of the sign slot
+sign_y      = -40;            // sign plane, held by the hands in front of the head
 
 // ---------------- BODY ----------------------------------------------
 body_w      = 64;
@@ -105,9 +104,11 @@ ear_z       = 38;
 arm_t   = 10;
 arm_gap = 1;
 arm_S   = [arm_shaft_y, shoulder_z];
-arm_H   = [-16, 9];
-sign_w  = 70;
-sign_h  = 38;
+sign_z0 = 2;                  // sign bottom above the base top (body coords)
+sign_w  = 76;
+sign_h  = 34;
+arm_H   = [sign_y, sign_z0 + sign_h/2];   // hand centre = where it grips the sign edge
+sign_pin_x = body_w/2 + arm_gap + 2.5;    // M2 screw through hand + sign
 sign_t  = 3;                  // 3 mm laser-cut plywood
 
 // =====================================================================
@@ -160,15 +161,11 @@ module base_shell() {
             }
             for (a=boss_angles) rotate(a) translate([boss_r_pos,0,floor_top]) cylinder(d=7, h=ceil_z-floor_top+0.3);
             for (p=body_pillars) translate([p[0],p[1],ceil_z-2]) cylinder(d=7, h=2+0.3);           // screw pads
-            for (x=[-sign_tab_x, sign_tab_x]) translate([x-6, sign_y-3.2, ceil_z-4]) cube([12, 6.4, 4+0.3]);   // sign sockets
-            translate([-sensor_pcb[0]/2-1.2, sensor_y-sensor_pcb[1]/2-1.2, ceil_z-2]) cube([sensor_pcb[0]+2.4, sensor_pcb[1]+2.4, 2+0.3]);
         }
         for (a=boss_angles) rotate(a) translate([boss_r_pos,0,floor_top-eps]) cylinder(d=2.6, h=10);
         for (p=body_pillars) translate([p[0],p[1],ceil_z-3]) cylinder(d=3.4, h=10);
         translate([0,0,ceil_z-1]) cylinder(d=16, h=10);
-        for (x=[-sign_tab_x, sign_tab_x]) translate([x-5.2, sign_y-(sign_t+0.4)/2, ceil_z-5]) cube([10.4, sign_t+0.4, 10]);
-        translate([-5, sensor_y-3, ceil_z-3]) cube([10, 6, 10]);
-        translate([-sensor_pcb[0]/2, sensor_y-sensor_pcb[1]/2, ceil_z-2-eps]) cube([sensor_pcb[0], sensor_pcb[1], 1.2]);
+        at_wall(270, sensor_z) linear_extrude(5) rrect(6, 10, 1.5);       // VL53L0X window, front wall
         // USB-C of the charger at the back, switch in the side wall
         at_wall(90, floor_top+1.6+1.6) linear_extrude(5) rrect(7.5, 13, 3.7);       // room for the plug body
         at_wall(sw_a, base_z0+16) linear_extrude(5) square([sw_hole[1], sw_hole[0]], center=true);
@@ -334,11 +331,14 @@ module arm_shape() {
         translate([-1, arm_S[0], arm_S[1]]) rotate([0,90,0]) rotate([0,0,90]) linear_extrude(1+6.5)
             hull() { circle(4.1); translate([dir[0]*15, dir[1]*15]) circle(3.2); }
         translate([-1, arm_S[0], arm_S[1]]) rotate([0,90,0]) cylinder(d=5, h=arm_t+2);
+        // hand: slot for the plywood edge + hole for an M2 screw through hand and sign
+        translate([-1, arm_H[0]-(sign_t+0.4)/2, arm_H[1]-10]) cube([1+5.5, sign_t+0.4, 20]);
+        translate([sign_pin_x-(body_w/2+arm_gap), arm_H[0]-15, arm_H[1]]) rotate([-90,0,0]) cylinder(d=2.2, h=30, $fn=16);
     }
 }
-module sign_2d() {
+module sign_2d() difference() {      // the edges slide into the hand slots; one M2 screw per hand
     translate([-sign_w/2, 0]) offset(r=8) offset(delta=-8) square([sign_w, sign_h]);
-    for (x=[-sign_tab_x, sign_tab_x]) translate([x-5, -5]) square([10, 5.5]);
+    for (x=[-sign_pin_x, sign_pin_x]) translate([x, sign_h/2]) circle(d=2.2, $fn=24);
 }
 module sign_flat() difference() {     // wooden sign: laser-cut the outline (part="sign_outline" -> DXF/SVG)
     linear_extrude(sign_t) sign_2d();
@@ -371,7 +371,7 @@ module electronics_dummy() {
         translate([6, bat[1]/2, 3+9.3]) rotate([0,90,0]) cylinder(d=18.6, h=65);
     }
     color([0.85,0.2,0.2]) translate([-chg[0]/2, chg_y-chg[1]/2, floor_top]) cube([chg[0], chg[1], 1.6]);
-    color([0.6,0.1,0.6]) translate([-sensor_pcb[0]/2+0.5, sensor_y-sensor_pcb[1]/2+0.5, ceil_z-2.8]) cube([sensor_pcb[0]-1, sensor_pcb[1]-1, 1.6]);
+    color([0.6,0.1,0.6]) translate([-sensor_pcb[0]/2, -inner_r+2, sensor_z-sensor_pcb[1]/2]) cube([sensor_pcb[0], 1.6, sensor_pcb[1]]);
     color([0.9,0.1,0.1]) at_wall(sw_a, base_z0+16) translate([0,0,-15]) linear_extrude(16.5) square([sw_hole[1]-0.4, sw_hole[0]-0.4], center=true);
     color([0.1,0.3,0.6]) translate([0, -head_d/2+wall+1.2, base_h+body_h+head_gap+oled_z]) rotate([90,0,0]) translate([-13.6,-14,-1.6]) cube([27.2, 28, 1.6]);
 }
@@ -398,7 +398,7 @@ module robot(ex=0) {
         color(c_dark) body();
         color(c_wood) translate([body_w/2+arm_gap + ex*0.4, 0, 0]) arm_shape();
         color(c_wood) mirror([1,0,0]) translate([body_w/2+arm_gap + ex*0.4, 0, 0]) arm_shape();
-        color(c_wood) translate([0, sign_y-sign_t/2 - ex*0.8, 0]) rotate([90,0,0]) mirror([0,0,1]) sign_flat();
+        color(c_wood) translate([0, sign_y-sign_t/2 - ex*0.8, sign_z0]) rotate([90,0,0]) mirror([0,0,1]) sign_flat();
         translate([0,0,body_h + head_gap + ex*1.2]) head_assembly(ex);
     }
 }

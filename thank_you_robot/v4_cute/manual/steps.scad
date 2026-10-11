@@ -40,7 +40,7 @@ if (step == 7) {     // floor with the electronics
 if (step == 71) {    // shell upside down: sensor + switch
     rotate([180,0,0]) {
         color(c_w) base_shell();
-        color(c_new) translate([-sensor_pcb[0]/2+0.5, sensor_y-sensor_pcb[1]/2+0.5, ceil_z-2.8]) cube([sensor_pcb[0]-1, sensor_pcb[1]-1, 1.6]);
+        color(c_new) translate([-sensor_pcb[0]/2, -inner_r+2, sensor_z-sensor_pcb[1]/2]) cube([sensor_pcb[0], 1.6, sensor_pcb[1]]);
         color(c_new) at_wall(sw_a, base_z0+16) translate([0,0,-15]) linear_extrude(16.5) square([sw_hole[1]-0.4, sw_hole[0]-0.4], center=true);
     }
 }
@@ -53,8 +53,9 @@ if (step == 10) {
     translate([0,0,base_h]) {
         color(c_acc) body();
         translate([0,0,body_h+head_gap]) { color(c_w) head_front(); color(c_w) head_back(); color([0.05,0.05,0.07]) face_plate(); }
-        color(c_new) translate([body_w/2+arm_gap+22, 0, 0]) arm_shape();
-        color(c_new) mirror([1,0,0]) translate([body_w/2+arm_gap+22, 0, 0]) arm_shape();
-        color(c_ply) translate([0, sign_y-sign_t/2-12, 30]) rotate([90,0,0]) mirror([0,0,1]) linear_extrude(sign_t) sign_2d();
+        color(c_new) translate([body_w/2+arm_gap+20, 0, 0]) arm_shape();
+        color(c_new) mirror([1,0,0]) translate([body_w/2+arm_gap+20, 0, 0]) arm_shape();
+        color(c_ply) translate([0, sign_y-sign_t/2-14, sign_z0]) rotate([90,0,0]) mirror([0,0,1]) linear_extrude(sign_t) sign_2d();
+        for (s=[-1,1]) color("red") translate([s*sign_pin_x, sign_y-34, sign_z0+sign_h/2]) rotate([-90,0,0]) cylinder(d=2, h=12);
     }
 }

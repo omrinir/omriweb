@@ -104,11 +104,9 @@ function eyesTexture() {
 
 // wooden sign: 3 mm birch plywood, laser-burned edge, laser-engraved artwork (example)
 function signGeometry() {
-  const w = 70, h = 38, r = 8, tx = 22;
+  const w = 76, h = 34, r = 8;
   const s = new THREE.Shape();
   s.moveTo(-w / 2 + r, 0);
-  s.lineTo(-tx - 5, 0); s.lineTo(-tx - 5, -5); s.lineTo(-tx + 5, -5); s.lineTo(-tx + 5, 0);
-  s.lineTo(tx - 5, 0); s.lineTo(tx - 5, -5); s.lineTo(tx + 5, -5); s.lineTo(tx + 5, 0);
   s.lineTo(w / 2 - r, 0); s.quadraticCurveTo(w / 2, 0, w / 2, r);
   s.lineTo(w / 2, h - r); s.quadraticCurveTo(w / 2, h, w / 2 - r, h);
   s.lineTo(-w / 2 + r, h); s.quadraticCurveTo(-w / 2, h, -w / 2, h - r);
@@ -117,18 +115,18 @@ function signGeometry() {
   return g;
 }
 function signTexture(withArt) {
-  const c = woodCanvas(1400, 860, '#d8b88c', 'rgba(120,80,40,A)', 5);
+  const c = woodCanvas(1520, 680, '#d8b88c', 'rgba(120,80,40,A)', 5);
   const g = c.getContext('2d');
   if (withArt) {
     g.fillStyle = 'rgba(70,38,18,0.88)'; g.textAlign = 'center'; g.shadowColor = 'rgba(70,38,18,0.5)'; g.shadowBlur = 3;
-    g.font = 'bold 120px DejaVu Sans, sans-serif'; g.fillText('★★★★★', 700, 330);
-    g.font = 'bold 104px DejaVu Sans, sans-serif'; g.fillText('Tap your phone', 700, 500);
-    g.font = '74px DejaVu Sans, sans-serif'; g.fillText('and leave us a review', 700, 625);
+    g.font = 'bold 110px DejaVu Sans, sans-serif'; g.fillText('★★★★★', 760, 215);
+    g.font = 'bold 100px DejaVu Sans, sans-serif'; g.fillText('Tap your phone', 760, 380);
+    g.font = '68px DejaVu Sans, sans-serif'; g.fillText('and leave us a review', 760, 500);
     g.lineWidth = 8; g.strokeStyle = 'rgba(70,38,18,0.75)';
-    g.beginPath(); g.roundRect ? g.roundRect(90, 180, 1220, 560, 70) : g.rect(90, 180, 1220, 560); g.stroke();
+    g.beginPath(); g.roundRect ? g.roundRect(150, 70, 1220, 540, 60) : g.rect(150, 70, 1220, 540); g.stroke();
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-  t.repeat.set(1 / 70, 1 / 43); t.offset.set(0.5, 5 / 43); return t;
+  t.repeat.set(1 / 76, 1 / 34); t.offset.set(0.5, 0); return t;
 }
 
 function glowPool(hex, size = 190, a = 0.5) {
@@ -168,7 +166,8 @@ function robot(v, art) {
     new THREE.MeshStandardMaterial({ color: 0x4a2d18, roughness: 0.9 }),                                // laser-burned edge
   ]);
   sign.rotation.x = Math.PI / 2;               // shape y -> z, extrude -> -y
-  sign.position.set(0, -26.2, 35); sign.castShadow = true; sign.receiveShadow = true; inner.add(sign);
+  sign.position.set(0, -38.5, 37); sign.castShadow = true; sign.receiveShadow = true; inner.add(sign);
+  for (const sx of [-35.5, 35.5]) { const sc = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 0.9, 20), new THREE.MeshStandardMaterial({ color: 0xb8bcc0, metalness: 0.9, roughness: 0.3 })); sc.position.set(sx, -42.0, 37 + 17); inner.add(sc); }
   const pool = glowPool(v.glow); pool.rotation.x = -Math.PI / 2; pool.position.y = 0.2; grp.add(pool);
   const under = new THREE.PointLight(v.glow, 220, 150, 2); under.position.set(0, 2.5, 0); grp.add(under);
   for (const s of [-1, 1]) { const e = new THREE.PointLight(v.glow, 45, 45, 2); e.position.set(s * 56, 114, 0); grp.add(e); }
