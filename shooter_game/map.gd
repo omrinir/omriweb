@@ -460,15 +460,15 @@ class LevelSelect extends Control:
 		set_anchors_preset(Control.PRESET_FULL_RECT)
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		var vs := get_viewport_rect().size
-		var cw := 300.0
-		var ch := 128.0
+		var cw := 370.0   # כרטיס עם תמונה של השלב (map/thumbs/level_N.png)
+		var ch := 140.0
 		var gx := (vs.x - (cw * 3.0 + 40.0)) * 0.5
 		for i in 9:
 			var c := LevelCard.new()
 			c.lv = region * 9 + i + 1
 			c.idx = i
 			c.col = Game.REGIONS[region].color
-			c.position = Vector2(gx + float(i % 3) * (cw + 20.0), 150.0 + float(i / 3) * (ch + 18.0))
+			c.position = Vector2(gx + float(i % 3) * (cw + 20.0), 138.0 + float(i / 3) * (ch + 14.0))
 			c.size = Vector2(cw, ch)
 			c.delay = 0.05 * float(i)
 			c.chosen.connect(func(lv): map.start_level(lv))
@@ -518,9 +518,13 @@ class LevelCard extends Control:
 	var _t := 0.0
 	var _hov := 0.0
 	var _in := false
+	var _thumb: Texture2D = null   # תמונת השלב (map/thumbs/level_N.png): צילום מהמשחק עם הרקע והזומבים של השלב
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
+		var tp := "res://map/thumbs/level_%d.png" % lv
+		if lv <= Game.IMPLEMENTED and ResourceLoader.exists(tp):
+			_thumb = load(tp)
 		mouse_entered.connect(func():
 			_in = true
 			if Game.level_playable(lv):
@@ -551,6 +555,9 @@ class LevelCard extends Control:
 		var unlocked := Game.level_unlocked(lv)
 		var stars: int = Game.completed.get(lv, 0)
 		var r := Rect2(Vector2.ZERO, size)
+		if _thumb != null:
+			_draw_thumb(f, playable, unlocked, stars, r)
+			return
 		var sb := StyleBoxFlat.new()
 		sb.set_corner_radius_all(12)
 		sb.bg_color = Color(0.1, 0.08, 0.07, 0.95).lerp(col, 0.12 + 0.12 * _hov if playable else 0.0)
@@ -586,3 +593,49 @@ class LevelCard extends Control:
 				draw_string(f, Vector2(0, 122), "PLAY", HORIZONTAL_ALIGNMENT_CENTER, size.x, 13, Color(col, 0.6 + 0.4 * sin(_t * 4.0)))
 			elif Game.level_best.has(lv):
 				draw_string(f, Vector2(0, 122), "BEST %d" % Game.level_best[lv], HORIZONTAL_ALIGNMENT_CENTER, size.x, 12, Color(1, 1, 1, 0.5))
+
+	# כרטיס עם תמונה: הצילום של השלב, מסגרת בצבע האזור, מספר + שם + כותרת משמאל, כוכבים למטה
+	func _draw_thumb(f: Font, playable: bool, unlocked: bool, stars: int, r: Rect2) -> void:
+		var bright := 0.78 + 0.22 * _hov if playable else 0.32
+		if playable and stars == 0:   # שלב חדש שעוד לא שוחק: מהבהב קצת
+			bright += 0.05 * sin(_t * 4.0)
+		draw_texture_rect(_thumb, r, false, Color(bright, bright, bright, 1.0) if unlocked else Color(0.3, 0.3, 0.32, 1.0))
+		var sb := StyleBoxFlat.new()
+		sb.set_corner_radius_all(12)
+		sb.draw_center = false
+		sb.border_color = Color(col, 0.95) if playable else Color(1, 1, 1, 0.18)
+		sb.set_border_width_all(3 if _hov > 0.5 and playable else 2)
+		sb.shadow_color = Color(col, 0.4 * _hov) if playable else Color(0, 0, 0, 0)
+		sb.shadow_size = int(16.0 * _hov)
+		draw_style_box(sb, r)
+		var a := 1.0 if playable else 0.55
+		draw_circle(Vector2(30, 30), 19.0, Color(col, 0.95 * a) if unlocked else Color(0.3, 0.3, 0.3))
+		draw_string(f, Vector2(10, 37), str(idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 40, 20, Color(0.08, 0.05, 0.04))
+		var name := Game.level_name(lv).to_upper()
+		draw_string_outline(f, Vector2(58, 30), name, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 19, 5, Color(0, 0, 0, 0.8 * a))
+		draw_string(f, Vector2(58, 30), name, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 19, Color(1, 1, 1, a))
+		var sub: String = Game.LEVEL_TITLES[(lv - 1) % Game.LEVEL_TITLES.size()][0]
+		draw_string_outline(f, Vector2(58, 50), sub, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 13, 4, Color(0, 0, 0, 0.8 * a))
+		draw_string(f, Vector2(58, 50), sub, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 13, Color(1.0, 0.3, 0.22, a))
+		if not unlocked:   # מנעול באמצע
+			var c := Vector2(size.x * 0.5, size.y * 0.55)
+			draw_circle(c, 24.0, Color(0, 0, 0, 0.55))
+			draw_arc(c + Vector2(0, -6), 7.0, PI, TAU, 12, Color(1, 1, 1, 0.75), 2.5, true)
+			draw_rect(Rect2(c + Vector2(-9, -6), Vector2(18, 14)), Color(1, 1, 1, 0.75))
+			return
+		for s in 3:   # כוכבים למטה
+			var sc := Vector2(size.x * 0.5 - 26.0 + float(s) * 26.0, size.y - 22.0)
+			var pts := PackedVector2Array()
+			for k in 10:
+				var ang := -PI / 2.0 + float(k) * PI / 5.0
+				pts.append(sc + Vector2.from_angle(ang) * (10.0 if k % 2 == 0 else 4.2))
+			if s < stars:
+				draw_colored_polygon(pts, Color(1.0, 0.82, 0.25))
+			else:
+				draw_polyline(pts + PackedVector2Array([pts[0]]), Color(1, 1, 1, 0.45), 1.3, true)
+		if stars == 0 and playable:
+			draw_string_outline(f, Vector2(size.x - 70.0, size.y - 15.0), "PLAY", HORIZONTAL_ALIGNMENT_RIGHT, 60, 15, 4, Color(0, 0, 0, 0.8))
+			draw_string(f, Vector2(size.x - 70.0, size.y - 15.0), "PLAY", HORIZONTAL_ALIGNMENT_RIGHT, 60, 15, Color(col, 0.7 + 0.3 * sin(_t * 4.0)))
+		elif Game.level_best.has(lv):
+			draw_string_outline(f, Vector2(size.x - 130.0, size.y - 15.0), "BEST %d" % Game.level_best[lv], HORIZONTAL_ALIGNMENT_RIGHT, 120, 12, 4, Color(0, 0, 0, 0.8))
+			draw_string(f, Vector2(size.x - 130.0, size.y - 15.0), "BEST %d" % Game.level_best[lv], HORIZONTAL_ALIGNMENT_RIGHT, 120, 12, Color(1, 1, 1, 0.75))

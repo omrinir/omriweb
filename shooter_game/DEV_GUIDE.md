@@ -393,3 +393,10 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   Boss THE SHERIFF (stage 21 boss): 2 shots per volley, the second leads more.
 - Mind control: REVOLVER -> "shoot" ability; GLIDER -> default "pounce".
 - Menu practice row: 2-21 (spacing 43, size 40).
+
+## Level cards with pictures (map)
+- map.gd LevelSelect / LevelCard: cards are 370x140 and show map/thumbs/level_N.png (740x280, rounded corners, dark gradient on the left for the name and at the bottom for the stars).
+  Locked = darkened + lock. A level without a picture (or not built yet) falls back to the old plain card.
+- The pictures are real in-game shots: each level is loaded, the HUD is hidden, the camera zooms in (2.1x) and the level's signature zombies + its boss are posed facing the hero
+  (GLIDER gliding, BLADES spinning, UZI / REVOLVER aiming...). Then cropped + graded (scratchpad tools t_thumb.gd + make_cards.py).
+  New level -> ask for its picture to be generated (until then its card is plain).
