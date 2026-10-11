@@ -287,6 +287,7 @@ const SAMPLES := {
 	"fwail": ["fwail1", "fwail2"],                      # יללת מוות נשית
 	# יריות אמיתיות (sounds/guns): רובה כמו שהוא, אקדח מהיר יותר, נשקים אוטומטיים קצרים ומהירים
 	"rifle": ["res://sounds/guns/rifle_shot"],
+	"spree_die": ["res://sounds/streak/spree_die"],     # רצף הריגות 5-7 (ui/kill_streak.gd)
 	"pistol": ["res://sounds/guns/pistol_shot"],
 	"smg": ["res://sounds/guns/auto_shot"],
 	"ar": ["res://sounds/guns/auto_shot"],
@@ -299,7 +300,7 @@ const SAMPLES := {
 	"corpse_splat": ["res://sounds/guns/corpse_splat1", "res://sounds/guns/corpse_splat2", "res://sounds/guns/corpse_splat3"],
 }
 # יריות ופגיעות חזקות יותר (שישמעו מעל המוזיקה והזומבים)
-const SAMPLE_GAIN := {"groan": 8.0, "rifle": 4.0, "pistol": 3.5, "smg": 2.5, "ar": 3.0, "headshot": 7.0, "hit": 5.5, "corpse_splat": 4.0, "_": 7.5}
+const SAMPLE_GAIN := {"groan": 8.0, "rifle": 4.0, "pistol": 3.5, "smg": 2.5, "ar": 3.0, "headshot": 7.0, "hit": 5.5, "corpse_splat": 4.0, "spree_die": 1.0, "_": 7.5}
 # קולות הזומבים: 20% שקטים יותר (כ-3 דציבל)
 const ZOMBIE_VOICES := {"zscream": true, "zhit": true, "zdeath": true, "groan": true, "roar": true, "scream": true, "growl": true, "zcall": true, "zcommand": true}
 const ZOMBIE_QUIET_DB := -3.0

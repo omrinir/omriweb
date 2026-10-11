@@ -413,3 +413,21 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - HARPOONER (enemies/types/harpooner.gd): diver with a spear gun. AIM (red line) -> Spear on a rope -> hit = 1 damage + reels you in (REEL_PULL, HOLD_T)
   using player._push_t; miss / wall = spear reels back by itself; RELOAD window.
 - Mind control: HARPOONER -> shoot, GOLIATH -> slam. Map picture: map/thumbs/level_22.png. Menu practice row 2-22 (spacing 41, size 38).
+
+## Stage 23 - "HIGHWAY 7" ("THEY LEARNED TO DRIVE") - jammed highway at dusk, region 3 level 5
+- levels/stage_23.gd + effects/s23_decor.gd: dusk sky + low sun, burning city skyline (fire glow + smoke), overpass deck with stuck cars / billboards / street lamps,
+  guard rail + green EXIT signs. World: RoadGround (lane dashes, skid marks, oil), broken OVERPASSES at TIER 150 with ladders, sign Gantry (decor),
+  steaming sewer manholes (manhole.gd, MANHOLES), RoadFX (embers + warm haze). Music: level1_zombie_joyride.ogg.
+- Car (s23_decor.gd, generator "wreck"): solid AnimatableBody2D (sync_to_physics = false so it really moves), cover, you can stand on it.
+  push(dir, speed, t) slides it: hurts the player on the side it moves toward (HIT_DMG 2) and kills zombies in the way (Z_DMG).
+- Trap: car alarm. ALARM_CHANCE of cars (plus always the 2nd one) have a blinking red LED. Touch it / stand on it / shoot it / a SHOVER pushes it ->
+  siren + flashing lights, Game.make_noise(ALARM_NOISE) and ALARM_SPAWN zombies run in from both sides (off screen).
+- BIKER (enemies/types/biker.gd): CRUISE (keeps RANGE) -> REV (wheelie + smoke = warning) -> CHARGE through you and past (jumps cars) -> SKID (your window).
+  At DISMOUNT_AT hp it is thrown off: the bike becomes a burning Wreck, the rider fights on foot. Boss ROAD KING (stage 23 boss): two charges in a row.
+- SHOVER (enemies/types/shover.gd): big trucker. If a car is between him and you (and you are on the road) he walks behind it and pushes it at you (PUSH_V, PUSH_T).
+  No car + you are next to him -> SHOVE: arms back (warning) then a big knock-back push (1 damage). Jump onto / over the car to dodge.
+- Mind control: SHOVER -> slam, BIKER -> pounce. Map picture: map/thumbs/level_23.png. Menu practice row is now automatic (Game.IMPLEMENTED buttons, shrinks to fit).
+
+## Killing spree sound
+- ui/kill_streak.gd: in each streak a kill number between SPREE_SOUND_AT (5-7) is picked; with SPREE_SOUND_CHANCE (0.6) "spree_die" plays there
+  (sounds/streak/spree_die.mp3, SPREE_SOUND_PITCH 1.15 = 15% faster). Registered in sfx.gd SAMPLES (+ SAMPLE_GAIN).

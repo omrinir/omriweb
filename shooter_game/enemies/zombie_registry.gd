@@ -23,6 +23,7 @@ enum {
 	GHILLIE, HANGED,               # שלב 20 (ג'ונגל צפוף)
 	GLIDER, REVOLVER,              # שלב 21 (צוקים)
 	GOLIATH, HARPOONER,            # שלב 22 (הסכר)
+	BIKER, SHOVER,                 # שלב 23 (כביש מהיר)
 }
 
 const FIRST := 20
@@ -78,6 +79,8 @@ const TYPES := {
 	REVOLVER: "res://enemies/types/revolver.gd",
 	GOLIATH: "res://enemies/types/goliath.gd",
 	HARPOONER: "res://enemies/types/harpooner.gd",
+	BIKER: "res://enemies/types/biker.gd",
+	SHOVER: "res://enemies/types/shover.gd",
 }
 
 static var _stats_cache := {}

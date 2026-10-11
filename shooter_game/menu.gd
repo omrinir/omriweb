@@ -166,10 +166,12 @@ func _build_ui(vp: Vector2) -> void:
 	plbl.size = 15
 	plbl.position = Vector2(396, 250)
 	ui.add_child(plbl)
-	var accents := [Color("3a8acc"), Color("d8902a"), Color("6a5acd"), Color("c04a3a"), Color("4a90a0"), Color("c0a030"), Color("40b0a0"), Color("d02040"), Color("e8b84a"), Color("8a6ad0"), Color("c03a2a"), Color("d8c49c"), Color("5a8aa0"), Color("e8483a"), Color("d89a5a"), Color("e0c070"), Color("f0a020"), Color("4aa060"), Color("2e7a40"), Color("d8784a"), Color("5a8ab0")]
-	for i in 21:
-		var lb := _button(root, str(i + 2), Vector2(394 + i * 41, 262), Vector2(38, 44), 20, 0.25 + 0.03 * float(i))
-		lb.accent = accents[i]
+	var accents := [Color("3a8acc"), Color("d8902a"), Color("6a5acd"), Color("c04a3a"), Color("4a90a0"), Color("c0a030"), Color("40b0a0"), Color("d02040"), Color("e8b84a"), Color("8a6ad0"), Color("c03a2a"), Color("d8c49c"), Color("5a8aa0"), Color("e8483a"), Color("d89a5a"), Color("e0c070"), Color("f0a020"), Color("4aa060"), Color("2e7a40"), Color("d8784a"), Color("5a8ab0"), Color("d86a2a"), Color("e0a040"), Color("7a8ad8")]
+	var n: int = Game.IMPLEMENTED - 1
+	var step: float = minf(41.0, 864.0 / float(n))   # כל הכפתורים נכנסים בשורה אחת
+	for i in n:
+		var lb := _button(root, str(i + 2), Vector2(394.0 + float(i) * step, 262.0), Vector2(step - 3.0, 44.0), 20 if step >= 38.0 else 17, 0.25 + 0.03 * float(i))
+		lb.accent = accents[i % accents.size()]
 		lb.pressed.connect(_start_game.bind(i + 2))
 
 	var lbl := Caption.new()

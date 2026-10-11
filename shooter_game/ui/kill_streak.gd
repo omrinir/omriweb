@@ -11,6 +11,7 @@ extends Node
 #    * דרגה חדשה: ניצוצות + צליל "דינג" שעולה בכל דרגה.
 #    * HEADSHOT: חותמת אדומה גדולה מעל הזומבי.
 #    * הרצף נשבר: הכל נופל ונעלם. רצף של 5+ = סיכום "x6 CHAIN +900" שעולה למעלה.
+#    * רצף של 5-7: לפעמים (SPREE_SOUND_CHANCE) מתנגן "spree_die" (sounds/streak/spree_die.mp3), מהיר ב-15%.
 #  הלוגיקה (זמן, מד, בונוס) ב-game_state.gd (streak_*). לשנות מראה: TIERS, OFF, BAR_H.
 # ============================================================
 
@@ -65,6 +66,9 @@ const BAR_W := 14.0
 const BAR_H := 120.0
 const BAR_Y := -92.0                  # תחתית המד (מעל הרגליים)
 const OUTLINE := Color(0.08, 0.04, 0.04)
+const SPREE_SOUND_AT := Vector2i(5, 7)   # באיזו הריגה ברצף (נבחר אקראית בכל רצף)
+const SPREE_SOUND_CHANCE := 0.6          # הסיכוי שהצליל יתנגן ברצף הזה
+const SPREE_SOUND_PITCH := 1.15          # 15% מהר יותר
 
 var player: Node2D = null
 var count := 0
@@ -85,6 +89,8 @@ var _stamps: Array = []               # HEADSHOT: [world pos, age]
 var _summaries: Array = []            # [text, age, screen pos, color]
 var _anchor := Vector2.ZERO
 var _word := ""
+var _spree_at := 0                    # באיזו הריגה הצליל של הרצף הזה (0 = לא ברצף הזה)
+var spree_sounds := 0                 # לבדיקות
 var _last_word := ""
 var _layer: CanvasLayer
 var _ui: Node2D
@@ -130,6 +136,7 @@ func _on_kill(n: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void
 	if n == 1:
 		heads = [head]
 		count = 1
+		_spree_at = randi_range(SPREE_SOUND_AT.x, SPREE_SOUND_AT.y) if randf() < SPREE_SOUND_CHANCE else 0
 		for tg in tags:   # הריגה בודדת מיוחדת: כיתוב קטן שעולה
 			if tg in SOLO:
 				var c: Color = SPECIAL_COL.get(tg, Color(1.0, 0.85, 0.3))
@@ -157,6 +164,9 @@ func _on_kill(n: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void
 		Sfx.play("streak_up", null, -4.0 + float(tier) * 0.4, 0.0, 2, 1.0 + 0.09 * float(tier))
 	else:
 		Sfx.play("streak_tick", null, -8.0, 0.05, 3, 1.0 + 0.03 * float(n))
+	if n == _spree_at:
+		spree_sounds += 1
+		Sfx.play("spree_die", null, 0.0, 0.0, 1, SPREE_SOUND_PITCH)
 
 
 func _on_end(n: int, total: int) -> void:
