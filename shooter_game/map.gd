@@ -523,8 +523,15 @@ class LevelCard extends Control:
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		var tp := "res://map/thumbs/level_%d.png" % lv
-		if lv <= Game.IMPLEMENTED and ResourceLoader.exists(tp):
-			_thumb = load(tp)
+		if lv <= Game.IMPLEMENTED:
+			if ResourceLoader.exists(tp):
+				_thumb = load(tp)
+			if _thumb == null and FileAccess.file_exists(tp):   # Godot לא ייבא את התמונה (נוספה כשהעורך היה פתוח) - קוראים את הקובץ ישירות
+				var img := Image.load_from_file(ProjectSettings.globalize_path(tp))
+				if img != null and not img.is_empty():
+					_thumb = ImageTexture.create_from_image(img)
+			if _thumb == null:
+				print("[MAP] no picture for level %d - expected %s (map/thumbs in the project folder)" % [lv, ProjectSettings.globalize_path(tp)])
 		mouse_entered.connect(func():
 			_in = true
 			if Game.level_playable(lv):
