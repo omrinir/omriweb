@@ -656,6 +656,8 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - "THEY LEARN": lead grows with every miss (shots aim where you are going). can_see() = a waist-height ray to you; behind cover (within
   320px of it) the direct shots hit the cover, and after HIDE_LEARN seconds hidden learned_lob = true -> it lobs over cover.
   Standing right next to it (POUND_R) -> ground pound that throws you back.
+- It stands EDGE px before the end of the level, and while you are near it the camera slides (shake_camera.gd frame_target)
+  so the whole giant stays on screen.
 
 ## Stage 34 - "OBSERVATORY" ("THEY LEARNED TO WATCH") - Atacama desert observatories, Chile, region 4 level 7
 - levels/stage_34.gd + effects/s34_decor.gd: night sky with the Milky Way, the Magellanic Clouds and shooting stars; far Andes with
@@ -672,3 +674,26 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   head. Attacks: burst (3 orbs, learns to lead), fan (FAN_N orbs - jump / duck between them), lob (plasma over cover once it learned
   you hide), pound.
 - Game.IMPLEMENTED = 34.
+
+## Stage 35 - "SKULL GLACIER" ("THEY LEARNED TO HIDE") - high Andean glacier (inspired by Aconcagua), region 4 level 8
+- levels/stage_35.gd + effects/s35_decor.gd: cold bright day - white sun with a 22-degree ice halo and two sundogs, cirrus, sparkling
+  "diamond dust"; snowy peaks with blue shadows and a glacier tongue; a blue serac wall with ice-cave arches, frozen waterfalls and a
+  giant skull trapped in the ice; a field of penitentes and torn expedition flags. World: GlacierGround, IceShelf (SHELVES, upper floor at
+  TIER + rope ladder; one more shelf in the boss arena), Obstacle "ice_cube" (something frozen inside) / "sled" / "old_tent". GlacierFX.
+- Trap Icicles (under every shelf): walk under -> the icicle cracks (WARN_T) and falls (hurts you once, DMG_Z to zombies). Every icicle has
+  a small body on the zombie layer: SHOOT an icicle and it drops on the zombies below. They regrow after REGROW_T.
+- Trap GlareIce (GLARE): smooth shiny ice - player.slip_t: almost no grip, you slide (player.gd: slip_t, also slow_t = stuck in snow).
+- ENCASED (enemies/types/encased.gd): a climber frozen in an ice block, next to ice blocks that are just decor (FROZEN_GROUPS). Remembers
+  which side you came from; when you pass him it CRACKs and bursts out behind you. Standing next to it for NEAR_T also breaks it.
+  The ice eats bullets (ICE_HP) - shatter it from range and he comes out DAZED (x1.5). Fire / explosions melt it at once.
+- AXEMAN (enemies/types/axeman.gd): mountain guide with two ice axes. Keeps KEEP distance and throws a spinning Axe that flies out and comes
+  back (hits on the way out AND back). With both axes in the air he runs and takes x1.4. Learns how you dodge: jump over an axe -> the
+  next ones fly higher (aim_y), duck -> lower.
+- AVALANCHER (enemies/types/avalancher.gd): big zombie with a pututu (conch horn). Blows it (BLOW_T, a head shot cuts it off) -> a snow
+  Slide falls where you WILL be (your speed): shadow + trickle warning, then snow chunks -> 1 damage, slow_t (buried to the knees) and a
+  snow pile that slows you for PILE_T. Zombies step out of the shadow.
+- BOSS ICE TITAN (enemies/types/ice_titan.gd, stationary): giant buried to the waist in the glacier, skull head with an icicle crown, a blue
+  heart inside an ice ribcage = weak point. breath (icicle fan), spikes (IceSpikes: a wave of ice spikes running along the ground - jump it
+  or get on the shelf), boulder (ice lob, 3 over cover once it learned you hide), pound. GUARD_HITS heart hits within GUARD_WIN -> it covers
+  the heart with its hand (GUARD_T) - the guard only drops while it winds up an attack: shoot the heart then.
+- Game.IMPLEMENTED = 35.

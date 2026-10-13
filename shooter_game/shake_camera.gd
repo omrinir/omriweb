@@ -28,6 +28,9 @@ var _punch_mid := 0.0       # שלב ההחלקה הראשון (השני = _punc
 var _punch_hold_t := 0.0
 var _anchor_off := Vector2.ZERO   # הזזה שמשאירה את השחקן במקום על המסך בזמן הזום
 var base_offset := Vector2.ZERO   # הזזה קבועה (טלפון: השחקן ברבע השמאלי של המסך במקום באמצע)
+var frame_target: Node2D = null   # בוס נייח ענק: המצלמה זזה כדי שגם הוא וגם השחקן ייראו (stationary_boss.gd)
+var frame_half := 180.0           # חצי הרוחב של המטרה (בעולם)
+var _frame_off := 0.0
 
 
 func _ready() -> void:
@@ -78,4 +81,13 @@ func _process(delta: float) -> void:
 		_time_left -= delta
 		var k := pow(clampf(_time_left / _duration, 0.0, 1.0), decay)
 		shake_off = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _strength * k
-	offset = base_offset + _anchor_off + shake_off
+	var want := 0.0
+	var pl := get_parent() as Node2D
+	if frame_target != null and is_instance_valid(frame_target) and pl != null:
+		var half_w: float = get_viewport_rect().size.x * 0.5 / maxf(zoom.x, 0.01)
+		var dx: float = frame_target.global_position.x - pl.global_position.x
+		var need: float = absf(dx) + frame_half + 20.0 - half_w   # כמה חסר כדי שהבוס ייכנס למסך
+		if need > 0.0:
+			want = signf(dx) * minf(need, half_w - 110.0)   # (השחקן נשאר על המסך)
+	_frame_off = lerpf(_frame_off, want, 1.0 - exp(-3.0 * delta))
+	offset = base_offset + _anchor_off + shake_off + Vector2(_frame_off, 0.0)

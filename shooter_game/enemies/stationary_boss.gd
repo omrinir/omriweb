@@ -42,6 +42,15 @@ func _boss() -> bool:
 
 func setup() -> void:
 	z.set_meta("pit_hop", false)
+	_place.call_deferred()
+
+
+const EDGE := 720.0   # כמה רחוק מסוף השלב הוא עומד (שייראה כולו על המסך, ויהיה מקום מאחוריו)
+
+
+func _place() -> void:
+	if z != null and is_instance_valid(z) and z.world_w < 90000.0:
+		z.global_position.x = minf(z.global_position.x, float(z.world_w) - EDGE)
 
 
 func can_bite() -> bool:
@@ -77,7 +86,7 @@ func on_damage(_amount: int, hit_pos: Vector2, _dir: Vector2, _src: Dictionary) 
 
 func in_weak(p: Vector2) -> bool:
 	var l: Vector2 = (p - z.global_position) / z.sc
-	l.x *= z._dir
+	l.x *= z._dir / maxf(float(z.wf), 0.1)   # (הציור מכווץ/מתרחב ב-wf לרוחב)
 	return weak_rect().grow(3.0).has_point(l)
 
 
@@ -103,6 +112,7 @@ func physics(pl: Node, delta: float) -> bool:
 	var dx: float = pl.global_position.x - z.global_position.x
 	if winding == "" and absf(dx) > 8.0:
 		z._dir = signf(dx)
+	_frame(pl, absf(dx) < 1150.0 and absf(pl.global_position.y - z.global_position.y) < 400.0)
 	_vis_t -= delta
 	if _vis_t <= 0.0:
 		_vis_t = 0.2
@@ -126,6 +136,26 @@ func physics(pl: Node, delta: float) -> bool:
 		return true
 	think(pl, delta)
 	return true
+
+
+# המצלמה מזיזה את עצמה כדי שהבוס הענק ייראו כולו (shake_camera.gd frame_target)
+func _frame(pl: Node, on: bool) -> void:
+	var cam = pl.get_viewport().get_camera_2d()
+	if cam == null or not ("frame_target" in cam):
+		return
+	if on:
+		cam.frame_target = z
+		cam.frame_half = 36.0 * float(z.wf) * float(z.sc)
+	elif cam.frame_target == z:
+		cam.frame_target = null
+
+
+func on_death() -> void:
+	var pl := player()
+	if pl != null:
+		var cam = pl.get_viewport().get_camera_2d()
+		if cam != null and ("frame_target" in cam) and cam.frame_target == z:
+			cam.frame_target = null
 
 
 func wind(name: String, t: float) -> void:

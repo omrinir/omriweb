@@ -63,6 +63,8 @@ var glove_color := Color("141418")
 @export var controllable := true
 ## לאן הדמות מכוונת כשהיא לא נשלטת
 var idle_aim := Vector2(-1.0, 0.25).normalized()
+var slip_t := 0.0      # (שלב 35) על קרח חלק: כמעט בלי אחיזה - מחליקים
+var slow_t := 0.0      # (שלב 35) תקוע בשלג: איטי
 var _daze_t := 0.0     # MIRAGE (שלב 17): העתק נגע בך - מסונוור מהחום: איטי, והכוונת רועדת
 var auto_walk := 0.0   # כשלא בשליטה (סצנה): כיוון ומהירות הליכה אוטומטית (-1..1)
 var calm := false      # בסצנת סיפור: נשימה חלשה (בתקריב הנשימה הרגילה נראית כמו "עלייה")
@@ -304,6 +306,8 @@ func _physics_process(delta: float) -> void:
 	_roll_cd -= delta
 	_slide_t -= delta
 	_daze_t = maxf(_daze_t - delta, 0.0)
+	slip_t = maxf(slip_t - delta, 0.0)
+	slow_t = maxf(slow_t - delta, 0.0)
 	if _dodge_slow > 0.0:
 		_dodge_slow -= delta
 		if _dodge_slow <= 0.0 and not boosts.has(PickupScript.BULLET_TIME):
@@ -434,7 +438,11 @@ func _physics_process(delta: float) -> void:
 		speed *= 0.5
 	if in_water and is_on_floor():   # מים מאטים
 		speed *= 0.78
+	if slow_t > 0.0:   # שלג עד הברכיים
+		speed *= 0.55
 	var acc := accel if is_on_floor() else accel * air_control
+	if slip_t > 0.0 and is_on_floor():   # קרח חלק
+		acc *= 0.12
 	if _push_t > 0.0:   # רגע אחרי ירייה - הדחיפה גוברת על ההליכה
 		acc *= 0.25
 	if _roll_t > 0.0:
