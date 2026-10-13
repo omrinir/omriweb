@@ -98,6 +98,10 @@ func setup() -> void:
 	z.add_to_group("empire")
 
 
+func hit_size() -> Vector2:   # כל הקטר (לא רק המרכז)
+	return Vector2(80.0 * z.wf * z.sc, 48.0 * z.sc)
+
+
 func eye() -> Vector2:   # חרך המקלע
 	return z.global_position + Vector2(z._dir * 26.0 * z.wf, -16.0) * z.sc
 
@@ -110,8 +114,14 @@ func light_pos() -> Vector2:
 	return z.global_position + Vector2(z._dir * 35.0 * z.wf, -27.0) * z.sc
 
 
-func weak_rect() -> Rect2:   # חלון הנהג
-	return Rect2(14, -37, 13, 10)
+func weak_rect() -> Rect2:   # חלון הנהג (כולל החזית בגובה החלון - שם הקליע פוגע באזור הפגיעה)
+	return Rect2(14, -38, 32, 8)
+
+
+func in_light(p: Vector2) -> bool:   # הפנס: בחזית, בגובה הפנס
+	var l: Vector2 = (p - z.global_position) / z.sc
+	l.x *= z._dir / maxf(float(z.wf), 0.1)
+	return l.x > 28.0 and l.y > -31.5 and l.y < -22.0
 
 
 func light_on() -> bool:
@@ -120,7 +130,7 @@ func light_on() -> bool:
 
 func on_damage(amount: int, hit_pos: Vector2, dir: Vector2, src: Dictionary) -> bool:
 	var s := str(src.get("source", "bullet"))
-	if light_on() and (s == "bullet" or s == "melee") and hit_pos.distance_to(light_pos()) < 7.0 * z.sc:
+	if light_on() and (s == "bullet" or s == "melee") and in_light(hit_pos):
 		light_hp -= 1
 		Sfx.play("tr_glass", hit_pos, -2.0, 0.1, 2)
 		Particles.burst(z.get_parent(), hit_pos, "spark", -dir, 5)

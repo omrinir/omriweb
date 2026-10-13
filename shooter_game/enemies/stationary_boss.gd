@@ -48,7 +48,22 @@ func setup() -> void:
 const EDGE := 720.0   # כמה רחוק מסוף השלב הוא עומד (שייראה כולו על המסך, ויהיה מקום מאחוריו)
 
 
+# אזור הפגיעה (ברירת מחדל של zombie.gd: 38*wf רוחב, 66*sc גובה). בוס רחב (רכבת / טנק) מגדיל אותו כדי שכל הציור ייפגע
+func hit_size() -> Vector2:
+	return Vector2(38.0 * z.wf, maxf(66.0, -weak_rect().position.y + 2.0) * z.sc)   # גבוה מספיק כדי לכלול את נקודת התורפה
+
+
+# נקודת התורפה היא הדבר הכי קדמי בגובה שלה (ראש / מפקד / חלון)? אז קליע שפוגע בצד של אזור הפגיעה בגובה הזה = פגיעה בה.
+# (הקליע נעצר בשפת אזור הפגיעה, לא בתוך הציור.) בוס שהנקודה שלו מאחור / למעלה (מנוע) מחזיר false.
+func weak_on_face() -> bool:
+	return true
+
+
 func _place() -> void:
+	if z != null and is_instance_valid(z) and z._shape != null:
+		var r := z._shape.shape as RectangleShape2D
+		r.size = hit_size()
+		z._shape.position = Vector2(0.0, -r.size.y * 0.5)
 	if z != null and is_instance_valid(z) and z.world_w < 90000.0:
 		z.global_position.x = minf(z.global_position.x, float(z.world_w) - EDGE)
 		var main: Node = z.get_parent()
@@ -93,7 +108,13 @@ func on_damage(_amount: int, hit_pos: Vector2, _dir: Vector2, _src: Dictionary) 
 func in_weak(p: Vector2) -> bool:
 	var l: Vector2 = (p - z.global_position) / z.sc
 	l.x *= z._dir / maxf(float(z.wf), 0.1)   # (הציור מכווץ/מתרחב ב-wf לרוחב)
-	return weak_rect().grow(3.0).has_point(l)
+	var wr := weak_rect().grow(3.0)
+	if wr.has_point(l):
+		return true
+	if not weak_on_face():
+		return false
+	var face: float = hit_size().x * 0.5 / (z.sc * maxf(float(z.wf), 0.1))
+	return absf(absf(l.x) - face) < 2.5 and l.y >= wr.position.y and l.y <= wr.end.y
 
 
 func damage_mult(_zone: String, src: Dictionary) -> float:

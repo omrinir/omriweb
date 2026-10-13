@@ -887,3 +887,8 @@ flags, and they all work for one goal: to conquer the world.
   near: TROOP_N riflemen jump out of the door. pound = steam blast.
 - Lesson: a freed node is not always == null in Godot 4 - check is_instance_valid(x) directly.
 - Game.IMPLEMENTED = 42.
+- FIX (stationary_boss.gd): zombie.gd's hit box is 38*wf wide and 66*sc tall, so a bullet stops at the box edge, not inside the drawing.
+  That made the Dish's weak point (above the box) and the Behemoth's commander (behind the front face) impossible to hit with real
+  bullets. Now: hit_size() (default = tall enough to include weak_rect; the ARMORED TRAIN overrides it to cover the whole locomotive),
+  and in_weak() also accepts a hit on the box's side face at the weak point's height (weak_on_face() - override false for a weak point
+  that is not the front-most thing at its height). Checked with real rays for every stationary boss (levels 34-42).
