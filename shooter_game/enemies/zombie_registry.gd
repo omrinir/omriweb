@@ -35,6 +35,7 @@ enum {
 	DROWNED, BALSERO, NETTER,      # שלב 31 (איי הקנים)
 	DIABLO, MORENADA, BANDLEADER, SUPAY,   # שלב 32 (קרנבל השדים). SUPAY = הבוס של 32 ו-33
 	AZUFRERO, CINDER, SMOKER,      # שלב 33 (מכתש הגופרית)
+	REVIVER, SPOTTER, PANEL, DISH, # שלב 34 (המצפה). REVIVER חוזר בשלבים הבאים. DISH = בוס נייח
 }
 
 const FIRST := 20
@@ -120,6 +121,10 @@ const TYPES := {
 	AZUFRERO: "res://enemies/types/azufrero.gd",
 	CINDER: "res://enemies/types/cinder.gd",
 	SMOKER: "res://enemies/types/smoker.gd",
+	REVIVER: "res://enemies/types/reviver.gd",
+	SPOTTER: "res://enemies/types/spotter.gd",
+	PANEL: "res://enemies/types/panel.gd",
+	DISH: "res://enemies/types/dish.gd",
 }
 
 static var _stats_cache := {}

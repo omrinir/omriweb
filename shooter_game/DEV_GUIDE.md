@@ -639,3 +639,36 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   become blue fireballs. He ignores the ash surges - you have to fight him between refugios.
 - Region 4 names in game_state REGIONS: levels 31-33 = Floating Islands, Devil's Carnival, Sulfur Crater. Game.IMPLEMENTED = 33.
 
+
+## Shared: REVIVER (enemies/types/reviver.gd) + group "corpses"
+- zombie.gd _die(): every non-boss zombie that was not itself revived joins group "corpses" while its body lies there.
+- REVIVER: necromancer with a blue crystal staff. Stays behind the others (FLEE_R), looks for a corpse within SEEK_R, walks to it and
+  CHANNELs for REVIVE_T seconds (blue beam) -> the corpse rises as the same kind with meta "revived" and a ReviveAura child (orbiting blue
+  motes + sparks). A revived zombie can not be revived again. Any damage during the ritual interrupts it (STUN). Kill healers first.
+- Use it in later levels' zombie_weights() (Registry.REVIVER).
+
+## Shared: STATIONARY BOSSES (enemies/stationary_boss.gd)
+- Base for giant bosses that never move (from stage 34): extends zombie_type.gd. The boss turns to face you, think(pl, delta) picks the
+  next attack, wind(name, t) shows a warning for t seconds and then calls attack(name, pl).
+- fire_shot(from, target, speed, dmg, kind, col, r) = straight Shot (kinds: orb / nail / bolt / ball), fire_lob(from, target, flight, dmg,
+  kind, blast_r, col, r) = arcing Lob (ice / rock / canister / beam / plasma), explodes with blast_r > 0.
+- weak_rect() (local, unscaled, facing right): hits there x WEAK_MULT, the rest of the body x ARMOR_MULT (bullets / melee only).
+- "THEY LEARN": lead grows with every miss (shots aim where you are going). can_see() = a waist-height ray to you; behind cover (within
+  320px of it) the direct shots hit the cover, and after HIDE_LEARN seconds hidden learned_lob = true -> it lobs over cover.
+  Standing right next to it (POUND_R) -> ground pound that throws you back.
+
+## Stage 34 - "OBSERVATORY" ("THEY LEARNED TO WATCH") - Atacama desert observatories, Chile, region 4 level 7
+- levels/stage_34.gd + effects/s34_decor.gd: night sky with the Milky Way, the Magellanic Clouds and shooting stars; far Andes with
+  observatory domes firing yellow guide-star lasers; a radio-dish array; salt pillars and candelabra cacti. World: SaltGround, Dome
+  (DOMES, the balcony at TIER is a hidden upper floor + ladder), Obstacle "flight_cases" / "rover" / "solar_rack". NightFX on screen.
+- Trap GuideLaser (one in front of every dome): every CYCLE seconds a red dashed WARNING line (WARN_T), then the beam SWEEPs SPAN px
+  of ground - hurts the player once per sweep, 12 damage to zombies.
+- SPOTTER (enemies/types/spotter.gd): astronomer with a big search lamp. Keeps BACKOFF distance, locks the beam on you (LOCK_T) ->
+  SPOTTED: every zombie within RALLY_R knows where you are and rushes you. Shoot the lamp (in his hand) to break it.
+- PANEL (enemies/types/panel.gd): technician holding a hexagonal telescope mirror. Front bullets to the body / head bounce back at you
+  (Reflect). Shoot the legs, from behind, or use explosives / fire; the mirror breaks after MIRROR_HP.
+- TEAMS: PANEL in front, two zombies, a REVIVER behind them. SPOTTERs stand on the odd dome balconies.
+- BOSS THE DISH (enemies/types/dish.gd, stationary): a giant fused with a radio dish. Weak point = the blue receiver crystal above its
+  head. Attacks: burst (3 orbs, learns to lead), fan (FAN_N orbs - jump / duck between them), lob (plasma over cover once it learned
+  you hide), pound.
+- Game.IMPLEMENTED = 34.

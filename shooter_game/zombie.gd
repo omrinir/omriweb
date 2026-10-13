@@ -1262,6 +1262,8 @@ func _die(dir: Vector2) -> void:
 		queue_free()
 		return
 	remove_from_group("zombies")
+	if not is_boss() and not has_meta("revived"):
+		add_to_group("corpses")   # REVIVER (enemies/types/reviver.gd) יכול להחזיר אותו לחיים
 	if _carry != null and is_instance_valid(_carry):
 		_carry.drop(Vector2(randf_range(-80.0, 80.0), -150.0))
 	_carry = null
