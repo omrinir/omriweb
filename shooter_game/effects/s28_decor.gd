@@ -130,7 +130,7 @@ static func near_ichu(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float)
 	for k in range(start, start + int(ceil(v.x / period)) + 3):
 		var x := float(k) * period - sc
 		var r := _rng(k * 97 + 5)
-		for i in 9:   # גושי איצ'ו
+		for i in 6:   # גושי איצ'ו
 			var px := x + r.randf_range(0.0, period)
 			var h := r.randf_range(20.0, 38.0)
 			for q in 6:

@@ -543,3 +543,17 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   the fuse burns (FUSE) -> blast (RADIUS) that also shakes the cave-ins. On death his bundle lights and blows up a second later.
   Boss THE FOREMAN: 3 sticks in a fan.
 - Mind control: DYNAMITER -> explode, ECHO -> pounce.
+
+## Stage 30 - "FROZEN VILLAGE" ("THEY LEARNED THE COLD") - Andean highland village in a blizzard, region 4 level 3
+- levels/stage_30.gd + effects/s30_decor.gd: grey blizzard sky, faded ridges, adobe houses with snowy roofs + smoking chimneys, a white colonial church,
+  alpaca pens, colorful frozen laundry, snowdrifts. World: SnowGround (snow over cobbles, footprints), House walls under each roof platform (HOUSES, "roof")
+  with lit windows and a chimney that puffs smoke particles, BellTower (TOWER, group "bells": ring() swings the bell + sound waves; a wooden floor at TOWER_H),
+  BRAZIERS (fire barrels: smoke + sparks + warm glow; standing within WARM_R removes the freeze), Obstacle "stonewall" / "woodpile" / "haycart".
+  BlizzardFX (group "blizzard"): heavy diagonal snow + whiteout(t) (WHITE = how white at the peak).
+- Trap: ThinIce (ICE): frozen puddles. Standing on one cracks it (cracks stay and heal slowly, heavy zombies break it at once); at CRACK_T it breaks:
+  DMG 2 + frozen (player._daze_t = CHILL: slow + shaky aim) and zombies on it take 30. Refreezes after REFREEZE.
+- FROSTBITE (enemies/types/frostbite.gd): ice armor (ICE hp) absorbs all damage until it shatters; fire / explosions / laser break it ICE_FIRE x faster.
+  Without ice it's weak and faster. Its bite freezes your hands (CHILL). Boss THE FROZEN ONE: 6x ice that regrows after REGROW s without being hit.
+- BELLRINGER (enemies/types/bellringer.gd): in the bell tower (finds the BellTower under it): every RING_CD when you're within RANGE it pulls the rope (PULL_T, shoot it
+  to SILENCE it) -> the bell rings, the blizzard turns to whiteout (WHITE_T) and zombies within RUSH_R rush you. On the ground: a hand bell (weaker).
+- Mind control: FROSTBITE -> slam, BELLRINGER -> scream. Map pictures: map/thumbs/level_28.png, level_29.png, level_30.png. Game.IMPLEMENTED = 30.

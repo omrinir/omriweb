@@ -30,6 +30,7 @@ enum {
 	SNIPER, SAPPER, HANDLER,       # שלב 27 (שער הרמה)
 	CONDOR, BOULDER,               # שלב 28 (האנדים - מעבר העננים)
 	ECHO, DYNAMITER,               # שלב 29 (מכרה ההדים)
+	FROSTBITE, BELLRINGER,         # שלב 30 (הכפר הקפוא)
 }
 
 const FIRST := 20
@@ -102,6 +103,8 @@ const TYPES := {
 	BOULDER: "res://enemies/types/boulder.gd",
 	ECHO: "res://enemies/types/echo.gd",
 	DYNAMITER: "res://enemies/types/dynamiter.gd",
+	FROSTBITE: "res://enemies/types/frostbite.gd",
+	BELLRINGER: "res://enemies/types/bellringer.gd",
 }
 
 static var _stats_cache := {}

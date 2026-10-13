@@ -48,11 +48,11 @@ static func ability_for(z: Node) -> String:
 		return "shoot"
 	if k in [Registry.RETCHER, Registry.TORCH, Registry.HAZMAT]:
 		return "spit"
-	if k in [Registry.GOLIATH, Registry.SHOVER, Registry.BOULDER, Registry.TANK, Registry.SHIELDED, Registry.SHIELD_ELITE, Registry.DEVOURER, Registry.CRUMBLER, Registry.SPARE_PARTS, Registry.SPLITJAW]:
+	if k in [Registry.GOLIATH, Registry.SHOVER, Registry.BOULDER, Registry.FROSTBITE, Registry.TANK, Registry.SHIELDED, Registry.SHIELD_ELITE, Registry.DEVOURER, Registry.CRUMBLER, Registry.SPARE_PARTS, Registry.SPLITJAW]:
 		return "slam"
 	if k in [Registry.BOMBHEAD, Registry.SAPPER, Registry.DYNAMITER]:
 		return "explode"
-	if k in [Registry.SIREN, Registry.COMMANDER, Registry.PACK_LEADER, Registry.SIGNALER, Registry.HANDLER]:
+	if k in [Registry.SIREN, Registry.COMMANDER, Registry.PACK_LEADER, Registry.SIGNALER, Registry.HANDLER, Registry.BELLRINGER]:
 		return "scream"
 	return "pounce"
 
