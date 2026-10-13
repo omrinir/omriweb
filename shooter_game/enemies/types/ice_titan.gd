@@ -40,7 +40,7 @@ var _clock := 0.0
 
 
 func stats() -> Dictionary:
-	return {"name": "ICE TITAN", "hp": 620, "walk": 0.0, "chase": 0.0, "damage": 2, "bite_delay": 1.0, "scale": 3.0, "width": 1.7,
+	return {"name": "ICE TITAN", "hp": 300, "walk": 0.0, "chase": 0.0, "damage": 2, "bite_delay": 1.0, "scale": 3.0, "width": 1.7,
 		"duck": 0.0, "cover": 0.0, "skin": Color("a8c4d8"), "shirt": Color("6a9ac0"), "pants": Color("3a5a7a"), "shoe": Color("2a3a4a"),
 		"points": 2000, "boss": true, "boss_name": "THE ICE TITAN - SHOOT THE FROZEN HEART"}
 

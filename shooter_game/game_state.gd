@@ -135,7 +135,7 @@ func _process(delta: float) -> void:
 # שלבים זוגיים = רכבת תחתית
 # העולמות מתחלפים: 0 = רחוב, 1 = רכבת תחתית, 2 = מפעל
 # איזה עולם בכל שלב: 0 רחוב, 1 רכבת תחתית, 2 מפעל, 3 רחוב בלילה עם גשם
-const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12, 14: 13, 15: 14, 16: 15, 17: 16, 18: 17, 19: 18, 20: 19, 21: 20, 22: 21, 23: 22, 24: 23, 25: 24, 26: 25, 27: 26, 28: 27, 29: 28, 30: 29, 31: 30, 32: 31, 33: 32, 34: 33, 35: 34}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
+const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12, 14: 13, 15: 14, 16: 15, 17: 16, 18: 17, 19: 18, 20: 19, 21: 20, 22: 21, 23: 22, 24: 23, 25: 24, 26: 25, 27: 26, 28: 27, 29: 28, 30: 29, 31: 30, 32: 31, 33: 32, 34: 33, 35: 34, 36: 35}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
 func world() -> int:
 	return LEVEL_WORLD.get(level, (level - 1) % 4)
 
@@ -160,7 +160,7 @@ func is_factory() -> bool:
 #  מפה: 7 אזורים, 9 שלבים בכל אזור (כרגע 3 השלבים הראשונים קיימים)
 # ============================================================
 const LEVELS_PER_REGION := 9
-const IMPLEMENTED := 35           # כמה שלבים כבר בנויים
+const IMPLEMENTED := 36           # כמה שלבים כבר בנויים
 const REGIONS := [
 	{"name": "NORTHERN AMAZON", "color": Color(0.45, 0.85, 0.3), "desc": "Where it started. The first ones only hunger.",
 		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Ruined District", "Highrise", "The Works", "Research Site", "Zone Zero"]},
@@ -407,6 +407,7 @@ const LEVEL_TITLES := [
 	["THEY LEARNED THE FIRE", "He ran up the volcano. When the mountain roars, get inside a refugio - they will try too. Put out the embers."],
 	["THEY LEARNED TO WATCH", "The clearest sky on Earth. Kill the healers first - they bring the dead back. Mind the lasers."],
 	["THEY LEARNED TO HIDE", "A lost expedition, frozen in the glacier. Not every ice block is empty. Don't stand under the icicles."],
+	["THEY LEARNED TO WORSHIP", "The top of the Andes. They carried their dead up here - and something answered. When the storm hums, get off the high stones."],
 ]
 func level_title() -> Array:
 	var t: Array = LEVEL_TITLES[(level - 1) % LEVEL_TITLES.size()].duplicate()

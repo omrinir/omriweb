@@ -697,3 +697,27 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   or get on the shelf), boulder (ice lob, 3 over cover once it learned you hide), pound. GUARD_HITS heart hits within GUARD_WIN -> it covers
   the heart with its hand (GUARD_T) - the guard only drops while it winds up an attack: shoot the heart then.
 - Game.IMPLEMENTED = 35.
+
+## Stage 36 - "THE SUMMIT" ("THEY LEARNED TO WORSHIP") - Inca mountaintop sanctuary (inspired by Llullaillaco), region 4 level 9 (Andes finale)
+- levels/stage_36.gd + effects/s36_decor.gd: stormy dusk - heavy violet clouds with lightning inside, a low red sunset band, a sea of
+  clouds below with other peaks sticking out (lit from inside by lightning), Inca terraces and a chullpa burial tower on the slope,
+  apachetas and frozen ichu grass. World: SummitGround, Terrace (polygonal Inca masonry, upper floor at TIER + steps), Obstacle
+  "apacheta" / "offering" (altar with textile, gold and silver llamas) / "wall_stub". StormFX: diagonal snow + lightning flashes.
+- Trap Storm (+ Strike): every CYCLE seconds lightning near you - a glowing circle with sparks is the WARN, then the bolt (1 damage +
+  short daze, DMG_Z to zombies). Standing HIGH on a terrace -> the bolt is aimed exactly at you (where you are going). Quiet near the boss
+  (quiet_from) - APU brings his own lightning.
+- Trap Crumble (terraces in CRUMBLE_ON): loose stones in the middle of the terrace - stand on them HOLD_T and they fall (the floor there
+  is gone for RESET_T).
+- MALLKI (enemies/types/mallki.gd): Inca mummy bundle wrapped in WRAPS layers of textile. Bullets tear the layers (WRAP_HP each) before
+  the body; each layer gone = faster. Not shot for REWRAP_T -> it wraps itself again. Fire burns all the cloth, explosions = 2 layers.
+- GUARDIAN (enemies/types/guardian.gd): Inca warrior with a painted shield and a star mace. The shield covers HIGH or LOW; front hits
+  there are BLOCKED. LEARN_HITS hits on the open half -> it moves the shield there. From behind / from above / explosions get through.
+  Shield bash up close (no bite).
+- QUIPU (enemies/types/quipu.gd, group "quipus"): record keeper with a knotted quipu. zombie.gd tells him about every bullet hit near
+  him (observe). RECORD_N hits with one weapon -> he ties a knot (TIE_T, a hit cuts it) -> zombies in SHARE_R take x0.4 from that weapon
+  (meta "resist_weapon", a KnotMark above their heads). Switch weapons or kill him - his knots unravel when he dies.
+- BOSS APU (enemies/types/apu.gd, stationary): the mountain spirit on a stone throne - golden sun mask (weak point), gold staff, sling.
+  sling (2 stones, lead), rocks (lob, 3 over cover once it learned), lightning (Strike on you + one on a side), pound. LEARNS which way
+  you run from lightning (dodge, DODGE_LEARN) -> the second bolt waits on that side, plus a third further on.
+- Boss HP: zombie.gd adds +400 to every boss after level 5, so stationary boss stats use ~300-400.
+- Game.IMPLEMENTED = 36.

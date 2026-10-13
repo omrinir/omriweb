@@ -37,6 +37,7 @@ enum {
 	AZUFRERO, CINDER, SMOKER,      # שלב 33 (מכתש הגופרית)
 	REVIVER, SPOTTER, PANEL, DISH, # שלב 34 (המצפה). REVIVER חוזר בשלבים הבאים. DISH = בוס נייח
 	ENCASED, AXEMAN, AVALANCHER, ICE_TITAN, # שלב 35 (קרחון הגולגולת). ICE_TITAN = בוס נייח
+	MALLKI, GUARDIAN, QUIPU, APU, # שלב 36 (הפסגה). APU = בוס נייח
 }
 
 const FIRST := 20
@@ -130,6 +131,10 @@ const TYPES := {
 	AXEMAN: "res://enemies/types/axeman.gd",
 	AVALANCHER: "res://enemies/types/avalancher.gd",
 	ICE_TITAN: "res://enemies/types/ice_titan.gd",
+	MALLKI: "res://enemies/types/mallki.gd",
+	GUARDIAN: "res://enemies/types/guardian.gd",
+	QUIPU: "res://enemies/types/quipu.gd",
+	APU: "res://enemies/types/apu.gd",
 }
 
 static var _stats_cache := {}

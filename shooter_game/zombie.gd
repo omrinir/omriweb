@@ -1096,6 +1096,14 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		Sfx.play("shield", hit_pos, -6.0, 0.15, 2)
 	if type_mod != null:
 		dmg = maxi(0, int(round(float(dmg) * type_mod.damage_mult(zone, src))))
+	if src.has("weapon") and source == "bullet":
+		if has_meta("resist_weapon") and int(src.weapon) == int(get_meta("resist_weapon")):   # QUIPU (שלב 36) "רשם" את הנשק הזה
+			dmg = maxi(1, int(round(float(dmg) * 0.4)))
+			if randf() < 0.25:
+				_popup("RECORDED", Color("e0c060"), 11, -70.0)
+		for q in get_tree().get_nodes_in_group("quipus"):   # QUIPU רושם באיזה נשק אתה משתמש
+			if q.type_mod != null and q.type_mod.has_method("observe"):
+				q.type_mod.observe(int(src.weapon), global_position)
 	Particles.burst(get_parent(), hit_pos, "hit", dir if dir != Vector2.ZERO else Vector2.UP, int(10.0 * BLOOD_AMOUNT))
 	# PERFECT: פגיעה בדיוק במרכז הראש
 	var perfect := false

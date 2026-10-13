@@ -294,6 +294,11 @@ class Shot extends Node2D:
 			"nail", "bolt":
 				draw_line(Vector2(-r * 1.6, 0), Vector2(r * 0.6, 0), Color(col, 0.5), r * 0.6)
 				draw_line(Vector2(-r, 0), Vector2(r, 0), col.lightened(0.4), r * 0.35)
+			"stone":   # אבן מקלע
+				draw_line(Vector2(-r * 3.0, 0), Vector2(-r, 0), Color(1, 1, 1, 0.22), r * 0.7)
+				draw_circle(Vector2.ZERO, r + 1.2, Color(0.1, 0.08, 0.06))
+				draw_circle(Vector2.ZERO, r, Color("7a7068"))
+				draw_circle(Vector2(-r * 0.3, -r * 0.3), r * 0.35, Color("9a9088"))
 			"ball":
 				draw_circle(Vector2.ZERO, r + 1.5, Color(0.1, 0.1, 0.1))
 				draw_circle(Vector2.ZERO, r, Color(0.95, 0.95, 0.95))

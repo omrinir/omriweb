@@ -32,7 +32,7 @@ var _seq := ""
 
 
 func stats() -> Dictionary:
-	return {"name": "THE DISH", "hp": 700, "walk": 0.0, "chase": 0.0, "damage": 2, "bite_delay": 1.0, "scale": 2.6, "width": 1.5,
+	return {"name": "THE DISH", "hp": 380, "walk": 0.0, "chase": 0.0, "damage": 2, "bite_delay": 1.0, "scale": 2.6, "width": 1.5,
 		"duck": 0.0, "cover": 0.0, "skin": Color("8a9088"), "shirt": Color("d8dce4"), "pants": Color("3a3e4a"), "shoe": Color("2a2a30"),
 		"points": 1800, "boss": true, "boss_name": "THE GREAT DISH - SHOOT THE RECEIVER"}
 
