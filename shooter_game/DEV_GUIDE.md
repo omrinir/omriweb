@@ -460,3 +460,25 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - ROD (enemies/types/rod.gd): lineman in a yellow rain coat with a copper-tipped iron rod. RAISE (sparks) -> Strike: a warning circle on the ground under you (WARN_T),
   then a bolt (DAMAGE 2, also hurts zombies in the circle). Move when the circle appears. Boss THE STORMBRINGER: 3 strikes (on you, ahead, behind).
 - Mind control: ROD -> shoot, SIGNALER -> scream. Map picture: map/thumbs/level_25.png. Game.IMPLEMENTED = 25.
+
+## Stages 26 + 27 are one story (end of region 3)
+- 25 RADIO TOWER -> the signal came from underground -> 26 THE BUNKER (the zombies' command center) -> THE GENERAL escapes through the tunnel
+  -> 27 PLATEAU GATE starts at the tunnel exit and ends with the General's last stand at the gate.
+- THE GENERAL (enemies/types/general.gd) is the boss of both. It checks Game.level: 26 = commander that escapes, 27 = final fight.
+
+## Stage 26 - "THE BUNKER" ("THEY LEARNED TO GIVE ORDERS") - underground military command bunker, region 3 level 8
+- levels/stage_26.gd + effects/s26_decor.gd: concrete hall with vault doors, painted floor numbers, pipes, spinning red emergency lights, pillars + hanging lamps.
+  World: BunkerGround, Ceiling (concrete slab at CEIL_Y, ventilation DUCT at DUCT_Y with grates, flickering fluorescents), steel CATWALKS (TIER 150),
+  Obstacle "crates" / "drums" / "locker", ExitTunnel ("TO THE GATE") behind the exit. dark_level() = true (flashlight tip).
+- BunkerDark (CanvasLayer + shader): the bunker is a bit dark (DARKNESS); a section whose FuseBox is cut goes almost black (BLACK). Player glow + flashlight light it.
+- FuseBox: one per SECTION_W. cut() = section dark for BLACKOUT_T (9 s). The player touching the box restores it at once.
+- Trap: LaserGate (LASERS): a red laser curtain from ceiling to floor, cycles ON_T / OFF_T, flickers WARN_T before turning on. DMG 2 + pushback; zombies take Z_DMG.
+- HAZMAT (enemies/types/hazmat.gd): always faces you. AIM (green drip) -> SPRAY GasCloud in front (doesn't turn while spraying = your window to get behind).
+  Tank on the back: hits from behind do x TANK_MULT and after TANK_HP hits (or any explosion) the tank bursts into a gas cloud and he dies. Gas also hurts other zombies.
+- BLACKOUT (enemies/types/blackout.gd): night-vision goggles. When it sees you in a lit section it RUNs to that section's FuseBox and PULLs the lever (MAX_CUTS 2).
+  Faster in the dark (DARK_SPEED), goggles glow.
+- VENT (enemies/types/vent.gd): spawns inside the ceiling duct (only red eyes visible, dust falls, duct rattles; bullets hit the metal).
+  Crawls to BEHIND you (the side you're not aiming at) and drops through a grate when you're on the floor. Aim back at it and it has to crawl around.
+- THE GENERAL in 26: keeps distance (KEEP), aims + 3-shot bursts, every ORDER_CD whistles "ATTACK!" (nearby zombies rush).
+  At ESCAPE_AT hp (35%) he can't be hit any more: "RETREAT! TO THE GATE!", drops loot, opens the exit and runs off right into the tunnel.
+- Mind control: HAZMAT -> spit, BLACKOUT / VENT -> pounce, GENERAL -> shoot.
