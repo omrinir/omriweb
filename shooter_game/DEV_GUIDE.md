@@ -749,3 +749,26 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   you, "rocket" Lob), pound if you climb up. DUCK_HITS head hits in DUCK_WIN -> he ducks behind the brick parapet (DUCK_T, bullets from
   below do nothing, he throws fireworks blind at your last spot) and stands up laughing with a burst ready.
 - Game.IMPLEMENTED = 37.
+
+## Stage 38 - "MEGACITY CORE" ("THEY LEARNED OUR MACHINES") - Sao Paulo at night in the drizzle (garoa), region 5 level 2
+- levels/stage_38.gd + effects/s38_decor.gd: city-glow sky with helicopters (blinking lights, one with a searchlight), a dense skyline of
+  lit towers with red antenna lights and the white wave of the Copan building; Avenida Paulista with the MASP (box on red beams), lit
+  signs and a traffic jam of red tail lights; Minhocao pillars with pixacao tags. World: CityGround (wet asphalt, neon reflections),
+  Overpass (raised concrete road = upper floor at TIER), Scaffold (the boss stands on it), Obstacle "taxi" / "barrier_jersey" / "kiosk".
+  RainFX: drizzle + neon haze.
+- Trap GlassTower (GLASS): a glass tower lobby. Stand under it -> the panel cracks (glint, WARN_T) -> glass rains down (RAIN_T, 1 damage,
+  DMG_Z to zombies). Shoot the panel (GlassPanel, layer 4) to drop it on zombies. Broken glass stays on the street: walking on it CRUNCHES
+  and every zombie in CRUNCH_R hears you.
+- Trap Billboard (BOARDS): a hacked digital billboard - "LOOK" (eye + glitches, WARN_T) then a white flash: if you are aiming toward it
+  (or standing under it) you are dazed DAZE_T. Not in the "hazards" group (no world_rect / danger_at).
+- OFFICE (enemies/types/office.gd): office zombie with a phone. When you are busy (reloading / a zombie next to you / far from him) he
+  CALLs (CALL_T) -> BACKUP_N runners arrive from behind you. Any hit drops the phone. MAX_CALLS calls.
+- WASHER (enemies/types/washer.gd): window washer hanging HANG_H above the street on a rope (no collision while hanging, x1.5), drips a
+  slippery Soap puddle (player.slip_t). Swings toward you, and when you walk under him (DROP_R) he drops on you (1 damage + daze).
+- COURIER (enemies/types/courier.gd): fast motoboy with a delivery box. Runs to where you WILL be (your speed x LEAD_T) and leaves a
+  Package (FUSE beeps, explodes, or at once when you come within PROX). Shoot a package to blow it up on the zombies around it. PACKAGES.
+- BOSS THE TOWER (enemies/types/tower.gd, stationary) on the scaffold: a giant crane operator fused with a tower crane - jib, trolley,
+  hook and an I-beam. nails (NAIL_N nail-gun burst, lead), drop (the trolley rolls over you and releases the beam - "beam" Lob, a new beam
+  after BEAM_RELOAD), pound. LEARNS a heat map of where you stand (BUCKET px, real time) - after LEARN_T it knows your favorite spot and
+  every second beam falls there. Hard hat: head hits x0.35 until HAT_HP hits knock it off.
+- Game.IMPLEMENTED = 38.

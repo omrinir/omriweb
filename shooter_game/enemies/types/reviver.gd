@@ -31,7 +31,7 @@ var _look := 0.0
 # סוגים שלא קמים (צריכים הקשר מיוחד בשלב) - קמים כזומבי רגיל
 static func _kind_for(k: int) -> int:
 	var R := preload("res://enemies/zombie_registry.gd")
-	if k in [5, 7, 10, 11, 12, 18, R.BALSERO, R.CLINGER, R.ENCASED, R.KITE, R.DROWNED, R.CINDER, R.STRANGER, R.MIRAGE_KING, R.BROODMOTHER]:
+	if k in [5, 7, 10, 11, 12, 18, R.BALSERO, R.CLINGER, R.ENCASED, R.KITE, R.WASHER, R.DROWNED, R.CINDER, R.STRANGER, R.MIRAGE_KING, R.BROODMOTHER]:
 		return 0
 	return k
 

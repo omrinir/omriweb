@@ -39,6 +39,7 @@ enum {
 	ENCASED, AXEMAN, AVALANCHER, ICE_TITAN, # שלב 35 (קרחון הגולגולת). ICE_TITAN = בוס נייח
 	MALLKI, GUARDIAN, QUIPU, APU, # שלב 36 (הפסגה). APU = בוס נייח
 	KITE, CAPOEIRA, GRAFFITI, DONO, # שלב 37 (פאבלה בריו). DONO = בוס נייח על גג
+	OFFICE, WASHER, COURIER, TOWER, # שלב 38 (סאו פאולו). TOWER = בוס נייח על פיגום
 }
 
 const FIRST := 20
@@ -140,6 +141,10 @@ const TYPES := {
 	CAPOEIRA: "res://enemies/types/capoeira.gd",
 	GRAFFITI: "res://enemies/types/graffiti.gd",
 	DONO: "res://enemies/types/dono.gd",
+	OFFICE: "res://enemies/types/office.gd",
+	WASHER: "res://enemies/types/washer.gd",
+	COURIER: "res://enemies/types/courier.gd",
+	TOWER: "res://enemies/types/tower.gd",
 }
 
 static var _stats_cache := {}
