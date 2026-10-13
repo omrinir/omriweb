@@ -721,3 +721,31 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   you run from lightning (dodge, DODGE_LEARN) -> the second bolt waits on that side, plus a third further on.
 - Boss HP: zombie.gd adds +400 to every boss after level 5, so stationary boss stats use ~300-400.
 - Game.IMPLEMENTED = 36.
+
+## Region 5 - SOUTHEAST (levels 37-45): the megacities. "They learned to use our machines."
+
+## Stage 37 - "FAVELA HEIGHTS" ("THEY LEARNED OUR STREETS") - a Rio de Janeiro favela at sunset, region 5 level 1
+(Story: after the Andes the hero comes down to the coast - Brazil's megacities.)
+- levels/stage_37.gd + effects/s37_decor.gd: golden-pink sunset with kites (pipas) in the sky; Sugarloaf with its cable car and Corcovado
+  with Christ the Redeemer, the bay with city lights; a hill of stacked colorful houses with lit windows, blue water tanks and wires;
+  close facades with rebar and laundry lines. World: FavelaGround, Laje (brick or painted house, flat roof = upper floor at TIER + ladder),
+  Obstacle "moto" (moto-taxi) / "trash_bags" / "bar_table" (boteco table + beer crates). FavelaFX: warm haze.
+- Trap LiveWire ("gato" - stolen power line between two poles): sparks + yellow strip = WARN, then electric arcs to the street under the
+  middle (hurts you once, DMG_Z to zombies). Shoot the junction box on the pole -> short circuit (20 to zombies near it), the wire is dead.
+- Trap WaterTank (blue tank on every laje): shoot it HP times -> it tips, water washes zombies away (6 + knockback) and leaves a Puddle
+  (group "puddles", LIFE). A LiveWire arc over a puddle electrifies the whole puddle (SHOCK_DMG). TANK_WIRE = roofs whose tank pours
+  right under a live wire (the combo).
+- KITE (enemies/types/kite.gd): pipa flyer with a glass-coated "cerol" line. Keeps KEEP distance, holds the kite over you; every DIVE_CD the
+  kite whistles (WARN_T) and dives - the line slices through where you are (1 damage). Misses -> it leads you (lead). Shoot the kite
+  (KiteBody, layer 4) -> LINE CUT, he becomes an angry normal zombie.
+- CAPOEIRA (enemies/types/capoeira.gd): sees every shot you fire (zombie.gd on_player_fired -> type on_shot). A shot through him -> AU
+  (cartwheel, no collision for AU_T) then a DODGE_CD; every shot he sees shortens it (DODGE_MIN) - he reads your rhythm. Hit him with a
+  quick double tap, from closer than CLOSE, with explosives, or while he winds up his meia-lua kick (x1.3).
+- GRAFFITI (enemies/types/graffiti.gd): keeps KEEP distance and waits for you to RELOAD (player.is_reloading) -> rushes in and sprays your
+  face: PaintSplats (CanvasLayer over everything, BLIND_T) and every zombie in MARK_R knows where you are. Shoot the can while he sprays ->
+  it pops (x2).
+- BOSS O DONO DO MORRO (enemies/types/dono.gd, stationary) on the roof of the tall house at the end (main meta "boss_x"/"boss_y" - the stage
+  decides where a stationary boss stands, stationary_boss.gd _place). burst (BURST_N rifle rounds, lead), rojao (fireworks lobbed over
+  you, "rocket" Lob), pound if you climb up. DUCK_HITS head hits in DUCK_WIN -> he ducks behind the brick parapet (DUCK_T, bullets from
+  below do nothing, he throws fireworks blind at your last spot) and stands up laughing with a burst ready.
+- Game.IMPLEMENTED = 37.

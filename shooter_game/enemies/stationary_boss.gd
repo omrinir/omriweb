@@ -51,6 +51,12 @@ const EDGE := 720.0   # כמה רחוק מסוף השלב הוא עומד (שי�
 func _place() -> void:
 	if z != null and is_instance_valid(z) and z.world_w < 90000.0:
 		z.global_position.x = minf(z.global_position.x, float(z.world_w) - EDGE)
+		var main: Node = z.get_parent()
+		if main.has_meta("boss_x"):   # השלב קובע איפה הוא עומד (למשל על גג)
+			z.global_position.x = float(main.get_meta("boss_x"))
+		if main.has_meta("boss_y"):
+			z.global_position.y = float(main.get_meta("boss_y"))
+			z.velocity = Vector2.ZERO
 
 
 func can_bite() -> bool:
@@ -381,6 +387,12 @@ class Lob extends Node2D:
 				draw_rect(Rect2(-r * 0.6, -r, r * 1.2, r * 2.0), col)
 				draw_rect(Rect2(-r * 0.6, -r, r * 1.2, r * 0.4), Color(0.2, 0.2, 0.2))
 				draw_circle(Vector2(0, -r * 1.2), 2.5 + sin(_t * 30.0), Color(1, 0.7, 0.2))
+			"rocket":   # רוג'או (זיקוק) - מקל עם ראש אדום וזנב ניצוצות
+				var d := velocity.normalized().rotated(-rotation)
+				draw_line(-d * r * 1.6, d * r * 1.2, Color("c8a060"), 2.0)
+				draw_line(d * r * 0.4, d * r * 1.4, Color("d03020"), r * 0.6)
+				for q in 4:
+					draw_circle(-d * (r * 1.6 + float(q) * 4.0) + Vector2(randf_range(-2, 2), randf_range(-2, 2)), 2.0 - float(q) * 0.4, Color(1.0, 0.8 - float(q) * 0.15, 0.3))
 			"beam":
 				draw_rect(Rect2(-r * 2.5, -r * 0.5, r * 5.0, r), Color("8a3a2a"))
 				draw_line(Vector2(-r * 2.5, 0), Vector2(r * 2.5, 0), Color(0.3, 0.1, 0.1), 1.5)

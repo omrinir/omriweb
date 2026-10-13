@@ -605,6 +605,8 @@ func _physics_process(delta: float) -> void:
 func on_player_fired(origin: Vector2, aim: Vector2) -> void:
 	if dead:
 		return
+	if type_mod != null and type_mod.has_method("on_shot"):   # CAPOEIRA (שלב 37) רואה את הירייה ומתחמק
+		type_mod.on_shot(origin, aim)
 	# יורים על זומבי שמתחבא? החברים שלו מסביב מסתערים
 	if _cover_state == 2:
 		var to := global_position + Vector2(0.0, -20.0 * sc) - origin

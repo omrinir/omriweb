@@ -38,6 +38,7 @@ enum {
 	REVIVER, SPOTTER, PANEL, DISH, # שלב 34 (המצפה). REVIVER חוזר בשלבים הבאים. DISH = בוס נייח
 	ENCASED, AXEMAN, AVALANCHER, ICE_TITAN, # שלב 35 (קרחון הגולגולת). ICE_TITAN = בוס נייח
 	MALLKI, GUARDIAN, QUIPU, APU, # שלב 36 (הפסגה). APU = בוס נייח
+	KITE, CAPOEIRA, GRAFFITI, DONO, # שלב 37 (פאבלה בריו). DONO = בוס נייח על גג
 }
 
 const FIRST := 20
@@ -135,6 +136,10 @@ const TYPES := {
 	GUARDIAN: "res://enemies/types/guardian.gd",
 	QUIPU: "res://enemies/types/quipu.gd",
 	APU: "res://enemies/types/apu.gd",
+	KITE: "res://enemies/types/kite.gd",
+	CAPOEIRA: "res://enemies/types/capoeira.gd",
+	GRAFFITI: "res://enemies/types/graffiti.gd",
+	DONO: "res://enemies/types/dono.gd",
 }
 
 static var _stats_cache := {}
