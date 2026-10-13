@@ -592,3 +592,26 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - NETTER (enemies/types/netter.gd): fisherman in a chullo hat. Keeps distance (BACKOFF), whirls the net (warning), throws it in an arc.
   Netted: very slow, no jumping, reeled toward him. ROLL (SHIFT) tears the net; a heavy hit on him (CUT_DMG) or killing him frees you.
 
+## Stage 32 - "DEVIL'S CARNIVAL" ("THEY LEARNED TO DANCE") - the Oruro carnival (Diablada), Bolivia, region 4 level 5
+- levels/stage_32.gd + effects/s32_decor.gd: night sky with fireworks, hills with town lights and the lit Virgin of Socavon statue,
+  colonial houses + the twin-tower church, string lights that blink ON THE BEAT, a zombie crowd in the stands bobbing to the beat,
+  flags and balloons. World: PlazaGround (cobblestones, confetti, streamers), Arch (silver-plate carnival arches with a devil mask),
+  Facade (colonial houses with carved wooden balconies = the upper floor, FACADES), Obstacle "food_cart" (smoking anticucho grill) /
+  "bleachers" / "brass_drums". CarnivalFX: falling confetti + a small beat indicator at the bottom of the screen.
+- Band (group "band"): the level's music is generated live: kick + tuba / snare + brass at BPM, beat_id counts beats, pulse() = 1 on the beat.
+  music() returns "" (main.gd now skips loading music when a stage returns "").
+- Castillo (group "castillos"): wooden firework tower. Shoot the wheels (WheelBody.hit_by_bullet) -> BURN_T seconds of spinning sparks that
+  burn every zombie in RADIUS (and you, if you stand too close).
+- Firecrackers: strings of firecrackers on the ground; anyone stepping on them sets off a chain of pops (1 damage to you, zombies hop and burn).
+- DIABLO (enemies/types/diablo.gd): devil dancer. Within SYNC_R of a living "bandleader" (BANDLEADER or SUPAY) it is in sync: leaps at you on
+  every beat, stomps between beats; odd dancers leap OVER you and land behind (surround). The mask blocks front head shots (MASK_HP) until
+  it breaks. When its bandleader dies -> lose_beat() -> DIZZY (x1.6).
+- MORENADA (enemies/types/morenada.gd): heavy barrel-costume dancer with a rattle. Starts on a beat: WIND (rattle) -> SPIN toward you
+  (bullets are DEFLECTED, contact = 1 damage + knockback; explosions/fire still hurt) -> DIZZY (x2 damage).
+- BANDLEADER (enemies/types/bandleader.gd): tuba player in a red marching coat, group "bandleaders". Stays behind the troupe (BACKOFF);
+  puffs his cheeks (warning) and blasts you back (BLAST_R). Killing him makes nearby dancers lose the beat. TROUPES = bandleader + 4 diablos.
+- BOSS SUPAY (enemies/types/supay.gd, also stage 33): the devil king (4 horns, crown, trident, red-black cape with a gold dragon). Leaps on the
+  beat (landing next to you = STOMP_DMG), throws arcs of firework Rockets, "DANCE WITH ME!" summons 4 diablos around you (CIRCLE_CD).
+  Stage 32: at ESCAPE_AT he becomes invulnerable and runs off to the volcano (the exit opens) -> stage 33.
+- Mind control: BANDLEADER -> scream.
+

@@ -822,6 +822,8 @@ func _start_music() -> void:
 		path = "res://music/level1_zombie_joyride.ogg"   # "Zombie Joyride" (EDM). OGG = קובץ קטן בערך פי 2.5 מ-MP3 באותה איכות
 	if _stage != null:
 		path = _stage.music()
+	if path == "":   # השלב מנגן בעצמו (למשל התזמורת של שלב 32)
+		return
 	var stream := _load_music(path)
 	if stream == null:
 		push_warning("[MUSIC] could not load " + path + " - copy the music folder into the game folder")

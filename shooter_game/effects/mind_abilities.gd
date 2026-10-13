@@ -52,7 +52,7 @@ static func ability_for(z: Node) -> String:
 		return "slam"
 	if k in [Registry.BOMBHEAD, Registry.SAPPER, Registry.DYNAMITER]:
 		return "explode"
-	if k in [Registry.SIREN, Registry.COMMANDER, Registry.PACK_LEADER, Registry.SIGNALER, Registry.HANDLER, Registry.BELLRINGER]:
+	if k in [Registry.SIREN, Registry.COMMANDER, Registry.PACK_LEADER, Registry.SIGNALER, Registry.HANDLER, Registry.BELLRINGER, Registry.BANDLEADER]:
 		return "scream"
 	return "pounce"
 
