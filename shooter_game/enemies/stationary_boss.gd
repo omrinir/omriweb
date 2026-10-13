@@ -387,6 +387,12 @@ class Lob extends Node2D:
 				draw_rect(Rect2(-r * 0.6, -r, r * 1.2, r * 2.0), col)
 				draw_rect(Rect2(-r * 0.6, -r, r * 1.2, r * 0.4), Color(0.2, 0.2, 0.2))
 				draw_circle(Vector2(0, -r * 1.2), 2.5 + sin(_t * 30.0), Color(1, 0.7, 0.2))
+			"shell":   # פגז טנק / מרגמה
+				var d := velocity.normalized().rotated(-rotation)
+				var nn := d.orthogonal()
+				draw_colored_polygon(PackedVector2Array([-d * r * 1.4 + nn * r * 0.5, d * r * 0.6 + nn * r * 0.5, d * r * 1.4, d * r * 0.6 - nn * r * 0.5, -d * r * 1.4 - nn * r * 0.5]), Color("3a3a30"))
+				draw_line(-d * r * 0.6 + nn * r * 0.5, -d * r * 0.6 - nn * r * 0.5, Color("c8a040"), 1.5)
+				draw_line(-d * r * 1.4, -d * r * 3.5, Color(1.0, 0.7, 0.3, 0.5), r * 0.6)
 			"football":   # כדור (השוער)
 				draw_circle(Vector2.ZERO, r + 1.2, Color(0.1, 0.1, 0.1))
 				draw_circle(Vector2.ZERO, r, Color(0.97, 0.97, 0.97))

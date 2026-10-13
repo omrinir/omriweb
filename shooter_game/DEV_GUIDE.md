@@ -795,3 +795,35 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   (SAVE_HOLD) and head shots are SAVED. Snap-aim and shoot, or shoot while he winds up a kick / throw.
 - player.gd: jam_t (stage 39). menu.gd: the practice buttons wrap into two rows when there are more than 24 levels.
 - Game.IMPLEMENTED = 39.
+
+## THE EMPIRE OF THE DEAD (levels 40-45, region 5 levels 4-9)
+Story: after the Maracana the hero follows them to the coast - they are not a horde any more. They wear uniforms, hold ranks and fly red
+flags, and they all work for one goal: to conquer the world.
+- enemies/empire_kit.gd (shared): the emblem is an OUROBOROS (an ancient serpent eating its own tail) around a skull, black on a white
+  disc on a red flag - an original symbol for the game (deliberately not any real-world political symbol). emblem / flag / banner /
+  armband / helmet drawing, soldier() = the shared uniformed body (helmet / officer cap / gas mask, red armband, red eyes), rifle(),
+  fire() = a soldier's bullet (stationary_boss Shot), order(z, kind, r) = an order to every member of group "empire" in range
+  (type.on_order(kind, from)), clear_shot().
+- "THEY LEARN TOGETHER": squad_aim_y(main) is one aim height shared by every rifleman in the level. A bullet that misses because you
+  jumped -> all of them aim higher; because you ducked -> all of them aim lower (Tracker -> squad_miss).
+- zombie.gd: meta "morale_t" (FLAGBEARER) -> x0.6 damage while it lasts.
+
+## Stage 40 - "HARBOR OF WAR" ("THEY LEARNED TO OBEY") - the Port of Santos at dawn, region 5 level 4
+- levels/stage_40.gd + effects/s40_decor.gd: dawn over the harbor with funnel smoke, the Serra do Mar, Santos' famous leaning buildings,
+  warships with red flags; gantry cranes with red banners, container stacks, a cargo ship with tanks on deck; bollards and chains.
+  World: QuayGround, ContainerStack (upper floor at TIER + ladder, the emblem sprayed on), Obstacle "drum_pile" / "cargo_crate" /
+  "bollard". HarborFX: sea fog.
+- Trap SwingBox (SWINGS): a container swinging on a crane cable at body height (pendulum PERIOD / AMP) - knocks you away, DMG_Z to zombies.
+- Trap BarbWire (WIRES): slow + 1 damage per TICK while you walk through; jump over it.
+- CONSCRIPT (enemies/types/conscript.gd): rifleman. Line of sight + RANGE -> AIM_T (glint) -> shot. Orders: volley / charge /
+  leaderless (confused) / broken.
+- OFFICER (enemies/types/officer.gd, "IMPERIAL OFFICER"): stays KEEP behind. "VOLLEY!" (whistle) when you are in the open and he has
+  VOLLEY_MIN riflemen, "CHARGE!" when you reload, pistol shots. His death -> "leaderless" for every soldier in ORDER_R.
+- FLAGBEARER (enemies/types/flagbearer.gd): the empire flag on a pole - empire soldiers within AURA_R take x0.6 damage. Shoot the pole /
+  flag (above his head) FLAG_HP times -> the flag falls, the protection is gone at once and the soldiers around are "broken".
+- SQUADS: 3 conscripts in front, a flagbearer in the middle (every other squad), the officer behind.
+- BOSS BEHEMOTH (enemies/types/behemoth.gd, stationary tank): the commander in the hatch is the weak point (he ducks for DUCK_T after
+  each cannon shot). shell = "BRACKETING": the first shell lands FIRST_ERR short or long, every next one halves the error while you stay
+  within MOVE_RESET of the last spot ("ON TARGET") - move and he starts a new bracket. mg = MG_N bullet burst. pound = point-blank shot.
+- stationary_boss.gd Lob: new "shell" look.
+- Game.IMPLEMENTED = 40. Region 5 level names: Harbor of War, The Parade, Metro Barracks, War Factory, The Dam, The Red Palace.

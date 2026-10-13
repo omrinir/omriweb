@@ -1098,6 +1098,8 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		Sfx.play("shield", hit_pos, -6.0, 0.15, 2)
 	if type_mod != null:
 		dmg = maxi(0, int(round(float(dmg) * type_mod.damage_mult(zone, src))))
+	if has_meta("morale_t") and float(get_meta("morale_t")) > _time:   # FLAGBEARER (שלב 40): ליד הדגל הם לא נשברים
+		dmg = maxi(1, int(round(float(dmg) * 0.6)))
 	if src.has("weapon") and source == "bullet":
 		if has_meta("resist_weapon") and int(src.weapon) == int(get_meta("resist_weapon")):   # QUIPU (שלב 36) "רשם" את הנשק הזה
 			dmg = maxi(1, int(round(float(dmg) * 0.4)))

@@ -41,6 +41,7 @@ enum {
 	KITE, CAPOEIRA, GRAFFITI, DONO, # שלב 37 (פאבלה בריו). DONO = בוס נייח על גג
 	OFFICE, WASHER, COURIER, TOWER, # שלב 38 (סאו פאולו). TOWER = בוס נייח על פיגום
 	HOOLIGAN, STRIKER, REFEREE, GOALKEEPER, # שלב 39 (המרקנה). GOALKEEPER = בוס נייח בשער
+	CONSCRIPT, OFFICER, FLAGBEARER, BEHEMOTH, # שלב 40 (נמל סנטוס - אימפריית המתים). BEHEMOTH = טנק נייח
 }
 
 const FIRST := 20
@@ -150,6 +151,10 @@ const TYPES := {
 	STRIKER: "res://enemies/types/striker.gd",
 	REFEREE: "res://enemies/types/referee.gd",
 	GOALKEEPER: "res://enemies/types/goalkeeper.gd",
+	CONSCRIPT: "res://enemies/types/conscript.gd",
+	OFFICER: "res://enemies/types/officer.gd",
+	FLAGBEARER: "res://enemies/types/flagbearer.gd",
+	BEHEMOTH: "res://enemies/types/behemoth.gd",
 }
 
 static var _stats_cache := {}
