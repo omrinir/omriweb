@@ -213,6 +213,13 @@ func _build_ui(vp: Vector2) -> void:
 	hint.visible = not TouchAPI.on()
 	ui.add_child(hint)
 
+	var build := Caption.new()   # כמה שלבים מותקנים - לבדוק שהעדכון נכנס
+	build.size = 15
+	build.color = Color(0.6, 1.0, 0.6, 0.8)
+	build.text = "LEVELS INSTALLED: %d" % Game.IMPLEMENTED
+	build.position = Vector2(vp.x - 190.0, vp.y - 42.0)
+	ui.add_child(build)
+
 	first.call_deferred("grab_focus")
 
 	# מסך שחור שנעלם בכניסה (ומופיע ביציאה)
