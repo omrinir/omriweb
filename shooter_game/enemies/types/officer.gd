@@ -91,6 +91,7 @@ func physics(pl: Node, delta: float) -> bool:
 
 
 func on_death() -> void:
+	E.leader_down(z.get_parent())
 	var n := E.order(z, "leaderless", ORDER_R)
 	if n > 0:
 		z._popup("THE OFFICER IS DOWN", Color("e0e0e0"), 13, -90.0)

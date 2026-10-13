@@ -69,6 +69,7 @@ func _drop_flag() -> void:
 
 
 func on_death() -> void:
+	E.leader_down(z.get_parent())
 	_drop_flag()
 
 

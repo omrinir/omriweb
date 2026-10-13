@@ -70,6 +70,10 @@ func on_order(kind: String, _from: Node) -> void:
 			if state != CONFUSED:
 				state = CONFUSED
 				_st = 2.0
+		"rally":   # COMMISSAR / HERALD (שלב 45): מחזירים אותם לקרב
+			if state == CONFUSED:
+				state = ADVANCE
+				z._alert_t = maxf(float(z._alert_t), 5.0)
 
 
 func physics(pl: Node, delta: float) -> bool:

@@ -942,3 +942,27 @@ flags, and they all work for one goal: to conquer the world.
   the gantry). bombs = a carpet of BOMB_N bombs around you; "THEY LEARN WHERE YOU RUN": the next carpet is shifted toward where you ran
   from the last one (run_bias). mg burst. "JUMP! JUMP!" - JUMP_N paratroopers when few soldiers are near.
 - Game.IMPLEMENTED = 44.
+
+## Stage 45 - "THE RED PALACE" ("THEY LEARNED YOU") - the Imperial Palace of Petropolis, region 5 level 9 (the end of the Empire)
+- levels/stage_45.gd + effects/s45_decor.gd: red dusk with a moon, the Serra dos Orgaos with the "Finger of God" peak, Petropolis'
+  gothic cathedral, the neoclassical summer palace of Brazil's emperors painted red (columns, lit arched windows, giant banners,
+  imperial palms), a hydrangea garden with an iron fence. World: PalaceGround (stone + red carpet), Balcony (upper floor at TIER +
+  2 ladders), Throne (the dais at the end: floor at DAIS + 2 ladders, giant curtain with the emblem), Obstacle "statue" / "urn" /
+  "hedge". PalaceFX: red petals + ash.
+- Trap Brazier (BRAZIERS): embers flare (WARN_T) -> a ring of fire R for FLARE_T (damage ticks to you, ignites zombies).
+- Trap HangingBanner (BANNERS): a giant banner on a rope over the path. Stand under it -> creak (WARN_T) -> it falls (DMG / DMG_Z).
+  The rope is a small body on layer 4 - shoot it to drop the banner on zombies.
+- empire_kit.gd: leader_down() / leaders_killed() - officer, flagbearer, drummer and commissar deaths are counted (main meta).
+  conscript.gd: new order "rally" (a confused conscript goes back to the fight).
+- PRAETORIAN (enemies/types/praetorian.gd): tower shield that blocks bullets from the angle it guards - "front" or "high" (shots coming
+  down, dir.y > HIGH_DY). "THEY LEARN YOUR ANGLE - TOGETHER": the last ANGLE_MEMORY shots at any praetorian (main meta "pr_shots") decide
+  the shield for all of them - switch angles. Spear thrust opens the shield for a moment; explosions ignore it.
+- COMMISSAR (enemies/types/commissar.gd): rallies confused soldiers ("NO RETREAT!"), takes command (VOLLEY) when no officer is near.
+  "THEY LEARNED YOU KILL THE LEADERS FIRST": KEEP grows with leaders_killed, and he hides behind praetorians.
+- HERALD (enemies/types/herald.gd): hears every shot (on_shot). BURST_SHOTS shots in BURST_T -> "BY ORDER OF THE EMPEROR!": empire
+  soldiers within DECREE_R take x0.6 damage for DECREE_T (longer each time). Rallies confused soldiers. His death breaks the decree.
+- BOSS THE EMPEROR (enemies/types/emperor.gd, on the throne dais): weak point = the head. bolts = a fan of BOLT_N fireballs aimed at the
+  height the whole empire learned from your dodges (squad_aim_y). "GUARDS!" calls praetorians; while one is within GUARD_R he takes
+  GUARD_MULT damage. Below half: crown boomerang (while it flies the bare head takes CROWNLESS_MULT), "FOR THE EMPIRE!" (rally + charge),
+  faster bolts. His death: "THE EMPIRE FALLS" - every empire soldier is broken.
+- Game.IMPLEMENTED = 45.

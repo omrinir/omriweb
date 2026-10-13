@@ -81,6 +81,7 @@ func _break_drum() -> void:
 
 
 func on_death() -> void:
+	E.leader_down(z.get_parent())
 	if intact:
 		E.order(z, "broken", DRUM_R)
 

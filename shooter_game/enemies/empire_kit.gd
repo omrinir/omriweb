@@ -163,6 +163,15 @@ static func squad_miss(main: Node, how := "") -> void:
 		pl._say("THEY ALL LEARNED MY DODGE...", Color("ff8060"))
 
 
+# מנהיג (קצין / נושא דגל / מתופף) מת - נספר. COMMISSAR (שלב 45) לומד: "אתה הורג קודם את המנהיגים"
+static func leader_down(main: Node) -> void:
+	main.set_meta("leaders_killed", (int(main.get_meta("leaders_killed")) if main.has_meta("leaders_killed") else 0) + 1)
+
+
+static func leaders_killed(main: Node) -> int:
+	return int(main.get_meta("leaders_killed")) if main.has_meta("leaders_killed") else 0
+
+
 # כמה גבוה / נמוך: האם יש קו ראייה ישר (בגובה החזה) לשחקן
 static func clear_shot(z: Node, from: Vector2, to: Vector2) -> bool:
 	var q := PhysicsRayQueryParameters2D.create(from, to, 1)
