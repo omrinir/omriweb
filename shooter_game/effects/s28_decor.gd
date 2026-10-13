@@ -1,19 +1,23 @@
 extends RefCounted
 # ============================================================
-#  קישוטים לשלב 28 ("CLOUD PASS") - מעבר הרים באנדים בגובה 4,000 מטר: פסגות מושלגות, עננים שעוברים דרך המעבר,
-#  טרסות חקלאות של האינקה, חומות אבן אינקאיות (פתחים טרפזיים), קונדורים, ערמות אבנים (אפצ'טה), עשב איצ'ו צהוב.
-#    andes_sky     - (רקע) כחול עמוק של גובה רב, שמש חזקה, עננים דקים
-#    far_peaks     - (רקע) רכסים מושלגים + גדות עננים שנעות דרך המעבר
-#    mid_terraces  - (רקע) טרסות אינקה ירוקות-חומות, חורבות, קונדורים חגים, לאמות
-#    near_ichu     - (רקע) עשב איצ'ו מתנופף, סלעים, אפצ'טות
-#    PassGround    - (עולם) שביל סלעי עם חצץ וכתמי שלג
-#    Crevasse      - (עולם, מלכודת) סדק קרח עם יתדות קרח (יורש SpikePit משלב 21: נופלים = נפגעים ונזרקים החוצה)
-#    Obstacle      - (מוצק + מחסה) "inka_wall" חומת אבן אינקאית / "apacheta" ערמת אבנים / "bale" חבילות איצ'ו
-#    RopeBridge    - (עולם) גשר חבלים אינקאי (חבלים מעל קומה מעץ)
-#    Campfire      - (עולם) מדורת רועים עם עשן (חלקיקים) ועשב שנשרף
-#    Wind          - (עולם, מלכודת, קבוצה "wind") רוח חזקה במחזור: CALM -> WARN (דגלים ואבק) -> GUST (דוחפת אותך ואת הזומבים)
-#    PassFX        - (מסך) פתיתי שלג, אבק ופסי רוח בזמן משב, ערפל עננים שעובר
-#  לשנות: Wind.CALM_T, Wind.WARN_T, Wind.GUST_T, Wind.PUSH.
+#  קישוטים לשלב 28 ("DEATH ROAD") - "דרך המוות" של היונגס בבוליביה: כביש עפר צר שחצוב בצוק,
+#  בתוך יער עננים. ערפל עולה מהעמק, מפלים שנופלים על הכביש, אוטובוסים ומשאיות שהתרסקו,
+#  צלבים ומקדשונים קטנים (אנימיטות) לזכר מי שנפל.
+#    yungas_sky    - (רקע) דמדומים מעוננים, אור חם מאחורי העננים
+#    far_ranges    - (רקע) הקורדיירה המושלגת רחוק + רכסים אפורים, ערפל בין השכבות
+#    mid_slope     - (רקע) ההר שממול: יער ירוק כהה, הכביש חצוב בו, משאיות עם פנסים, צלבים, מפלים
+#    near_canopy   - (רקע) צמרות יער העננים מתחת לכביש + שרכי עץ, ערפל
+#    RoadGround    - (עולם) כביש עפר בוצי: תעלות גלגלים, שלוליות, חצץ, שורשים
+#    Washout       - (עולם, מלכודת, קבוצה "washouts") הכביש נשבר: בור עם ברזלים חלודים וסלעים (יורש SpikePit משלב 21),
+#                    ערפל עולה מבפנים. שם מחכים ה-CLINGER.
+#    CliffLedge    - (עולם, קבוצה "ledges") קטע כביש עליון חצוב בצוק, עם קורות עץ שתומכות בו. מאחוריו קיר סלע עם טחב.
+#    Waterfall     - (עולם) מפל שנופל מהצוק על הכביש: מסך מים שקוף, רסס וטיפות
+#    WreckBus      - (מוצק + מחסה) אוטובוס "פלוטה" שהתרסק, ידיים בחלונות. מתקרבים -> נוסעים זומבים יוצאים (on_open)
+#    WreckTruck    - (מוצק + מחסה) משאית הפוכה ובוערת עם עמוד עשן
+#    Shrine        - (עולם) אנימיטה: בית קטן עם צלב, נרות מהבהבים ופרחים
+#    Obstacle      - (מוצק + מחסה) "slide_rocks" מפולת סלעים ובוץ / "fuel_drums" חביות דלק חלודות / "luggage" מטען שנפל מהגג
+#    RoadFX        - (מסך) טפטוף, גדות ערפל שעוברות
+#  לשנות: WreckBus.OPEN_R, Waterfall, CliffLedge.TOP_EXTRA.
 # ============================================================
 
 const Art := preload("res://art.gd")
@@ -21,10 +25,14 @@ const Sfx := preload("res://sfx.gd")
 const Kit := preload("res://effects/backdrop_kit.gd")
 const Particles := preload("res://particles.gd")
 
-const ROCK := Color("7a6e62")
-const ROCK_D := Color("4e463e")
-const ICHU := Color("c8a858")
-const STONE := Color("9a8e7e")
+const MUD := Color("6e5a42")
+const MUD_D := Color("3a2e24")
+const ROCK := Color("4a463c")
+const ROCK_D := Color("2e2b25")
+const MOSS := Color("4a6a34")
+const FOREST := Color("2c4234")
+const FOREST_D := Color("1c2e24")
+const MIST := Color(0.84, 0.84, 0.8)
 
 
 static func _rng(s: int) -> RandomNumberGenerator:
@@ -33,118 +41,174 @@ static func _rng(s: int) -> RandomNumberGenerator:
 	return r
 
 
-static func wind() -> Node:
-	var tree := Engine.get_main_loop() as SceneTree
-	return tree.get_first_node_in_group("wind") if tree != null else null
+# ---- רעש חלק (רכסים שממשיכים בלי תפרים כשהמצלמה זזה) ----
+static func _h(i: int, s: int) -> float:
+	return fposmod(sin(float(i) * 127.1 + float(s) * 311.7) * 43758.5453, 1.0)
 
 
-# ---- שמיים של גובה רב ----
-static func andes_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
-	Kit.gradient_sky(ci, v, [Color("1a3a7a"), Color("2a5aa0"), Color("5a8ac8"), Color("a8c8e0"), Color("dde8f0")], 0.82)
-	var sun := Vector2(v.x * 0.78, v.y * 0.16)
-	for i in 4:
-		ci.draw_circle(sun, 90.0 - float(i) * 20.0, Color(1.0, 1.0, 0.92, 0.06 + 0.05 * float(i)))
-	ci.draw_circle(sun, 22.0, Color("fffff0"))
-	for i in 3:   # עננים דקים גבוהים
-		var y := v.y * (0.12 + 0.07 * float(i))
-		var x := fposmod(t * (3.0 + float(i) * 2.0) + float(i) * 470.0, v.x + 800.0) - 400.0
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(x, y), Vector2(x + 300, y - 5), Vector2(x + 640, y + 2), Vector2(x + 320, y + 6)]), Color(1, 1, 1, 0.35))
+static func _vn(t: float, s: int) -> float:
+	var i := floori(t)
+	var f := t - float(i)
+	f = f * f * (3.0 - 2.0 * f)
+	return lerpf(_h(i, s), _h(i + 1, s), f)
 
 
-# ---- רכסים מושלגים + עננים שעוברים ----
-static func far_peaks(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> void:
-	var period := 1600.0
+static func _ridge(u: float, period: float, s: int) -> float:   # 0..1, פסגות חדות
+	var a := _vn(u / period, s)
+	var b := 1.0 - absf(_vn(u / (period * 0.42), s + 7) * 2.0 - 1.0)
+	var c := _vn(u / (period * 0.14), s + 13)
+	return a * 0.5 + b * 0.36 + c * 0.14
+
+
+static func _ridge_pts(sc: float, v: Vector2, base: float, amp: float, period: float, s: int, step := 16.0) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var x := -step
+	while x <= v.x + step:
+		pts.append(Vector2(x, base - _ridge(x + sc, period, s) * amp))
+		x += step
+	return pts
+
+
+static func _fill_below(ci: CanvasItem, pts: PackedVector2Array, v: Vector2, col: Color) -> void:
+	var poly := pts.duplicate()
+	poly.append(Vector2(pts[pts.size() - 1].x, v.y))
+	poly.append(Vector2(pts[0].x, v.y))
+	ci.draw_colored_polygon(poly, col)
+
+
+# ערפל שמצטבר למטה (שקוף למעלה, סמיך למטה)
+static func _fog(ci: CanvasItem, v: Vector2, y0: float, y1: float, col: Color) -> void:
+	var n := 6
+	var hh := (y1 - y0) / float(n)
+	for i in n:
+		ci.draw_rect(Rect2(0, y0 + hh * float(i), v.x, hh + 1.0), Color(col, col.a * float(i + 1) / float(n)))
+
+
+# ---- דמדומים מעוננים ----
+static func yungas_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
+	Kit.gradient_sky(ci, v, [Color("262c36"), Color("3e4856"), Color("6a6e72"), Color("a88e7a"), Color("caa486")], 0.8)
+	var sun := Vector2(v.x * 0.68, v.y * 0.42)   # שמש שוקעת מאחורי העננים
+	for i in 5:
+		ci.draw_circle(sun, 260.0 - float(i) * 45.0, Color(1.0, 0.72, 0.45, 0.05 + 0.02 * float(i)))
+	for i in 5:   # שכבות עננים כבדות
+		var y := v.y * (0.08 + 0.075 * float(i))
+		var x := fposmod(t * (2.0 + float(i)) + float(i) * 390.0, v.x + 900.0) - 450.0
+		var c := Color("2e3440").lerp(Color("8a7a70"), float(i) / 4.0)
+		for q in 4:
+			ci.draw_colored_polygon(Art.ellipse(Vector2(x + float(q) * 230.0, y + float(q % 2) * 10.0), 210.0, 22.0 + float(q % 3) * 6.0, 0.0, 14), Color(c, 0.55))
+
+
+# ---- הקורדיירה המושלגת + רכסים אפורים ----
+static func far_ranges(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> void:
+	var snow := _ridge_pts(sc * 0.5, v, y - 110.0, 240.0, 900.0, 3, 18.0)
+	_fill_below(ci, snow, v, Color("8a94a0"))
+	for i in snow.size() - 1:   # שלג על הפסגות
+		var a := snow[i]
+		var b := snow[i + 1]
+		var la := (y - 110.0 - a.y) / 240.0
+		var lb := (y - 110.0 - b.y) / 240.0
+		if la > 0.6 and lb > 0.6:
+			ci.draw_colored_polygon(PackedVector2Array([a, b, b + Vector2(0, (lb - 0.6) * 90.0), a + Vector2(0, (la - 0.6) * 90.0)]), Color("e4e8ee"))
+	_fog(ci, v, y - 210.0, y - 60.0, Color(MIST, 0.55))
+	var mid := _ridge_pts(sc, v, y - 10.0, 210.0, 620.0, 11)
+	_fill_below(ci, mid, v, Color("566468"))
+	_fog(ci, v, y - 120.0, y + 10.0, Color(MIST, 0.5))
+	for i in 3:   # ענני נוצה שנעים בעמק
+		var cx := fposmod(t * (6.0 + float(i) * 3.0) - sc * 0.2 + float(i) * 640.0, v.x + 1000.0) - 500.0
+		ci.draw_colored_polygon(Art.ellipse(Vector2(cx, y - 70.0 + float(i) * 22.0), 260.0, 18.0, 0.0, 16), Color(1, 1, 1, 0.12))
+
+
+# ---- ההר שממול: יער, הכביש חצוב בו, משאיות, צלבים, מפלים ----
+static func _road_y(u: float, base: float, amp: float) -> float:
+	return base - _ridge(u, 760.0, 41) * amp + 74.0 + sin(u / 260.0) * 22.0
+
+
+static func mid_slope(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> void:
+	var amp := 300.0
+	var top := PackedVector2Array()   # הרכס + צמרות עצים פרועות (בפוליגון אחד - זול)
+	var x0 := -fposmod(sc, 9.0) - 9.0
+	while x0 <= v.x + 18.0:
+		var u := x0 + sc
+		top.append(Vector2(x0, y - _ridge(u, 760.0, 41) * amp - _h(roundi(u / 9.0), 23) * 7.0))
+		x0 += 9.0
+	_fill_below(ci, top, v, FOREST)
+	# הכביש חצוב בהר (קו בהיר + שוליים כהים)
+	var road := PackedVector2Array()
+	var x := -16.0
+	while x <= v.x + 16.0:
+		road.append(Vector2(x, _road_y(x + sc, y, amp)))
+		x += 16.0
+	ci.draw_polyline(road, Color("22302a"), 4.0)
+	ci.draw_polyline(road, Color(0.62, 0.56, 0.45, 0.45), 1.5)
+	# צלבים ומפלים לאורך הכביש
+	var p0 := int(floor(sc / 380.0)) - 1
+	for k in range(p0, p0 + int(v.x / 380.0) + 3):
+		var u := float(k) * 380.0 + _h(k, 5) * 200.0
+		var sx := u - sc
+		var ry := _road_y(u, y, amp)
+		if _h(k, 9) < 0.45:
+			ci.draw_line(Vector2(sx, ry - 2), Vector2(sx, ry - 10), Color(0.95, 0.95, 0.92, 0.9), 1.5)
+			ci.draw_line(Vector2(sx - 3, ry - 7.5), Vector2(sx + 3, ry - 7.5), Color(0.95, 0.95, 0.92, 0.9), 1.5)
+		if _h(k, 17) < 0.3:   # מפל דק מהכביש למטה
+			var fx := sx + 60.0
+			var fy := _road_y(u + 60.0, y, amp) + 3.0
+			for q in 3:
+				var yy := fy + fposmod(t * 70.0 + float(q) * 33.0, 100.0)
+				ci.draw_line(Vector2(fx, yy), Vector2(fx + 1, yy + 22.0), Color(0.85, 0.92, 1.0, 0.5), 2.0)
+			ci.draw_line(Vector2(fx, fy), Vector2(fx + 2, fy + 120.0), Color(0.85, 0.92, 1.0, 0.22), 3.0)
+			ci.draw_colored_polygon(Art.ellipse(Vector2(fx + 2, fy + 122.0), 16.0, 6.0, 0.0, 10), Color(1, 1, 1, 0.25))
+	# משאיות עם פנסים שזוחלות בכביש (בשני הכיוונים)
+	for i in 3:
+		var dirn := 1.0 if i % 2 == 0 else -1.0
+		var u: float = fposmod(t * 16.0 * dirn + float(i) * 1700.0, 4200.0) + floorf(sc / 4200.0) * 4200.0
+		var sx: float = u - sc
+		if sx < -100.0:
+			sx += 4200.0
+			u += 4200.0
+		if sx > v.x + 60.0:
+			continue
+		var ry := _road_y(u, y, amp)
+		ci.draw_rect(Rect2(sx - 10, ry - 9, 14, 7), Color("4a3a2a"))
+		ci.draw_rect(Rect2(sx + (4.0 if dirn > 0.0 else -16.0), ry - 7, 6, 5), Color("6a2a20"))
+		var hl := Vector2(sx + (10.0 if dirn > 0.0 else -16.0), ry - 5)
+		ci.draw_circle(hl, 1.6, Color(1.0, 0.95, 0.7))
+		ci.draw_colored_polygon(PackedVector2Array([hl, hl + Vector2(dirn * 44.0, -6), hl + Vector2(dirn * 44.0, 6)]), Color(1.0, 0.95, 0.7, 0.12))
+	_fog(ci, v, y - 120.0, y + 6.0, Color(MIST, 0.6))
+	for i in 2:   # ענן שעולה מהעמק ונדבק להר
+		var cx := fposmod(t * (9.0 + float(i) * 4.0) - sc * 0.5 + float(i) * 800.0, v.x + 1100.0) - 550.0
+		for q in 3:
+			ci.draw_colored_polygon(Art.ellipse(Vector2(cx + float(q) * 120.0, y - 150.0 + float(i) * 50.0 + float(q % 2) * 12.0), 170.0, 26.0, 0.0, 14), Color(1, 1, 1, 0.1))
+
+
+# ---- צמרות יער העננים מתחת לכביש + שרכי עץ ----
+static func near_canopy(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> void:
+	var period := 700.0
 	var start := int(floor(sc / period)) - 1
-	for layer in 2:
-		var lsc := sc * (0.6 if layer == 0 else 1.0)
-		var base := y - (60.0 if layer == 0 else 0.0)
-		var col := Color("7a86a8") if layer == 0 else Color("5a6488")
-		start = int(floor(lsc / period)) - 1
-		for k in range(start, start + int(ceil(v.x / period)) + 3):
-			var x := float(k) * period - lsc
-			var r := _rng(k * 61 + layer * 7 + 3)
-			for m in 5:
-				var mx := x + float(m) * 340.0 + r.randf_range(-50.0, 50.0)
-				var mh := r.randf_range(180.0, 300.0) * (0.85 if layer == 0 else 1.0)
-				var pts := PackedVector2Array([Vector2(mx - 230, base), Vector2(mx - 60, base - mh * 0.7), Vector2(mx, base - mh), Vector2(mx + 40, base - mh * 0.82), Vector2(mx + 250, base)])
-				ci.draw_colored_polygon(pts, col)
-				ci.draw_colored_polygon(PackedVector2Array([Vector2(mx - 80, base - mh * 0.62), Vector2(mx - 60, base - mh * 0.7), Vector2(mx, base - mh), Vector2(mx + 40, base - mh * 0.82), Vector2(mx + 70, base - mh * 0.6), Vector2(mx + 20, base - mh * 0.7), Vector2(mx - 20, base - mh * 0.58)]), Color("f4f6fa"))
-	# גדות עננים שזזות דרך המעבר
-	for i in 4:
-		var cx := fposmod(t * (14.0 + float(i) * 5.0) - sc * 0.3 + float(i) * 700.0, v.x + 1200.0) - 600.0
-		var cy := y - 90.0 + float(i % 2) * 40.0
-		for q in 7:   # בלי עיגולים חדים: אליפסות שטוחות ושקופות שחופפות
-			var cc := Vector2(cx + float(q) * 60.0, cy + sin(float(q) * 1.3) * 10.0)
-			ci.draw_colored_polygon(Art.ellipse(cc, 110.0 + float(q % 3) * 20.0, 26.0 + float(q % 2) * 10.0, 0.0, 16), Color(1, 1, 1, 0.13))
-			ci.draw_colored_polygon(Art.ellipse(cc + Vector2(10, -6), 60.0, 16.0, 0.0, 12), Color(1, 1, 1, 0.12))
-	ci.draw_rect(Rect2(0, y, v.x, v.y - y), Color("5a6488"))
-
-
-# ---- טרסות אינקה, חורבות, קונדורים, לאמות ----
-static func mid_terraces(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> void:
-	var period := 1400.0
-	var start := int(floor(sc / period)) - 1
-	for k in range(start, start + int(ceil(v.x / period)) + 3):
+	for k in range(start, start + int(ceil(v.x / period)) + 2):
 		var x := float(k) * period - sc
-		var r := _rng(k * 211 + 1)
-		# גבעה עם טרסות מדורגות
-		var hx := x + r.randf_range(0.0, 300.0)
-		for s in 6:
-			var sy := y - float(s) * 26.0
-			var sw := 760.0 - float(s) * 110.0
-			var sx := hx + float(s) * 55.0
-			ci.draw_rect(Rect2(sx, sy - 26.0, sw, 26.0), Color("6a7a4a") if s % 2 == 0 else Color("7a8a52"))
-			ci.draw_rect(Rect2(sx, sy - 4.0, sw, 4.0), Color("5a5042"))   # קיר אבן של הטרסה
-		# חורבת אינקה: קיר עם פתח טרפזי
-		var rx := x + r.randf_range(800.0, 1100.0)
-		ci.draw_rect(Rect2(rx, y - 70, 150, 70), Color("8a7e6c"))
-		for row in 4:
-			for c in 5:
-				ci.draw_rect(Rect2(rx + float(c) * 30.0 + float(row % 2) * 15.0, y - 70.0 + float(row) * 17.5, 28, 16), Color(0, 0, 0, 0.12), false, 1.0)
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(rx + 55, y), Vector2(rx + 62, y - 50), Vector2(rx + 88, y - 50), Vector2(rx + 95, y)]), Color("2a2620"))
-		# לאמות רועות
-		for l in 2:
-			var lx := x + r.randf_range(100.0, 1300.0)
-			var lc := Color("e8e0d0") if l == 0 else Color("8a6a4a")
-			ci.draw_colored_polygon(Art.ellipse(Vector2(lx, y - 14), 11.0, 6.0, 0.0, 10), lc)
-			ci.draw_line(Vector2(lx + 8, y - 16), Vector2(lx + 12, y - 30), lc, 3.0)
-			ci.draw_circle(Vector2(lx + 13, y - 31), 3.0, lc)
-			for lg in [-7.0, -3.0, 4.0, 8.0]:
-				ci.draw_line(Vector2(lx + lg, y - 9), Vector2(lx + lg, y), lc, 1.5)
-	# קונדורים חגים (שמיים)
-	for c in 2:
-		var a := t * 0.25 + float(c) * 2.5
-		var cp := Vector2(fposmod(v.x * 0.3 + float(c) * 500.0 + cos(a) * 220.0 - sc * 0.1, v.x + 200.0) - 100.0, y - 300.0 + sin(a) * 60.0)
-		var flap := sin(t * 1.5 + float(c)) * 0.15
-		ci.draw_polyline(PackedVector2Array([cp + Vector2(-34, -6 + flap * 40.0), cp + Vector2(-14, 0), cp, cp + Vector2(14, 0), cp + Vector2(34, -6 + flap * 40.0)]), Color("1a1a20"), 3.0)
-		ci.draw_circle(cp, 2.5, Color("f0f0f0"))
-	ci.draw_rect(Rect2(0, y, v.x, v.y - y), Color("5a5042"))
+		var r := _rng(k * 113 + 7)
+		for i in 7:   # צמרות
+			var cx := x + r.randf_range(0.0, period)
+			var cy := y - r.randf_range(10.0, 60.0)
+			var c := FOREST_D.lerp(Color("2a4a30"), r.randf())
+			for q in 3:
+				ci.draw_colored_polygon(Art.ellipse(Vector2(cx + float(q - 1) * 26.0, cy + float(q % 2) * 10.0), 34.0, 22.0, 0.0, 12), c)
+			ci.draw_colored_polygon(Art.ellipse(Vector2(cx - 6.0, cy - 10.0), 22.0, 9.0, 0.0, 10), Color(0.5, 0.65, 0.4, 0.12))
+		for i in 2:   # שרך עץ
+			var fx := x + r.randf_range(0.0, period)
+			var ft := Vector2(fx + 6.0, y - r.randf_range(90.0, 130.0))
+			ci.draw_line(Vector2(fx, y), ft, Color("2a2018"), 4.0)
+			for f in 8:
+				var a := -PI + float(f) * PI / 7.0 + sin(t * 0.8 + fx) * 0.04
+				var d := Vector2.from_angle(a)
+				var tip := ft + d * 46.0 + Vector2(0, 22.0 * absf(d.x))
+				ci.draw_polyline(PackedVector2Array([ft, ft + d * 22.0 + Vector2(0, -4), tip]), Color("1e3a24"), 3.0)
+	_fog(ci, v, y - 70.0, y + 10.0, Color(MIST, 0.35))
+	ci.draw_rect(Rect2(0, y + 10.0, v.x, v.y - y), Color("16241c"))
 
 
-# ---- עשב איצ'ו, סלעים, אפצ'טות ----
-static func near_ichu(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> void:
-	var period := 800.0
-	var start := int(floor(sc / period)) - 1
-	var w: Node = wind()
-	var gust: float = w.strength() if w != null else 0.0
-	for k in range(start, start + int(ceil(v.x / period)) + 3):
-		var x := float(k) * period - sc
-		var r := _rng(k * 97 + 5)
-		for i in 6:   # גושי איצ'ו
-			var px := x + r.randf_range(0.0, period)
-			var h := r.randf_range(20.0, 38.0)
-			for q in 6:
-				var bend := sin(t * 2.0 + px * 0.02 + float(q)) * 3.0 + gust * 14.0
-				ci.draw_line(Vector2(px + float(q) * 3.0, y), Vector2(px + float(q) * 3.0 + bend + float(q - 3) * 2.0, y - h), Color("6a5a30"), 1.6)
-		var cx := x + r.randf_range(100.0, 700.0)   # אפצ'טה (ערמת אבנים)
-		for s in 4:
-			ci.draw_colored_polygon(Art.ellipse(Vector2(cx, y - 6.0 - float(s) * 9.0), 16.0 - float(s) * 3.0, 6.0, 0.0, 10), Color("3a3430"))
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(x + 400, y), Vector2(x + 420, y - 30), Vector2(x + 470, y - 36), Vector2(x + 500, y)]), Color("2e2a26"))
-	ci.draw_rect(Rect2(0, y - 2.0, v.x, v.y - y + 2.0), Color("2e2a26"))
-
-
-# ---- שביל סלעי ----
-class PassGround extends Node2D:
+# ---- כביש עפר בוצי ----
+class RoadGround extends Node2D:
 	var w := 1024.0
 	var depth := 90.0
 	var seed_v := 0
@@ -156,43 +220,407 @@ class PassGround extends Node2D:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s28_decor.gd")
-		draw_rect(Rect2(0, 0, w, depth), S.ROCK_D)
-		draw_rect(Rect2(0, 0, w, 8.0), S.ROCK)
-		for i in int(w / 9.0):   # חצץ
-			draw_circle(Vector2(r.randf_range(0.0, w), r.randf_range(10.0, depth - 4.0)), r.randf_range(1.0, 3.0), Color(0.55, 0.5, 0.45, 0.5))
-		for i in int(w / 230.0):   # כתמי שלג
-			var px := r.randf_range(0.0, w - 60.0)
-			draw_colored_polygon(Art.ellipse(Vector2(px, 2), r.randf_range(18.0, 40.0), 3.5), Color(0.95, 0.96, 1.0, 0.85))
-		for i in int(w / 150.0):   # אבנים
-			var px := r.randf_range(0.0, w)
-			draw_colored_polygon(Art.ellipse(Vector2(px, -1.0), r.randf_range(4.0, 8.0), 3.0), S.STONE)
+		draw_rect(Rect2(0, 0, w, depth), S.MUD_D)
+		draw_rect(Rect2(0, 0, w, 10.0), S.MUD)
+		draw_line(Vector2(0, 0.5), Vector2(w, 0.5), Color(0.8, 0.7, 0.55, 0.35), 1.0)
+		var x := 0.0
+		while x < w:   # תעלות גלגלים
+			var l := r.randf_range(40.0, 120.0)
+			draw_line(Vector2(x, 4.0), Vector2(minf(x + l, w), 4.0 + r.randf_range(-0.6, 0.6)), Color("54442f"), 2.0)
+			draw_line(Vector2(x + 14.0, 8.0), Vector2(minf(x + l * 0.8, w), 8.0), Color("54442f"), 1.5)
+			x += l + r.randf_range(20.0, 60.0)
+		for i in int(w / 260.0):   # שלוליות שמשקפות את השמיים
+			var px := r.randf_range(30.0, w - 60.0)
+			var pw := r.randf_range(20.0, 44.0)
+			draw_colored_polygon(Art.ellipse(Vector2(px, 4.0), pw, 2.6, 0.0, 12), Color("8e8a86"))
+			draw_line(Vector2(px - pw * 0.5, 3.5), Vector2(px + pw * 0.2, 3.5), Color(1, 0.9, 0.8, 0.5), 1.0)
+		for i in int(w / 12.0):   # חצץ
+			draw_circle(Vector2(r.randf_range(0.0, w), r.randf_range(1.0, 9.0)), r.randf_range(0.8, 1.8), Color(0.6, 0.55, 0.48, 0.6))
+		for i in int(w / 70.0):   # אבנים באדמה
+			draw_colored_polygon(Art.ellipse(Vector2(r.randf_range(0.0, w), r.randf_range(18.0, depth - 6.0)), r.randf_range(4.0, 9.0), r.randf_range(3.0, 5.0), r.randf(), 8), Color("4a3e30"))
+		for i in int(w / 160.0):   # שורשים
+			var rx := r.randf_range(0.0, w)
+			var pts := PackedVector2Array()
+			for q in 5:
+				pts.append(Vector2(rx + sin(float(q) * 1.7 + rx) * 8.0, 12.0 + float(q) * 9.0))
+			draw_polyline(pts, Color("2a2018"), 1.6)
+		for i in int(w / 90.0):   # עשב בשוליים
+			var gx := r.randf_range(0.0, w)
+			for q in 4:
+				draw_line(Vector2(gx + float(q) * 2.5, 1.0), Vector2(gx + float(q) * 2.5 + r.randf_range(-3.0, 3.0), -r.randf_range(4.0, 9.0)), S.MOSS, 1.2)
 
 
-# ---- סדק קרח (יורש את בור היתדות של שלב 21, ציור אחר) ----
-class Crevasse extends "res://effects/s21_decor.gd".SpikePit:
+# ---- הכביש נשבר: בור עם ברזלים חלודים (יורש את בור היתדות של שלב 21) ----
+class Washout extends "res://effects/s21_decor.gd".SpikePit:
+	func _ready() -> void:
+		super._ready()
+		add_to_group("washouts")
+		var m := WashoutMist.new()
+		m.w = w
+		m.depth = depth
+		m.z_index = 2   # (יחסי: מעל ה-CLINGER שתלוי בפנים)
+		add_child(m)
+
 	func _draw() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = _seed
-		draw_rect(Rect2(0, 0, w, depth + 30.0), Color("1a2a3a"))
-		draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(10, 0), Vector2(4, depth), Vector2(0, depth)]), Color("a8c8e0"))
-		draw_colored_polygon(PackedVector2Array([Vector2(w, 0), Vector2(w - 10, 0), Vector2(w - 4, depth), Vector2(w, depth)]), Color("a8c8e0"))
-		draw_rect(Rect2(0, depth - 4.0, w, 34.0), Color("2a3a4a"))
-		var n := int(w / 10.0)
-		for i in n:   # יתדות קרח
-			var x := 4.0 + float(i) * (w - 8.0) / float(maxi(n - 1, 1))
-			var h := r.randf_range(16.0, 28.0)
-			draw_colored_polygon(PackedVector2Array([Vector2(x - 3.5, depth), Vector2(x + r.randf_range(-1.5, 1.5), depth - h), Vector2(x + 3.5, depth)]), Color(0.75, 0.88, 1.0, 0.9))
-			draw_line(Vector2(x, depth - h + 2.0), Vector2(x, depth - 4.0), Color(1, 1, 1, 0.5), 1.0)
-		for i in 3:   # נטיפי קרח על השפה
-			var x := r.randf_range(8.0, w - 8.0)
-			draw_colored_polygon(PackedVector2Array([Vector2(x - 3, 0), Vector2(x, 10), Vector2(x + 3, 0)]), Color(0.85, 0.95, 1.0, 0.9))
-		draw_line(Vector2(-14, 0), Vector2(-14, -24), Color("6a5030"), 3.0)   # מקל עם סרט אדום
-		draw_colored_polygon(PackedVector2Array([Vector2(-14, -24), Vector2(-4, -21), Vector2(-14, -17)]), Color("c03020"))
+		var S := preload("res://effects/s28_decor.gd")
+		draw_rect(Rect2(0, 0, w, depth + 30.0), Color("16140f"))
+		# קירות משוננים (אדמה וסלע)
+		draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(10, 0), Vector2(6, 14), Vector2(12, 28), Vector2(5, 44), Vector2(9, depth), Vector2(0, depth)]), Color("4a3c2e"))
+		draw_colored_polygon(PackedVector2Array([Vector2(w, 0), Vector2(w - 9, 0), Vector2(w - 5, 16), Vector2(w - 12, 30), Vector2(w - 4, 46), Vector2(w - 8, depth), Vector2(w, depth)]), Color("4a3c2e"))
+		# קצוות כביש שבורים שתלויים מעל
+		draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(16, 1), Vector2(11, 5), Vector2(4, 9), Vector2(0, 8)]), S.MUD)
+		draw_colored_polygon(PackedVector2Array([Vector2(w, 0), Vector2(w - 14, 1), Vector2(w - 8, 6), Vector2(w, 9)]), S.MUD)
+		for i in 4:   # שורשים תלויים
+			var rx := r.randf_range(4.0, 12.0) if i < 2 else w - r.randf_range(4.0, 12.0)
+			draw_polyline(PackedVector2Array([Vector2(rx, 6), Vector2(rx + r.randf_range(-4, 4), 20), Vector2(rx + r.randf_range(-6, 6), 30 + r.randf_range(0, 10))]), Color("2a2018"), 1.4)
+		# התחתית: סלעים שבורים וברזלים חלודים (זה מה שפוגע)
+		draw_rect(Rect2(0, depth - 4.0, w, 34.0), Color("2a241c"))
+		var n := int(w / 11.0)
+		for i in n:
+			var x := 5.0 + float(i) * (w - 10.0) / float(maxi(n - 1, 1))
+			if i % 2 == 0:
+				var hh := r.randf_range(12.0, 20.0)
+				draw_colored_polygon(PackedVector2Array([Vector2(x - 6, depth), Vector2(x - 2, depth - hh), Vector2(x + 4, depth - hh * 0.7), Vector2(x + 6, depth)]), Color("3a342c"))
+			else:
+				var tip := Vector2(x + r.randf_range(-5.0, 5.0), depth - r.randf_range(20.0, 28.0))
+				draw_line(Vector2(x, depth), tip, Color("7a4a2a"), 2.2)
+				draw_line(tip, tip + Vector2(0, 3), Color("c08050"), 2.2)
+		# שלט אזהרה צהוב לפני הבור
+		draw_line(Vector2(-18, 0), Vector2(-18, -30), Color("5a4030"), 2.5)
+		draw_colored_polygon(PackedVector2Array([Vector2(-18, -44), Vector2(-6, -32), Vector2(-18, -20), Vector2(-30, -32)]), Color("e0b020"))
+		draw_polyline(PackedVector2Array([Vector2(-18, -44), Vector2(-6, -32), Vector2(-18, -20), Vector2(-30, -32), Vector2(-18, -44)]), Color("2a2010"), 1.2)
+		draw_line(Vector2(-18, -38), Vector2(-18, -30), Color("2a2010"), 2.0)
+		draw_circle(Vector2(-18, -26), 1.2, Color("2a2010"))
+
+
+class WashoutMist extends Node2D:   # ערפל שעולה מתוך הבור (מעל ה-CLINGER - רק הידיים והראש בולטים)
+	var w := 80.0
+	var depth := 60.0
+	var _t := 0.0
+
+	func _process(delta: float) -> void:
+		_t += delta
+		if Engine.get_process_frames() % 3 == 0 and Art.on_screen(self, global_position + Vector2(w * 0.5, 0), w):
+			queue_redraw()
+
+	func _draw() -> void:
+		var n := 5
+		for i in n:
+			var y0 := 18.0 + float(i) * (depth + 12.0 - 18.0) / float(n)
+			draw_rect(Rect2(0, y0, w, (depth - 6.0) / float(n) + 1.0), Color(0.5, 0.54, 0.54, 0.12 + 0.08 * float(i)))
+		for q in 3:   # סלסולי ערפל שעולים
+			var yy := depth - fposmod(_t * 14.0 + float(q) * 20.0, depth - 10.0)
+			var a := 0.18 * clampf(yy / depth, 0.0, 1.0)
+			draw_colored_polygon(Art.ellipse(Vector2(w * (0.25 + 0.25 * float(q)) + sin(_t + float(q)) * 6.0, yy), w * 0.3, 6.0, 0.0, 10), Color(0.75, 0.78, 0.78, a))
+
+
+# ---- קטע כביש עליון חצוב בצוק (קורות עץ מתחת), קיר סלע עם טחב מאחור ----
+class CliffLedge extends Node2D:
+	const TOP_EXTRA := 520.0
+	var w := 400.0
+	var h := 150.0
+	var seed_v := 0
+	var cross := false
+
+	func _ready() -> void:
+		z_index = -1
+		add_to_group("ledges")
+
+	func lip_y() -> float:
+		return global_position.y - h
+
+	func _draw() -> void:
+		var r := RandomNumberGenerator.new()
+		r.seed = seed_v
+		var S := preload("res://effects/s28_decor.gd")
+		# קיר הסלע (מאחורי הכביש - כהה)
+		var H := h + TOP_EXTRA
+		var face := PackedVector2Array([Vector2(-70, 0)])
+		var yy := -40.0
+		while yy > -H + 30.0:   # צד שמאל משונן, משתפע פנימה למעלה
+			face.append(Vector2(lerpf(-70.0, 6.0, -yy / H) + r.randf_range(-12.0, 12.0), yy))
+			yy -= 46.0
+		var x := 10.0
+		while x < w - 10.0:   # הפסגה (מחוץ למסך)
+			face.append(Vector2(x, -H + r.randf_range(-20.0, 26.0)))
+			x += 60.0
+		yy = -H + 30.0
+		while yy < -40.0:   # צד ימין
+			face.append(Vector2(lerpf(w + 70.0, w - 6.0, -yy / H) + r.randf_range(-12.0, 12.0), yy))
+			yy += 46.0
+		face.append(Vector2(w + 70.0, 0))
+		draw_colored_polygon(face, S.ROCK)
+		for i in 4:   # שכבות סלע אופקיות
+			var sy := -h - 40.0 - float(i) * r.randf_range(70.0, 100.0)
+			var pts := PackedVector2Array()
+			for q in 8:
+				var qx := lerpf(-40.0, w + 40.0, float(q) / 7.0)
+				pts.append(Vector2(qx, sy + r.randf_range(-6.0, 6.0)))
+			draw_polyline(pts, S.ROCK_D, 2.0)
+		for i in int(w / 26.0):   # שכבות וסדקים
+			var cx := r.randf_range(-10.0, w + 10.0)
+			var cy := -r.randf_range(10.0, h + TOP_EXTRA - 30.0)
+			draw_line(Vector2(cx, cy), Vector2(cx + r.randf_range(-8.0, 8.0), cy + r.randf_range(18.0, 46.0)), S.ROCK_D, 1.5)
+		for i in int(w / 40.0):   # כתמי טחב ושרכים קטנים
+			var mp := Vector2(r.randf_range(-10.0, w + 10.0), -r.randf_range(20.0, h + TOP_EXTRA - 30.0))
+			draw_colored_polygon(Art.ellipse(mp, r.randf_range(10.0, 22.0), r.randf_range(4.0, 8.0), 0.0, 10), Color(S.MOSS, 0.75))
+			for f in 3:
+				draw_line(mp, mp + Vector2.from_angle(-PI * 0.5 + float(f - 1) * 0.6) * 9.0, Color("5a7a3a"), 1.2)
+		for i in int(w / 45.0):   # שרכים וגפנים שנתלים מבליטות בצוק
+			var vx := r.randf_range(0.0, w)
+			var vl := r.randf_range(40.0, 120.0)
+			var top := -h - r.randf_range(60.0, TOP_EXTRA - 120.0)
+			draw_line(Vector2(vx, top), Vector2(vx + r.randf_range(-6.0, 6.0), top + vl), Color("2e4a26"), 1.4)
+			for q in int(vl / 16.0):
+				var ly := top + float(q) * 16.0 + 6.0
+				draw_colored_polygon(Art.ellipse(Vector2(vx + (3.0 if q % 2 == 0 else -3.0), ly), 3.5, 1.8, 0.4 if q % 2 == 0 else -0.4, 6), Color("3e6a30"))
+		for i in 3:   # ערפל שנאחז בצוק (גובה)
+			draw_colored_polygon(Art.ellipse(Vector2(w * (0.2 + 0.3 * float(i)), -h - 190.0 - float(i % 2) * 40.0), w * 0.32, 18.0, 0.0, 14), Color(S.MIST, 0.12))
+		draw_colored_polygon(PackedVector2Array([Vector2(-40, -h + 22.0), Vector2(w + 40.0, -h + 22.0), Vector2(w + 60.0, 0), Vector2(-60, 0)]), Color(0, 0, 0, 0.18))   # צל מתחת לכביש העליון
+		# הכביש העליון: מדף עפר עם קורות עץ
+		var lip := -h
+		for bx in range(0, int(w) + 1, 70):
+			draw_line(Vector2(float(bx) + 8.0, lip + 18.0), Vector2(float(bx) - 14.0, lip + 66.0), Color("4a3424"), 5.0)
+			draw_line(Vector2(float(bx) + 8.0, lip + 18.0), Vector2(float(bx) - 14.0, lip + 66.0), Color("6a4a30"), 2.0)
+			draw_circle(Vector2(float(bx) - 14.0, lip + 66.0), 2.5, Color("5a5a5a"))
+		draw_colored_polygon(PackedVector2Array([Vector2(-14, lip), Vector2(w + 14, lip), Vector2(w + 8, lip + 12), Vector2(w - 10, lip + 20), Vector2(20, lip + 21), Vector2(-8, lip + 13)]), S.MUD_D)
+		draw_rect(Rect2(-14, lip, w + 28, 7), S.MUD)
+		draw_line(Vector2(-14, lip + 0.5), Vector2(w + 14, lip + 0.5), Color(0.85, 0.75, 0.6, 0.4), 1.0)
+		for i in int(w / 60.0):   # אבנים ועשב על המדף
+			var gx := r.randf_range(0.0, w)
+			for q in 3:
+				draw_line(Vector2(gx + float(q) * 2.5, lip), Vector2(gx + float(q) * 2.5 + r.randf_range(-3.0, 3.0), lip - r.randf_range(4.0, 8.0)), S.MOSS, 1.2)
+		if cross:   # צלב לבן על השפה
+			var cx := w * 0.62
+			draw_line(Vector2(cx, lip), Vector2(cx, lip - 24), Color("e8e4dc"), 2.5)
+			draw_line(Vector2(cx - 7, lip - 17), Vector2(cx + 7, lip - 17), Color("e8e4dc"), 2.5)
+			draw_circle(Vector2(cx - 4, lip - 2), 2.5, Color("d03a5a"))
+			draw_circle(Vector2(cx + 4, lip - 2), 2.5, Color("e8c030"))
+
+
+# ---- מפל שנופל מהצוק על הכביש ----
+class Waterfall extends Node2D:
+	var height := 380.0
+	var w := 22.0
+	var _t := 0.0
+	var _puff := 0.0
+
+	func _ready() -> void:
+		z_index = 3
+
+	func _process(delta: float) -> void:
+		_t += delta
+		_puff -= delta
+		if not Art.on_screen(self, global_position + Vector2(0, -60.0), 200.0):
+			return
+		if Engine.get_process_frames() % 2 == 0:
+			queue_redraw()
+		if _puff <= 0.0:
+			_puff = 0.3
+			Particles.burst(get_parent(), global_position + Vector2(w * 0.5, -6.0), "mist", Vector2.UP, 2)
+			if randf() < 0.5:
+				Particles.burst(get_parent(), global_position + Vector2(w * 0.5, -4.0), "drop", Vector2.UP, 3)
+
+	func _draw() -> void:
+		draw_colored_polygon(PackedVector2Array([Vector2(-6, -height - 6), Vector2(w + 8, -height - 4), Vector2(w + 4, -height + 10), Vector2(-2, -height + 8)]), Color("3a362e"))   # שפת הסלע
+		draw_rect(Rect2(0, -height, w, height), Color(0.72, 0.82, 0.9, 0.32))
+		for j in 6:   # פסי מים נופלים
+			var x := 2.0 + float(j) * (w - 4.0) / 5.0
+			for k in 5:
+				var y := fposmod(_t * 300.0 + float(j) * 37.0 + float(k) * 80.0, height) - height
+				draw_line(Vector2(x, y), Vector2(x + 0.5, minf(y + 34.0, 0.0)), Color(1, 1, 1, 0.42), 1.4)
+		var s := 1.0 + sin(_t * 7.0) * 0.08   # רסס בתחתית + פלג שחוצה את הכביש
+		draw_colored_polygon(Art.ellipse(Vector2(w * 0.5, -4.0), w * 1.4 * s, 9.0, 0.0, 14), Color(1, 1, 1, 0.35))
+		draw_colored_polygon(Art.ellipse(Vector2(w * 0.5, 2.0), w * 2.6, 2.2, 0.0, 12), Color(0.7, 0.8, 0.88, 0.55))
+
+
+# ---- אוטובוס "פלוטה" שהתרסק. מתקרבים -> נוסעים זומבים יוצאים ----
+class WreckBus extends Node2D:
+	const OPEN_R := 300.0         # כמה קרוב השחקן צריך להיות
+	const KNOCK_R := 650.0        # מתחילים לדפוק על החלונות
+	const SIZE := Vector2(240, 66)
+	var seed_v := 0
+	var on_open: Callable          # (bus) -> נקרא פעם אחת
+	var opened := false
+	var _knock := 0.0
+	var _shake := 0.0
+	var _check := 0.0
+
+	func _ready() -> void:
+		z_index = 1
+		add_to_group("cover")
+		var body := StaticBody2D.new()
+		body.collision_layer = 1
+		body.add_to_group("no_outline")
+		var cs := CollisionShape2D.new()
+		var sh := RectangleShape2D.new()
+		sh.size = SIZE
+		cs.shape = sh
+		cs.position = Vector2(SIZE.x * 0.5, -SIZE.y * 0.5)
+		body.add_child(cs)
+		add_child(body)
+
+	func cover_rect() -> Rect2:
+		return Rect2(global_position + Vector2(0.0, -SIZE.y), SIZE)
+
+	func _physics_process(delta: float) -> void:
+		_check -= delta
+		_knock -= delta
+		_shake = maxf(_shake - delta * 3.0, 0.0)
+		if opened or _check > 0.0:
+			return
+		_check = 0.15
+		var pl := get_tree().get_first_node_in_group("player")
+		if pl == null or pl.dead:
+			return
+		var dx: float = absf(pl.global_position.x - (global_position.x + SIZE.x * 0.5))
+		if dx < OPEN_R + SIZE.x * 0.5:
+			opened = true
+			_shake = 1.0
+			Sfx.play("w28_bang", global_position + Vector2(SIZE.x * 0.5, -40.0), 4.0, 0.1, 2)
+			if on_open.is_valid():
+				on_open.call(self)
+			queue_redraw()
+		elif dx < KNOCK_R and _knock <= 0.0:   # דפיקות מבפנים (אזהרה)
+			_knock = randf_range(1.2, 2.2)
+			_shake = 0.5
+			Sfx.play("w28_bang", global_position + Vector2(SIZE.x * 0.5, -40.0), -6.0, 0.15, 2)
+			queue_redraw()
+		if _shake > 0.0:
+			queue_redraw()
+
+	func _draw() -> void:
+		var r := RandomNumberGenerator.new()
+		r.seed = seed_v
+		var w := SIZE.x
+		var hh := SIZE.y
+		var jit := Vector2(sin(Time.get_ticks_msec() * 0.06) * 1.5 * _shake, 0.0)
+		draw_set_transform(jit + Vector2(0, -2), -0.03, Vector2.ONE)   # נטוי - נפל על הצד של התעלה
+		var body := Color("d8ccb0")
+		Art.fill_shaded(self, PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, -hh + 8), Vector2(w - 10, -hh), Vector2(8, -hh), Vector2(0, -hh + 10)]), body, 0.1, 0.35, Art.OUTLINE, 1.8)
+		draw_rect(Rect2(2, -24, w - 4, 7), Color("b02a2a"))   # פסים צבעוניים
+		draw_rect(Rect2(2, -16, w - 4, 4), Color("2a5aa0"))
+		for i in 7:   # חלונות שבורים
+			var wx := 14.0 + float(i) * 30.0
+			draw_rect(Rect2(wx, -hh + 10, 24, 20), Color("1a1c20"))
+			draw_line(Vector2(wx + 3, -hh + 12), Vector2(wx + 16, -hh + 26), Color(0.7, 0.8, 0.85, 0.35), 1.0)
+			if not opened and i % 2 == 1:   # ידיים על הזכוכית
+				var hx := wx + 8.0 + sin(float(i) + Time.get_ticks_msec() * 0.004) * 2.0 * _shake
+				draw_colored_polygon(Art.ellipse(Vector2(hx, -hh + 18), 3.5, 4.5, 0.0, 8), Color("8a9a70"))
+				for f in 3:
+					draw_line(Vector2(hx - 2.0 + float(f) * 2.0, -hh + 15), Vector2(hx - 2.5 + float(f) * 2.5, -hh + 11), Color("8a9a70"), 1.2)
+		if opened:   # דלת פתוחה, דם על המדרגה
+			draw_rect(Rect2(w - 34, -hh + 12, 18, hh - 14), Color("0e0e10"))
+			draw_colored_polygon(Art.ellipse(Vector2(w - 25, -3), 10.0, 2.5, 0.0, 10), Color("5a0a0a"))
+		else:
+			draw_rect(Rect2(w - 34, -hh + 12, 18, hh - 14), Color("3a4048"))
+		for wc in [Vector2(40, -2), Vector2(w - 48, -2)]:   # גלגלים
+			draw_circle(wc, 12.0, Art.OUTLINE)
+			draw_circle(wc, 10.0, Color("222226"))
+			draw_circle(wc, 4.0, Color("5a5a5e"))
+		draw_rect(Rect2(w - 4, -30, 6, 8), Color("e8d890"))   # פנס מת
+		# מטען על הגג: חבילות אגואיו צבעוניות
+		draw_line(Vector2(10, -hh - 2), Vector2(w - 14, -hh - 2), Color("3a3a3a"), 2.0)
+		var lx := 18.0
+		for i in 5:
+			var bw := r.randf_range(22.0, 34.0)
+			var bh := r.randf_range(10.0, 16.0)
+			Art.fill(self, PackedVector2Array([Vector2(lx, -hh - 2), Vector2(lx + bw, -hh - 2), Vector2(lx + bw - 2, -hh - 2 - bh), Vector2(lx + 2, -hh - 2 - bh)]), [Color("c0306a"), Color("2a8a5a"), Color("e08a20"), Color("6a3aa0")][i % 4], Art.OUTLINE, 1.0)
+			draw_line(Vector2(lx + 2, -hh - 2 - bh * 0.5), Vector2(lx + bw - 2, -hh - 2 - bh * 0.5), Color(1, 1, 1, 0.5), 1.5)
+			lx += bw + r.randf_range(6.0, 16.0)
+		var f := ThemeDB.fallback_font
+		draw_string(f, Vector2(30, -hh + 44), "FLOTA YUNGUENA", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("8a2020"))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+# ---- משאית הפוכה ובוערת ----
+class WreckTruck extends Node2D:
+	const SIZE := Vector2(170, 58)
+	var _puff := 0.0
+
+	func _ready() -> void:
+		z_index = 1
+		add_to_group("cover")
+		var body := StaticBody2D.new()
+		body.collision_layer = 1
+		body.add_to_group("no_outline")
+		var cs := CollisionShape2D.new()
+		var sh := RectangleShape2D.new()
+		sh.size = SIZE
+		cs.shape = sh
+		cs.position = Vector2(SIZE.x * 0.5, -SIZE.y * 0.5)
+		body.add_child(cs)
+		add_child(body)
+		var fire = preload("res://fire.gd").new()
+		fire.width = 34.0
+		fire.height = 40.0
+		fire.position = Vector2(30, -SIZE.y + 4.0)
+		add_child(fire)
+
+	func cover_rect() -> Rect2:
+		return Rect2(global_position + Vector2(0.0, -SIZE.y), SIZE)
+
+	func _process(delta: float) -> void:
+		_puff -= delta
+		if _puff <= 0.0 and Art.on_screen(self, global_position + Vector2(40, -60), 160.0):
+			_puff = 0.18
+			Particles.burst(get_parent(), global_position + Vector2(30.0 + randf_range(-8, 8), -SIZE.y - 20.0), "smoke", Vector2(0.25, -1.0), 2)
+
+	func _draw() -> void:
+		var w := SIZE.x
+		var h := SIZE.y
+		# ארגז המטען (הפוך - הגלגלים למעלה)
+		Art.fill_shaded(self, PackedVector2Array([Vector2(56, 0), Vector2(w, 0), Vector2(w - 2, -h + 14), Vector2(58, -h + 14)]), Color("5a6a3a"), 0.1, 0.35, Art.OUTLINE, 1.6)
+		for x in range(64, int(w) - 4, 12):
+			draw_line(Vector2(x, -4), Vector2(x, -h + 18), Color(0, 0, 0, 0.25), 2.0)
+		# תא נהג שרוף
+		Art.fill_shaded(self, PackedVector2Array([Vector2(0, 0), Vector2(58, 0), Vector2(58, -h + 6), Vector2(14, -h + 6), Vector2(0, -h + 22)]), Color("2e2a26"), 0.06, 0.2, Art.OUTLINE, 1.6)
+		draw_rect(Rect2(14, -h + 14, 30, 16), Color("120e0c"))
+		for wc in [Vector2(36, -h + 4), Vector2(110, -h + 12), Vector2(150, -h + 12)]:   # גלגלים באוויר
+			draw_circle(wc, 11.0, Art.OUTLINE)
+			draw_circle(wc, 9.0, Color("222226"))
+			draw_circle(wc, 3.5, Color("4a4a4e"))
+		Art.glow(self, Vector2(30, -h), 70.0, Color(1.0, 0.5, 0.2, 0.16))
+
+
+# ---- אנימיטה: מקדשון לזכר מי שנפל ----
+class Shrine extends Node2D:
+	var _t := 0.0
+	var seed_v := 0
+
+	func _ready() -> void:
+		z_index = 0
+
+	func _process(delta: float) -> void:
+		_t += delta
+		if Engine.get_process_frames() % 5 == 0 and Art.on_screen(self, global_position):
+			queue_redraw()
+
+	func _draw() -> void:
+		draw_rect(Rect2(-3, -16, 6, 16), Color("6a6258"))   # עמוד
+		Art.fill_shaded(self, PackedVector2Array([Vector2(-16, -16), Vector2(16, -16), Vector2(16, -38), Vector2(0, -50), Vector2(-16, -38)]), Color("e0dcd0"), 0.1, 0.3, Art.OUTLINE, 1.2)
+		draw_colored_polygon(PackedVector2Array([Vector2(-19, -37), Vector2(0, -52), Vector2(19, -37), Vector2(16, -35), Vector2(0, -47), Vector2(-16, -35)]), Color("2a6aa0"))
+		draw_line(Vector2(0, -52), Vector2(0, -64), Color("e8e4dc"), 2.0)   # צלב
+		draw_line(Vector2(-5, -59), Vector2(5, -59), Color("e8e4dc"), 2.0)
+		draw_rect(Rect2(-10, -34, 20, 15), Color("2a201a"))   # פנים
+		for i in 3:   # נרות מהבהבים
+			var cx := -6.0 + float(i) * 6.0
+			draw_rect(Rect2(cx - 1, -24, 2, 5), Color("f0e8d0"))
+			var fl := 1.0 + sin(_t * 13.0 + float(i) * 2.0) * 0.25
+			draw_colored_polygon(Art.ellipse(Vector2(cx, -26.5), 1.2, 2.2 * fl, 0.0, 8), Color(1.0, 0.8, 0.3))
+			draw_line(Vector2(cx, -29), Vector2(cx + sin(_t * 2.0 + float(i)) * 2.0, -33), Color(0.8, 0.8, 0.8, 0.25), 1.0)   # עשן דק
+		Art.glow(self, Vector2(0, -26), 30.0, Color(1.0, 0.7, 0.3, 0.16 + 0.04 * sin(_t * 9.0)))
+		for i in 4:   # פרחים
+			var px := -14.0 + float(i) * 9.0
+			draw_line(Vector2(px, 0), Vector2(px + 1, -8), Color("3a6a2a"), 1.2)
+			draw_circle(Vector2(px + 1, -9), 2.2, [Color("e03a5a"), Color("f0c030"), Color("e8e8e8"), Color("c05ae0")][i])
 
 
 # ---- מכשולים ----
 class Obstacle extends Node2D:
-	var kind := "inka_wall"
+	var kind := "slide_rocks"
 	var size := Vector2(90, 50)
 	var seed_v := 0
 
@@ -221,193 +649,75 @@ class Obstacle extends Node2D:
 		var w := size.x
 		var h := size.y
 		match kind:
-			"inka_wall":   # חומת אבן אינקאית: אבנים מצולעות שמשתלבות בלי טיט
-				Art.fill_shaded(self, PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w - 4, -h), Vector2(4, -h)]), S.STONE, 0.15, 0.35, Art.OUTLINE, 1.5)
-				var y := 0.0
-				while y > -h + 6.0:
-					var bh := r.randf_range(12.0, 18.0)
-					var x := 2.0
-					while x < w - 6.0:
-						var bw := r.randf_range(16.0, 28.0)
-						var pts := PackedVector2Array([Vector2(x + 2, y - 1), Vector2(minf(x + bw, w - 3), y - 1), Vector2(minf(x + bw, w - 4), maxf(y - bh, -h + 2)), Vector2(x + 3, maxf(y - bh, -h + 2))])
-						draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.25, 0.22, 0.2, 0.7), 1.2)
-						x += bw
-					y -= bh
-			"apacheta":   # ערמת אבנים עם בד צבעוני
-				for s in 4:
-					var sw := w * (1.0 - float(s) * 0.2)
-					Art.oval_shaded(self, Vector2(w * 0.5, -h * 0.12 - float(s) * h * 0.22), sw * 0.5, h * 0.14, Color("8a8070").darkened(float(s % 2) * 0.1), 0.0, Art.OUTLINE, 1.1)
-				for c in 3:
-					draw_line(Vector2(w * 0.3 + float(c) * w * 0.2, -h * 0.5), Vector2(w * 0.35 + float(c) * w * 0.2, -h * 0.3), [Color("d02a4a"), Color("2a8ad0"), Color("e8c030")][c], 3.0)
-			_:   # חבילות איצ'ו קשורות
+			"slide_rocks":   # מפולת: בוץ + סלעים גדולים
+				draw_colored_polygon(PackedVector2Array([Vector2(-10, 0), Vector2(w + 10, 0), Vector2(w - 6, -h * 0.4), Vector2(w * 0.5, -h * 0.55), Vector2(6, -h * 0.35)]), S.MUD_D)
+				for i in 5:
+					var c := Vector2(r.randf_range(w * 0.15, w * 0.85), -r.randf_range(h * 0.3, h * 0.65))
+					if i == 0:
+						c = Vector2(w * 0.5, -h * 0.55)
+					var rr := r.randf_range(h * 0.22, h * 0.4) * (1.3 if i == 0 else 1.0)
+					Art.fill_shaded(self, Art.ellipse(c, rr * 1.2, rr, r.randf_range(-0.4, 0.4), 9), Color("6a6458").darkened(r.randf_range(0.0, 0.25)), 0.18, 0.4, Art.OUTLINE, 1.3)
+					draw_colored_polygon(Art.ellipse(c + Vector2(-rr * 0.3, rr * 0.4), rr * 0.5, rr * 0.2, 0.0, 8), Color(S.MOSS, 0.5))
+				for i in 3:
+					draw_line(Vector2(r.randf_range(0, w), -2), Vector2(r.randf_range(0, w), -r.randf_range(10.0, 20.0)), Color("2a2018"), 1.6)   # ענפים שבורים
+			"fuel_drums":   # חביות דלק חלודות
 				for i in 2:
-					var bx := float(i) * w * 0.5
-					Art.fill_shaded(self, PackedVector2Array([Vector2(bx + 2, 0), Vector2(bx + w * 0.5 - 2, 0), Vector2(bx + w * 0.5 - 4, -h), Vector2(bx + 4, -h)]), S.ICHU, 0.2, 0.35, Art.OUTLINE, 1.2)
-					draw_line(Vector2(bx + 4, -h * 0.5), Vector2(bx + w * 0.5 - 4, -h * 0.5), Color("6a4a2a"), 2.0)
-					for q in 5:
-						draw_line(Vector2(bx + 6.0 + float(q) * 6.0, -h), Vector2(bx + 4.0 + float(q) * 6.0, -h - 6.0), S.ICHU, 1.2)
+					var bx := float(i) * w * 0.5 + 2.0
+					var bw := w * 0.5 - 4.0
+					var col: Color = [Color("8a3a1e"), Color("3a5a6a")][i]
+					Art.fill_shaded(self, PackedVector2Array([Vector2(bx, 0), Vector2(bx + bw, 0), Vector2(bx + bw, -h), Vector2(bx, -h)]), col, 0.15, 0.35, Art.OUTLINE, 1.3)
+					draw_line(Vector2(bx, -h * 0.33), Vector2(bx + bw, -h * 0.33), Color(0, 0, 0, 0.3), 2.0)
+					draw_line(Vector2(bx, -h * 0.66), Vector2(bx + bw, -h * 0.66), Color(0, 0, 0, 0.3), 2.0)
+					for q in 3:
+						draw_circle(Vector2(bx + r.randf_range(4, bw - 4), -r.randf_range(4, h - 4)), r.randf_range(2.0, 4.0), Color("6a3a1a"))
+			_:   # מטען שנפל מגג האוטובוס
+				Art.fill_shaded(self, PackedVector2Array([Vector2(0, 0), Vector2(w * 0.45, 0), Vector2(w * 0.43, -h), Vector2(2, -h * 0.95)]), Color("c0306a"), 0.15, 0.35, Art.OUTLINE, 1.2)
+				for q in 4:
+					draw_line(Vector2(2, -h * (0.2 + 0.2 * float(q))), Vector2(w * 0.44, -h * (0.2 + 0.2 * float(q))), [Color("2a8a5a"), Color("e8c030"), Color("2a5aa0"), Color("f0f0f0")][q], 2.0)
+				Art.fill_shaded(self, PackedVector2Array([Vector2(w * 0.48, 0), Vector2(w, 0), Vector2(w, -h * 0.7), Vector2(w * 0.48, -h * 0.7)]), Color("5a4030"), 0.15, 0.35, Art.OUTLINE, 1.2)
+				draw_line(Vector2(w * 0.66, -h * 0.7), Vector2(w * 0.66, -h * 0.82), Color("2a2018"), 2.0)
+				draw_line(Vector2(w * 0.82, -h * 0.7), Vector2(w * 0.82, -h * 0.82), Color("2a2018"), 2.0)
+				draw_line(Vector2(w * 0.66, -h * 0.82), Vector2(w * 0.82, -h * 0.82), Color("2a2018"), 2.0)
 
 
-# ---- גשר חבלים אינקאי (מעל קומה מעץ) ----
-class RopeBridge extends Node2D:
-	var w := 400.0
-	var _t := 0.0
-
-	func _ready() -> void:
-		z_index = 2
-
-	func _process(delta: float) -> void:
-		_t += delta
-		if Engine.get_process_frames() % 4 == 0 and Art.on_screen(self, global_position + Vector2(w * 0.5, 0), w):
-			queue_redraw()
-
-	func _draw() -> void:
-		var rope := Color("8a6a3a")
-		var w_node: Node = preload("res://effects/s28_decor.gd").wind()
-		var sway: float = (w_node.strength() if w_node != null else 0.0) * 6.0 + sin(_t * 1.3) * 1.5
-		for side in [0.0, w]:   # עמודי אבן
-			draw_rect(Rect2(side - 8, -40, 16, 52), Color("8a7e6c"))
-		for hgt in [-36.0, -18.0]:   # חבלי יד
-			var pts := PackedVector2Array()
-			for i in 13:
-				var u := float(i) / 12.0
-				pts.append(Vector2(u * w, hgt + sin(u * PI) * 10.0 + sway * sin(u * PI)))
-			draw_polyline(pts, rope, 2.0)
-		for i in int(w / 30.0):   # חבלים אנכיים
-			var u := float(i) / (w / 30.0)
-			var x := u * w
-			draw_line(Vector2(x, -36.0 + sin(u * PI) * 10.0 + sway * sin(u * PI)), Vector2(x, 0), Color(rope, 0.7), 1.0)
-
-
-# ---- מדורת רועים עם עשן ----
-class Campfire extends Node2D:
-	var _t := 0.0
-	var _puff := 0.0
-
-	func _ready() -> void:
-		z_index = 2
-		var f = preload("res://fire.gd").new()
-		f.width = 18.0
-		f.height = 26.0
-		f.position = Vector2(0, -4)
-		add_child(f)
-
-	func _process(delta: float) -> void:
-		_t += delta
-		_puff -= delta
-		if _puff <= 0.0 and Art.on_screen(self, global_position):
-			_puff = 0.22
-			var w_node: Node = preload("res://effects/s28_decor.gd").wind()
-			var d := Vector2((w_node.dir * w_node.strength() if w_node != null else 0.0) * 1.5 + 0.2, -1.0)
-			preload("res://particles.gd").burst(get_parent(), global_position + Vector2(randf_range(-4, 4), -26), "smoke", d, 2)
-
-	func _draw() -> void:
-		for i in 7:   # טבעת אבנים
-			var a := PI + float(i) * PI / 6.0
-			draw_colored_polygon(Art.ellipse(Vector2(cos(a) * 18.0, -2.0 + sin(a) * 3.0), 5.0, 3.5, 0.0, 8), Color("6a6058"))
-		draw_line(Vector2(-12, -2), Vector2(10, -8), Color("4a3020"), 3.0)
-		draw_line(Vector2(-10, -8), Vector2(12, -2), Color("4a3020"), 3.0)
-		Art.glow(self, Vector2(0, -12), 46.0, Color(1.0, 0.55, 0.2, 0.18 + 0.05 * sin(_t * 9.0)))
-
-
-# ---- הרוח: CALM -> WARN -> GUST (דוחפת שחקן וזומבים) ----
-class Wind extends Node:
-	const CALM_T := Vector2(6.0, 9.0)
-	const WARN_T := 1.3
-	const GUST_T := 2.0
-	const PUSH := 120.0          # כמה פיקסלים בשנייה הרוח מזיזה אותך (באוויר x1.5)
-	var state := 0               # 0 = רגוע, 1 = אזהרה, 2 = משב
-	var dir := 1.0
-	var gusts := 0               # לבדיקות
-	var _t := 4.0
-
-	func _ready() -> void:
-		add_to_group("wind")
-
-	func strength() -> float:   # -1..1 (לציור: עשב, דגלים, עשן)
-		match state:
-			1:
-				return dir * 0.35 * (1.0 - _t / WARN_T)
-			2:
-				return dir * (0.6 + 0.4 * sin(_t * 9.0))
-		return 0.0
-
-	func _physics_process(delta: float) -> void:
-		_t -= delta
-		match state:
-			0:
-				if _t <= 0.0:
-					state = 1
-					_t = WARN_T
-					dir = 1.0 if randf() < 0.5 else -1.0
-					Sfx.play("w28_howl", null, -4.0, 0.1, 1)
-			1:
-				if _t <= 0.0:
-					state = 2
-					_t = GUST_T
-					gusts += 1
-					Sfx.play("w28_gust", null, 0.0, 0.1, 1)
-			2:
-				var pl := get_tree().get_first_node_in_group("player")
-				if pl != null and not pl.dead and pl.grabbed_by == null:   # דוחף ישירות (נעצר בקירות): נגד הרוח הולכים לאט
-					pl.move_and_collide(Vector2(dir * PUSH * (1.0 if pl.is_on_floor() else 1.5) * delta, 0.0))
-				for z in get_tree().get_nodes_in_group("zombies"):
-					if not z.dead and z.sc < 1.6 and (z.type_mod == null or not z.type_mod.has_method("in_air")):
-						z.move_and_collide(Vector2(dir * PUSH * 0.45 * delta, 0.0))
-				if _t <= 0.0:
-					state = 0
-					_t = randf_range(CALM_T.x, CALM_T.y)
-
-
-# ---- שלג, אבק, פסי רוח, ערפל עננים (מסך) ----
-class PassFX extends Node2D:
+# ---- טפטוף + גדות ערפל שעוברות (מסך) ----
+class RoadFX extends Node2D:
 	var vp := Vector2(1280, 720)
 	var _t := 0.0
-	var _f := []
+	var _d := []
 	var _fog := 0.0
-	var _fog_t := 12.0
+	var _fog_t := 10.0
 
 	func _ready() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = 28
-		for i in 60:
-			_f.append(Vector3(r.randf_range(0, vp.x), r.randf_range(0, vp.y), r.randf_range(0.5, 1.5)))
+		for i in 70:
+			_d.append(Vector3(r.randf_range(0, vp.x), r.randf_range(0, vp.y), r.randf_range(0.6, 1.4)))
 
 	func _process(delta: float) -> void:
 		_t += delta
-		var w: Node = preload("res://effects/s28_decor.gd").wind()
-		var s: float = w.strength() if w != null else 0.0
-		for i in _f.size():
-			var e: Vector3 = _f[i]
-			e.x += (s * 700.0 + sin(_t + e.z * 4.0) * 20.0) * delta * e.z
-			e.y += (40.0 - absf(s) * 20.0) * delta * e.z
+		for i in _d.size():
+			var e: Vector3 = _d[i]
+			e.y += 420.0 * delta * e.z
+			e.x -= 60.0 * delta * e.z
 			if e.y > vp.y + 10.0:
 				e.y = -10.0
+				e.x = randf_range(0.0, vp.x + 60.0)
 			e.x = fposmod(e.x, vp.x + 20.0) - 10.0
-			_f[i] = e
-		_fog_t -= delta   # מדי פעם ענן עובר דרך המעבר
+			_d[i] = e
+		_fog_t -= delta   # מדי פעם ענן עולה מהעמק ועובר על הכביש
 		if _fog_t <= 0.0:
-			_fog_t = randf_range(14.0, 22.0)
-			_fog = 6.0
+			_fog_t = randf_range(16.0, 24.0)
+			_fog = 7.0
 		_fog = maxf(_fog - delta, 0.0)
 		queue_redraw()
 
 	func _draw() -> void:
-		var w: Node = preload("res://effects/s28_decor.gd").wind()
-		var s: float = w.strength() if w != null else 0.0
-		for e in _f:
-			if absf(s) > 0.3:
-				draw_line(Vector2(e.x, e.y), Vector2(e.x - s * 18.0 * e.z, e.y - 2.0), Color(1, 1, 1, 0.6), 1.2)
-			else:
-				draw_circle(Vector2(e.x, e.y), 1.4 * e.z, Color(1, 1, 1, 0.75))
-		if absf(s) > 0.4:   # פסי רוח ואבק
-			for i in 8:
-				var y := fposmod(float(i) * 97.0 + _t * 13.0, vp.y)
-				var x := fposmod(_t * 900.0 * signf(s) + float(i) * 211.0, vp.x + 400.0) - 200.0
-				draw_line(Vector2(x, y), Vector2(x - signf(s) * 120.0, y), Color(1, 1, 1, 0.25 * absf(s)), 1.5)
-			draw_rect(Rect2(Vector2.ZERO, vp), Color(0.85, 0.8, 0.7, 0.08 * absf(s)))
-		if _fog > 0.0:   # ענן עובר
-			var k := sin(clampf(_fog / 6.0, 0.0, 1.0) * PI)
-			draw_rect(Rect2(Vector2.ZERO, vp), Color(0.95, 0.96, 1.0, 0.35 * k))
-			for q in 8:
-				draw_circle(Vector2(fposmod(float(q) * 190.0 + _t * 40.0, vp.x + 200.0) - 100.0, vp.y * 0.55 + sin(float(q)) * 80.0), 140.0, Color(1, 1, 1, 0.12 * k))
+		for e in _d:
+			draw_line(Vector2(e.x, e.y), Vector2(e.x - 2.0 * e.z, e.y + 9.0 * e.z), Color(0.8, 0.85, 0.9, 0.28), 1.0)
+		draw_rect(Rect2(0, vp.y * 0.78, vp.x, vp.y * 0.22), Color(0.85, 0.86, 0.84, 0.06))   # אד מהעמק בתחתית
+		if _fog > 0.0:
+			var k := sin(clampf(_fog / 7.0, 0.0, 1.0) * PI)
+			draw_rect(Rect2(Vector2.ZERO, vp), Color(0.86, 0.87, 0.85, 0.28 * k))
+			for q in 6:
+				draw_colored_polygon(Art.ellipse(Vector2(fposmod(float(q) * 260.0 + _t * 50.0, vp.x + 400.0) - 200.0, vp.y * 0.6 + sin(float(q) * 1.7) * 90.0), 260.0, 70.0, 0.0, 16), Color(1, 1, 1, 0.1 * k))

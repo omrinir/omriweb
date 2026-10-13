@@ -512,21 +512,34 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 
 ## Region 4 - ANDES (levels 28-36)
 
-## Stage 28 - "CLOUD PASS" ("THEY LEARNED THE HEIGHTS") - high Andes mountain pass, region 4 level 1
-- levels/stage_28.gd + effects/s28_decor.gd: deep high-altitude sky, two ranges of snowy peaks with soft cloud banks drifting through the pass,
-  Inca farming terraces, Inca stone ruins with trapezoid doorways, grazing llamas, circling condors, wind-blown ichu grass, apacheta stone cairns.
-  World: PassGround (rock, gravel, snow patches), Crevasse pits (pits() = CREVASSES; ice spikes - extends the stage 21 SpikePit: fall in = hurt + thrown out),
-  BRIDGES (Inca rope bridges: wooden floor at TIER + RopeBridge ropes that sway in the wind), CAMPFIRES (fire + smoke particles that bend with the wind),
-  Obstacle "inka_wall" (fitted polygon stones) / "apacheta" (cairn with colored cloth) / "bale" (ichu bundles). PassFX: snowflakes / wind streaks / a cloud passing through.
-- Trap: Wind (group "wind"): CALM -> WARN (howl, grass/smoke start to lean) -> GUST (GUST_T): pushes the player (PUSH px/s, x1.5 in the air) and zombies
-  sideways with move_and_collide (stops at walls) - walking into the wind is slow, gusts push you toward the crevasses.
-- CONDOR (enemies/types/condor.gd): flies (CIRCLE high over you), screeches and MARKs a shadow on the ground under you (MARK_T), DIVEs onto the mark
-  (hits only near the shadow - step off it), then is GROUNDED flapping (GROUND_T, x1.5 damage) and RISEs again. x0.6 damage in the air. Wind doesn't push it.
-  Boss APU KUNTUR: big, dives twice in a row.
-- BOULDER (enemies/types/boulder.gd): hulking porter with a stone basket. LIFTs a boulder over his head (dust = warning), ROLLs it at you
-  (Rock: bounces, 2 damage, crushes zombies in the way, breaks on walls) or lobs it in an arc if you're up on a bridge. Jump over it.
+## Stage 28 - "DEATH ROAD" ("THEY LEARNED TO WAIT") - Bolivia's Yungas road, region 4 level 1
+(Rebuilt: the old "Cloud Pass" with condors, wind gusts and floating rope bridges was replaced.)
+- levels/stage_28.gd + effects/s28_decor.gd: overcast dusk over a cloud-forest valley. Background: snowy Cordillera far away above the mist,
+  grey ridges, the green mountain opposite with the road cut into it (trucks with headlights crawl along it, white crosses, thin waterfalls),
+  cloud-forest canopy + tree ferns below the road. The ridges use smooth value noise (_ridge) so they never repeat or seam.
+  World: RoadGround (muddy dirt road, ruts, puddles, roots), Washout pits (pits() = WASHOUTS; extends the stage 21 SpikePit: rusted rebar,
+  broken edges, a yellow warning sign, WashoutMist rising inside), CliffLedge (LEDGES: towering rock face behind the road with moss and vines,
+  an upper road shelf on timber struts - the one-way floor itself is hidden, the ledge draws it - plus a ladder), Waterfall (WATERFALLS:
+  falls from the cliff onto the road, spray/drop particles), WreckBus (BUSES), WreckTruck (TRUCKS + one before the boss arena, burning, smoke),
+  Shrine (SHRINES: roadside animita with candles and flowers), Obstacle "slide_rocks" / "fuel_drums" / "luggage". RoadFX: drizzle + a cloud
+  rising from the valley now and then. particles.gd got two new kinds: "mist" and "drop".
+- WreckBus: hands on the windows; within KNOCK_R it bangs from inside (warning), within OPEN_R it opens and PASSENGERS zombies jump out
+  on the player's side (stage._open_bus).
+- CLINGER (enemies/types/clinger.gd): replaces the CONDOR. A fallen traveller in a torn orange poncho who hangs on edges: both edges of every
+  washout and two spots under every upper road (anchors are found from the "washouts" and "ledges" groups; the stage calls attach() right after
+  spawning). Only fingers show (and the head peeks now and then). Stand on the edge / jump over the washout / walk over it on the upper road ->
+  LUNGE -> grab (player.grab, mash A/D) -> after PULL_T you are pulled into the washout (rebar) or off the upper road (falls + 1 damage).
+  Escaped or missed -> EXPOSED (x1.5 damage) then climbs out to fight. If you pass it without touching the edge it climbs out and attacks from
+  behind. Shot while hanging and still alive -> sinks into the mist and moves to the other edge. Weighted spawns walk to a free edge (SEEK).
+- BOSS EL CAMIONERO (enemies/types/trucker.gd, Registry.TRUCKER): huge trucker with a tire on his back. REV (truck horn + stomps = warning)
+  -> CHARGE (hits = 2 damage + knockback, runs over zombies, hops washouts) -> SKID if he misses in the open. If he hits a solid obstacle
+  (bus, truck, rocks) he CRASHes: stunned CRASH_T, takes damage, x2 damage taken. After LEARN_AT crashes he LEARNS: no more charging when
+  something solid is behind you - he throws Tires instead (bounce and roll, jump over them). Below 50% HP: shorter warning, 2 tires per throw.
+- BOULDER (enemies/types/boulder.gd): hulking porter with a stone basket on the upper roads. LIFTs a boulder over his head (dust = warning),
+  ROLLs it at you (Rock: bounces, 2 damage, crushes zombies in the way, breaks on walls) or lobs it in an arc. Jump over it.
+- Mind control: CLINGER -> pounce (default), TRUCKER -> slam.
 - Obstacle names: never reuse main.gd generator names (car, barrels, barrier, crates, rubble, bus, train, container, tires, sandbags, block, wall) in
-  custom_gen - main.gd handles those itself. Renamed: 22 "barrier"->"jersey", 26 "crates"->"ammo_crates", 27 "sandbags"->"bags", 28 "wall"->"inka_wall".
+  custom_gen - main.gd handles those itself. Renamed earlier: 22 "barrier"->"jersey", 26 "crates"->"ammo_crates", 27 "sandbags"->"bags".
 
 ## Stage 29 - "MINE OF ECHOES" ("THEY LEARNED TO LISTEN") - Andean silver mine (inspired by Cerro Rico, Potosi), region 4 level 2
 - levels/stage_29.gd + effects/s29_decor.gd: cavern with wooden scaffolds + ladders, far lanterns, silver veins that glint, an ore cart riding a trestle,

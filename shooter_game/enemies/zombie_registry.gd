@@ -28,9 +28,10 @@ enum {
 	SIGNALER, ROD,                 # שלב 25 (תורן רדיו)
 	HAZMAT, BLACKOUT, VENT, GENERAL,   # שלב 26 (הבונקר) - GENERAL = הבוס של 26 ו-27
 	SNIPER, SAPPER, HANDLER,       # שלב 27 (שער הרמה)
-	CONDOR, BOULDER,               # שלב 28 (האנדים - מעבר העננים)
+	CLINGER, BOULDER,              # שלב 28 (האנדים - דרך המוות)
 	ECHO, DYNAMITER,               # שלב 29 (מכרה ההדים)
 	FROSTBITE, BELLRINGER,         # שלב 30 (הכפר הקפוא)
+	TRUCKER,                       # שלב 28 - הבוס (EL CAMIONERO)
 }
 
 const FIRST := 20
@@ -99,12 +100,13 @@ const TYPES := {
 	SNIPER: "res://enemies/types/sniper.gd",
 	SAPPER: "res://enemies/types/sapper.gd",
 	HANDLER: "res://enemies/types/handler.gd",
-	CONDOR: "res://enemies/types/condor.gd",
+	CLINGER: "res://enemies/types/clinger.gd",
 	BOULDER: "res://enemies/types/boulder.gd",
 	ECHO: "res://enemies/types/echo.gd",
 	DYNAMITER: "res://enemies/types/dynamiter.gd",
 	FROSTBITE: "res://enemies/types/frostbite.gd",
 	BELLRINGER: "res://enemies/types/bellringer.gd",
+	TRUCKER: "res://enemies/types/trucker.gd",
 }
 
 static var _stats_cache := {}

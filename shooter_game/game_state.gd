@@ -169,7 +169,7 @@ const REGIONS := [
 	{"name": "CENTRAL PLATEAU", "color": Color(0.35, 0.65, 1.0), "desc": "Endless roads. They learned to hunt in packs.",
 		"levels": ["The Green Wall", "Green Hell", "Cliffside", "The Dam", "Highway 7", "Burning Fields", "Radio Tower", "The Bunker", "Plateau Gate"]},
 	{"name": "ANDES", "color": Color(0.78, 0.5, 1.0), "desc": "Thin air, deep mines. They learned to climb.",
-		"levels": ["Cloud Pass", "Mine of Echoes", "Frozen Village", "Condor Peak", "Lost Temple", "Avalanche Road", "Observatory", "Skull Glacier", "The Summit"]},
+		"levels": ["Death Road", "Mine of Echoes", "Frozen Village", "Condor Peak", "Lost Temple", "Avalanche Road", "Observatory", "Skull Glacier", "The Summit"]},
 	{"name": "SOUTHEAST", "color": Color(1.0, 0.55, 0.2), "desc": "The megacities. They learned to use our machines.",
 		"levels": ["Favela Heights", "Megacity Core", "The Stadium", "Harbor Cranes", "Neon District", "Metro Labyrinth", "The Skyscraper", "The Lab", "Patient Zero"]},
 	{"name": "SOUTHERN CONE", "color": Color(0.25, 0.9, 0.75), "desc": "Plains and old cities. They learned to plan.",
@@ -399,7 +399,7 @@ const LEVEL_TITLES := [
 	["THEY LEARNED TO CALL FOR HELP", "Kill the radio first. And stay out of the water when the sky goes white."],
 	["THEY LEARNED TO GIVE ORDERS", "The signal came from down here. Someone is in command. Keep the lights on."],
 	["THEY LEARNED TO HOLD THE LINE", "Out of the tunnel, into the dawn. He ran to the gate. End it there."],
-	["THEY LEARNED THE HEIGHTS", "The air is thin up here. Watch the sky for shadows. Hold on when the wind howls."],
+	["THEY LEARNED TO WAIT", "The most dangerous road in the world. Mind the edges - something is holding on down there."],
 	["THEY LEARNED TO LISTEN", "The blind ones hear every shot. Crouch, stay quiet, and don't bring the mountain down."],
 	["THEY LEARNED THE COLD", "Fire breaks ice. Stay off the frozen puddles. And if the church bell rings - they're coming."],
 ]

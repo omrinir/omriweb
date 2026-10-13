@@ -37,6 +37,15 @@ static func burst(parent: Node, pos: Vector2, kind: String, dir := Vector2.ZERO,
 				b.grow = 10.0
 				var g := randf_range(0.18, 0.32)
 				b._p.append([Vector2(randf_range(-6, 6), randf_range(-4, 4)), Vector2.from_angle(a) * randf_range(10, 40) + Vector2(0, -30), 0.0, randf_range(0.7, 1.3), randf_range(3.0, 5.0), Color(g, g, g)])
+			"mist":    # רסס מים / ערפל לבן שעולה לאט (מפלים, שלב 28)
+				b.gravity = -25.0
+				b.grow = 14.0
+				var g := randf_range(0.82, 0.95)
+				b._p.append([Vector2(randf_range(-10, 10), randf_range(-4, 4)), Vector2.from_angle(a) * randf_range(10, 50) + Vector2(0, -20), 0.0, randf_range(0.9, 1.6), randf_range(3.0, 6.0), Color(g, g, g + 0.04)])
+			"drop":    # טיפות מים שניתזות
+				b.gravity = 520.0
+				var c := Color(0.75, 0.88, 1.0).lerp(Color.WHITE, randf() * 0.5)
+				b._p.append([Vector2(randf_range(-6, 6), 0.0), Vector2.from_angle(a) * randf_range(60, 170), 0.0, randf_range(0.25, 0.5), randf_range(1.0, 1.8), c])
 
 
 func _process(delta: float) -> void:
