@@ -858,3 +858,32 @@ flags, and they all work for one goal: to conquer the world.
   (up to 5 shells) and shifted toward where you ran (_lean); get hit -> back to 3. pistol = PISTOL_N burst. kneel = "KNEEL!" at close
   range: knockback + daze. Below half HP -> "GUARD!": GUARD_N guardsmen appear on the avenue and every empire soldier charges.
 - Game.IMPLEMENTED = 41.
+
+## Stage 42 - "METRO BARRACKS" ("THEY LEARNED TO DIG IN") - the Brasilia metro turned into a barracks, region 5 level 6
+- levels/stage_42.gd + effects/s42_decor.gd: underground station - concrete ceiling with flickering fluorescent tubes, a geometric
+  blue-white tile wall in the style of Athos Bulcao (Brasilia's tile artist), tunnel mouths with red signals, "CENTRAL" sign, bunk beds,
+  rifle racks, "OBEY" posters, columns with hanging cables. World: PlatformGround (yellow safety line + track bed), Mezzanine (upper
+  floor at TIER + 2 ladders), Obstacle "bunk" / "footlocker" / "rack". MetroFX: dust + flicker.
+- Trap MGNest (NESTS, faces left): sandbag nest + machine gun. Manned by an empire soldier (goal_x to gun_spot, meta "manning"); kill
+  the gunner and the nearest soldier within RECRUIT_R runs to "MAN THE GUN!". BURST bullets via E.fire (shared squad aim learning).
+  AMMO rounds then RELOAD_T - unless a LOADER brings a box (refill()).
+- Trap Tripwire (WIRES): step on the wire -> click -> FUSE -> blast. Jump over it, crouch on it DISARM_T to disarm, or shoot the grenade
+  (a tiny body on layer 4 with hit_by_bullet) to set it off from afar. Empire soldiers never trigger them; plain zombies do.
+- FirePatch: burning napalm (damage tick to you, ignites zombies; FLAMERs have meta "fireproof"). delay > 0 = a canister falls first.
+- Sandbags: a wall a PIONEER builds (build() over BUILD_T, solid + cover only when done, HP, repair(), blastable). Shooting walls down
+  counts main meta "walls_lost".
+- LOADER (enemies/types/loader.gd): runs to empty MG nests and refills them; hands out magazines (meta "supply_t" -> conscripts fire
+  twice as fast, conscript.gd); keeps KEEP away. Shoot the crate stack above his head CRATE_HP times -> ammo cook-off (blast).
+- FLAMER (enemies/types/flamer.gd): pilot light (WIND_T) -> flame cone SPRAY_T (damage, ignites, leaves a FirePatch). "THEY LEARN
+  TOGETHER - CUT OFF": you retreat while he closes in -> main meta "flamer_kite"; after KITE_LEARN retreats every flamer throws a napalm
+  canister behind you as you run. Shoot the nozzle while he sprays (or blast him) -> BACKFIRE.
+- PIONEER (enemies/types/pioneer.gd; ENGINEER is an older type): you shoot at his squad in the open -> runs AHEAD and builds a sandbag
+  wall ("DIG IN!"), up to MAX_WALLS; repairs damaged walls nearby. "THEY LEARN TOGETHER": WALLS_LEARN walls shot down -> every pioneer
+  adds steel plates (double HP, "STEEL PLATES!").
+- Every empire type obeys goal_x first; zombie.gd: a zombie walking to an ordered spot (goal_x) now jumps obstacles like a chasing one.
+- BOSS ARMORED TRAIN (enemies/types/armored_train.gd, stationary locomotive): weak point = the driver's window. shell (turret lob), mg
+  burst - accurate while the headlight is on; shoot the headlight LIGHT_HP times -> it fires blind. "THEY LEARN": then it fires FLAREs
+  near you - while you stand within FLARE_R of a burning flare it is accurate again. "ALL OUT!" every TROOP_CD when few soldiers are
+  near: TROOP_N riflemen jump out of the door. pound = steam blast.
+- Lesson: a freed node is not always == null in Godot 4 - check is_instance_valid(x) directly.
+- Game.IMPLEMENTED = 42.

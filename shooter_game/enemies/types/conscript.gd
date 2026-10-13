@@ -95,6 +95,8 @@ func physics(pl: Node, delta: float) -> bool:
 				_fire(pl)
 				state = ADVANCE
 				_cd = randf_range(SHOT_CD.x, SHOT_CD.y)
+				if z.has_meta("supply_t") and float(z.get_meta("supply_t")) > z._time:   # LOADER (שלב 42) חילק מחסניות
+					_cd *= 0.5
 			return _stay(delta)
 	if _cd <= 0.0 and absf(d.x) > RANGE.x and absf(d.x) < RANGE.y and absf(d.y) < 160.0 and E.clear_shot(z, muzzle(), pl.global_position + Vector2(0, -24)):
 		state = AIM

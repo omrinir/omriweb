@@ -583,7 +583,7 @@ func _physics_process(delta: float) -> void:
 
 	# נתקע בקיר: קופץ (או מסתובב אם הוא סתם מטייל)
 	if is_on_wall() and is_on_floor() and not _one_leg and kind != MECH:
-		if _chasing or _cover_state == 1:
+		if _chasing or _cover_state == 1 or goal_x < INF:   # (גם בדרך לנקודה שקיבל פקודה ללכת אליה)
 			velocity.y = jump_velocity
 		else:
 			_dir = -_dir
