@@ -917,3 +917,28 @@ flags, and they all work for one goal: to conquer the world.
   can't reach you - "COOLANT!" steam blast from the engine. "SEND THE WELDERS!" every WELD_CD when damaged and fewer than WELDERS_MAX:
   welders walk up and repair it. Checked with real rays: engine = hit from the catwalk and from behind, armor from the front.
 - Game.IMPLEMENTED = 43.
+
+## Stage 44 - "THE DAM" ("THEY LEARNED THE SKY") - the Itaipu dam on the Parana river, region 5 level 8
+- levels/stage_44.gd + effects/s44_decor.gd: misty sky with transport planes dropping paratroopers, the green Parana valley with
+  high-voltage pylons, the dam face (buttresses, penstocks, a spillway chute with white water), the crest parapet with lamps.
+  World: CrestGround, Gantry (yellow gantry crane = upper floor at TIER + 2 ladders; one more near the boss), Obstacle "jersey" /
+  "cable_drum" / "valve". DamFX: spray and mist.
+- Trap Surge (one around every gantry, SURGE_W): floodgates open - siren + orange lights (WARN_T) -> a wave washes the section (PUSH,
+  DMG to you, DMG_Z to zombies). Empire soldiers walk out EARLY seconds before the siren (goal_x). Climb the gantry.
+- Trap Transformer (POWER): hums, charges (CHARGE_T, sparks, ring) then arcs to everything within R (damage + short daze). It is solid
+  cover too; shooting it while idle makes it discharge early.
+- DropZone (DROPS): when you pass it a plane drops N PARATROOPERs behind you (opposite your aim).
+- stationary_boss.gd: floats() (default false) - a floating boss skips gravity.
+- PARATROOPER (enemies/types/paratrooper.gd): meta "drop" -> starts DROP_H up, steers its chute to the side you are NOT facing.
+  In the air it takes AIR_MULT damage. "THEY LEARN TOGETHER - HALO": HALO_LEARN paratroopers shot in the air -> later ones free-fall
+  and open the chute only HALO_OPEN above the ground. On the ground: short SMG bursts.
+- MORTARMAN (enemies/types/mortarman.gd): keeps KEEP away, sets up (SETUP_T), lobs shells (FLIGHT, whistle). Packs up when you come
+  within PACK_R. "THEY LEARN YOUR HIDING SPOTS - TOGETHER": a cover you crouched behind for HIDE_T goes into main meta
+  "known_covers"; at a known cover every mortar fires at once with FAST_FLIGHT.
+- STORMTROOPER (enemies/types/stormtrooper.gd): elite assault (gas mask, leather coat, SMG bursts). Sees you shoot at him (on_shot) ->
+  rolls (ROLL_T, bullets miss). "THEY LEARN YOUR RHYTHM": every roll shortens the roll cooldown of all stormtroopers (main meta
+  "storm_seen", down to ROLL_MIN). You crouch behind cover -> "FLUSH HIM OUT!" grenade behind it.
+- BOSS RED ZEPPELIN (enemies/types/red_zeppelin.gd, floating at BOSS_ALT): weak point = the gondola underneath (shoot from below or from
+  the gantry). bombs = a carpet of BOMB_N bombs around you; "THEY LEARN WHERE YOU RUN": the next carpet is shifted toward where you ran
+  from the last one (run_bias). mg burst. "JUMP! JUMP!" - JUMP_N paratroopers when few soldiers are near.
+- Game.IMPLEMENTED = 44.

@@ -45,6 +45,7 @@ enum {
 	DRUMMER, GUARDSMAN, PROPAGANDIST, MARSHAL, # שלב 41 (המצעד בברזיליה). MARSHAL = בוס נייח על יציע הכבוד
 	LOADER, FLAMER, PIONEER, ARMORED_TRAIN, # שלב 42 (המטרו של ברזיליה). ARMORED_TRAIN = בוס נייח (קטר משוריין)
 	WELDER, TANKETTE, FOREMAN, PROTOTYPE, # שלב 43 (מפעל המלחמה בוולטה רדונדה). PROTOTYPE = בוס נייח (טנק-על)
+	PARATROOPER, MORTARMAN, STORMTROOPER, RED_ZEPPELIN, # שלב 44 (סכר איטאיפו). RED_ZEPPELIN = בוס מרחף
 }
 
 const FIRST := 20
@@ -170,6 +171,10 @@ const TYPES := {
 	TANKETTE: "res://enemies/types/tankette.gd",
 	FOREMAN: "res://enemies/types/foreman.gd",
 	PROTOTYPE: "res://enemies/types/prototype.gd",
+	PARATROOPER: "res://enemies/types/paratrooper.gd",
+	MORTARMAN: "res://enemies/types/mortarman.gd",
+	STORMTROOPER: "res://enemies/types/stormtrooper.gd",
+	RED_ZEPPELIN: "res://enemies/types/red_zeppelin.gd",
 }
 
 static var _stats_cache := {}

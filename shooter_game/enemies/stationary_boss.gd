@@ -63,6 +63,10 @@ func can_turn() -> bool:   # בוס שלא יכול להסתובב (PROTOTYPE - 
 	return true
 
 
+func floats() -> bool:   # בוס מרחף (RED ZEPPELIN)
+	return false
+
+
 func _place() -> void:
 	if z != null and is_instance_valid(z) and z._shape != null:
 		var r := z._shape.shape as RectangleShape2D
@@ -133,9 +137,12 @@ func physics(pl: Node, delta: float) -> bool:
 	if z.dead:
 		return false
 	z.velocity.x = 0.0
-	if not z.is_on_floor():
-		z.velocity.y += z.gravity * delta
-	z.move_and_slide()
+	if floats():   # (RED ZEPPELIN) מרחף - לא נופל
+		z.velocity = Vector2.ZERO
+	else:
+		if not z.is_on_floor():
+			z.velocity.y += z.gravity * delta
+		z.move_and_slide()
 	_pound_cd -= delta
 	var has_pl: bool = pl != null and not pl.dead
 	if not has_pl:
