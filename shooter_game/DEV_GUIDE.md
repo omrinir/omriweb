@@ -615,3 +615,26 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   Stage 32: at ESCAPE_AT he becomes invulnerable and runs off to the volcano (the exit opens) -> stage 33.
 - Mind control: BANDLEADER -> scream.
 
+## Stage 33 - "SULFUR CRATER" ("THEY LEARNED THE FIRE") - sulfur mine on an active Andean volcano, region 4 level 6
+(Story: SUPAY escaped the carnival in stage 32 and ran up here - this is the final fight with him.)
+- levels/stage_33.gd + effects/s33_decor.gd: night, red-lit ash clouds with lightning inside the plume, black volcanic cones (one erupting,
+  winding lava flows), the mine slope with glowing lava streams, stone huts, little blue sulfur flames and a rusty cableway with moving
+  buckets; near: lava rocks, sulfur crust, rising steam. World: VolcGround (basalt, sulfur patches, glowing cracks), LavaPit (pits() =
+  LAVA_PITS; extends the stage 21 SpikePit, burns zombies), Vent (fumarole hazard: blue sulfur flame ON_T / OFF_T with a bubbling warning),
+  Shelter "REFUGIO" (group "shelters", SHELTERS + one in the boss arena), Hopper (wooden sulfur sorting tower, its deck = upper floor),
+  Obstacle "sulfur_sacks" / "slag_cart" / "lava_rocks". AshFX: falling ash and embers, warning edges, the surge itself on screen.
+- Volcano (group "volcano"): CALM (20-26s) -> WARN (4s: rumble, shaking, "TAKE COVER!") -> SURGE (3s of burning ash): every TICK the player
+  and every zombie NOT inside a refugio takes damage. During WARN zombies within 700px of a refugio run into it (zombie.gd goal_x - a
+  general "walk here and ignore the player" field, INF = normal); zombies right next to you keep fighting (even inside the hut).
+- AZUFRERO (enemies/types/azufrero.gd): sulfur porter with a tall basket of sulfur above his head. Shots above the head / into his back /
+  fire / explosions hit the basket (BASKET_HP) -> it ignites BLUE: he sprints at you as a torch and BURSTs (2 damage to you, 28 to zombies
+  in BURST_R, blue fire on the ground). Ignite him inside a crowd.
+- CINDER (enemies/types/cinder.gd): ash zombie with glowing cracks. Its "health" is ash (ASH_HP; real hp is huge). At 0 it collapses into a
+  PILE with an ember Core (a small StaticBody on the zombie layer - bullets call Core.take_damage). It reforms after REFORM_T unless the core
+  is shot, the pile is stepped on, or an explosion hits it. The ash surge doesn't hurt it (ash_proof) - it gets faster in it.
+- SMOKER (enemies/types/smoker.gd): gas-mask worker with a smoke tank. Keeps distance and throws a Canister between you and the zombies
+  coming at you -> SmokeCloud (drawn over everything, LIFE seconds) hides their approach. His tank bursts into a big cloud when he dies.
+- BOSS SUPAY final (Game.level != 32): no escape; below RAGE_AT his cape burns with blue sulfur fire - landings leave blue fire, rockets
+  become blue fireballs. He ignores the ash surges - you have to fight him between refugios.
+- Region 4 names in game_state REGIONS: levels 31-33 = Floating Islands, Devil's Carnival, Sulfur Crater. Game.IMPLEMENTED = 33.
+

@@ -222,6 +222,7 @@ const SWELL_TIME := 7.0
 var _roar_cd := 3.0              # בוס: שואג ומרים את הדלת - חלון לירות בו מרחוק
 var _last_info := {}
 var brain = null                 # ai/zombie_brain.gd
+var goal_x := INF                # INF = רגיל. אחרת: הולך לנקודה הזו ומתעלם מהשחקן (effects/s33_decor.gd Volcano)
 var type_mod = null              # enemies/types/*.gd (סוגים 20+)
 var _drop_t := 0.0               # יורד דרך קומה (one-way)
 var _stagger_t := 0.0
@@ -472,7 +473,11 @@ func _physics_process(delta: float) -> void:
 
 	var target_speed := walk_speed
 	_chasing = false
-	if _cover_state != 0:
+	if goal_x < INF:   # פקודה מבחוץ (שלב 33: לרוץ למחסה מגל האפר) - מתעלמים מהשחקן
+		var gd := goal_x - global_position.x
+		_dir = signf(gd) if absf(gd) > 6.0 else _dir
+		target_speed = chase_speed * 1.25 if absf(gd) > 12.0 else 0.0
+	elif _cover_state != 0:
 		target_speed = _cover_process(delta, player)
 	elif player != null and not player.dead and (global_position.distance_to(player.global_position) < chase_range * (0.45 if Game.player_dark and not is_boss() else 1.0) or _alert_t > 0.0 or _traitor_near()):   # בחושך רואים פחות
 		_chasing = true

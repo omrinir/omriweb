@@ -34,6 +34,7 @@ enum {
 	TRUCKER,                       # שלב 28 - הבוס (EL CAMIONERO)
 	DROWNED, BALSERO, NETTER,      # שלב 31 (איי הקנים)
 	DIABLO, MORENADA, BANDLEADER, SUPAY,   # שלב 32 (קרנבל השדים). SUPAY = הבוס של 32 ו-33
+	AZUFRERO, CINDER, SMOKER,      # שלב 33 (מכתש הגופרית)
 }
 
 const FIRST := 20
@@ -116,6 +117,9 @@ const TYPES := {
 	MORENADA: "res://enemies/types/morenada.gd",
 	BANDLEADER: "res://enemies/types/bandleader.gd",
 	SUPAY: "res://enemies/types/supay.gd",
+	AZUFRERO: "res://enemies/types/azufrero.gd",
+	CINDER: "res://enemies/types/cinder.gd",
+	SMOKER: "res://enemies/types/smoker.gd",
 }
 
 static var _stats_cache := {}
