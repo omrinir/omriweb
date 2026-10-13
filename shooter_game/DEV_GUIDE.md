@@ -527,3 +527,19 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   (Rock: bounces, 2 damage, crushes zombies in the way, breaks on walls) or lobs it in an arc if you're up on a bridge. Jump over it.
 - Obstacle names: never reuse main.gd generator names (car, barrels, barrier, crates, rubble, bus, train, container, tires, sandbags, block, wall) in
   custom_gen - main.gd handles those itself. Renamed: 22 "barrier"->"jersey", 26 "crates"->"ammo_crates", 27 "sandbags"->"bags", 28 "wall"->"inka_wall".
+
+## Stage 29 - "MINE OF ECHOES" ("THEY LEARNED TO LISTEN") - Andean silver mine (inspired by Cerro Rico, Potosi), region 4 level 2
+- levels/stage_29.gd + effects/s29_decor.gd: cavern with wooden scaffolds + ladders, far lanterns, silver veins that glint, an ore cart riding a trestle,
+  timber support frames with swinging lanterns, stalactites, El Tio silhouettes. World: MineGround (rails + sleepers), CaveCeiling (rock ceiling at CEIL_Y,
+  stalactites, falling water drops), Lantern (group "mine_lights", flicker), SteamLeak (compressed-air pipe that puffs steam), ElTio (clay mine deity with horns,
+  candles, coca leaves, colored ribbons and a smoking cigarette), SCAFFOLDS at TIER 150, Obstacle "minecart" / "ore" / "timber". MineDark: dark + lantern/flashlight
+  holes. MineFX: floating dust.
+- Trap: CaveIn (CAVE_INS, group "cave_ins"): cracked ceiling sections. Player shots nearby add rumble (RUMBLE_SHOTS within the DECAY), explosions call shake().
+  WARN_T of falling dust + glowing cracks + rumble, then ROCKS FallingRock (2 damage, kill zombies) and a CD.
+- ECHO (enemies/types/echo.gd): blind miner (bandaged eyes, broken helmet lamp). Ignores what it can't hear: a shot within SHOT_R, running within RUN_R,
+  walking within WALK_R, explosions (_alert_t), or being hit -> RUSH to that spot (screech), then SEEK, then LISTEN (head tilts, echolocation clicks).
+  Crouching + not shooting = it doesn't notice you even right next to it. Strikes when it touches you.
+- DYNAMITER (enemies/types/dynamiter.gd): LIGHT (sparks) -> throws a Stick in an arc (leads you; higher arc if you're behind cover). The stick bounces/rolls,
+  the fuse burns (FUSE) -> blast (RADIUS) that also shakes the cave-ins. On death his bundle lights and blows up a second later.
+  Boss THE FOREMAN: 3 sticks in a fan.
+- Mind control: DYNAMITER -> explode, ECHO -> pounce.

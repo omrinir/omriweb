@@ -29,6 +29,7 @@ enum {
 	HAZMAT, BLACKOUT, VENT, GENERAL,   # שלב 26 (הבונקר) - GENERAL = הבוס של 26 ו-27
 	SNIPER, SAPPER, HANDLER,       # שלב 27 (שער הרמה)
 	CONDOR, BOULDER,               # שלב 28 (האנדים - מעבר העננים)
+	ECHO, DYNAMITER,               # שלב 29 (מכרה ההדים)
 }
 
 const FIRST := 20
@@ -99,6 +100,8 @@ const TYPES := {
 	HANDLER: "res://enemies/types/handler.gd",
 	CONDOR: "res://enemies/types/condor.gd",
 	BOULDER: "res://enemies/types/boulder.gd",
+	ECHO: "res://enemies/types/echo.gd",
+	DYNAMITER: "res://enemies/types/dynamiter.gd",
 }
 
 static var _stats_cache := {}
