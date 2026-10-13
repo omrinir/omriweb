@@ -827,3 +827,34 @@ flags, and they all work for one goal: to conquer the world.
   within MOVE_RESET of the last spot ("ON TARGET") - move and he starts a new bracket. mg = MG_N bullet burst. pound = point-blank shot.
 - stationary_boss.gd Lob: new "shell" look.
 - Game.IMPLEMENTED = 40. Region 5 level names: Harbor of War, The Parade, Metro Barracks, War Factory, The Dam, The Red Palace.
+
+## Stage 41 - "THE PARADE" ("THEY LEARNED TO MARCH") - Brasilia at dusk, region 5 level 5
+- levels/stage_41.gd + effects/s41_decor.gd: the National Congress (twin towers, dome and bowl) wrapped in red banners, the Cathedral's
+  crown, a giant flag mast, searchlights and red-white salute fireworks; ministry blocks with banners and marching troop silhouettes;
+  lamp posts with flags. World: AvenueGround, ReviewStand (stepped stand with a red drape; upper floor at TIER + 2 ladders),
+  Obstacle "crowd_barrier" / "planter" / "drum_stack". ParadeFX: red-white ticker tape.
+- Trap TankColumn (one around every stand, TANK_W wide): red lights + rumble + smoke screens at both lane ends (WARN_T) -> N tanks come
+  out of the right smoke and drive into the left smoke - 2 damage + knockback to you, DMG_Z to zombies. Empire soldiers KNOW the
+  schedule: EARLY seconds before the sirens they walk out of the lane (goal_x) - a tell for the player. Climb the stand.
+- Every empire type obeys goal_x first (no aiming / lunging / shouting while it walks to an ordered spot).
+- ai/zombie_brain.gd: a zombie that is already inside a danger zone keeps walking out (it used to freeze at the edge).
+- Trap SaluteGun (GUNS): a burning fuse (WARN_T) -> blast ring R: knockback + daze (DAZE_T), no damage.
+- zombie.gd: meta "drum_t" (DRUMMER) -> x1.3 move speed while it lasts. player.gd daze(t, msg) - the message is now a parameter.
+- game_state.gd: a kill by a trap ("hazard" / "tank") far away is not tagged LONG SHOT.
+- DRUMMER (enemies/types/drummer.gd): beats every BEAT -> every empire soldier within DRUM_R marches x1.3. You reload -> "DRUM ROLL!"
+  (charge order). The drum in front of his belly soaks bullets: DRUM_HP hits break it (no more beat, he gets angry and runs).
+  Killing him with the drum intact -> "broken" for the soldiers around.
+- GUARDSMAN (enemies/types/guardsman.gd): honor guard - shako, white cross belts, bayonet. Below half HP he swaps with a healthy guard
+  within SWAP_R (he falls back with goal_x, the partner gets "cover_me" and rushes). Bayonet LUNGE (LUNGE_WIND glint -> dash).
+  "THEY LEARN TOGETHER": dodge a lunge by jumping / ducking -> every guard in the level thrusts high / low from now on (main meta
+  "guard_lunge").
+- PROPAGANDIST (enemies/types/propagandist.gd): keeps KEEP away. "SURRENDER!" - you in the cone in front of him within SHOUT_R -> daze
+  DAZE_T, every zombie within CALL_R is alerted. You crouch for HIDE_T -> "THERE HE IS!": empire soldiers within CALL_R rush you.
+  Shoot the loudspeaker horn above his head HORN_HP times -> FEEDBACK: he goes silent and the soldiers around are "broken".
+- Squads: 2 guards in front, 2 riflemen, a drummer in the middle, a propagandist / officer behind. On the stands: rifleman + guard.
+- BOSS THE MARSHAL (enemies/types/marshal.gd, stationary on his review stand, main metas boss_x / boss_y / boss_ground_y):
+  bulletproof glass on the parade side (GLASS_HP hits, explosions count 2) - break it or flank him from behind on the stand.
+  barrage = "ARTILLERY!": red smoke marks your spot, after MARK_T shells fall from the sky around it. Dodge one -> the next barrage is wider
+  (up to 5 shells) and shifted toward where you ran (_lean); get hit -> back to 3. pistol = PISTOL_N burst. kneel = "KNEEL!" at close
+  range: knockback + daze. Below half HP -> "GUARD!": GUARD_N guardsmen appear on the avenue and every empire soldier charges.
+- Game.IMPLEMENTED = 41.

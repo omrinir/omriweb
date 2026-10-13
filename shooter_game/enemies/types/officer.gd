@@ -56,6 +56,8 @@ func physics(pl: Node, delta: float) -> bool:
 	_raise = maxf(_raise - delta, 0.0)
 	if z.dead or pl == null or pl.dead:
 		return false
+	if z.goal_x < INF:   # פקודת תנועה (למשל לצאת מנתיב הטנקים בשלב 41) - קודם מצייתים
+		return false
 	var d: Vector2 = pl.global_position - z.global_position
 	if absf(d.x) < 900.0 and absf(d.y) < 300.0:
 		z._dir = signf(d.x) if absf(d.x) > 4.0 else z._dir

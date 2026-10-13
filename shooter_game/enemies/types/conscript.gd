@@ -77,6 +77,10 @@ func physics(pl: Node, delta: float) -> bool:
 	_cd -= delta
 	if z.dead or pl == null or pl.dead:
 		return false
+	if z.goal_x < INF:   # פקודת תנועה (למשל לצאת מנתיב הטנקים בשלב 41) - קודם מצייתים
+		if state == AIM:
+			state = ADVANCE
+		return false
 	var d: Vector2 = pl.global_position - z.global_position
 	match state:
 		CONFUSED:   # בלי קצין: מסתכל לצדדים, מסתובב במקום

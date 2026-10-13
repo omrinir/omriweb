@@ -259,7 +259,7 @@ func steer(z: Node, player: Node, d: Vector2, delta: float, base_speed: float) -
 	if float(p.hazard_awareness) > 0.25 and role != RETREAT and speed > 0.0:
 		var ahead: Vector2 = z.global_position + Vector2(z._dir * 34.0, -12.0)
 		for h in z.get_tree().get_nodes_in_group("hazards"):
-			if h.danger_at(ahead, 6.0) and randf() < float(p.hazard_awareness) + 0.3:
+			if h.danger_at(ahead, 6.0) and not h.danger_at(z.global_position + Vector2(0, -12), 0.0) and randf() < float(p.hazard_awareness) + 0.3:   # כבר בפנים? ממשיכים לצאת
 				speed = 0.0
 				if z.is_on_floor() and _hop_cd <= 0.0 and float(p.hazard_awareness) > 0.6 and h.world_rect().size.x < 140.0:
 					z.velocity.y = z.jump_velocity * 1.05   # קופץ מעל אש קטנה

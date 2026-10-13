@@ -576,6 +576,8 @@ func _physics_process(delta: float) -> void:
 	else:
 		if _duck_t > 0.0:
 			target_speed *= 0.3   # מתכופף = כמעט לא זז
+		if has_meta("drum_t") and float(get_meta("drum_t")) > _time:   # DRUMMER (שלב 41): צועדים בקצב התוף - מהר יותר
+			target_speed *= 1.3
 		velocity.x = move_toward(velocity.x, _dir * target_speed * _speed_mul, 600.0 * delta)
 	move_and_slide()
 

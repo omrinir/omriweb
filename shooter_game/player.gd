@@ -759,11 +759,11 @@ func collect(p: Node) -> bool:
 
 
 # MIRAGE: מסונוור מהחום ל-t שניות
-func daze(t: float) -> void:
+func daze(t: float, msg := "DAZED BY THE HEAT") -> void:
 	if dead:
 		return
-	if _daze_t <= 0.0:
-		_say("DAZED BY THE HEAT", Color(1.0, 0.85, 0.5))
+	if _daze_t <= 0.0 and msg != "":
+		_say(msg, Color(1.0, 0.85, 0.5))
 	_daze_t = maxf(_daze_t, t)
 
 

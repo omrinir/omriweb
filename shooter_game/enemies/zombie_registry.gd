@@ -42,6 +42,7 @@ enum {
 	OFFICE, WASHER, COURIER, TOWER, # שלב 38 (סאו פאולו). TOWER = בוס נייח על פיגום
 	HOOLIGAN, STRIKER, REFEREE, GOALKEEPER, # שלב 39 (המרקנה). GOALKEEPER = בוס נייח בשער
 	CONSCRIPT, OFFICER, FLAGBEARER, BEHEMOTH, # שלב 40 (נמל סנטוס - אימפריית המתים). BEHEMOTH = טנק נייח
+	DRUMMER, GUARDSMAN, PROPAGANDIST, MARSHAL, # שלב 41 (המצעד בברזיליה). MARSHAL = בוס נייח על יציע הכבוד
 }
 
 const FIRST := 20
@@ -155,6 +156,10 @@ const TYPES := {
 	OFFICER: "res://enemies/types/officer.gd",
 	FLAGBEARER: "res://enemies/types/flagbearer.gd",
 	BEHEMOTH: "res://enemies/types/behemoth.gd",
+	DRUMMER: "res://enemies/types/drummer.gd",
+	GUARDSMAN: "res://enemies/types/guardsman.gd",
+	PROPAGANDIST: "res://enemies/types/propagandist.gd",
+	MARSHAL: "res://enemies/types/marshal.gd",
 }
 
 static var _stats_cache := {}
