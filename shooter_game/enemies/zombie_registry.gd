@@ -32,6 +32,7 @@ enum {
 	ECHO, DYNAMITER,               # שלב 29 (מכרה ההדים)
 	FROSTBITE, BELLRINGER,         # שלב 30 (הכפר הקפוא)
 	TRUCKER,                       # שלב 28 - הבוס (EL CAMIONERO)
+	DROWNED, BALSERO, NETTER,      # שלב 31 (איי הקנים)
 }
 
 const FIRST := 20
@@ -107,6 +108,9 @@ const TYPES := {
 	FROSTBITE: "res://enemies/types/frostbite.gd",
 	BELLRINGER: "res://enemies/types/bellringer.gd",
 	TRUCKER: "res://enemies/types/trucker.gd",
+	DROWNED: "res://enemies/types/drowned.gd",
+	BALSERO: "res://enemies/types/balsero.gd",
+	NETTER: "res://enemies/types/netter.gd",
 }
 
 static var _stats_cache := {}

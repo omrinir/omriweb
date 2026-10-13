@@ -570,3 +570,25 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - BELLRINGER (enemies/types/bellringer.gd): in the bell tower (finds the BellTower under it): every RING_CD when you're within RANGE it pulls the rope (PULL_T, shoot it
   to SILENCE it) -> the bell rings, the blizzard turns to whiteout (WHITE_T) and zombies within RUSH_R rush you. On the ground: a hand bell (weaker).
 - Mind control: FROSTBITE -> slam, BELLRINGER -> scream. Map pictures: map/thumbs/level_28.png, level_29.png, level_30.png. Game.IMPLEMENTED = 30.
+
+## Stage 31 - "FLOATING ISLANDS" ("THEY LEARNED TO SWIM") - Lake Titicaca, Uros reed islands, region 4 level 4
+- levels/stage_31.gd + effects/s31_decor.gd: sunrise over the lake, the snowy Cordillera Real reflected in the water, a glittering sun path,
+  far reed islands with huts / watchtowers / cooking smoke / sailing reed boats, swaying totora reeds.
+- The whole level is a shallow lake: LakeGround (lake bed) + WaterFront (translucent water surface drawn ABOVE the actors, so legs are
+  underwater). stage.LakeLogic sets player.in_water (slower) when the player is on the lake bed; main meta "lake_floor" = floor_y.
+- Island (group "islands", solid, ISL_H high): reed bundles, huts with woven door curtains, fish racks, clay stoves (smoke particles),
+  reed watchtowers. Islands are generated (ISLE_W / ISLE_GAP) from x=0 (the start island); BOSS_ISLES = two refuge islands in the boss arena.
+  Zombies that spawn inside an island are moved on top of it (extra_spawns).
+- Trap: RottenPatch - dark wet reeds in the middle of some islands: stand on it ROT_T -> it breaks, you drop into the water; regrows (REGROW_T).
+- Obstacles in the water: "moored_boat" (reed boat with a puma head) / "reed_bundles" / "fish_crates".
+- DROWNED (enemies/types/drowned.gd): swims underwater (collision_layer 0 - bullets can't reach it; only bubbles + a V ripple show; it swims
+  under boats/crates but not islands). Close to you while you're in the water -> RISE (boiling bubbles = warning) -> bursts out and bites ->
+  UP (x1.4) -> dives. You on an island: it waits at the edge (LURK_T) then CLIMBs on. Grenade/explosion in the water -> STUNNED floating (x2).
+  Taser hits it underwater. Boss MAMA QUCHA: sends Waves along the lake (islands break them - stand on the reeds); if you hide on an island
+  near her she first yanks you into the water, then the wave.
+- BALSERO (enemies/types/balsero.gd): reed boat + boatman + 2 passengers. Sails to the island you're on and unloads the passengers onto it,
+  then pokes you with his long pole. Shots low on the boat damage the hull (BOAT_HP): sink it before it unloads and the passengers drown...
+  and come back as DROWNED. After the boat sinks he is a normal zombie.
+- NETTER (enemies/types/netter.gd): fisherman in a chullo hat. Keeps distance (BACKOFF), whirls the net (warning), throws it in an arc.
+  Netted: very slow, no jumping, reeled toward him. ROLL (SHIFT) tears the net; a heavy hit on him (CUT_DMG) or killing him frees you.
+
