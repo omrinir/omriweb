@@ -44,6 +44,7 @@ enum {
 	CONSCRIPT, OFFICER, FLAGBEARER, BEHEMOTH, # שלב 40 (נמל סנטוס - אימפריית המתים). BEHEMOTH = טנק נייח
 	DRUMMER, GUARDSMAN, PROPAGANDIST, MARSHAL, # שלב 41 (המצעד בברזיליה). MARSHAL = בוס נייח על יציע הכבוד
 	LOADER, FLAMER, PIONEER, ARMORED_TRAIN, # שלב 42 (המטרו של ברזיליה). ARMORED_TRAIN = בוס נייח (קטר משוריין)
+	WELDER, TANKETTE, FOREMAN, PROTOTYPE, # שלב 43 (מפעל המלחמה בוולטה רדונדה). PROTOTYPE = בוס נייח (טנק-על)
 }
 
 const FIRST := 20
@@ -165,6 +166,10 @@ const TYPES := {
 	FLAMER: "res://enemies/types/flamer.gd",
 	PIONEER: "res://enemies/types/pioneer.gd",
 	ARMORED_TRAIN: "res://enemies/types/armored_train.gd",
+	WELDER: "res://enemies/types/welder.gd",
+	TANKETTE: "res://enemies/types/tankette.gd",
+	FOREMAN: "res://enemies/types/foreman.gd",
+	PROTOTYPE: "res://enemies/types/prototype.gd",
 }
 
 static var _stats_cache := {}

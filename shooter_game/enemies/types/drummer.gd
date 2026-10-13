@@ -55,7 +55,7 @@ func can_bite() -> bool:
 func _in_drum(p: Vector2) -> bool:
 	var l: Vector2 = (p - z.global_position) / z.sc
 	l.x *= z._dir
-	return Rect2(-4, -34, 24, 22).has_point(l)
+	return Rect2(-4, -34, 30, 22).has_point(l)   # (עד שפת אזור הפגיעה מלפנים)
 
 
 func on_damage(_amount: int, hit_pos: Vector2, dir: Vector2, src: Dictionary) -> bool:

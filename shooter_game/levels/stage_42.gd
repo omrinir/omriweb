@@ -24,7 +24,7 @@ const SOUNDS := {
 const MEZZ := [[0.2, 420.0], [0.5, 440.0], [0.77, 400.0]]
 const TIER := 140.0
 const NESTS := [0.29, 0.59, 0.87]
-const WIRES := [0.1, 0.24, 0.4, 0.47, 0.67, 0.73, 0.94]
+const WIRES := [0.1, 0.24, 0.4, 0.47, 0.67, 0.73]
 const SQUADS := [0.14, 0.36, 0.63, 0.9]
 const HARDER := [1.0, 1.15, 1.3]
 
@@ -143,6 +143,7 @@ func build_world() -> void:
 		var tw := Decor.Tripwire.new()
 		add_world(tw, Vector2(wx, floor_y))
 		reserve(Rect2(wx - 20.0, floor_y - 20.0, Decor.Tripwire.W + 40.0, 20.0))
+	reserve(Rect2(level_w - 720.0 - 300.0, floor_y - 140.0, 760.0, 140.0))   # הקטר רחב - שום מכשול / חוט מתחתיו
 
 
 func _pickup(kind: int, pos: Vector2) -> void:

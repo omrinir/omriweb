@@ -59,6 +59,10 @@ func weak_on_face() -> bool:
 	return true
 
 
+func can_turn() -> bool:   # בוס שלא יכול להסתובב (PROTOTYPE - מוברג לפס הייצור)
+	return true
+
+
 func _place() -> void:
 	if z != null and is_instance_valid(z) and z._shape != null:
 		var r := z._shape.shape as RectangleShape2D
@@ -137,7 +141,7 @@ func physics(pl: Node, delta: float) -> bool:
 	if not has_pl:
 		return true
 	var dx: float = pl.global_position.x - z.global_position.x
-	if winding == "" and absf(dx) > 8.0:
+	if winding == "" and absf(dx) > 8.0 and can_turn():
 		z._dir = signf(dx)
 	_frame(pl, absf(dx) < 1150.0 and absf(pl.global_position.y - z.global_position.y) < 400.0)
 	_vis_t -= delta

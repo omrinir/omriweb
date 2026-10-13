@@ -892,3 +892,28 @@ flags, and they all work for one goal: to conquer the world.
   bullets. Now: hit_size() (default = tall enough to include weak_rect; the ARMORED TRAIN overrides it to cover the whole locomotive),
   and in_weak() also accepts a hit on the box's side face at the weak point's height (weak_on_face() - override false for a weak point
   that is not the front-most thing at its height). Checked with real rays for every stationary boss (levels 34-42).
+
+## Stage 43 - "WAR FACTORY" ("THEY LEARNED TO BUILD") - the Volta Redonda steel works, region 5 level 7
+- levels/stage_43.gd + effects/s43_decor.gd: hazy orange sky with sparks, blast furnaces and chimneys over the Paraiba river, an assembly
+  hall with a saw-tooth roof and tank hulls hanging from cranes, red banners, steel girders with chains and hooks. World: FactoryGround,
+  Catwalk (upper floor at TIER; a higher one at BOSS_TIER over the boss), Obstacle "steel_coil" / "parts_bin" / "road_wheel".
+  FactoryFX: sparks + heat haze.
+- Trap Conveyor (LINES: [place, width, dir]): moves you (SPEED) and zombies along.
+- Trap Press (one in the middle of every conveyor): up -> WARN_T (red lamp + steam hiss) -> slam: DMG to you, DMG_Z to zombies -> rises.
+  rush() = "PRESS NOW!" from a FOREMAN with a short RUSH_WARN. Dodging a rushed press counts main meta "press_dodge".
+- WELDER (enemies/types/welder.gd): finds the most damaged empire unit in SEEK_R (the boss counts in hit points) and welds HEAL per TICK.
+  Mask down while welding = headshots blocked. Aim at him while he welds (within FLASH_R) -> ARC FLASH daze. Kill him while he walks.
+- TANKETTE (enemies/types/tankette.gd): one-man tank. Front hits x FRONT_MULT, rear hits x REAR_MULT, explosions full. Stops and turns
+  slowly (TURN_T) - jump over it. "THEY LEARN TOGETHER": rear hits on FLANK_LEARN tankettes -> all keep KEEP_LEARNED away and turn in
+  TURN_LEARNED. MG bursts (E.fire), rams when touching.
+- FOREMAN (enemies/types/foreman.gd): keeps KEEP away. "OFF THE LINE!" every LINE_CD: a conscript comes off the nearest conveyor
+  (up to CREW_MAX alive). "PRESS NOW!" when you stand under a press; after 2 dodged rushes (press_dodge) he gives even less warning.
+  His death -> his crew is "leaderless".
+- stationary_boss.gd: can_turn() (default true).
+- BOSS PROTOTYPE (enemies/types/prototype.gd): an unfinished super-tank bolted to the line - it CAN'T TURN (always faces left).
+  Weak point = the open glowing engine on the rear deck: hit it from the catwalk above the rear or from the floor behind it
+  (hit_size covers the whole tank, in_weak also counts top hits above the deck). twin = two shells: the first at you, the second where
+  you dodge - "THEY LEARN YOUR DODGE": DODGE_LEARN more dodges to one side -> the second shell lands there. mg burst. Behind it the guns
+  can't reach you - "COOLANT!" steam blast from the engine. "SEND THE WELDERS!" every WELD_CD when damaged and fewer than WELDERS_MAX:
+  welders walk up and repair it. Checked with real rays: engine = hit from the catwalk and from behind, armor from the front.
+- Game.IMPLEMENTED = 43.
