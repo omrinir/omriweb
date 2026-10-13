@@ -65,6 +65,7 @@ var glove_color := Color("141418")
 var idle_aim := Vector2(-1.0, 0.25).normalized()
 var slip_t := 0.0      # (שלב 35) על קרח חלק: כמעט בלי אחיזה - מחליקים
 var slow_t := 0.0      # (שלב 35) תקוע בשלג: איטי
+var jam_t := 0.0       # (שלב 39) השופט נתן לך כרטיס: הנשק תקוע
 var _daze_t := 0.0     # MIRAGE (שלב 17): העתק נגע בך - מסונוור מהחום: איטי, והכוונת רועדת
 var auto_walk := 0.0   # כשלא בשליטה (סצנה): כיוון ומהירות הליכה אוטומטית (-1..1)
 var calm := false      # בסצנת סיפור: נשימה חלשה (בתקריב הנשימה הרגילה נראית כמו "עלייה")
@@ -308,6 +309,7 @@ func _physics_process(delta: float) -> void:
 	_daze_t = maxf(_daze_t - delta, 0.0)
 	slip_t = maxf(slip_t - delta, 0.0)
 	slow_t = maxf(slow_t - delta, 0.0)
+	jam_t = maxf(jam_t - delta, 0.0)
 	if _dodge_slow > 0.0:
 		_dodge_slow -= delta
 		if _dodge_slow <= 0.0 and not boosts.has(PickupScript.BULLET_TIME):
@@ -898,6 +900,13 @@ func _fire() -> void:
 		var w: Dictionary = Upgrades.weapon_def(gun)   # הנשק אחרי השדרוגים
 		var msize: int = w.get("magazine_size", 0)
 		if _reload_t > 0.0:
+			return
+		if jam_t > 0.0:   # כרטיס מהשופט (שלב 39): הנשק תקוע
+			_cooldown = 0.25
+			Sfx.play("empty", global_position)
+			if _empty_t <= 0.0:
+				_empty_t = 0.8
+				_say("JAMMED!", Color("ffd020"))
 			return
 		if ammo <= 0:
 			_cooldown = 0.3

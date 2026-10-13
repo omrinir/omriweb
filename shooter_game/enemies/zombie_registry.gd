@@ -40,6 +40,7 @@ enum {
 	MALLKI, GUARDIAN, QUIPU, APU, # שלב 36 (הפסגה). APU = בוס נייח
 	KITE, CAPOEIRA, GRAFFITI, DONO, # שלב 37 (פאבלה בריו). DONO = בוס נייח על גג
 	OFFICE, WASHER, COURIER, TOWER, # שלב 38 (סאו פאולו). TOWER = בוס נייח על פיגום
+	HOOLIGAN, STRIKER, REFEREE, GOALKEEPER, # שלב 39 (המרקנה). GOALKEEPER = בוס נייח בשער
 }
 
 const FIRST := 20
@@ -145,6 +146,10 @@ const TYPES := {
 	WASHER: "res://enemies/types/washer.gd",
 	COURIER: "res://enemies/types/courier.gd",
 	TOWER: "res://enemies/types/tower.gd",
+	HOOLIGAN: "res://enemies/types/hooligan.gd",
+	STRIKER: "res://enemies/types/striker.gd",
+	REFEREE: "res://enemies/types/referee.gd",
+	GOALKEEPER: "res://enemies/types/goalkeeper.gd",
 }
 
 static var _stats_cache := {}

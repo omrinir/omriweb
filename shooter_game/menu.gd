@@ -168,9 +168,14 @@ func _build_ui(vp: Vector2) -> void:
 	ui.add_child(plbl)
 	var accents := [Color("3a8acc"), Color("d8902a"), Color("6a5acd"), Color("c04a3a"), Color("4a90a0"), Color("c0a030"), Color("40b0a0"), Color("d02040"), Color("e8b84a"), Color("8a6ad0"), Color("c03a2a"), Color("d8c49c"), Color("5a8aa0"), Color("e8483a"), Color("d89a5a"), Color("e0c070"), Color("f0a020"), Color("4aa060"), Color("2e7a40"), Color("d8784a"), Color("5a8ab0"), Color("d86a2a"), Color("e0a040"), Color("7a8ad8")]
 	var n: int = Game.IMPLEMENTED - 1
-	var step: float = minf(41.0, 864.0 / float(n))   # כל הכפתורים נכנסים בשורה אחת
+	var rows := 1 if n <= 24 else 2   # הרבה שלבים -> שתי שורות (שהמספרים יישארו קריאים)
+	var per_row := int(ceil(float(n) / float(rows)))
+	var step: float = minf(41.0, 864.0 / float(per_row))
+	var bh := 44.0 if rows == 1 else 38.0
 	for i in n:
-		var lb := _button(root, str(i + 2), Vector2(394.0 + float(i) * step, 262.0), Vector2(step - 3.0, 44.0), 20 if step >= 38.0 else 17, 0.25 + 0.03 * float(i))
+		var col := i % per_row
+		var row := int(float(i) / float(per_row))
+		var lb := _button(root, str(i + 2), Vector2(394.0 + float(col) * step, 262.0 + float(row) * (bh + 4.0)), Vector2(step - 3.0, bh), 20 if step >= 38.0 else 18, 0.25 + 0.03 * float(i))
 		lb.accent = accents[i % accents.size()]
 		lb.pressed.connect(_start_game.bind(i + 2))
 

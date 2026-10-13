@@ -772,3 +772,26 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   after BEAM_RELOAD), pound. LEARNS a heat map of where you stand (BUCKET px, real time) - after LEARN_T it knows your favorite spot and
   every second beam falls there. Hard hat: head hits x0.35 until HAT_HP hits knock it off.
 - Game.IMPLEMENTED = 38.
+
+## Stage 39 - "THE STADIUM" ("THEY LEARNED THE GAME") - the Maracana on a match night, region 5 level 3
+- levels/stage_39.gd + effects/s39_decor.gd: night sky with floodlight glow, drifting red/green flare smoke and fireworks; the far stand
+  with the white ring roof and rows of floodlights, thousands of jumping zombie fans (colored dots), giant flags and burning flares;
+  LED boards around the pitch with cameramen. World: TrackGround (red running track, then striped grass for the last GRASS_FROM px),
+  Stand (near stand: seat rows full of zombie fans + the upper walkway = upper floor at TIER), Goal (behind the boss), Obstacle
+  "ad_board" / "bench" / "cooler". StadiumFX: confetti (stops at the ground).
+- Trap CrowdThrow (one per Stand): when you are in front of it the crowd stands up and boos (WARN_T, "!" + arms up), then N cups,
+  bottles and flares rain down around where you are going (SPREAD). They hit zombies too.
+- Trap Floodlight (LIGHTS): a light tower sweeping its beam along the track. Get caught in the light -> every zombie in ALERT_R knows
+  where you are and rushes you.
+- HOOLIGAN (enemies/types/hooligan.gd): torcida fan with a lit flare. Throws it BEHIND you (the side away from him) -> FlareFire on the
+  ground (BURN_T) cuts off your retreat. With CHANT_N zombies around him he chants "OLE OLE OLE" -> they all rush. Shoot the flare in
+  his raised hand -> it burns him.
+- STRIKER (enemies/types/striker.gd): number 9. Keeps KEEP distance and kicks a Ball (bounces, stops on walls). If the ball is blocked by
+  cover he learns to CHIP it over (lob). Shoot the ball in the air -> it flies back at him (OWN GOAL: 10 damage + stun).
+- REFEREE (enemies/types/referee.gd): counts every shot you fire near him (on_shot). FOUL_N shots -> whistle (a hit cuts it) -> YELLOW
+  card: your gun is jammed YELLOW_T (player.jam_t - grenades and specials still work). Second card = RED: jammed RED_T.
+- BOSS GOALKEEPER (enemies/types/goalkeeper.gd, stationary) in the goal at the end of the grass. punt (2 burning balls, lead), throw
+  ("football" Lob, 3 over cover once it learned), pound. READS YOUR AIM: keep your crosshair on his head SAVE_T -> he raises his gloves
+  (SAVE_HOLD) and head shots are SAVED. Snap-aim and shoot, or shoot while he winds up a kick / throw.
+- player.gd: jam_t (stage 39). menu.gd: the practice buttons wrap into two rows when there are more than 24 levels.
+- Game.IMPLEMENTED = 39.
