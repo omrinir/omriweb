@@ -594,6 +594,7 @@ class Band extends Node:
 # ---- קונפטי + מחוון קצב (מסך) ----
 class CarnivalFX extends Node2D:
 	var vp := Vector2(1280, 720)
+	var floor_y := 630.0         # הקרקע בעולם: הקונפטי נוחת עליה (לא נופל עד תחתית המסך)
 	var _t := 0.0
 	var _c := []
 
@@ -605,11 +606,12 @@ class CarnivalFX extends Node2D:
 
 	func _process(delta: float) -> void:
 		_t += delta
+		var gy: float = (get_viewport().get_canvas_transform() * Vector2(0.0, floor_y)).y   # הקרקע על המסך
 		for e in _c:
 			var p: Vector2 = e[0]
 			p.y += 50.0 * delta * float(e[1])
 			p.x += sin(_t * 2.0 + float(e[3])) * 20.0 * delta
-			if p.y > vp.y + 8.0:
+			if p.y > minf(gy - 2.0, vp.y + 8.0):   # נחת על הקרקע -> פיסה חדשה למעלה
 				p.y = -8.0
 				p.x = randf_range(0.0, vp.x)
 			e[0] = p

@@ -10,10 +10,11 @@ extends RefCounted
 #    LakeGround    - (עולם) קרקעית האגם (מתחת לפני המים)
 #    WaterFront    - (עולם, מעל השחקנים) פני המים השקופים: הרגליים בתוך המים, אדוות
 #    Island        - (מוצק) אי קנים: שכבות קנים, בקתות, מתלה דגים, תנור מעשן (smoke). RottenPatch = קנים רקובים שנשברים
-#    RottenPatch   - (מוצק -> בור, מלכודת) עומדים עליו ROT_T -> נשבר, נופלים למים. חוזר אחרי REGROW_T
+#    RottenPatch   - (מוצק -> בור, מלכודת) קנים כהים עם טחב. דורכים -> חורק ושוקע (SAG_T) -> נשבר: נופלים לבור מים,
+#                    נזק 1 + מסתבכים (TANGLE_T). חוזר אחרי REGROW_T
 #    Obstacle      - (מוצק + מחסה) "moored_boat" סירת קנים קשורה / "reed_bundles" ערמת קנים / "fish_crates" ארגזי דגים
 #    LakeFX        - (מסך) ערפל בוקר נמוך על המים, ניצוצות אור
-#  לשנות: ISL_H, WATER_Y, RottenPatch.ROT_T, RottenPatch.REGROW_T.
+#  לשנות: ISL_H, WATER_Y, RottenPatch.SAG_T / TANGLE_T / REGROW_T.
 # ============================================================
 
 const Art := preload("res://art.gd")
@@ -328,24 +329,27 @@ class Island extends Node2D:
 		for i in int(w / 6.0):   # קנים טריים למעלה
 			var x := float(i) * 6.0 + r.randf_range(0.0, 4.0)
 			draw_line(Vector2(x, -H), Vector2(x + r.randf_range(-3.0, 3.0), -H - r.randf_range(2.0, 6.0)), Color("e0c878"), 1.0)
-		for g in gaps:   # מקום הקנים הרקובים (RottenPatch מצייר את עצמו)
-			draw_rect(Rect2(float(g[0]), -H - 2.0, float(g[1]) - float(g[0]), H + 4.0), S.WATER_D)
 
 
-# ---- קנים רקובים: עומדים עליהם -> נשברים, נופלים למים ----
+# ---- קנים רקובים: נראים כמעט כמו קנים רגילים (כהים, רטובים, טחב). דורכים -> חורקים ושוקעים (SAG_T) ->
+#      נשברים: נופלים לבור מים בתוך האי, נזק 1 + מסתבכים בקנים (TANGLE_T: איטי, כוונת רועדת). חוזרים אחרי REGROW_T ----
 class RottenPatch extends Node2D:
-	const ROT_T := 0.4
+	const SAG_T := 0.45
+	const TANGLE_T := 1.5
 	const REGROW_T := 7.0
 	var w := 60.0
 	var broken := false
 	var breaks := 0              # לבדיקות
 	var _stand := 0.0
 	var _t := 0.0
+	var _creak := false
+	var _seed := 0
 	var _body: StaticBody2D
 	var _cs: CollisionShape2D
 
 	func _ready() -> void:
 		z_index = 2
+		_seed = randi()
 		var S := preload("res://effects/s31_decor.gd")
 		_body = StaticBody2D.new()
 		_body.collision_layer = 1
@@ -360,54 +364,90 @@ class RottenPatch extends Node2D:
 
 	func _physics_process(delta: float) -> void:
 		var S := preload("res://effects/s31_decor.gd")
-		if broken:
-			_t -= delta
-			if _t <= 0.0:
-				var pl := get_tree().get_first_node_in_group("player")
-				if pl == null or not Rect2(global_position + Vector2(-10, -S.ISL_H - 60.0), Vector2(w + 20, S.ISL_H + 60.0)).intersects(pl.body_rect()):
-					broken = false
-					_cs.set_deferred("disabled", false)
-					queue_redraw()
-			return
+		_t += delta
 		var pl := get_tree().get_first_node_in_group("player")
-		if pl != null and not pl.dead and pl.is_on_floor() and absf(pl.global_position.y - (global_position.y - S.ISL_H)) < 4.0 and pl.global_position.x > global_position.x + 4.0 and pl.global_position.x < global_position.x + w - 4.0:
+		if broken:
+			if _t >= REGROW_T and (pl == null or not Rect2(global_position + Vector2(-10, -S.ISL_H - 60.0), Vector2(w + 20, S.ISL_H + 60.0)).intersects(pl.body_rect())):
+				broken = false
+				_cs.set_deferred("disabled", false)
+				queue_redraw()
+			elif Engine.get_physics_frames() % 4 == 0 and Art.on_screen(self, global_position):
+				queue_redraw()
+			return
+		var on: bool = pl != null and not pl.dead and pl.is_on_floor() and absf(pl.global_position.y - (global_position.y - S.ISL_H)) < 4.0 and pl.global_position.x > global_position.x + 2.0 and pl.global_position.x < global_position.x + w - 2.0
+		if on:
+			if _stand == 0.0:   # חריקה = אזהרה
+				Sfx.play("s31_creak", global_position + Vector2(w * 0.5, -S.ISL_H), 0.0, 0.15, 2)
+				Particles.burst(get_parent(), global_position + Vector2(w * 0.5, -S.ISL_H), "leaf", Vector2.UP, 3)
 			_stand += delta
-			if _stand > ROT_T:
-				_break()
-		else:
-			_stand = maxf(_stand - delta, 0.0)
+			queue_redraw()
+			if _stand > SAG_T:
+				_break(pl)
+		elif _stand > 0.0:
+			_stand = maxf(_stand - delta * 2.0, 0.0)
+			queue_redraw()
 
-	func _break() -> void:
+	func _break(pl: Node) -> void:
 		var S := preload("res://effects/s31_decor.gd")
 		broken = true
 		breaks += 1
 		_stand = 0.0
-		_t = REGROW_T
+		_t = 0.0
 		_cs.set_deferred("disabled", true)
-		Sfx.play("s31_creak", global_position + Vector2(w * 0.5, -S.ISL_H), 2.0, 0.1, 2)
-		Particles.burst(get_parent(), global_position + Vector2(w * 0.5, -S.ISL_H), "leaf", Vector2.UP, 10)
-		S.splash(get_parent(), global_position + Vector2(w * 0.5, -S.WATER_Y), 8)
-		var pl := get_tree().get_first_node_in_group("player")
-		if pl != null and pl.has_method("_say"):
-			pl._say("ROTTEN REEDS!", Color("e0c070"))
+		Sfx.play("s31_creak", global_position + Vector2(w * 0.5, -S.ISL_H), 4.0, 0.1, 2, 0.7)
+		Particles.burst(get_parent(), global_position + Vector2(w * 0.5, -S.ISL_H), "leaf", Vector2.UP, 12)
+		S.splash(get_parent(), global_position + Vector2(w * 0.5, -S.WATER_Y), 10)
+		if pl != null:
+			pl.hurt(1, Vector2(0.0, 0.3))   # נופלים על קנים שבורים
+			pl._daze_t = maxf(float(pl._daze_t), TANGLE_T)   # מסתבכים בקנים
+			if pl.has_method("_say"):
+				pl._say("ROTTEN REEDS! TANGLED!", Color("e0c070"))
 		queue_redraw()
 
 	func _draw() -> void:
 		var S := preload("res://effects/s31_decor.gd")
 		var H := S.ISL_H
-		if broken:   # קצוות שבורים מעל המים
-			for e in [0.0, w]:
+		var r := RandomNumberGenerator.new()
+		r.seed = _seed
+		if broken:   # בור מים בתוך האי: מים כהים, קנים שבורים בולטים מהשפות, שברים צפים
+			draw_rect(Rect2(0, -H, w, H + 4.0), Color("2a2414"))
+			var wy := -S.WATER_Y + sin(_t * 3.0) * 1.0
+			draw_rect(Rect2(0, wy, w, S.WATER_Y + 4.0), S.WATER)
+			draw_line(Vector2(0, wy), Vector2(w, wy), Color(0.8, 0.9, 1.0, 0.6), 1.5)
+			for q in 4:   # שברי קנים צפים
+				var fx := fposmod(float(q) * 17.0 + _t * 6.0 * (1.0 if q % 2 == 0 else -1.0), w - 12.0) + 6.0
+				draw_line(Vector2(fx - 6, wy - 1), Vector2(fx + 6, wy + 1), S.REED_D, 2.0)
+			for e in [0.0, w]:   # קצוות שבורים
 				var sgn := 1.0 if e == 0.0 else -1.0
-				for q in 4:
-					draw_line(Vector2(e, -H + float(q) * 8.0), Vector2(e + sgn * 8.0, -H + float(q) * 8.0 + 5.0), S.REED_W, 2.0)
+				for q in 5:
+					var yy := -H + 2.0 + float(q) * 6.0
+					draw_line(Vector2(e, yy), Vector2(e + sgn * r.randf_range(5.0, 11.0), yy + r.randf_range(2.0, 6.0)), S.REED_W if q % 2 else S.REED_D, 2.0)
 			return
-		draw_rect(Rect2(0, -H, w, H + 4.0), Color("6a5430"))
-		for i in 6:
-			var yy := -H + 3.0 + float(i) * 6.5
-			draw_line(Vector2(2, yy), Vector2(w - 2, yy + 1.0), Color("4a3a1e"), 2.0)
-		for i in 4:   # חורים וטחב
-			draw_circle(Vector2(8.0 + float(i) * (w - 16.0) / 3.0, -H + 6.0 + float(i % 2) * 10.0), 3.0, Color("2a2010"))
-		draw_line(Vector2(0, -H), Vector2(w, -H), Color("8a7040"), 2.0)
+		# שלם: נראה כמו האי אבל כהה ורטוב, עם טחב. שוקע כשדורכים עליו
+		var sag := 7.0 * clampf(_stand / SAG_T, 0.0, 1.0)
+		var top := PackedVector2Array()
+		for q in 9:
+			var u := float(q) / 8.0
+			top.append(Vector2(u * w, -H + sin(u * PI) * sag))
+		var body := top.duplicate()
+		body.append(Vector2(w, 4))
+		body.append(Vector2(0, 4))
+		draw_colored_polygon(body, Color("7a6432"))
+		for i in 6:   # שכבות קנים כהות
+			var yy := -H + 4.0 + float(i) * 6.0
+			var x := float(i % 2) * 6.0
+			while x < w - 2.0:
+				var bw := r.randf_range(14.0, 22.0)
+				draw_colored_polygon(Art.ellipse(Vector2(x + bw * 0.5, yy + sin(clampf((x + bw * 0.5) / w, 0.0, 1.0) * PI) * sag * (1.0 - float(i) / 6.0)), bw * 0.55, 2.6, 0.0, 8), Color("6a5428").lerp(S.REED_W, float(i) / 6.0))
+				x += bw
+		draw_polyline(top, Color("9a8040"), 2.0)
+		for q in 3:   # כתמי טחב / ריקבון (הרמז)
+			var mx := r.randf_range(8.0, w - 8.0)
+			draw_colored_polygon(Art.ellipse(Vector2(mx, -H + 3.0 + sin(mx / w * PI) * sag), r.randf_range(4.0, 7.0), 1.6, 0.0, 8), Color(0.25, 0.35, 0.18, 0.8))
+		if _stand > 0.0:   # סדקים
+			for q in 3:
+				var cx := w * (0.25 + 0.25 * float(q))
+				draw_line(Vector2(cx, -H + sin(cx / w * PI) * sag), Vector2(cx + r.randf_range(-4.0, 4.0), -H + 10.0), Color(0.15, 0.1, 0.05, 0.9), 1.4)
 
 
 # ---- מכשולים במים ----
@@ -422,6 +462,7 @@ class Obstacle extends Node2D:
 		body.add_to_group("no_outline")
 		if size.y >= 30.0:
 			add_to_group("cover")
+		add_to_group("lake_obstacles")
 		var cs := CollisionShape2D.new()
 		var sh := RectangleShape2D.new()
 		sh.size = size

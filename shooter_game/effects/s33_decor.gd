@@ -526,6 +526,7 @@ class Volcano extends Node:
 # ---- אפר נופל + זוהר + גל האפר (מסך) ----
 class AshFX extends Node2D:
 	var vp := Vector2(1280, 720)
+	var floor_y := 630.0         # האפר נוחת על הקרקע (לא נופל עד תחתית המסך)
 	var _t := 0.0
 	var _a := []
 
@@ -537,11 +538,12 @@ class AshFX extends Node2D:
 
 	func _process(delta: float) -> void:
 		_t += delta
+		var gy: float = (get_viewport().get_canvas_transform() * Vector2(0.0, floor_y)).y
 		for i in _a.size():
 			var e: Vector3 = _a[i]
 			e.y += 30.0 * delta * e.z
 			e.x += (sin(_t + e.z * 3.0) * 12.0 - 10.0) * delta
-			if e.y > vp.y + 6.0:
+			if e.y > minf(gy - 2.0, vp.y + 6.0):
 				e.y = -6.0
 				e.x = randf_range(0.0, vp.x)
 			e.x = fposmod(e.x, vp.x + 10.0) - 5.0

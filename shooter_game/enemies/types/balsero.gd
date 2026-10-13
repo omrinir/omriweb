@@ -42,6 +42,7 @@ func stats() -> Dictionary:
 
 func setup() -> void:
 	z.set_meta("pit_hop", false)
+	to_water.call_deferred()   # נולד רק במים פנויים
 
 
 func _floor() -> float:
@@ -62,7 +63,7 @@ func on_damage(amount: int, hit_pos: Vector2, _dir: Vector2, src: Dictionary) ->
 	var s := str(src.get("source", ""))
 	var boat_hit: bool = hit_pos.y > z.global_position.y - 26.0 or s in ["grenade", "explosion", "dynamite", "fire", "laser"]
 	if boat_hit:
-		boat_hp -= maxi(amount, int(src.get("fixed", 0)))
+		boat_hp -= hit_damage(amount, hit_pos, src)
 		Particles.burst(z.get_parent(), hit_pos, "leaf", Vector2.UP, 3)
 		Sfx.play("bl_crack", hit_pos, -6.0, 0.15, 3)
 		if boat_hp <= 0:
@@ -128,6 +129,35 @@ func physics(pl: Node, delta: float) -> bool:
 		z.velocity.y += z.gravity * delta
 	z.move_and_slide()
 	z.global_position.x = clampf(z.global_position.x, 30.0, float(z.world_w) - 30.0)
+	if z.is_on_floor() and z.global_position.y < _floor() - 6.0:   # הסירה עלתה על יבשה (אי / ארגזים) -> חוזרת למים
+		to_water()
+	return true
+
+
+# מוצא את המים הפנויים הקרובים ושם שם את הסירה
+func to_water() -> void:
+	var x0: float = z.global_position.x
+	for k in 40:
+		for sgn in [1.0, -1.0]:
+			var x: float = x0 + float(sgn) * float(k) * 30.0
+			if x < 60.0 or x > float(z.world_w) - 60.0:
+				continue
+			if _water_free(x):
+				z.global_position = Vector2(x, _floor())
+				z.velocity = Vector2.ZERO
+				return
+
+
+func _water_free(x: float) -> bool:
+	for i in z.get_tree().get_nodes_in_group("islands"):
+		if i.has_x(x, 56.0):
+			return false
+	for c in z.get_tree().get_nodes_in_group("lake_obstacles"):
+		if not c.has_method("cover_rect"):
+			continue
+		var r: Rect2 = c.cover_rect()
+		if x > r.position.x - 50.0 and x < r.end.x + 50.0 and r.end.y > _floor() - 4.0:
+			return false
 	return true
 
 

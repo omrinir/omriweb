@@ -73,7 +73,7 @@ func on_damage(amount: int, hit_pos: Vector2, dir: Vector2, src: Dictionary) -> 
 	var s := str(src.get("source", "bullet"))
 	var ly: float = (hit_pos.y - z.global_position.y) / z.sc
 	if (s == "bullet" or s == "melee") and ly < -40.0 and dir.x * z._dir < 0.0:   # ראש מלפנים = המסכה
-		mask -= maxi(amount, int(src.get("fixed", 0)))
+		mask -= hit_damage(amount, hit_pos, src)
 		Sfx.play("dv_mask", hit_pos, -4.0, 0.15, 3)
 		Particles.burst(z.get_parent(), hit_pos, "spark", -dir, 4)
 		if mask <= 0:

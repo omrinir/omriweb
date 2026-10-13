@@ -52,7 +52,7 @@ func on_damage(amount: int, hit_pos: Vector2, _dir: Vector2, src: Dictionary) ->
 	var k := 1.0
 	if s in ["fire", "grenade", "explosion", "dynamite", "mine", "artillery", "laser", "mech", "barrel"]:
 		k = ICE_FIRE
-	var dmg := float(maxi(amount, int(src.get("fixed", 0))))
+	var dmg := float(hit_damage(amount, hit_pos, src))
 	ice -= dmg * k
 	Particles.burst(z.get_parent(), hit_pos, "spark", Vector2.UP, 4)
 	if ice <= 0.0:

@@ -2,7 +2,7 @@ extends "res://enemies/zombie_type.gd"
 # ============================================================
 #  NETTER (שלב 31, "FLOATING ISLANDS") - דייג זומבי: כובע צ'ויו סרוג עם דשים, פונצ'ו, רשת דייגים על הכתף.
 #  "THEY LEARNED TO FISH": שומר מרחק, מסובב את הרשת מעל הראש (WIND_T = אזהרה) וזורק אותה בקשת אליך.
-#  נתפסת (Net): איטי מאוד, אי אפשר לקפוץ, והוא מושך אותך אליו בחבל (REEL_V) - ישר לזומבים שמחכים.
+#  נתפסת (Net): נזק 1, איטי מאוד, אי אפשר לקפוץ, והוא מושך אותך אליו בחבל (REEL_V). הגעת אליו -> מכה כל HIT_CD.
 #  משתחררים: גלגול (SHIFT) קורע את הרשת / פגיעה חזקה בו (CUT_DMG) / להרוג אותו / NET_T נגמר.
 #  לשנות: RANGE, WIND_T, NET_T, REEL_V, NET_CD, CUT_DMG.
 # ============================================================
@@ -20,11 +20,14 @@ const REEL_V := 70.0
 const NET_CD := 4.5
 const CUT_DMG := 14
 const BACKOFF := 200.0
+const HIT_CD := 0.9          # נתפסת ונמשכת אליו: מכה כל HIT_CD
 
 enum { WALK, WIND, WAIT }
 var state := WALK
 var throws := 0              # לבדיקות
 var catches := 0
+var hits := 0
+var _hit_cd := 0.0
 var _st := 0.0
 var _cd := 1.0
 var net: Node = null         # הרשת שתופסת עכשיו את השחקן
@@ -48,7 +51,7 @@ func _netted(pl: Node) -> bool:
 
 
 func on_damage(amount: int, _hit_pos: Vector2, _dir: Vector2, src: Dictionary) -> bool:
-	if net != null and is_instance_valid(net) and maxi(amount, int(src.get("fixed", 0))) >= CUT_DMG:
+	if net != null and is_instance_valid(net) and hit_damage(amount, _hit_pos, src) >= CUT_DMG:
 		net.release("cut")
 	return true
 
@@ -64,8 +67,14 @@ func physics(pl: Node, delta: float) -> bool:
 		d = pl.global_position - z.global_position
 	match state:
 		WALK:
-			if net != null and is_instance_valid(net):   # מושך את הרשת: עומד במקום
+			if net != null and is_instance_valid(net):   # מושך את הרשת: עומד במקום. הגעת אליו -> מכה
 				z._dir = signf(d.x) if absf(d.x) > 4.0 else z._dir
+				_hit_cd -= delta
+				if has_pl and absf(d.x) < 34.0 and absf(d.y) < 50.0 and _hit_cd <= 0.0:
+					_hit_cd = HIT_CD
+					hits += 1
+					pl.hurt(1, Vector2(signf(d.x) * 0.6, -0.3))
+					Sfx.play("nt_catch", z.global_position, -2.0, 0.1, 2)
 				return _stay(delta)
 			if has_pl and _cd <= 0.0 and absf(d.x) > RANGE.x and absf(d.x) < RANGE.y and absf(d.y) < 90.0 and not _netted(pl) and z.is_on_floor():
 				state = WIND
@@ -173,7 +182,7 @@ class Net extends Node2D:
 			return
 		var dir := signf(owner_z.global_position.x - caught.global_position.x)
 		caught.velocity.x = clampf(caught.velocity.x, -70.0, 70.0)   # איטי מאוד
-		if absf(owner_z.global_position.x - caught.global_position.x) > 40.0:   # נמשך לדייג
+		if absf(owner_z.global_position.x - caught.global_position.x) > 22.0:   # נמשך לדייג (עד אליו)
 			caught.move_and_collide(Vector2(dir * REEL * delta, 0.0))
 		if caught.velocity.y < 0.0 and caught.is_on_floor():   # אי אפשר לקפוץ
 			caught.velocity.y = 0.0
@@ -188,6 +197,7 @@ class Net extends Node2D:
 			owner_z.type_mod.net = self
 			owner_z.type_mod.catches += 1
 		preload("res://sfx.gd").play("nt_catch", pl.global_position, 0.0)
+		pl.hurt(1, Vector2.ZERO)   # משקולות הרשת
 		pl._say("NETTED! ROLL (SHIFT) TO TEAR IT", Color("e0c080"))
 
 	func release(why: String) -> void:

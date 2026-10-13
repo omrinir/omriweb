@@ -305,7 +305,7 @@ func on_release() -> void:   # השחקן השתחרר (A/D)
 
 func on_damage(amount: int, _hit_pos: Vector2, _dir: Vector2, _src: Dictionary) -> bool:
 	if state == HOLD:
-		_taken += amount
+		_taken += hit_damage(amount, _hit_pos, _src)
 		if _taken >= 12:
 			var pl := player()
 			if pl != null and pl.grabbed_by == z:

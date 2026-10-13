@@ -579,7 +579,8 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - Island (group "islands", solid, ISL_H high): reed bundles, huts with woven door curtains, fish racks, clay stoves (smoke particles),
   reed watchtowers. Islands are generated (ISLE_W / ISLE_GAP) from x=0 (the start island); BOSS_ISLES = two refuge islands in the boss arena.
   Zombies that spawn inside an island are moved on top of it (extra_spawns).
-- Trap: RottenPatch - dark wet reeds in the middle of some islands: stand on it ROT_T -> it breaks, you drop into the water; regrows (REGROW_T).
+- Trap: RottenPatch - darker, wet, mossy reeds in the middle of some islands. Step on it: it creaks and sags (SAG_T, cracks appear), then
+  breaks - you drop into a water hole inside the island, 1 damage + TANGLED (slow, shaky aim, TANGLE_T). Regrows after REGROW_T.
 - Obstacles in the water: "moored_boat" (reed boat with a puma head) / "reed_bundles" / "fish_crates".
 - DROWNED (enemies/types/drowned.gd): swims underwater (collision_layer 0 - bullets can't reach it; only bubbles + a V ripple show; it swims
   under boats/crates but not islands). Close to you while you're in the water -> RISE (boiling bubbles = warning) -> bursts out and bites ->

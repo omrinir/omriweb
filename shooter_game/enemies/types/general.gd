@@ -74,11 +74,11 @@ func on_damage(amount: int, _hit_pos: Vector2, _dir: Vector2, src: Dictionary) -
 	if state == ESCAPE:
 		return false
 	if not _final():   # שלב 26: לא מת - בורח כשהחיים נמוכים
-		var dmg := maxi(amount, int(src.get("fixed", 0))) * 2
+		var dmg := hit_damage(amount, _hit_pos, src) * 2
 		if float(z.hp - dmg) <= float(z.max_hp) * ESCAPE_AT:
 			_escape.call_deferred()
 			return false
-	elif not rage and float(z.hp - amount) <= float(z.max_hp) * RAGE_AT:
+	elif not rage and float(z.hp - hit_damage(amount, _hit_pos, src)) <= float(z.max_hp) * RAGE_AT:
 		_rage.call_deferred()
 	return true
 

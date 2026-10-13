@@ -5,7 +5,8 @@ extends "res://enemies/zombie_type.gd"
 #    SWIM    - שוחה אליך. אתה במים וקרוב (LUNGE_R) -> RISE
 #    RISE    - בועות גדולות (אזהרה RISE_T) -> פורץ מהמים ונושך
 #    UP      - מעל המים UP_T (פגיע, x1.4) ואז צולל שוב
-#    CLIMB   - אתה על אי? הוא מחכה ליד השפה (LURK_T) ואז מטפס על האי (פגיע) -> הולך כמו זומבי רגיל עד שנופל למים
+#    LEAP    - אתה על אי קרוב למים (LEAP_R)? קופץ עליך מהמים בהתזה ונושך כשהוא נוחת לידך
+#    CLIMB   - אתה על אי רחוק יותר מהשפה? מחכה ליד השפה (LURK_T) ואז מטפס על האי (פגיע) -> זומבי רגיל עד שנופל למים
 #    STUNNED - רימון / פיצוץ / טייזר במים: צף מעלה המום (STUN_T, x2)
 #  בוס: MAMA QUCHA - ענקית. מתרוממת ושולחת גל (Wave) לאורך האגם: על האי אתה בטוח, במים - נזק והדף. אחרי הגל - פגיעה.
 #        אבל אם אתה על אי קרוב (520) - היא מושכת אותך קודם למים ("למדה"), ורק אז הגל.
@@ -23,16 +24,18 @@ const LUNGE_R := 70.0
 const RISE_T := 0.4
 const UP_T := 1.3
 const LURK_T := 3.0
+const LEAP_R := 150.0        # אתה על אי קרוב למים -> קופץ עליך מהמים
 const CLIMB_T := 0.6
 const STUN_T := 2.5
 const WAVE_V := 420.0
 const WAVE_CD := Vector2(4.5, 6.5)
 
-enum { SWIM, RISE, UP, DIVE, CLIMB, WALK, STUNNED, WAVE }
+enum { SWIM, RISE, UP, DIVE, CLIMB, WALK, STUNNED, WAVE, LEAP }
 var state := SWIM
 var bites := 0               # לבדיקות
 var surfaces := 0
 var climbs := 0
+var leaps := 0
 var waves := 0
 var stuns := 0
 var _st := 0.0
@@ -44,6 +47,7 @@ var _wave_cd := 3.0
 var _wet := 0.0
 var _climb_to := Vector2.ZERO
 var _yanked := false
+var _mask := 1 | 16
 var yanks := 0               # לבדיקות
 
 
@@ -129,7 +133,7 @@ func damage_mult(_zone: String, _src: Dictionary) -> float:
 			return 1.4
 		STUNNED:
 			return 2.0
-		CLIMB:
+		CLIMB, LEAP:
 			return 1.5
 	return 1.0
 
@@ -183,6 +187,9 @@ func physics(pl: Node, delta: float) -> bool:
 				state = RISE
 				_st = RISE_T
 				return true
+			if not pl_wet and not _boss() and _cd <= 0.0 and absf(dx) < LEAP_R and pl.global_position.y > z.global_position.y - 110.0:   # קרוב לשפה: קפיצה מהמים!
+				_leap(pl, dx)
+				return true
 			if not pl_wet and not _boss():   # אתה על אי: מחכה ליד השפה ואז מטפס
 				var isl := _island_of(pl.global_position.x)
 				if isl != null and _near_edge(isl):
@@ -227,6 +234,19 @@ func physics(pl: Node, delta: float) -> bool:
 			if _st <= 0.0:
 				state = DIVE
 				_st = 0.3
+			return true
+		LEAP:   # באוויר (עובר מעל סירות וארגזים) - נוחת לידך ונושך
+			z.velocity.y += z.gravity * delta
+			if z.collision_mask == 0 and z.velocity.y > 0.0:
+				z.collision_mask = _mask   # בירידה: נוחת על האי
+			z.move_and_slide()
+			if z.is_on_floor() and _st <= 0.0:
+				state = WALK
+				z._alert_t = maxf(float(z._alert_t), 6.0)
+				if has_pl and absf(dx) < 40.0 and absf(pl.global_position.y - z.global_position.y) < 50.0:
+					bites += 1
+					pl.hurt(z.damage, Vector2(signf(dx) * 1.4, -0.8))
+				return false
 			return true
 		CLIMB:
 			z.velocity = Vector2.ZERO
@@ -273,7 +293,7 @@ func _move(delta: float) -> void:
 func _under_obstacle(dir: float) -> void:
 	if _island_of(z.global_position.x + dir * 30.0) != null:
 		return
-	for c in z.get_tree().get_nodes_in_group("cover"):
+	for c in z.get_tree().get_nodes_in_group("lake_obstacles") + z.get_tree().get_nodes_in_group("cover"):
 		if c.is_in_group("islands") or not c.has_method("cover_rect"):
 			continue
 		var r: Rect2 = c.cover_rect()
@@ -294,6 +314,22 @@ func _near_edge(isl: Node) -> bool:
 	var x1: float = x0 + float(isl.w)
 	var x: float = z.global_position.x
 	return (x < x0 + 4.0 and x > x0 - 50.0) or (x > x1 - 4.0 and x < x1 + 50.0)
+
+
+func _leap(pl: Node, dx: float) -> void:
+	_surface()
+	state = LEAP
+	leaps += 1
+	_st = 0.15
+	z._dir = signf(dx) if absf(dx) > 2.0 else z._dir
+	var up: float = clampf(z.global_position.y - pl.global_position.y, 0.0, 120.0)
+	var vy := 430.0 + up * 2.0
+	var g: float = maxf(float(z.gravity), 100.0)
+	var t := (vy + sqrt(maxf(vy * vy - 2.0 * g * up, 0.0))) / g   # זמן באוויר עד גובה השחקן -> נוחת עליו
+	z.velocity = Vector2(dx / maxf(t, 0.2), -vy)
+	_mask = z.collision_mask
+	z.collision_mask = 0   # עולה דרך מכשולים שליד השפה
+	z._popup("!", Color("a0e0ff"), 18, -70.0)
 
 
 func _start_climb(isl: Node) -> void:
@@ -366,7 +402,7 @@ class Wave extends Node2D:
 			hits += 1
 			pl.hurt(2, Vector2(dir * 2.4, -1.4))
 		for zz in get_tree().get_nodes_in_group("zombies"):   # מפיל זומבים על הדרך
-			if not zz.dead and not zz.is_boss() and absf(zz.global_position.x - global_position.x) < W * 0.5 and zz.global_position.y > floor_y - 10.0 and zz.collision_layer != 0:
+			if not zz.dead and not zz.is_boss() and absf(zz.global_position.x - global_position.x) < W * 0.5 and zz.global_position.y > floor_y - 10.0 and zz.collision_layer != 0 and not (zz.type_mod != null and zz.type_mod.has_method("to_water")):
 				zz.velocity = Vector2(dir * 260.0, -220.0)
 		if _dist > 1000.0 or global_position.x < 0.0:
 			queue_free()

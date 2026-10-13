@@ -44,7 +44,7 @@ func on_damage(amount: int, hit_pos: Vector2, dir: Vector2, src: Dictionary) -> 
 	var ly: float = (hit_pos.y - z.global_position.y) / z.sc
 	var back: bool = dir.x * z._dir > 0.0 and ly < -20.0 and ly > -52.0
 	if s in ["fire", "grenade", "explosion", "laser", "rocket"] or ly < -54.0 or back:
-		basket -= maxi(amount, int(src.get("fixed", 0)))
+		basket -= hit_damage(amount, hit_pos, src)
 		Particles.burst(z.get_parent(), hit_pos, "spark", -dir, 3)
 		if basket <= 0:
 			_ignite.call_deferred()

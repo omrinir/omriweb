@@ -86,6 +86,32 @@ func on_damage(_amount: int, _hit_pos: Vector2, _dir: Vector2, _src: Dictionary)
 	return true
 
 
+# הנזק האמיתי של פגיעה, לפני on_damage. (קליעים שולחים amount = 0 - zombie.gd take_damage מחשב לפי מקום הפגיעה:
+# ראש / גוף / רגל, "fixed" של שוטגאן/חץ, dmg_mult של הנשק). להשתמש בזה במגנים / שריונים / נקודות תורפה.
+func hit_damage(amount: int, hit_pos: Vector2, src: Dictionary) -> int:
+	if src.has("fixed"):
+		return int(src.fixed)
+	var s := str(src.get("source", "bullet"))
+	if not (s == "bullet" or s == "melee"):
+		return amount
+	var ly: float = (hit_pos.y - z.global_position.y) / z.sc
+	var dmg := 0
+	if ly < -42.0:
+		dmg = int(z.head_damage)
+		if float(src.get("head_mult", 1.0)) < 1.0:
+			dmg = maxi(1, int(round(float(dmg) * float(src.head_mult))))
+	else:
+		var r: Vector2i = z.leg_damage if ly > -20.0 else z.body_damage
+		dmg = (r.x + r.y) / 2
+		if src.has("dmg_mult"):
+			dmg = maxi(1, int(round(float(dmg) * float(src.dmg_mult))))
+	if src.get("sniper", false):
+		dmg *= 2
+	if src.get("god", false):
+		dmg *= 4
+	return maxi(dmg, amount)
+
+
 # מכפיל נזק (שריון, נקודת תורפה...)
 func damage_mult(_zone: String, _src: Dictionary) -> float:
 	return 1.0

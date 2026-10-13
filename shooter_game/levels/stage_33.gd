@@ -168,6 +168,7 @@ func _pickup(kind: int, pos: Vector2) -> void:
 func build_effects() -> void:
 	var fx := Decor.AshFX.new()
 	fx.vp = vp
+	fx.floor_y = floor_y
 	screen_layer.add_child(fx)
 
 

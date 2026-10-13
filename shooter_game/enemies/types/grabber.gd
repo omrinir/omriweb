@@ -156,8 +156,9 @@ func on_release() -> void:
 
 func on_damage(amount: int, _hit_pos: Vector2, _dir: Vector2, _src: Dictionary) -> bool:
 	if state == HOLD:
-		_taken += amount
-		if amount >= 20 or _taken >= HEAVY_HIT:
+		var dmg := hit_damage(amount, _hit_pos, _src)
+		_taken += dmg
+		if dmg >= 20 or _taken >= HEAVY_HIT:
 			_let_go(true)
 			z._popup("LET GO!", Color(1.0, 0.75, 0.4), 13, -76.0)
 	return true

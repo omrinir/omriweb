@@ -143,7 +143,7 @@ func _isle(x: float, w: float, i: int) -> void:
 		var rp := Decor.RottenPatch.new()
 		rp.w = float(g[1]) - float(g[0])
 		add_world(rp, Vector2(x + float(g[0]), floor_y))
-	reserve(Rect2(x - 30.0, floor_y - Decor.ISL_H, w + 60.0, Decor.ISL_H))
+	reserve(Rect2(x - 90.0, floor_y - Decor.ISL_H, w + 180.0, Decor.ISL_H))   # מים פנויים ליד השפות (שם הטובעים מחכים)
 	_isles.append(isl)
 	if i > 0 and i != 99 and i % 2 == 0:
 		_pickup(PickupScript.AMMO if i % 4 == 0 else PickupScript.HEALTH, Vector2(x + w * 0.7, floor_y - Decor.ISL_H - 30.0))
