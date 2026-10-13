@@ -20,6 +20,7 @@ const RocketScript := preload("res://weapons/rocket.gd")
 const DebrisScript := preload("res://debris.gd")
 const PickupScript := preload("res://pickup.gd")
 const MindControl := preload("res://effects/mind_control.gd")
+const LaserCannon := preload("res://weapons/laser_cannon.gd")   # פריט מיוחד: תותח לייזר (טעינה + קרן)
 const TextScript := preload("res://zombie.gd")
 const HeroAnim := preload("res://hero_anim.gd")       # אנימציות הדמות (SPRITE SHEET)
 var HERO_TEX: Texture2D = preload("res://tex_load.gd").get_tex("res://sprites/hero.png")   # נטען בזמן ריצה (לא נשבר אם עוד לא יובא)
@@ -72,6 +73,7 @@ var eye_color := Color("ff3030")
 
 var world_w := 100000.0          # רוחב העולם (main.gd קובע)
 var weapon := GUN
+var laser_charge := 0.0          # תותח לייזר: כמה שניות נטען (weapons/laser_cannon.gd)
 # ---- נשקים: 5 מקומות (גלגל נשקים = TAB, מקשים 1-5, G = לזרוק). לכל נשק תחמושת משלו ----
 # הנשקים עצמם מוגדרים ב-weapons/weapon_db.gd (נזק, קצב, מחסנית, טעינה, פיזור...)
 const WeaponDB := preload("res://weapons/weapon_db.gd")
@@ -634,8 +636,12 @@ func _physics_process(delta: float) -> void:
 			Engine.time_scale = 0.5
 		elif not boosts.has(PickupScript.BULLET_TIME) and _dodge_slow <= 0.0:
 			Engine.time_scale = 1.0
-	if (trigger or _fire_test) and _cooldown <= 0.0:
-		_fire()
+	if weapon == GRENADE and special == "laser":   # תותח לייזר: מחזיקים = טעינה, ואז קרן
+		LaserCannon.tick(self, trigger or _fire_test, delta)
+	else:
+		laser_charge = 0.0
+		if (trigger or _fire_test) and _cooldown <= 0.0:
+			_fire()
 	_fire_test = false
 	_update_laser(sh)
 
@@ -964,7 +970,7 @@ func _fire() -> void:
 # ============================================================
 func take_special(kind: String) -> void:
 	var info: Dictionary = Arsenal.SPECIALS[kind]
-	var n: int = int(info.uses) + (0 if kind == "god" or kind == "mind" else Upgrades.perk("grenade_pouch"))
+	var n: int = int(info.uses) + (0 if kind in ["god", "mind", "laser"] else Upgrades.perk("grenade_pouch"))
 	if special == kind:
 		special_uses += n
 	else:
@@ -1717,6 +1723,8 @@ func _draw_hero(la: Vector2) -> void:
 		_draw_rifle(hand, la)
 		_draw_id = -1
 		_draw_held(rp.support, la, rp.held)
+	elif special == "laser":   # תותח לייזר ביד (זוהר יותר בזמן טעינה)
+		LaserCannon.draw_gun(self, hand, la, _time, clampf(laser_charge / LaserCannon.CHARGE_T, 0.0, 1.0), 0.8)
 	elif special == "mind":   # מכשיר MIND CONTROL ביד
 		MindControl.draw_device(self, hand, la, _time)
 	elif special == "god":   # השיקוי ביד
@@ -1881,6 +1889,8 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 		_draw_rifle(hand, rp.la)
 		_draw_id = -1
 		_draw_held(rp.support, rp.la, rp.held)
+	elif special == "laser":   # תותח לייזר ביד (זוהר יותר בזמן טעינה)
+		LaserCannon.draw_gun(self, hand, la, _time, clampf(laser_charge / LaserCannon.CHARGE_T, 0.0, 1.0), 0.8)
 	elif special == "mind":   # מכשיר MIND CONTROL ביד
 		MindControl.draw_device(self, hand, la, _time)
 	elif special == "god":   # השיקוי ביד

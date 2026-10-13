@@ -16,7 +16,7 @@ static var _active := {}
 static var played := {}           # כמה פעמים כל צליל התנגן (לבדיקות)
 # צלילים נוספים מקבצים אחרים (נשקים חדשים, זומבים חדשים, סביבה). כל קובץ = const SOUNDS := {...}
 # כדי להוסיף קובץ צלילים חדש - מוסיפים את הנתיב שלו כאן
-const BANKS := ["res://weapons/weapon_sounds.gd", "res://enemies/enemy_sounds.gd", "res://effects/env_sounds.gd"]
+const BANKS := ["res://weapons/weapon_sounds.gd", "res://enemies/enemy_sounds.gd", "res://effects/env_sounds.gd", "res://weapons/laser_cannon.gd"]
 static var EXTRA := {}
 static var _banks_loaded := false
 

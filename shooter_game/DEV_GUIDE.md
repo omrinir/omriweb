@@ -498,3 +498,14 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   WIND (raised) -> DASH -> TIRED (x1.5 damage window). Armor + bandaged arm from the escape. Death opens the great gate = region 3 done.
 - Shell (in general.gd): warning circle on the ground + falling whistle, then explosion.blast. Used by the General and the searchlights.
 - Mind control: SNIPER -> shoot, SAPPER -> explode, HANDLER -> scream. Map pictures: map/thumbs/level_26.png, level_27.png. Game.IMPLEMENTED = 27.
+
+## LASER CANNON (special item "laser", weapons/laser_cannon.gd)
+- progression/arsenal.gd SPECIALS "laser": 8 uses ("uses"), found from level 14 ("from"), rare ("weight" 0.5). The grenade-pouch perk does not add uses.
+- Test: Arsenal.TEST_LASER_LEVEL = 3 -> main.gd puts one at the start of level 3 (next to the mind control test pickup). Set it to 0 to remove.
+- player.gd: when the item is in hand (weapon == GRENADE and special == "laser") the trigger goes to LaserCannon.tick() instead of _fire().
+  Hold fire = charge (player.laser_charge, CHARGE_T 1.4 s): ChargeFX pulls green particles into the barrel in a spiral, shrinking rings, rising sound,
+  the gun's coils and core glow brighter; it blinks when almost full. Let go early = the charge is cancelled and no use is spent.
+- Full charge -> Beam (BEAM_T 1.6 s): energy burst at the muzzle (flash, shockwave rings, 40 sparks, big screen shake), then a thick green beam with a white core
+  and two spiral energy lines that follows your aim, pushes you back a little, and hits every zombie on the line every TICK (DMG 18, bosses x BOSS_K 0.6),
+  sometimes sets them on fire. It goes through zombies and stops only at walls (breaks bricks it hits). Narrows out at the end.
+- After the 8th beam ends the item is used up and you go back to your gun. Sounds: lz_charge / lz_fire / lz_hit (registered via sfx.gd BANKS).

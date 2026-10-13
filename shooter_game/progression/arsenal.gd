@@ -36,7 +36,10 @@ const SPECIALS := {
 	"god": {"name": "GOD MODE", "uses": 1, "from": 999, "weight": 0.0, "color": Color("ff2a2a"), "weapon": -2},
 	# MIND CONTROL: קרן שהופכת אותך לזומבי ל-14 שניות (effects/mind_control.gd). שימוש אחד, נדיר, משלב 10
 	"mind": {"name": "MIND CONTROL", "uses": 1, "from": 10, "weight": 0.7, "color": Color("b060ff"), "weapon": -3},
+	# LASER CANNON: מחזיקים 1.4 שנ' טעינה -> קרן ירוקה 1.6 שנ' שעוברת דרך כל הזומבים (weapons/laser_cannon.gd). 8 שימושים
+	"laser": {"name": "LASER CANNON", "uses": 8, "from": 14, "weight": 0.5, "color": Color("50ff70"), "weapon": -4},
 }
+const TEST_LASER_LEVEL := 3          # בדיקה: תותח לייזר בתחילת השלב הזה (main.gd). 0 = בלי
 const TEST_MIND_EVERY_LEVEL := true   # בדיקה: מכשיר MIND CONTROL בתחילת כל שלב (main.gd). false = רק המציאות הרגילות (משלב 10)
 const SPECIAL_FINDS := Vector2(0.15, 0.85)   # איפה בשלב (יחסי) הם יכולים להיות
 const POTION_FIRST := 3        # שיקוי GOD MODE: שלב 3, ואז כל 2-3 שלבים
