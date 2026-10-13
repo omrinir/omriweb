@@ -482,3 +482,19 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 - THE GENERAL in 26: keeps distance (KEEP), aims + 3-shot bursts, every ORDER_CD whistles "ATTACK!" (nearby zombies rush).
   At ESCAPE_AT hp (35%) he can't be hit any more: "RETREAT! TO THE GATE!", drops loot, opens the exit and runs off right into the tunnel.
 - Mind control: HAZMAT -> spit, BLACKOUT / VENT -> pounce, GENERAL -> shoot.
+
+## Stage 27 - "PLATEAU GATE" ("THEY LEARNED TO HOLD THE LINE") - fortified border checkpoint at dawn, region 3 level 9 (region finale)
+- levels/stage_27.gd + effects/s27_decor.gd: dawn sky + rising sun, snowy Andes on the horizon (the next region), long border wall with watchtowers / razor wire / flags,
+  anti-tank hedgehogs + wire + sandbags up close. World: GateGround (packed dirt, tire tracks), TunnelExit at the start ("BUNKER B-2", the General's boot prints),
+  TOWERS (Watchtower decor + wooden floor at TIER 180 + ladder + Searchlight), Obstacle "sandbags" / "hedgehog" / "jeep", GreatGate behind the exit (doors slide open when the boss dies).
+- Trap: Searchlight sweeps the ground (SWEEP, SPEED). Stand in the spot -> "SPOTTED!" siren, make_noise, the light locks on you and an artillery Shell lands where you stood (CD between).
+- SNIPER (enemies/types/sniper.gd): on the towers. AIM = red laser that follows you with a lag (TRACK); the last FREEZE (0.3 s) it locks + blinks, then fires along it (chest band only).
+  Move when it blinks and it misses. If your crosshair is on him (DUCK_R) he DUCKs behind the sandbags (bullets x0.15) - aiming at him suppresses him.
+- SAPPER (enemies/types/sapper.gd): keeps distance; when you walk toward him he kneels and buries a Mine where he stands, then backs off (MAX_MINES).
+  Mine: small blinking red light, arms after ARM_T, step on it = click + blast almost at once (DELAY 0.15, RADIUS 92) - jump over mines. Also kills zombies (smart ones avoid).
+- HANDLER (enemies/types/handler.gd): walks with two dogs on a leash. You come within RELEASE_R -> "SIC 'EM!" -> 2 DOG zombies (kind 15). Then whistles every WHISTLE_CD
+  (dogs rush you again) and keeps distance. Kill him from range before he releases them.
+- THE GENERAL in 27 (final): artillery ("FIRE FOR EFFECT!": 3 Shells around you, every SHELL_CD) + pistol bursts. Under RAGE_AT (50%): "NO MORE RETREAT!" - sword:
+  WIND (raised) -> DASH -> TIRED (x1.5 damage window). Armor + bandaged arm from the escape. Death opens the great gate = region 3 done.
+- Shell (in general.gd): warning circle on the ground + falling whistle, then explosion.blast. Used by the General and the searchlights.
+- Mind control: SNIPER -> shoot, SAPPER -> explode, HANDLER -> scream. Map pictures: map/thumbs/level_26.png, level_27.png. Game.IMPLEMENTED = 27.

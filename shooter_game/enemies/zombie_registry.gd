@@ -27,6 +27,7 @@ enum {
 	SCARECROW, TORCH,              # שלב 24 (שדות בוערים)
 	SIGNALER, ROD,                 # שלב 25 (תורן רדיו)
 	HAZMAT, BLACKOUT, VENT, GENERAL,   # שלב 26 (הבונקר) - GENERAL = הבוס של 26 ו-27
+	SNIPER, SAPPER, HANDLER,       # שלב 27 (שער הרמה)
 }
 
 const FIRST := 20
@@ -92,6 +93,9 @@ const TYPES := {
 	BLACKOUT: "res://enemies/types/blackout.gd",
 	VENT: "res://enemies/types/vent.gd",
 	GENERAL: "res://enemies/types/general.gd",
+	SNIPER: "res://enemies/types/sniper.gd",
+	SAPPER: "res://enemies/types/sapper.gd",
+	HANDLER: "res://enemies/types/handler.gd",
 }
 
 static var _stats_cache := {}
