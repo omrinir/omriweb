@@ -34,17 +34,17 @@ func zombie_density() -> float:
 
 
 func generators() -> Array:
-	return [["sandbags", 1.6], ["hedgehog", 1.0], ["jeep", 0.6]]
+	return [["bags", 1.6], ["hedgehog", 1.0], ["jeep", 0.6]]
 
 
 func custom_gen(gname: String, x: float) -> float:
-	if not gname in ["sandbags", "hedgehog", "jeep"]:
+	if not gname in ["bags", "hedgehog", "jeep"]:
 		return 0.0
 	var o := Decor.Obstacle.new()
 	o.kind = gname
 	o.seed_v = rng.randi()
 	match gname:
-		"sandbags":
+		"bags":
 			o.size = Vector2(rng.randf_range(90.0, 120.0), rng.randf_range(38.0, 46.0))
 		"hedgehog":
 			o.size = Vector2(rng.randf_range(46.0, 54.0), rng.randf_range(44.0, 50.0))

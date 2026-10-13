@@ -347,7 +347,7 @@ class LogTrap extends Node2D:
 
 # ---- מכשולים ----
 class Obstacle extends Node2D:
-	var kind := "barrier"
+	var kind := "jersey"
 	var size := Vector2(80, 40)
 	var seed_v := 0
 
@@ -375,7 +375,7 @@ class Obstacle extends Node2D:
 		var w := size.x
 		var h := size.y
 		match kind:
-			"barrier":   # מחסום בטון (ג'רזי)
+			"jersey":   # מחסום בטון (ג'רזי)
 				Art.fill_shaded(self, PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w * 0.8, -h * 0.35), Vector2(w * 0.7, -h), Vector2(w * 0.3, -h), Vector2(w * 0.2, -h * 0.35)]), S.CONCRETE, 0.15, 0.45, Art.OUTLINE, 1.5)
 				for q in 3:
 					draw_colored_polygon(PackedVector2Array([Vector2(w * (0.3 + 0.15 * q), -h * 0.6), Vector2(w * (0.38 + 0.15 * q), -h * 0.6), Vector2(w * (0.33 + 0.15 * q), -h * 0.85), Vector2(w * (0.25 + 0.15 * q), -h * 0.85)]), Color("c8a830"))

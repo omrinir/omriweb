@@ -248,7 +248,7 @@ class Searchlight extends Node2D:
 
 # ---- מכשולים ----
 class Obstacle extends Node2D:
-	var kind := "sandbags"
+	var kind := "bags"
 	var size := Vector2(90, 40)
 	var seed_v := 0
 
@@ -274,7 +274,7 @@ class Obstacle extends Node2D:
 		var w := size.x
 		var h := size.y
 		match kind:
-			"sandbags":   # 3 שורות שקי חול
+			"bags":   # 3 שורות שקי חול
 				var rows := 3
 				var bh := h / float(rows)
 				for row in rows:

@@ -30,11 +30,11 @@ func zombie_density() -> float:
 
 
 func generators() -> Array:
-	return [["barrier", 1.4], ["drums", 1.0], ["timber", 0.8]]
+	return [["jersey", 1.4], ["drums", 1.0], ["timber", 0.8]]
 
 
 func custom_gen(gname: String, x: float) -> float:
-	if not gname in ["barrier", "drums", "timber"]:
+	if not gname in ["jersey", "drums", "timber"]:
 		return 0.0
 	if _near_trap(x - 40.0, x + 160.0):
 		return 140.0
@@ -42,7 +42,7 @@ func custom_gen(gname: String, x: float) -> float:
 	o.kind = gname
 	o.seed_v = rng.randi()
 	match gname:
-		"barrier":
+		"jersey":
 			o.size = Vector2(rng.randf_range(70.0, 100.0), rng.randf_range(38.0, 46.0))
 		"drums":
 			o.size = Vector2(rng.randf_range(44.0, 54.0), rng.randf_range(34.0, 40.0))

@@ -509,3 +509,21 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   and two spiral energy lines that follows your aim, pushes you back a little, and hits every zombie on the line every TICK (DMG 18, bosses x BOSS_K 0.6),
   sometimes sets them on fire. It goes through zombies and stops only at walls (breaks bricks it hits). Narrows out at the end.
 - After the 8th beam ends the item is used up and you go back to your gun. Sounds: lz_charge / lz_fire / lz_hit (registered via sfx.gd BANKS).
+
+## Region 4 - ANDES (levels 28-36)
+
+## Stage 28 - "CLOUD PASS" ("THEY LEARNED THE HEIGHTS") - high Andes mountain pass, region 4 level 1
+- levels/stage_28.gd + effects/s28_decor.gd: deep high-altitude sky, two ranges of snowy peaks with soft cloud banks drifting through the pass,
+  Inca farming terraces, Inca stone ruins with trapezoid doorways, grazing llamas, circling condors, wind-blown ichu grass, apacheta stone cairns.
+  World: PassGround (rock, gravel, snow patches), Crevasse pits (pits() = CREVASSES; ice spikes - extends the stage 21 SpikePit: fall in = hurt + thrown out),
+  BRIDGES (Inca rope bridges: wooden floor at TIER + RopeBridge ropes that sway in the wind), CAMPFIRES (fire + smoke particles that bend with the wind),
+  Obstacle "inka_wall" (fitted polygon stones) / "apacheta" (cairn with colored cloth) / "bale" (ichu bundles). PassFX: snowflakes / wind streaks / a cloud passing through.
+- Trap: Wind (group "wind"): CALM -> WARN (howl, grass/smoke start to lean) -> GUST (GUST_T): pushes the player (PUSH px/s, x1.5 in the air) and zombies
+  sideways with move_and_collide (stops at walls) - walking into the wind is slow, gusts push you toward the crevasses.
+- CONDOR (enemies/types/condor.gd): flies (CIRCLE high over you), screeches and MARKs a shadow on the ground under you (MARK_T), DIVEs onto the mark
+  (hits only near the shadow - step off it), then is GROUNDED flapping (GROUND_T, x1.5 damage) and RISEs again. x0.6 damage in the air. Wind doesn't push it.
+  Boss APU KUNTUR: big, dives twice in a row.
+- BOULDER (enemies/types/boulder.gd): hulking porter with a stone basket. LIFTs a boulder over his head (dust = warning), ROLLs it at you
+  (Rock: bounces, 2 damage, crushes zombies in the way, breaks on walls) or lobs it in an arc if you're up on a bridge. Jump over it.
+- Obstacle names: never reuse main.gd generator names (car, barrels, barrier, crates, rubble, bus, train, container, tires, sandbags, block, wall) in
+  custom_gen - main.gd handles those itself. Renamed: 22 "barrier"->"jersey", 26 "crates"->"ammo_crates", 27 "sandbags"->"bags", 28 "wall"->"inka_wall".

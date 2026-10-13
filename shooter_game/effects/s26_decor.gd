@@ -350,7 +350,7 @@ class LaserGate extends Node2D:
 
 # ---- מכשולים ----
 class Obstacle extends Node2D:
-	var kind := "crates"
+	var kind := "ammo_crates"
 	var size := Vector2(70, 50)
 	var seed_v := 0
 
@@ -376,7 +376,7 @@ class Obstacle extends Node2D:
 		var w := size.x
 		var h := size.y
 		match kind:
-			"crates":   # ארגזי תחמושת ירוקים עם סטנסיל
+			"ammo_crates":   # ארגזי תחמושת ירוקים עם סטנסיל
 				var hh := h * 0.5
 				for row in 2:
 					var rw := w if row == 0 else w * 0.62
