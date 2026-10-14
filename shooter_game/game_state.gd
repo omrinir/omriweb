@@ -412,7 +412,7 @@ const LEVEL_TITLES := [
 	["THEY LEARNED OUR MACHINES", "Sao Paulo never sleeps. Now they answer the phones, run the deliveries and hack the screens. Watch the glass above you."],
 	["THEY LEARNED THE GAME", "The Maracana is full - of them. Silence the capos or the stands pour onto the pitch. Beat the keeper."],
 	["THEY LEARNED TO OBEY", "The port of Santos. They wear uniforms now, march in step and fly red flags. An empire of the dead - loading tanks to conquer the world."],
-	["THEY LEARNED TO MARCH", "Brasilia. The capital is theirs. The whole army parades for the Marshal. When the tanks roll, get off the avenue."],
+	["THEY LEARNED TO MARCH", "Brasilia. The capital is theirs. The whole army parades for the Marshal. Watch the sky - and never walk past the honor guard."],
 	["THEY LEARNED TO DIG IN", "Under the capital, the metro is a barracks now. They man the guns, carry the ammo, burn the tunnels - and rebuild every wall you break."],
 	["THEY LEARNED TO BUILD", "The train went to Volta Redonda, the steel city. The furnaces never stop: they build tanks now. Stop the line - and kill the welders first."],
 	["THEY LEARNED THE SKY", "Itaipu. The biggest dam in the Americas powers their war now. They drop from the sky behind you, and when the floodgates open - climb."],

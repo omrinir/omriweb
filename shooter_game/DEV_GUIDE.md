@@ -830,6 +830,11 @@ flags, and they all work for one goal: to conquer the world.
   VOLLEY_MIN riflemen, "CHARGE!" when you reload, pistol shots. His death -> "leaderless" for every soldier in ORDER_R.
 - FLAGBEARER (enemies/types/flagbearer.gd): the empire flag on a pole - empire soldiers within AURA_R take x0.6 damage. Shoot the pole /
   flag (above his head) FLAG_HP times -> the flag falls, the protection is gone at once and the soldiers around are "broken".
+  While the flag is up he FIGHTS WITH IT (aggression 0.45): CHOP - swings the pole back (WIND_T) and slams it down in front
+  (CHOP_REACH) - step back out of reach. THRUST - lowers the pole like a spear and lunges (THRUST_REACH, LUNGE_V) at chest height
+  (THRUST_PIVOT y -44: passes over a crouching player) - jump or crouch. THEY LEARN YOUR DODGE: stepped back from a CHOP -> next is a
+  THRUST; jumped / crouched under a THRUST -> back to CHOP. A hit keeps the same attack. The pole is hit-tested as a segment
+  (_pole_hits); the flag cloth is drawn on the swinging pole (pole_pose()).
 - SQUADS: 3 conscripts in front, a flagbearer in the middle (every other squad), the officer behind.
 - BOSS BEHEMOTH (enemies/types/behemoth.gd, stationary tank): the commander in the hatch is the weak point (he ducks for DUCK_T after
   each cannon shot). shell = "BRACKETING": the first shell lands FIRST_ERR short or long, every next one halves the error while you stay
@@ -842,12 +847,20 @@ flags, and they all work for one goal: to conquer the world.
   crown, a giant flag mast, searchlights and red-white salute fireworks; ministry blocks with banners and marching troop silhouettes;
   lamp posts with flags. World: AvenueGround, ReviewStand (stepped stand with a red drape; upper floor at TIER + 2 ladders),
   Obstacle "crowd_barrier" / "planter" / "drum_stack". ParadeFX: red-white ticker tape.
-- Trap TankColumn (one around every stand, TANK_W wide): red lights + rumble + smoke screens at both lane ends (WARN_T) -> N tanks come
-  out of the right smoke and drive into the left smoke - 2 damage + knockback to you, DMG_Z to zombies. Empire soldiers KNOW the
-  schedule: EARLY seconds before the sirens they walk out of the lane (goal_x) - a tell for the player. Climb the stand.
+- EmperorBalloon (one over every stand, group "balloons"): a giant parade balloon of the Emperor's crowned skull, HEIGHT above the
+  avenue, on 3 long ropes held by 3 CONSCRIPT handlers (spawned in extra_spawns, driven by goal_x) who march BEHIND it on the side away
+  from you (OFFS). It follows you (ROAM, ROPE_MAX) and drops bombs (BOMB_CD, Boom.blast BOMB_R) that fall to YOUR level (ground or the
+  stand walkway); a red ring shows every landing spot. THEY LEARN YOUR STEP: it remembers where you dodged to (dodge) - after 1 dodge
+  it drops a pair (on you + where you ran last time), after 2 a fan of three. Extra bombs never land on its own handlers; the main bomb
+  can be lured onto them. Shoot it HP times -> it deflates, spins and crashes (CRASH_R, CRASH_DMG to zombies under it). Kill 2 handlers
+  -> it breaks free and floats away. (Replaced the old TankColumn trap.)
 - Every empire type obeys goal_x first (no aiming / lunging / shouting while it walks to an ordered spot).
 - ai/zombie_brain.gd: a zombie that is already inside a danger zone keeps walking out (it used to freeze at the edge).
-- Trap SaluteGun (GUNS): a burning fuse (WARN_T) -> blast ring R: knockback + daze (DAZE_T), no damage.
+- HonorGuard (GUARDS, group "honor_guards"): a podium with a sergeant (sabre) and 3 ceremonial riflemen (red tunics, plumed helmets),
+  hitboxes GuardBody on layer 4. Every VOLLEY_CD: "PRESENT... FIRE!" - a harmless salute volley into the sky. THEY LEARN TO AIM: come
+  within NOTICE_R, fire near them or hit one of them -> hostile: "AIM!" with red aim lines at head height (AIM_Y -42), the aim locks
+  LOCK_T before "FIRE!" -> 3 real shots (stationary_boss Shot). Crouch under the line (or use cover). Kill the sergeant (SERGEANT_HP) ->
+  no more orders, the guard stands still. Each dead rifleman = one shot less. (Replaced the old SaluteGun trap.)
 - zombie.gd: meta "drum_t" (DRUMMER) -> x1.3 move speed while it lasts. player.gd daze(t, msg) - the message is now a parameter.
 - game_state.gd: a kill by a trap ("hazard" / "tank") far away is not tagged LONG SHOT.
 - DRUMMER (enemies/types/drummer.gd): beats every BEAT -> every empire soldier within DRUM_R marches x1.3. You reload -> "DRUM ROLL!"

@@ -5,32 +5,38 @@ extends "res://levels/stage_base.gd"
 #   מול המרשל של אימפריית המתים, על יציע הכבוד בשדרה המרכזית. הקונגרס עטוף בדגלים אדומים עם הנחש העתיק.)
 #  ברזיליה בדמדומים (effects/s41_decor.gd): הקונגרס עם הכרזות, הקתדרלה, זרקורים, זיקוקי הצדעה, טורי חיילים.
 #  קומה שנייה: יציעי כבוד (STANDS).
-#  מלכודות: TankColumn - טור טנקים חוצה את השדרה (אזהרה: אורות אדומים + רעם). עלו על היציע! חיילי האימפריה יוצאים מהנתיב.
-#           SaluteGun - תותח הצדעה: פתיל בוער -> גל הדף שזורק ומסחרר.
+#  EmperorBalloon - בלון מצעד ענק (גולגולת הקיסר עם כתר) מעל כל יציע, 3 חיילים מחזיקים את החבלים וצועדים מתחת.
+#           מפיל פצצות (טבעת אדומה = איפה תנחת), לומד להקדים את התנועה שלך. לפוצץ אותו -> מתרסק על החיילים שמתחת.
+#           להרוג 2 מחזיקים -> הבלון משתחרר ועף.
+#  HonorGuard - משמר כבוד על פודיום (סמל + 3 רובאים): מטח הצדעה לשמיים - עד שהם לומדים לכוון עליך (מתקרבים / יורים לידם).
+#           "AIM!" קווי כוונה אדומים, הכוונה ננעלת רגע לפני "FIRE!" - לזוז / לקפוץ. להרוג את הסמל -> אין פקודות.
 #  זומבים: DRUMMER (קצב = מהירות, תיפוף הסתערות כשאתה טוען), GUARDSMAN (מתחלפים כשנפצעים, לומדים את ההתחמקות מהכידון),
 #          PROPAGANDIST (SURRENDER! מסחרר, מסגיר אותך כשאתה מתחבא), CONSCRIPT, OFFICER, REVIVER, רגילים, רצים.
 #  בוס נייח: THE MARSHAL (enemies/types/marshal.gd) - על יציע הכבוד מאחורי זכוכית משוריינת: מטחי ארטילריה שלומדים.
-#  לשנות: STANDS, TIER, TANKS, GUNS, SQUADS, BOSS_TIER, zombie_weights().
+#  לשנות: STANDS, TIER, GUARDS, SQUADS, BOSS_TIER, zombie_weights().
 # ============================================================
 
 const Decor := preload("res://effects/s41_decor.gd")
 const PickupScript := preload("res://pickup.gd")
 
 const SOUNDS := {
-	"pa_rumble": {"drive": 1.6, "layers": [["S", 45, 38, 0.0, 2.0, 0.4, 0.8, 0.9, 1.0, 0.04], ["N", 0, 0, 0.0, 2.0, 0.4, 0.8, 0.5, 0.08, 0]]},
-	"pa_fuse": [["N", 0, 0, 0.0, 1.1, 0.0, 1.0, 0.25, 0.9, 0, 0.8]],
-	"pa_salute": {"drive": 1.8, "layers": [["N", 0, 0, 0.0, 0.8, 0.0, 5.0, 1.0, 0.15, 0], ["S", 60, 30, 0.0, 0.5, 0.0, 6.0, 0.8, 1.0, 0]]},
+	"bl_drop": [["S", 900, 300, 0.0, 0.6, 0.0, 3.0, 0.2, 1.0, 0.02]],
+	"bl_pop": {"drive": 1.6, "layers": [["N", 0, 0, 0.0, 0.25, 0.0, 14.0, 1.0, 0.4, 0], ["S", 300, 80, 0.0, 0.3, 0.0, 10.0, 0.5, 1.0, 0]]},
+	"bl_whoosh": [["N", 0, 0, 0.0, 1.2, 0.2, 2.0, 0.4, 0.3, 0, 0.6]],
+	"bl_crash": {"drive": 1.6, "layers": [["N", 0, 0, 0.0, 0.7, 0.0, 5.0, 0.9, 0.15, 0], ["S", 70, 35, 0.0, 0.6, 0.0, 6.0, 0.8, 1.0, 0]]},
+	"hg_order": [["V", 180, 150, 0.0, 0.35, 0.02, 6.0, 0.6, 1.0, 0.04, 0, [500, 1100, 20]]],
+	"hg_volley": {"drive": 1.8, "layers": [["N", 0, 0, 0.0, 0.5, 0.0, 9.0, 1.0, 0.2, 0], ["S", 90, 40, 0.0, 0.35, 0.0, 10.0, 0.7, 1.0, 0]]},
 }
 
 const STANDS := [[0.2, 300.0], [0.47, 320.0], [0.73, 300.0]]
 const TIER := 130.0
-const TANK_W := 900.0
-const GUNS := [0.1, 0.36, 0.62, 0.87]
+const GUARDS := [0.1, 0.36, 0.62, 0.87]
 const SQUADS := [0.12, 0.3, 0.55, 0.8]
 const BOSS_TIER := 130.0
 const HARDER := [1.0, 1.15, 1.3]
 
 var _stands := []
+var _balloons := []
 
 
 func zombie_weights() -> Dictionary:
@@ -108,7 +114,7 @@ func build_world() -> void:
 		g.depth = main.floor_thickness
 		add_world(g, Vector2(x, floor_y))
 		x += 1024.0
-	for s in STANDS:   # יציעי כבוד: קומה + סולם. טור טנקים חוצה את השדרה סביב כל יציע - עולים למעלה!
+	for s in STANDS:   # יציעי כבוד: קומה + סולם. מעל כל יציע - בלון הקיסר
 		var w: float = s[1]
 		var dx := level_w * float(s[0])
 		var st := Decor.ReviewStand.new()
@@ -122,17 +128,14 @@ func build_world() -> void:
 		reserve(Rect2(dx - 10.0, floor_y - TIER, w + 20.0, TIER))
 		_stands.append([dx, dx + w])
 		_pickup(PickupScript.AMMO if s[0] < 0.5 else PickupScript.HEALTH, Vector2(dx + w * 0.5, floor_y - TIER - 30.0))
-		var tc := Decor.TankColumn.new()
-		tc.w = TANK_W
-		var lx := dx + w * 0.5 - TANK_W * 0.5
-		add_world(tc, Vector2(lx, floor_y))
-		reserve(Rect2(lx - 140.0, floor_y - 60.0, 200.0, 60.0))   # יציאות הנתיב פנויות (לשם החיילים בורחים)
-		reserve(Rect2(lx + TANK_W - 60.0, floor_y - 60.0, 200.0, 60.0))
-	for f in GUNS:   # תותחי הצדעה
+		var bl := Decor.EmperorBalloon.new()
+		add_world(bl, Vector2(dx + w * 0.5, floor_y - Decor.EmperorBalloon.HEIGHT))
+		_balloons.append(bl)
+	for f in GUARDS:   # משמרות כבוד
 		var gx := level_w * float(f)
-		var sg := Decor.SaluteGun.new()
-		add_world(sg, Vector2(gx, floor_y))
-		reserve(Rect2(gx - 40.0, floor_y - 50.0, 100.0, 50.0))
+		var hg := Decor.HonorGuard.new()
+		add_world(hg, Vector2(gx, floor_y))
+		reserve(Rect2(gx - 80.0, floor_y - 60.0, 160.0, 60.0))
 	# יציע המרשל
 	var bx := level_w - 720.0
 	var rs := Decor.ReviewStand.new()
@@ -174,6 +177,12 @@ func extra_spawns() -> void:
 		spawn(Registry.CONSCRIPT, sx + 150.0)
 		spawn(Registry.DRUMMER, sx + 230.0)
 		spawn(Registry.PROPAGANDIST if i % 2 == 0 else Registry.OFFICER, sx + 360.0)
+	for bl in _balloons:   # המחזיקים של כל בלון
+		for k in 3:
+			var h := spawn(Registry.CONSCRIPT, bl.global_position.x - float(bl.OFFS[k]))
+			if h != null:
+				h.dormant = false
+				bl.handlers.append(h)
 	for s in _stands:
 		spawn(Registry.CONSCRIPT, lerpf(float(s[0]), float(s[1]), 0.4), floor_y - TIER)
 		spawn(Registry.GUARDSMAN, lerpf(float(s[0]), float(s[1]), 0.7), floor_y - TIER)

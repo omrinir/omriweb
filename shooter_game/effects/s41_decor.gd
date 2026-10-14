@@ -9,12 +9,12 @@ extends RefCounted
 #    near_posts      - (רקע) עמודי תאורה עם דגלים, מחסומי קהל
 #    AvenueGround    - (עולם) אספלט רחב, קווי מצעד אדומים
 #    ReviewStand     - (עולם) יציע כבוד מדורג עם וילונות אדומים (הקומה = add_floor) + מדרגות
-#    TankColumn      - (עולם, מלכודת) טור טנקים חוצה את השדרה: אורות אדומים + רעם = אזהרה -> 3 טנקים דורסים כל מה שעל הכביש.
-#                      חיילי האימפריה "יודעים" - יוצאים מהנתיב EARLY שניות לפני האזעקה (goal_x) - רמז! עלו על היציע!
-#    SaluteGun       - (עולם, מלכודת) תותח הצדעה טקסי: פתיל בוער (אזהרה) -> גל הדף שזורק ומסחרר
+#    EmperorBalloon  - (עולם) בלון מצעד ענק (גולגולת הקיסר עם כתר) על 3 חבלים, מחזיקים צועדים מתחת. מפיל פצצות (טבעת אדומה
+#                      מסמנת איפה תנחת), לומד להקדים אותך. לפוצץ אותו -> מתרסק על מי שמתחת. להרוג 2 מחזיקים -> עף לשמיים.
+#    HonorGuard      - (עולם) משמר כבוד על פודיום: סמל + 3 רובאים. מטח הצדעה לשמיים - עד שהם לומדים לכוון עליך.
 #    Obstacle        - (מוצק + מחסה) "crowd_barrier" מחסום קהל / "planter" עציץ בטון עם פרחים אדומים / "drum_stack" תופים
 #    ParadeFX        - (מסך) נייר טיקר אדום-לבן שנופל, אובך זרקורים
-#  לשנות: TankColumn.CYCLE / WARN_T / SPEED / DMG_Z, SaluteGun.CYCLE / R / DAZE_T.
+#  לשנות: EmperorBalloon (HP, BOMB_CD, BOMB_R, ROAM, CRASH_R), HonorGuard (VOLLEY_CD, READY_T, LOCK_T, NOTICE_R, SERGEANT_HP).
 # ============================================================
 
 const Art := preload("res://art.gd")
@@ -209,201 +209,540 @@ class ReviewStand extends Node2D:
 			S.E.flag(self, Vector2(px, -tier - 60.0), 30.0, 20.0, float(Engine.get_process_frames()) / 60.0, int(px), false)
 
 
-# ---- טור טנקים ----
-class TankColumn extends Node2D:
-	const CYCLE := Vector2(13.0, 17.0)
-	const WARN_T := 2.0
-	const SPEED := 300.0
-	const N := 3
-	const GAP := 230.0
-	const DMG_Z := 40
-	const EARLY := 4.0              # כמה שניות לפני האזעקה חיילי האימפריה כבר יוצאים מהנתיב (רמז לשחקן!)
-	const TANK := Vector2(190, 70)
-	var w := 900.0
-	var state := 0                  # 0 = שקט, 1 = אזהרה, 2 = טנקים עוברים
-	var passes := 0                 # לבדיקות
-	var hits := 0
+# ---- בלון המצעד של הקיסר ----
+#  בלון ענק בצורת גולגולת הקיסר עם כתר, קשור ב-3 חבלים ל-3 חיילים שצועדים מתחתיו (handlers, זומבים אמיתיים).
+#  הבלון עוקב אחריך לאורך השדרה (ROAM) ומפיל פצצות (BOMB_CD) - טבעת אדומה על הקרקע מראה איפה כל פצצה תנחת.
+#  "THEY LEARNED YOUR STEP": זוכר לאן ברחת מהפצצה. התחמקות 1 -> זוג פצצות: עליך + איפה שברחת אליו בפעם הקודמת.
+#    התחמקות 2 -> מניפה של 3 (עליך + שני הצדדים). הטבעות האדומות מראות את כל הנקודות - לחפש את הרווח.
+#  להפיל אותו: HP פגיעות בבלון -> מתרוקן, מסתחרר ומתרסק על מי שמתחת (CRASH_R - גם חיילים!).
+#  או להרוג 2 מהמחזיקים -> הבלון משתחרר ועף לשמיים (אין יותר פצצות). פצצה שנופלת ליד המחזיקים - הורגת גם אותם.
+class EmperorBalloon extends Node2D:
+	const HEIGHT := 255.0
+	const R := Vector2(74, 62)
+	const ROAM := 520.0
+	const SPEED := 60.0
+	const ROPE_MAX := 260.0         # הבלון לא מתרחק מהמחזיקים יותר מזה (חבלים ארוכים)
+	const BOMB_CD := Vector2(2.6, 3.6)
+	const BOMB_R := 95.0
+	const BOMB_GRAV := 700.0
+	const HP := 16
+	const CRASH_R := 170.0
+	const CRASH_DMG := 60
+	const OFFS := [140.0, 190.0, 240.0]   # המחזיקים הולכים מאחורי הבלון (בצד הרחוק ממך) - הבלון מעליך, הם רחוק מהפצצות
+	enum { FLY, FREE, FALL, DOWN }
+	var state := FLY
+	var floor_y := 630.0
+	var home_x := 0.0
+	var hp := HP
+	var handlers := []
+	var bombs := 0                  # לבדיקות
+	var bomb_hits := 0
+	var misses := 0
+	var lead := 0.0                 # 0..1 - כמה הוא למד להקדים
+	var dodge := 0.0                # לאן ברחת בפעם האחרונה (פיקסלים, + ימינה)
 	var crushed := 0
-	var stepped_aside := 0
-	var _t := 5.0
-	var _x := 0.0                   # מיקום הטנק הראשון (מקומי)
-	var _hit := {}
-	var _moved := []
-	var _early := false
+	var _vx := 0.0
+	var _cd := 2.5
+	var _t := 0.0
+	var _st := 0.0
+	var _hit := 0.0
+	var _vy := 0.0
+	var _spin := 0.0
+	var _body: StaticBody2D = null
+	var _side := 1.0                # באיזה צד של הבלון המחזיקים
 
 	func _ready() -> void:
-		z_index = 7
-		add_to_group("hazards")
+		z_index = 8
+		home_x = global_position.x
+		floor_y = global_position.y + HEIGHT
+		add_to_group("balloons")
+		_body = BalloonBody.new()
+		_body.b = self
+		add_child(_body)
 
-	func world_rect() -> Rect2:
-		return Rect2(global_position + Vector2(0, -90), Vector2(w, 90))
+	func alive_handlers() -> Array:
+		return handlers.filter(func(h): return is_instance_valid(h) and not h.dead)
 
-	func danger_at(p: Vector2, margin := 0.0) -> bool:
-		return state != 0 and world_rect().grow(margin).has_point(p)
+	func hit(amount: int, at: Vector2) -> void:
+		if state != FLY and state != FREE:
+			return
+		hp -= maxi(1, int(round(float(amount) / 12.0)))
+		_hit = 0.08
+		preload("res://particles.gd").burst(get_parent(), at, "spark", Vector2.UP, 2)
+		if hp <= 0:
+			_pop()
 
-	func tank_rects() -> Array:
-		var out := []
-		if state != 2:
-			return out
-		for q in N:
-			var tx := _x + float(q) * GAP
-			if _vis(tx):
-				out.append(Rect2(global_position + Vector2(tx - TANK.x * 0.5, -TANK.y), TANK))
-		return out
+	func _pop() -> void:
+		state = FALL
+		_vy = -60.0
+		_body.collision_layer = 0
+		preload("res://sfx.gd").play("bl_pop", global_position, 3.0, 0.05, 2)
+		_text("THE BALLOON IS COMING DOWN!", Color("ffe0a0"))
+		_release()
 
-	# טנק נראה / מסוכן רק בתוך הנתיב: יוצא ממסך עשן בקצה הימני ונעלם במסך עשן בקצה השמאלי
-	func _vis(tx: float) -> bool:
-		return tx >= TANK.x * 0.5 - 2.0 and tx <= w - TANK.x * 0.5 + 2.0
+	func _release() -> void:
+		for h in handlers:
+			if is_instance_valid(h):
+				h.goal_x = INF
+		handlers.clear()
+
+	func _text(s: String, col: Color) -> void:
+		var p = preload("res://zombie.gd").HitText.new()
+		p.text = s
+		p.color = col
+		p.size = 15
+		get_parent().add_child(p)
+		p.global_position = global_position + Vector2(0, R.y + 30.0)
 
 	func _physics_process(delta: float) -> void:
-		_t -= delta
+		_t += delta
+		_hit -= delta
+		_cd -= delta
+		var pl := get_tree().get_first_node_in_group("player")
 		match state:
-			0:
-				if _t <= EARLY and not _early:   # חיילי האימפריה "יודעים" את לוח הזמנים - יוצאים מהנתיב לפני האזעקה
-					_early = true
-					for zz in get_tree().get_nodes_in_group("empire"):
-						if not zz.dead and world_rect().grow(20.0).has_point(zz.global_position + Vector2(0, -10)):
-							var lx: float = global_position.x - 60.0
-							var rx: float = global_position.x + w + 60.0
-							zz.goal_x = lx if absf(zz.global_position.x - lx) < absf(zz.global_position.x - rx) else rx
-							_moved.append(zz)
-							stepped_aside += 1
-				if _t <= 0.0:
-					state = 1
-					_t = WARN_T
-					var pl := get_tree().get_first_node_in_group("player")
-					if pl != null and absf(pl.global_position.x - (global_position.x + w * 0.5)) < w + 600.0:
-						preload("res://sfx.gd").play("pa_rumble", global_position + Vector2(w * 0.5, -40), 2.0, 0.05, 2)
-			1:
-				if Engine.get_physics_frames() % 10 == 0:
-					var cam: Camera2D = get_viewport().get_camera_2d()
-					if cam != null and cam.has_method("shake") and Art.on_screen(self, global_position + Vector2(w * 0.5, -40), w):
-						cam.shake(3.0, 0.15)
-				if _t <= 0.0:
-					state = 2
-					_x = w - TANK.x * 0.5
-					passes += 1
-					_hit.clear()
-			2:
-				_x -= SPEED * delta
-				var pl := get_tree().get_first_node_in_group("player")
-				var rects := tank_rects()
-				for i in rects.size():
-					var r: Rect2 = rects[i]
-					if pl != null and not pl.dead and not _hit.has(i) and r.intersects(pl.body_rect()):
-						_hit[i] = true
-						hits += 1
-						pl.hurt(2, Vector2(-3.0, -1.5))
-						pl.velocity = Vector2(-560.0, -380.0)
-					if Engine.get_physics_frames() % 5 == 0:
-						for zz in get_tree().get_nodes_in_group("zombies"):
-							if not zz.dead and not zz.is_boss() and r.has_point(zz.global_position + Vector2(0, -10)):
-								crushed += 1
-								zz.take_damage(DMG_Z, zz.global_position + Vector2(0, -30), Vector2(-1, -0.3), false, {"source": "tank", "fixed": DMG_Z})
-				if _x + float(N - 1) * GAP < TANK.x * 0.5 - 2.0:
-					state = 0
-					_early = false
-					_t = randf_range(CYCLE.x, CYCLE.y)
-					for zz in _moved:
-						if is_instance_valid(zz):
-							zz.goal_x = INF
-					_moved.clear()
-		if Art.on_screen(self, global_position + Vector2(w * 0.5, -60), w + 300.0):
+			FLY:
+				var hs := alive_handlers()
+				if hs.size() < 2:   # אין מספיק מחזיקים - משתחרר
+					state = FREE
+					_st = 0.0
+					_release()
+					preload("res://sfx.gd").play("bl_whoosh", global_position, 0.0, 0.05, 2)
+					_text("THE BALLOON BROKE FREE", Color("ffe0a0"))
+				else:
+					var tx := home_x
+					if pl != null and not pl.dead and absf(pl.global_position.x - global_position.x) < 900.0:
+						tx = clampf(pl.global_position.x + pl.velocity.x * 0.6 * lead, home_x - ROAM, home_x + ROAM)
+					var hx := 0.0
+					for h in hs:
+						hx += h.global_position.x
+					hx /= float(hs.size())
+					tx = clampf(tx, hx - ROPE_MAX, hx + ROPE_MAX)   # החבלים מחזיקים
+					_vx = move_toward(_vx, clampf((tx - global_position.x) * 1.5, -SPEED, SPEED), 80.0 * delta)
+					global_position.x += _vx * delta
+					global_position.y = floor_y - HEIGHT + sin(_t * 1.3) * 6.0
+					if pl != null and absf(pl.global_position.x - global_position.x) > 40.0:
+						_side = -signf(pl.global_position.x - global_position.x)
+					for i in handlers.size():   # המחזיקים צועדים מאחורי הבלון
+						var h = handlers[i]
+						if is_instance_valid(h) and not h.dead:
+							h.goal_x = global_position.x + _side * float(OFFS[i % OFFS.size()])
+					if _cd <= 0.0 and pl != null and not pl.dead and absf(pl.global_position.x - global_position.x) < 320.0 and absf(pl.global_position.y - floor_y) < 200.0:
+						_cd = randf_range(BOMB_CD.x, BOMB_CD.y)
+						_drop(pl)
+			FREE:   # עף לשמיים
+				_st += delta
+				global_position += Vector2(30.0, -70.0) * delta
+				if _st > 6.0:
+					queue_free()
+					return
+			FALL:   # מתרוקן, מסתחרר ונופל
+				_vy += 320.0 * delta
+				_spin += delta * 9.0
+				global_position += Vector2(sin(_t * 7.0) * 90.0, _vy) * delta
+				if global_position.y + R.y * 0.5 >= floor_y:
+					_crash()
+			DOWN:
+				_st += delta
+				if _st > 3.0:
+					queue_free()
+					return
+		if Art.on_screen(self, Vector2(global_position.x, floor_y - HEIGHT * 0.5), 400.0):
 			queue_redraw()
+
+	func _drop(pl: Node) -> void:
+		bombs += 1
+		var from := global_position + Vector2(0, R.y + 14.0)
+		var land_y: float = minf(pl.global_position.y, floor_y)   # נוחתת בגובה שלך (כביש / מעבר היציע)
+		var fall := sqrt(2.0 * maxf(land_y - from.y, 10.0) / BOMB_GRAV)
+		var tx: float = pl.global_position.x + pl.velocity.x * fall * 0.5
+		var targets := [tx]
+		var off := signf(dodge) * clampf(absf(dodge), 110.0, 200.0) if dodge != 0.0 else 0.0
+		if misses >= 1 and off != 0.0:   # איפה שברחת אליו בפעם שעברה
+			targets.append(tx + off)
+		if misses >= 2 and off != 0.0:   # ושני הצדדים
+			targets.append(tx - off)
+		var hs := alive_handlers()
+		for i in range(targets.size() - 1, 0, -1):   # פצצות נוספות לא נופלות על המחזיקים שלו (רק הפצצה עליך אפשר "למשוך" אליהם)
+			for h in hs:
+				if absf(float(targets[i]) - h.global_position.x) < 110.0:
+					targets.remove_at(i)
+					break
+		for i in targets.size():
+			var b := Bomb.new()
+			b.balloon = self
+			b.main_bomb = i == 0
+			b.vel = Vector2(clampf((float(targets[i]) - from.x) / fall, -320.0, 320.0), 0.0)
+			b.floor_y = land_y
+			b.aim_x = pl.global_position.x
+			get_parent().add_child(b)
+			b.global_position = from + Vector2(float(i) * 4.0, 0)
+		preload("res://sfx.gd").play("bl_drop", from, -2.0, 0.1, 3)
+
+	func bomb_result(hit_player: bool, moved_by: float) -> void:
+		if hit_player:
+			bomb_hits += 1
+		elif absf(moved_by) > 60.0:   # זזת והתחמקת -> זוכר לאן
+			misses += 1
+			dodge = moved_by
+			lead = minf(lead + 0.5, 1.0)
+			if misses == 1:
+				_text("THEY AIM WHERE YOU WILL BE", Color("ffb0a0"))
+			elif misses == 2:
+				_text("THEY COVER BOTH SIDES", Color("ffb0a0"))
+
+	func _crash() -> void:
+		state = DOWN
+		_st = 0.0
+		global_position.y = floor_y - R.y * 0.35
+		var c := Vector2(global_position.x, floor_y)
+		preload("res://sfx.gd").play("bl_crash", c, 3.0, 0.05, 2)
+		preload("res://particles.gd").burst(get_parent(), c + Vector2(0, -10), "smoke", Vector2.UP, 14)
+		var cam: Camera2D = get_viewport().get_camera_2d()
+		if cam != null and cam.has_method("shake"):
+			cam.shake(8.0, 0.4)
+		for zz in get_tree().get_nodes_in_group("zombies"):
+			if not zz.dead and not zz.is_boss() and absf(zz.global_position.x - c.x) < CRASH_R and absf(zz.global_position.y - c.y) < 80.0:
+				crushed += 1
+				zz.take_damage(CRASH_DMG, zz.global_position + Vector2(0, -30), Vector2(signf(zz.global_position.x - c.x), -0.5), true, {"source": "crash", "fixed": CRASH_DMG})
+		var pl := get_tree().get_first_node_in_group("player")
+		if pl != null and not pl.dead and absf(pl.global_position.x - c.x) < CRASH_R * 0.7 and absf(pl.global_position.y - c.y) < 80.0:
+			pl.hurt(1, Vector2(signf(pl.global_position.x - c.x) * 2.0, -1.0))
+		if crushed > 0:
+			_text("CRUSHED %d" % crushed, Color("ffe060"))
 
 	func _draw() -> void:
 		var S := preload("res://effects/s41_decor.gd")
-		if state == 1:   # אורות אדומים מהבהבים לאורך הנתיב + חיצים
-			var on := fposmod(_t * 4.0, 1.0) < 0.5
-			var x := 0.0
-			while x <= w:
-				draw_circle(Vector2(x, -4), 4.0, Color(1.0, 0.15, 0.1, 0.9) if on else Color(0.3, 0.05, 0.05, 0.8))
-				x += 75.0
-			draw_string(ThemeDB.fallback_font, Vector2(w * 0.5 - 70.0, -200.0), "<<< TANKS <<<", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1.0, 0.3, 0.2, 0.9 if on else 0.5))
-		elif state == 2:
-			for q in N:
-				var tx := _x + float(q) * GAP
-				if _vis(tx):
-					S.tank(self, Vector2(tx, 0), 2.1, -1.0, Color("3e4232"), float(Engine.get_process_frames()) / 60.0)
-					if Engine.get_physics_frames() % 4 == 0:
-						preload("res://particles.gd").burst(get_parent(), global_position + Vector2(tx + 90.0, -10.0), "smoke", Vector2.UP, 1)
-		if state != 0:   # מסכי עשן בשני קצוות הנתיב (מכסים את הכניסה / היציאה של הטנקים)
-			var tt := float(Engine.get_process_frames()) / 60.0
-			for ex in [0.0, w]:
-				for q in 7:
-					var a := float(q) * 0.9 + tt * 0.6
-					var c := Vector2(ex + cos(a) * 34.0 + (float(q) - 3.0) * 12.0, -40.0 - absf(sin(a * 1.3)) * 50.0 - float(q % 3) * 14.0)
-					draw_circle(c, 46.0 - float(q % 3) * 6.0, Color(0.55, 0.52, 0.5, 0.82))
-				draw_circle(Vector2(ex, -46.0), 50.0, Color(0.5, 0.47, 0.45, 0.9))
+		var gy := floor_y - global_position.y
+		# צל על הכביש
+		if state == FLY or state == FALL:
+			var k := clampf(1.0 - (gy - R.y) / (HEIGHT + 40.0), 0.25, 1.0)
+			draw_colored_polygon(Art.ellipse(Vector2(0, gy - 1.0), R.x * 0.9 * k + 20.0, 6.0, 0.0, 16), Color(0, 0, 0, 0.25))
+		# חבלים
+		if state == FLY:
+			for h in alive_handlers():
+				var hp_: Vector2 = h.global_position - global_position + Vector2(h._dir * 6.0, -42.0)
+				var mid := (Vector2(0, R.y * 0.8) + hp_) * 0.5 + Vector2(0, 14)
+				draw_polyline(PackedVector2Array([Vector2(0, R.y * 0.8), mid, hp_]), Color("d8d0b8"), 1.5)
+		var sq := 1.0
+		var flat := 1.0
+		var rot := 0.0
+		if state == FALL:
+			sq = 0.75 + 0.1 * sin(_t * 30.0)
+			rot = sin(_spin) * 0.5
+		elif state == DOWN:
+			flat = 0.35
+		draw_set_transform(Vector2.ZERO, rot, Vector2(sq, sq * flat))
+		var white := Color("e8e2d0") if _hit <= 0.0 else Color.WHITE
+		# גוף הבלון: גולגולת
+		Art.oval_shaded(self, Vector2.ZERO, R.x, R.y, white, 0.0, Color("3a3428"), 2.5)
+		for q in 5:   # תפרים של הבלון
+			var xx := -R.x * 0.7 + float(q) * R.x * 0.35
+			draw_arc(Vector2(xx * 0.15, 0), R.y * 0.95, -1.9 + float(q) * 0.05, -1.25 + float(q) * 0.1, 8, Color(0, 0, 0, 0.08), 1.5)
+		draw_colored_polygon(Art.ellipse(Vector2(-24, -4), 16.0, 18.0, 0.2, 12), Color("2a2420"))   # ארובות עיניים
+		draw_colored_polygon(Art.ellipse(Vector2(24, -4), 16.0, 18.0, -0.2, 12), Color("2a2420"))
+		if state == FLY or state == FREE:
+			var glow := 0.6 + 0.4 * sin(_t * 4.0)
+			draw_circle(Vector2(-24, -2), 5.0, Color(1.0, 0.2, 0.15, glow))
+			draw_circle(Vector2(24, -2), 5.0, Color(1.0, 0.2, 0.15, glow))
+		draw_colored_polygon(PackedVector2Array([Vector2(0, 12), Vector2(-7, 26), Vector2(7, 26)]), Color("2a2420"))   # אף
+		for q in 6:   # שיניים
+			draw_rect(Rect2(Vector2(-27.0 + float(q) * 9.0, 36), Vector2(7, 12)), Color("f4eee0"))
+			draw_rect(Rect2(Vector2(-27.0 + float(q) * 9.0, 36), Vector2(7, 12)), Color("3a3428"), false, 1.0)
+		# כתר
+		var crown := PackedVector2Array([Vector2(-46, -R.y + 12), Vector2(-50, -R.y - 22), Vector2(-28, -R.y - 6), Vector2(0, -R.y - 30), Vector2(28, -R.y - 6), Vector2(50, -R.y - 22), Vector2(46, -R.y + 12)])
+		draw_colored_polygon(crown, S.E.BRASS)
+		draw_polyline(crown, Color("8a6a20"), 2.0)
+		for jx in [-50.0, 0.0, 50.0]:
+			draw_circle(Vector2(jx, -R.y - (30.0 if jx == 0.0 else 22.0)), 4.5, S.E.RED)
+		# סרט אדום עם הסמל
+		draw_colored_polygon(PackedVector2Array([Vector2(-R.x * 0.95, 18), Vector2(-R.x * 0.7, 30), Vector2(-40, 34), Vector2(-46, 20)]), S.E.RED)
+		draw_colored_polygon(PackedVector2Array([Vector2(R.x * 0.95, 18), Vector2(R.x * 0.7, 30), Vector2(40, 34), Vector2(46, 20)]), S.E.RED)
+		draw_set_transform_matrix(Transform2D.IDENTITY)
+		if state == FLY:   # תא הפצצות מתחת לסנטר
+			draw_rect(Rect2(Vector2(-12, R.y + 2), Vector2(24, 12)), Color("3a3e34"))
+			S.E.emblem(self, Vector2(0, R.y + 8), 5.0)
 
 
-# ---- תותח הצדעה ----
-class SaluteGun extends Node2D:
-	const CYCLE := Vector2(6.0, 9.0)
-	const WARN_T := 1.2
-	const R := 150.0
-	const DAZE_T := 0.8
-	var fired := 0                  # לבדיקות
-	var dazed := 0
-	var _t := 3.0
-	var _warn := 0.0
-	var _ring := 0.0
+# אזור הפגיעה של הבלון
+class BalloonBody extends StaticBody2D:
+	var b: Node2D
+
+	func _ready() -> void:
+		collision_layer = 4
+		collision_mask = 0
+		var cs := CollisionShape2D.new()
+		var sh := CircleShape2D.new()
+		sh.radius = 62.0
+		cs.shape = sh
+		add_child(cs)
+
+	func take_damage(amount: int, hit_pos: Vector2, _dir: Vector2, _explosive := false, src := {}) -> void:
+		b.hit(int(src.get("fixed", amount)), hit_pos)
+
+
+# פצצה מהבלון: נופלת, טבעת אדומה על הקרקע מראה איפה תנחת
+class Bomb extends Node2D:
+	var balloon: Node2D = null
+	var vel := Vector2.ZERO
+	var floor_y := 630.0
+	var aim_x := 0.0                # איפה היית כשהיא נזרקה
+	var main_bomb := true           # (רק הפצצה הראשית מדווחת לבלון אם התחמקת)
+	var land_x := 0.0
+	var _t := 0.0
+
+	func _ready() -> void:
+		z_index = 9
+		var fall := sqrt(2.0 * maxf(floor_y - global_position.y, 1.0) / 700.0)
+		land_x = global_position.x + vel.x * fall
+
+	func _physics_process(delta: float) -> void:
+		_t += delta
+		if _t < 0.02:
+			var fall := sqrt(2.0 * maxf(floor_y - global_position.y, 1.0) / 700.0)
+			land_x = global_position.x + vel.x * fall
+		vel.y += 700.0 * delta
+		var to := global_position + vel * delta
+		var hit := get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(global_position, to, 1))   # (עוברת דרך במות one-way - נוחתת בגובה שלך)
+		if not hit.is_empty() or to.y >= floor_y or _t > 4.0:
+			var at: Vector2 = hit.position if not hit.is_empty() else Vector2(to.x, minf(to.y, floor_y))
+			var pl := get_tree().get_first_node_in_group("player")
+			var hp0: int = pl.health if pl != null else 0
+			preload("res://explosion.gd").blast(get_parent(), at + Vector2(0, -6), 95.0, 50.0, 30, 1, "bomb")
+			if balloon != null and is_instance_valid(balloon) and pl != null:
+				if pl.health < hp0:
+					balloon.bomb_result(true, 0.0)
+				elif main_bomb:
+					balloon.bomb_result(false, pl.global_position.x - aim_x)
+			queue_free()
+			return
+		global_position = to
+		rotation += delta * 3.0
+		queue_redraw()
+
+	func _draw() -> void:
+		# טבעת על הקרקע (בעולם, לא מסתובבת)
+		var gp := Vector2(land_x, floor_y) - global_position
+		draw_set_transform(Vector2.ZERO, -rotation, Vector2.ONE)
+		var k := clampf(_t / 0.8, 0.0, 1.0)
+		draw_arc(gp.rotated(-rotation * 0.0), 40.0 - 22.0 * k, 0.0, TAU, 24, Color(1.0, 0.15, 0.1, 0.85), 2.5)
+		draw_colored_polygon(Art.ellipse(gp, 34.0 - 18.0 * k, 5.0, 0.0, 14), Color(1.0, 0.15, 0.1, 0.25))
+		draw_set_transform_matrix(Transform2D.IDENTITY)
+		draw_circle(Vector2.ZERO, 7.0, Color("1e1e22"))
+		draw_rect(Rect2(Vector2(-3, -11), Vector2(6, 5)), Color("3a3e34"))
+		draw_circle(Vector2(-2.5, -2.5), 2.0, Color(1, 1, 1, 0.3))
+
+
+# ---- משמר כבוד: מטח הצדעה ----
+#  פודיום עם סמל (SERGEANT, חרב מורמת) ושלושה רובאים בטקס (טוניקה אדומה, קסדת נוצה). כל VOLLEY_CD:
+#  "PRESENT... FIRE!" - מטח הצדעה לשמיים (סרק, לא מסוכן).
+#  "THEY LEARNED TO AIM": מתקרבים אליהם (NOTICE_R) / יורים לידם / פוגעים באחד מהם -> הסמל מסובב אותם אליך:
+#    "AIM!" - קווי כוונה אדומים בגובה הראש (AIM_Y, READY_T). הכוונה ננעלת LOCK_T לפני הירי -> "FIRE!" - 3 כדורים אמיתיים.
+#    מתחמקים: להתכופף מתחת לקו (או מחסה) - הכדורים עוברים מעל.
+#  להרוג את הסמל (SERGEANT_HP) -> אין פקודות - המשמר עומד דום ולא יורה יותר. כל רובאי שמת = כדור אחד פחות.
+class HonorGuard extends Node2D:
+	const VOLLEY_CD := Vector2(3.5, 5.0)
+	const READY_T := 1.2
+	const LOCK_T := 0.35
+	const AIM_Y := -42.0            # גובה ראש: עובר מעל שחקן מתכופף (34), פוגע בעומד (52)
+	const NOTICE_R := 330.0
+	const RANGE := 900.0
+	const SHOT_V := 650.0
+	const SERGEANT_HP := 40
+	const RIFLE_HP := 25
+	const POS := [Vector2(-50, -16), Vector2(-14, -16), Vector2(14, -16), Vector2(42, -16)]   # סמל + 3 רובאים
+	var hostile := false            # למדו לכוון עליך
+	var volleys := 0                # לבדיקות
+	var real_volleys := 0
+	var shots := 0
+	var hps := [SERGEANT_HP, RIFLE_HP, RIFLE_HP, RIFLE_HP]
+	var _t := 2.0
+	var _ready_t := 0.0
+	var _fire_anim := 0.0
+	var _lock := Vector2.ZERO
+	var _hit := [0.0, 0.0, 0.0, 0.0]
+	var _bodies := []
+	var _face := -1.0
 
 	func _ready() -> void:
 		z_index = 2
 		add_to_group("hazards")
+		add_to_group("honor_guards")
+		for i in 4:
+			var b := GuardBody.new()
+			b.g = self
+			b.idx = i
+			b.position = POS[i] + Vector2(0, -20)
+			add_child(b)
+			_bodies.append(b)
 
 	func world_rect() -> Rect2:
-		return Rect2(global_position + Vector2(-R, -80), Vector2(R * 2.0, 80))
+		return Rect2(global_position + Vector2(-70, -60), Vector2(140, 60))
 
-	func danger_at(p: Vector2, margin := 0.0) -> bool:
-		return _warn > 0.0 and world_rect().grow(margin).has_point(p)
+	func danger_at(_p: Vector2, _margin := 0.0) -> bool:
+		return false
+
+	func sergeant_alive() -> bool:
+		return int(hps[0]) > 0
+
+	func hit(idx: int, dmg: int, at: Vector2) -> void:
+		if int(hps[idx]) <= 0:
+			return
+		hps[idx] = int(hps[idx]) - dmg
+		_hit[idx] = 0.1
+		preload("res://particles.gd").burst(get_parent(), at, "hit", Vector2.UP, 6)
+		_learn("THEY TURN THEIR RIFLES ON YOU")
+		if int(hps[idx]) <= 0:
+			_bodies[idx].collision_layer = 0
+			preload("res://sfx.gd").play("zdeath", at, -2.0, 0.1, 2)
+			Game.on_zombie_killed(0, {"pos": at, "zone": "", "source": "guard"})
+			if idx == 0:
+				_ready_t = 0.0
+				_text("NO ORDERS - THE GUARD STANDS STILL", Color("e0e0e0"))
+
+	func _learn(msg: String) -> void:
+		if not hostile and sergeant_alive():
+			hostile = true
+			_text(msg, Color("ffb0a0"))
+
+	func _text(s: String, col: Color) -> void:
+		var p = preload("res://zombie.gd").HitText.new()
+		p.text = s
+		p.color = col
+		p.size = 14
+		get_parent().add_child(p)
+		p.global_position = global_position + Vector2(0, -90)
+
+	func _muzzle(i: int) -> Vector2:
+		var base: Vector2 = global_position + POS[i]
+		if hostile:
+			return base + Vector2(_face * 16.0, -30.0)
+		return base + Vector2(_face * 4.0, -62.0)
 
 	func _physics_process(delta: float) -> void:
 		_t -= delta
-		_ring = maxf(_ring - delta, 0.0)
-		if _warn > 0.0:
-			_warn -= delta
-			if Engine.get_physics_frames() % 4 == 0:
-				preload("res://particles.gd").burst(get_parent(), global_position + Vector2(-26, -18), "fire", Vector2.UP, 1)
-			if _warn <= 0.0:
-				_boom()
-		elif _t <= 0.0:
-			_t = randf_range(CYCLE.x, CYCLE.y)
-			_warn = WARN_T
-			preload("res://sfx.gd").play("pa_fuse", global_position, -4.0, 0.1, 2)
-		if _warn > 0.0 or _ring > 0.0 or Engine.get_physics_frames() % 10 == 0:
+		_fire_anim -= delta
+		for i in 4:
+			_hit[i] = float(_hit[i]) - delta
+		var pl := get_tree().get_first_node_in_group("player")
+		if pl != null and not pl.dead:
+			var dx: float = pl.global_position.x - global_position.x
+			if hostile:
+				_face = signf(dx) if absf(dx) > 4.0 else _face
+			if absf(dx) < NOTICE_R and absf(pl.global_position.y - global_position.y) < 150.0:
+				_learn("THEY TURN THEIR RIFLES ON YOU")
+			elif absf(dx) < 600.0 and pl._muzzle_flash > 0.0:
+				_learn("YOU FIRED AT THE PARADE - THEY AIM AT YOU")
+		if sergeant_alive() and pl != null:
+			if _ready_t > 0.0:
+				_ready_t -= delta
+				if hostile and _ready_t > LOCK_T and not pl.dead:   # הכוונה עוקבת, ננעלת LOCK_T לפני הירי
+					_lock = pl.global_position + Vector2(0, AIM_Y)
+				if _ready_t <= 0.0:
+					_fire(pl)
+			elif _t <= 0.0 and absf(pl.global_position.x - global_position.x) < RANGE:
+				_t = randf_range(VOLLEY_CD.x, VOLLEY_CD.y)
+				_ready_t = READY_T
+				_lock = pl.global_position + Vector2(0, AIM_Y)
+				preload("res://sfx.gd").play("hg_order", global_position, -2.0, 0.05, 2)
+		if Art.on_screen(self, global_position + Vector2(0, -40), 200.0):
 			queue_redraw()
 
-	func _boom() -> void:
-		fired += 1
-		_ring = 0.5
-		preload("res://sfx.gd").play("pa_salute", global_position, 3.0, 0.05, 2)
-		preload("res://particles.gd").burst(get_parent(), global_position + Vector2(40, -30), "smoke", Vector2(1, -0.3), 14)
-		var pl := get_tree().get_first_node_in_group("player")
-		if pl != null and not pl.dead and pl.global_position.distance_to(global_position) < R:
-			dazed += 1
-			var d := signf(pl.global_position.x - global_position.x + 0.01)
-			pl.velocity = Vector2(d * 420.0, -320.0)
-			if pl.has_method("daze"):
-				pl.daze(DAZE_T, "MY EARS ARE RINGING")
-		for zz in get_tree().get_nodes_in_group("zombies"):
-			if not zz.dead and not zz.is_boss() and zz.global_position.distance_to(global_position) < R:
-				zz.velocity = Vector2(signf(zz.global_position.x - global_position.x + 0.01) * 380.0, -260.0)
+	func _fire(pl: Node) -> void:
+		volleys += 1
+		_fire_anim = 0.25
+		preload("res://sfx.gd").play("hg_volley", global_position, 2.0, 0.05, 2)
+		for i in range(1, 4):
+			if int(hps[i]) <= 0:
+				continue
+			var m := _muzzle(i)
+			preload("res://particles.gd").burst(get_parent(), m, "smoke", Vector2.UP, 2)
+			if hostile:
+				var s = preload("res://enemies/stationary_boss.gd").Shot.new()
+				s.velocity = (_lock + Vector2(randf_range(-6, 6), randf_range(-2, 2)) - m).normalized() * SHOT_V
+				s.damage = 1
+				s.kind = "bolt"
+				s.col = Color(1.0, 0.85, 0.4)
+				s.r = 3.5
+				get_parent().add_child(s)
+				s.global_position = m
+				shots += 1
+		if hostile:
+			real_volleys += 1
 
 	func _draw() -> void:
-		draw_circle(Vector2(-18, -10), 10.0, Color("3a2a1a"))   # גלגלים
-		draw_circle(Vector2(18, -10), 10.0, Color("3a2a1a"))
-		draw_circle(Vector2(-18, -10), 3.0, Color("c8a040"))
-		draw_circle(Vector2(18, -10), 3.0, Color("c8a040"))
-		draw_line(Vector2(-26, -18), Vector2(44, -32), Color("c8a040"), 9.0)   # קנה פליז
-		draw_circle(Vector2(44, -32), 5.0, Color("8a6a20"))
-		if _warn > 0.0:
-			draw_line(Vector2(-26, -18), Vector2(-34, -24), Color(1.0, 0.7, 0.2), 1.5)
-			draw_circle(Vector2(-34, -24), 2.5 + sin(_warn * 40.0), Color(1.0, 0.9, 0.4))
-		if _ring > 0.0:
-			var k := 1.0 - _ring / 0.5
-			draw_arc(Vector2(0, -20), R * k, 0.0, TAU, 32, Color(1, 1, 1, 0.5 * (1.0 - k)), 4.0)
+		var S := preload("res://effects/s41_decor.gd")
+		var font := ThemeDB.fallback_font
+		# פודיום
+		draw_rect(Rect2(Vector2(-70, -16), Vector2(140, 16)), Color("4a4650"))
+		draw_rect(Rect2(Vector2(-70, -18), Vector2(140, 4)), S.E.RED)
+		draw_rect(Rect2(Vector2(-70, -14), Vector2(140, 1.5)), S.E.BRASS)
+		S.E.emblem(self, Vector2(0, -8), 5.0)
+		var aiming := hostile and _ready_t > 0.0 and sergeant_alive()
+		for i in 4:
+			var p: Vector2 = POS[i]
+			var dead := int(hps[i]) <= 0
+			var tunic := S.E.RED if i > 0 else S.E.RED_D
+			var sk := Color("7a8670")
+			if float(_hit[i]) > 0.0:
+				tunic = Color.WHITE
+				sk = Color.WHITE
+			if dead:   # שוכב על הפודיום
+				draw_rect(Rect2(p + Vector2(-12, -6), Vector2(24, 6)), tunic.darkened(0.3))
+				draw_circle(p + Vector2(14, -3), 4.0, sk.darkened(0.2))
+				continue
+			var f := _face
+			draw_line(p + Vector2(-2, 0), p + Vector2(-2, -16), Color("e8e8e8"), 3.5)   # מכנסיים לבנים
+			draw_line(p + Vector2(2, 0), p + Vector2(2, -16), Color("e8e8e8"), 3.5)
+			draw_rect(Rect2(p + Vector2(-6, -34), Vector2(12, 19)), tunic)   # טוניקה
+			draw_line(p + Vector2(-6, -30), p + Vector2(6, -22), Color("f0f0f0"), 1.5)   # רצועה
+			draw_rect(Rect2(p + Vector2(-6, -18), Vector2(12, 2)), S.E.BRASS)
+			var head := p + Vector2(f * 1.0, -39)
+			draw_circle(head, 4.5, sk)
+			draw_rect(Rect2(head + Vector2(-5, -12), Vector2(10, 9)), Color("1a1a1a"))   # קסדה גבוהה
+			draw_rect(Rect2(head + Vector2(-5, -5), Vector2(10, 1.5)), S.E.BRASS)
+			draw_line(head + Vector2(0, -12), head + Vector2(-f * 3.0, -22), Color("f0f0f0"), 3.0)   # נוצה
+			if i == 0:   # הסמל: חרב
+				var up := _ready_t > 0.0
+				var hand := p + Vector2(f * 6.0, -30)
+				var tip := hand + (Vector2(f * 4.0, -24) if up else Vector2(f * 20.0, 10))
+				draw_line(p + Vector2(f * 4.0, -32), hand, sk, 2.0)
+				draw_line(hand, tip, Color("d8dce4"), 2.0)
+				if _ready_t > 0.0:   # הפקודה
+					var txt := "AIM!" if hostile else "PRESENT..."
+					if _ready_t < LOCK_T:
+						txt = "FIRE!"
+					draw_string_outline(font, p + Vector2(-40, -70), txt, HORIZONTAL_ALIGNMENT_CENTER, 80, 14, 4, Color(0, 0, 0, 0.8))
+					draw_string(font, p + Vector2(-40, -70), txt, HORIZONTAL_ALIGNMENT_CENTER, 80, 14, Color(1.0, 0.35, 0.25) if hostile else Color(1, 1, 1))
+				continue
+			# רובאי: רובה עם כידון - למעלה (הצדעה) או אליך (כוונה)
+			var m := _muzzle(i) - global_position
+			var grip := p + Vector2(f * 3.0, -27)
+			draw_line(grip, m, Color("3a2a1a"), 3.0)
+			draw_line(m, m + (m - grip).normalized() * 7.0, Color("d8dce4"), 1.5)
+			draw_line(p + Vector2(f * 2.0, -32), grip, sk, 2.0)
+			if _fire_anim > 0.0:
+				draw_circle(m + (m - grip).normalized() * 6.0, 5.0, Color(1.0, 0.85, 0.4, 0.9))
+			if aiming:   # קו כוונה אדום אל המטרה (בהיר כשננעל)
+				var lk := _lock - global_position
+				var c := Color(1.0, 0.1, 0.1, 0.75 if _ready_t < LOCK_T else 0.3)
+				draw_line(m, m + (lk - m).normalized() * minf(m.distance_to(lk), 700.0), c, 1.2 if _ready_t >= LOCK_T else 2.0)
+
+
+class GuardBody extends StaticBody2D:
+	var g: Node2D
+	var idx := 0
+
+	func _ready() -> void:
+		collision_layer = 4
+		collision_mask = 0
+		var cs := CollisionShape2D.new()
+		var sh := RectangleShape2D.new()
+		sh.size = Vector2(14, 44)
+		cs.shape = sh
+		add_child(cs)
+
+	func take_damage(amount: int, hit_pos: Vector2, _dir: Vector2, _explosive := false, src := {}) -> void:
+		g.hit(idx, int(src.get("fixed", amount)), hit_pos)
 
 
 # ---- מכשולים ----
