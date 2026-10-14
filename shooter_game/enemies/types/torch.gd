@@ -10,6 +10,7 @@ extends "res://enemies/zombie_type.gd"
 # ============================================================
 
 const FireZone := preload("res://environment/fire_zone.gd")
+const Flame := preload("res://effects/flame_fx.gd")
 
 const RANGE := 520.0
 const WIND_T := 0.55
@@ -185,17 +186,15 @@ func draw() -> bool:
 		_flame(head + Vector2(-1, -5), 9.0, 0.0)
 		_flame(sh + Vector2(-5, -1), 6.0, 1.7)
 		_flame(sh + Vector2(5, -1), 5.0, 3.1)
-		Art.glow(z, head, 18.0, Color(1.0, 0.5, 0.15, 0.25))
+		Flame.glow(z, head + Vector2(0, -4), Vector2(22.0, 24.0), Color(1.0, 0.5, 0.15, 0.3))
 	end_draw()
 	return true
 
 
-func _flame(base: Vector2, h: float, ph: float) -> void:
-	var t: float = z._time * 9.0 + ph
-	var hh := h * (0.8 + 0.25 * sin(t))
-	var lean := sin(t * 0.7) * 2.0
-	z.draw_colored_polygon(PackedVector2Array([base + Vector2(-h * 0.45, 1), base + Vector2(-h * 0.2, -hh * 0.6), base + Vector2(lean, -hh), base + Vector2(h * 0.25, -hh * 0.5), base + Vector2(h * 0.45, 1)]), Color(1.0, 0.45, 0.1, 0.85))
-	z.draw_colored_polygon(PackedVector2Array([base + Vector2(-h * 0.22, 1), base + Vector2(lean * 0.6, -hh * 0.6), base + Vector2(h * 0.22, 1)]), Color(1.0, 0.85, 0.3, 0.9))
+func _flame(base: Vector2, h: float, ph: float) -> void:   # לשון אש אמיתית (effects/flame_fx.gd)
+	var t: float = z._time
+	var hh := h * 1.6 * (0.7 + 0.5 * Flame.wobble(t * 1.2, ph))
+	Flame.tongue(z, base + Vector2(0, 1), h * 0.42, hh, sin(t * 5.0 + ph) * 2.5 - z.velocity.x * 0.015 * z._dir, Flame.PALETTE, 0.92, h > 6.0)
 
 
 # ---- בקבוק תבערה של הזומבי (לא נשבר על זומבים, כן על השחקן) ----
@@ -241,6 +240,18 @@ class Bottle extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
-		draw_colored_polygon(PackedVector2Array([Vector2(-6, -3), Vector2(3, -3), Vector2(5, -1.5), Vector2(10, -1.2), Vector2(10, 1.2), Vector2(5, 1.5), Vector2(3, 3), Vector2(-6, 3)]), Color(0.35, 0.55, 0.3, 0.9))
-		draw_line(Vector2(10, 0), Vector2(13, -1.5), Color("d8c8a0"), 1.6)
-		draw_circle(Vector2(14, -2), 3.0 + sin(_t * 30.0), Color(1.0, 0.6, 0.15, 0.9))
+		var Fl := preload("res://effects/flame_fx.gd")
+		# בקבוק זכוכית ירוק עם נוזל, סמרטוט בפתח
+		draw_colored_polygon(PackedVector2Array([Vector2(-6, -3), Vector2(3, -3), Vector2(5, -1.5), Vector2(10, -1.2), Vector2(10, 1.2), Vector2(5, 1.5), Vector2(3, 3), Vector2(-6, 3)]), Color(0.22, 0.42, 0.2, 0.95))
+		draw_rect(Rect2(Vector2(-5, 0), Vector2(8, 2.5)), Color(0.75, 0.5, 0.15, 0.8))   # דלק
+		draw_line(Vector2(-4, -2), Vector2(2, -2), Color(1, 1, 1, 0.35), 1.0)   # ברק זכוכית
+		draw_line(Vector2(10, 0), Vector2(13, -1.5), Color("d8c8a0"), 1.8)
+		# הסמרטוט בוער: הלהבה נמשכת אחורה (הפוך לכיוון התנועה)
+		var back := (-velocity.normalized()).rotated(-rotation) if velocity.length() > 1.0 else Vector2.UP
+		var tip := Vector2(14, -2)
+		Fl.glow(self, tip, Vector2(14, 14), Color(1.0, 0.55, 0.15, 0.45))
+		for q in 3:
+			var k := fmod(_t * 6.0 + float(q) / 3.0, 1.0)
+			var c: Color = Fl.PALETTE[q + 1]
+			c.a = 0.95 * (1.0 - k * 0.7)
+			draw_circle(tip + back * (k * 12.0 + float(q)), (4.0 - float(q)) * (1.0 - k * 0.5), c)

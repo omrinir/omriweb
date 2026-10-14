@@ -36,6 +36,7 @@ const BLOOD_AMOUNT := 0.5    # כמות הדם (1 = כמו פעם)
 const LegScript := preload("res://severed_leg.gd")
 const AcidScript := preload("res://acid.gd")
 const FireScript := preload("res://fire.gd")
+const FlameFx := preload("res://effects/flame_fx.gd")
 const PickupScript := preload("res://pickup.gd")
 const DebrisScript := preload("res://debris.gd")
 const Particles := preload("res://particles.gd")
@@ -1469,6 +1470,21 @@ func _draw() -> void:
 		prof["draws"] = int(prof.get("draws", 0)) + 1
 		return
 	_draw_main()
+	if _burn_t > 0.0 and not dead and not _lying():
+		_draw_burning()
+
+
+# בוער (בקבוק תבערה / שטח בוער): להבות אמיתיות על הגוף (effects/flame_fx.gd)
+func _draw_burning() -> void:
+	var tt := _time
+	var k := clampf(_burn_t / 1.5, 0.0, 1.0)   # דועך בסוף
+	var spots := [Vector2(-5.0, -16.0), Vector2(4.0, -30.0), Vector2(-2.0, -44.0), Vector2(5.0, -52.0)]
+	for i in spots.size():
+		var b: Vector2 = spots[i]
+		var ph := float(i) * 1.9
+		var h := (14.0 + 8.0 * FlameFx.wobble(tt * 1.1, ph)) * sc * k
+		FlameFx.tongue(self, Vector2(b.x * wf * sc, b.y * sc), 5.5 * sc, h, sin(tt * 5.0 + ph) * 3.0 - velocity.x * 0.02, FlameFx.PALETTE, 0.9 * k, i % 2 == 0)
+	FlameFx.glow(self, Vector2(0, -32.0 * sc), Vector2(30.0, 38.0) * sc, Color(1.0, 0.5, 0.15, 0.22 * k))
 
 
 func _draw_main() -> void:
@@ -1713,7 +1729,7 @@ func _maybe_redraw() -> void:
 		return
 	var every := (2 if _vis_prev <= 3 else (3 if _vis_prev <= 10 else (4 if _vis_prev <= 20 else (5 if _vis_prev <= 32 else 6)))) + Quality.redraw_extra()   # הרבה זומבים על המסך: כל אחד מתעדכן פחות (חוסך ציור; התזוזה עצמה נשארת חלקה)
 	_redraw_tick += 1
-	if _redraw_tick % every == 0 or _flash > 0.0:
+	if _redraw_tick % every == 0 or _flash > 0.0 or (_burn_t > 0.0 and _redraw_tick % 2 == 0):   # בוער: הלהבות זזות
 		queue_redraw()
 
 

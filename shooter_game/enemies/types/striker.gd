@@ -2,7 +2,7 @@ extends "res://enemies/zombie_type.gd"
 # ============================================================
 #  STRIKER (שלב 39, "THE STADIUM") - חלוץ זומבי: חולצת נבחרת צהובה עם מספר 9, נעלי פקקים, כדור.
 #  "THEY LEARNED TO SHOOT": שומר מרחק (KEEP) ובועט כדור (Ball) חזק אליך (מקדים לאן שאתה הולך).
-#    הכדור קופץ על הקרקע ונעצר על קירות. התחבאת מאחורי מחסה? הכדור נעצר בו - והוא לומד: מעכשיו מקפיץ "לוב" מעל המחסה.
+#    הכדור קופץ על הקרקע ועל במות אמיתיות (גוף פיזיקלי) ונעצר בקירות. התחבאת מאחורי מחסה? הכדור נעצר בו - והוא לומד: מעכשיו מקפיץ "לוב" מעל המחסה.
 #    ירייה בכדור באוויר -> הכדור עף בחזרה אליו (פוגע בו ומשתק אותו).
 #  לשנות: KEEP, KICK_CD, BALL_V.
 # ============================================================
@@ -99,9 +99,8 @@ func _kick(pl: Node) -> void:
 	Sfx.play("sk_kick", z.global_position, 0.0, 0.1, 3)
 	var b := Ball.new()
 	b.owner_s = self
-	b.floor_y = z.global_position.y
+	b.position = z.global_position + Vector2(z._dir * 14.0, -12.0)   # (לפני add_child: _ready בודק שהוא לא בתוך מכשול)
 	z.get_parent().add_child(b)
-	b.global_position = z.global_position + Vector2(z._dir * 14.0, -10.0)
 	var tgt: Vector2 = pl.global_position + Vector2(pl.velocity.x * 0.35, -24.0)
 	if chip:   # לוב מעל המחסה
 		var fl := clampf(absf(tgt.x - b.global_position.x) / 420.0, 0.6, 1.3)
@@ -113,84 +112,124 @@ func _kick(pl: Node) -> void:
 
 
 # ============================================================
-#  הכדור: קופץ על הקרקע, נעצר בקירות/מחסות, פוגע בשחקן פעם אחת. ירייה בו = עף בחזרה אל הבועט
+#  הכדור: גוף פיזיקלי אמיתי (CharacterBody2D + move_and_collide) - קופץ על רצפה, במות ומכשולים אמיתיים,
+#  נעצר בקירות, מתגלגל ונעצר. פוגע בשחקן פעם אחת (רק כשהוא מהיר). ירייה בו = עף בחזרה אל הבועט (מתביית עליו).
+#  נעלם: אחרי LIFE שניות, או כשהוא שוכב בלי לזוז REST_T שניות (דוהה), או כשנפל מחוץ לעולם.
 # ============================================================
-class Ball extends StaticBody2D:
+class Ball extends CharacterBody2D:
 	const GRAV := 900.0
+	const R := 8.0
+	const LIFE := 4.0
+	const REST_T := 0.8
+	const BACK_V := 720.0
 	var owner_s = null
 	var vel := Vector2.ZERO
-	var floor_y := 630.0
+	var floor_y := 630.0          # (לא בשימוש יותר - נשאר בשביל קוד ישן)
 	var back := false
 	var _t := 0.0
 	var _hit := false
 	var _spin := 0.0
+	var _rest := 0.0
+	var _back_t := 0.0
+	var _fade := 1.0
 
 	func _ready() -> void:
 		z_index = 8
-		collision_layer = 4
-		collision_mask = 0
+		collision_layer = 4          # קליעים פוגעים בו (take_damage)
+		collision_mask = 1 | 16      # עולם + במות (one-way: נוחת עליהן מלמעלה)
 		var cs := CollisionShape2D.new()
 		var sh := CircleShape2D.new()
-		sh.radius = 8.0
+		sh.radius = R
 		cs.shape = sh
 		add_child(cs)
+		if test_move(global_transform, Vector2.ZERO):   # נבעט מתוך מכשול - מרימים אותו מעליו
+			for k in 6:
+				global_position.y -= 8.0
+				if not test_move(global_transform, Vector2.ZERO):
+					break
+
+	func _owner_ok() -> bool:
+		return owner_s != null and is_instance_valid(owner_s.z) and not owner_s.z.dead
 
 	func take_damage(_amount: int, _hit_pos: Vector2, _dir: Vector2, _explosive := false, _src := {}) -> void:
-		if back or owner_s == null or not is_instance_valid(owner_s.z) or owner_s.z.dead:
+		if back or not _owner_ok():
 			return
 		back = true   # עף בחזרה אל הבועט
-		var to: Vector2 = owner_s.z.global_position + Vector2(0, -30) - global_position
-		vel = to.normalized() * 700.0
+		_back_t = 0.0
+		_rest = 0.0
+		vel = (owner_s.z.global_position + Vector2(0, -30) - global_position).normalized() * BACK_V
 		preload("res://sfx.gd").play("sk_bounce", global_position, 0.0, 0.1, 2)
 
 	func _physics_process(delta: float) -> void:
 		_t += delta
-		_spin += vel.x * delta * 0.1
-		if not back:
+		if back:
+			_back_t += delta
+			if not _owner_ok() or _back_t > 1.4:   # הבועט מת / ברח - הכדור פשוט נופל
+				back = false
+			else:   # מתביית על הבועט (גם אם זז)
+				var to_o: Vector2 = owner_s.z.global_position + Vector2(0, -30) - global_position
+				vel = vel.lerp(to_o.normalized() * BACK_V, minf(1.0, 8.0 * delta))
+				if to_o.length() < 26.0:
+					owner_s.stun()
+					owner_s.z.take_damage(10, global_position, vel.normalized(), false, {"source": "ball", "fixed": 10})
+					queue_free()
+					return
+		else:
 			vel.y += GRAV * delta
-		var to := global_position + vel * delta
-		var pl := get_tree().get_first_node_in_group("player")
-		if not back and not _hit and pl != null and not pl.dead and pl.body_rect().grow(6.0).has_point(to):
-			_hit = true
-			if owner_s != null and is_instance_valid(owner_s.z):
-				owner_s.ball_hits += 1
-			pl.hurt(1, Vector2(signf(vel.x) * 1.8, -0.8))
-			vel = Vector2(-vel.x * 0.3, -200.0)
-		if back and owner_s != null and is_instance_valid(owner_s.z) and not owner_s.z.dead and owner_s.z.global_position.distance_to(to + Vector2(0, 30)) < 26.0:
-			owner_s.stun()
-			owner_s.z.take_damage(10, to, vel.normalized(), false, {"source": "ball", "fixed": 10})
-			queue_free()
+		_spin += vel.x * delta * 0.12
+		if back:   # עף בחזרה: ישר אל הבועט, דרך מכשולים (OWN GOAL בטוח)
+			global_position += vel * delta
+			queue_redraw()
 			return
-		var hit := get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(global_position, to, 1))
-		if not hit.is_empty():
-			if absf(hit.normal.y) > 0.6:   # רצפה / ראש מכשול
+		var col := move_and_collide(vel * delta)
+		if col != null:
+			var n := col.get_normal()
+			if n.y < -0.6:   # רצפה / במה / ראש מכשול
 				vel.y = -absf(vel.y) * 0.55
-				vel.x *= 0.8
-				to = hit.position + hit.normal * 2.0
-				if absf(vel.y) > 80.0:
-					preload("res://sfx.gd").play("sk_bounce", to, -6.0, 0.1, 3)
+				vel.x *= 0.82
+				if absf(vel.y) < 70.0:   # מתגלגל
+					vel.y = 0.0
+				elif absf(vel.y) > 90.0:
+					preload("res://sfx.gd").play("sk_bounce", global_position, -6.0, 0.1, 3)
+			elif n.y > 0.6:   # תקרה
+				vel.y = absf(vel.y) * 0.4
 			else:   # קיר / מחסה
-				if not back and owner_s != null and is_instance_valid(owner_s.z) and not _hit:
+				if not _hit and _owner_ok():
 					owner_s.blocked()
 				vel.x = -vel.x * 0.4
-				to = hit.position + hit.normal * 2.0
-		if to.y > floor_y - 8.0:
-			to.y = floor_y - 8.0
-			vel.y = -absf(vel.y) * 0.55
-			vel.x *= 0.85
-		global_position = to
-		if _t > 3.5:
+			move_and_collide(col.get_remainder().slide(n) * 0.5)
+		# פוגע בשחקן
+		var pl := get_tree().get_first_node_in_group("player")
+		if not back and not _hit and vel.length() > 160.0 and pl != null and not pl.dead and pl.body_rect().grow(R - 2.0).has_point(global_position):
+			_hit = true
+			if _owner_ok():
+				owner_s.ball_hits += 1
+			pl.hurt(1, Vector2(signf(vel.x) * 1.8, -0.8))
+			vel = Vector2(-vel.x * 0.3, -220.0)
+		# מתגלגל לאט על הרצפה -> נעצר ונעלם
+		if absf(vel.y) < 1.0 and absf(vel.x) < 25.0 and test_move(global_transform, Vector2(0, 2)):
+			vel.x = move_toward(vel.x, 0.0, 200.0 * delta)
+			_rest += delta
+		elif test_move(global_transform, Vector2(0, 2)):
+			vel.x = move_toward(vel.x, 0.0, 60.0 * delta)   # חיכוך גלגול
+		if _t > LIFE or _rest > REST_T:
+			_fade -= delta * 3.0
+			if _fade <= 0.0:
+				queue_free()
+				return
+		if global_position.y > 3000.0:
 			queue_free()
 			return
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_circle(Vector2.ZERO, 8.5, Color(0.1, 0.1, 0.1))
-		draw_circle(Vector2.ZERO, 7.5, Color(0.97, 0.97, 0.97))
+		var a := clampf(_fade, 0.0, 1.0)
+		draw_circle(Vector2.ZERO, R + 0.5, Color(0.1, 0.1, 0.1, a))
+		draw_circle(Vector2.ZERO, R - 0.5, Color(0.97, 0.97, 0.97, a))
 		for q in 5:
-			draw_circle(Vector2.from_angle(_spin + float(q) * TAU / 5.0) * 4.5, 1.8, Color(0.1, 0.1, 0.1))
+			draw_circle(Vector2.from_angle(_spin + float(q) * TAU / 5.0) * 4.5, 1.8, Color(0.1, 0.1, 0.1, a))
 		if vel.length() > 400.0:
-			draw_line(-vel.normalized() * 22.0, -vel.normalized() * 9.0, Color(1, 1, 1, 0.35), 5.0)
+			draw_line(-vel.normalized() * 22.0, -vel.normalized() * 9.0, Color(1, 1, 1, 0.35 * a), 5.0)
 
 
 # ============================================================

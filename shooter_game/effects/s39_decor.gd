@@ -8,12 +8,12 @@ extends RefCounted
 #    mid_boards    - (רקע) שלטי לד סביב המגרש שמתחלפים, צלמים, ספסלים
 #    TrackGround   - (עולם) מסלול ריצה אדום עם קווים לבנים -> דשא מפוספס (מ-grass_from)
 #    Stand         - (עולם) יציע קרוב: מדרגות מושבים, קהל זומבים, מעבר עליון (הקומה = add_floor)
-#    CrowdThrow    - (עולם, מלכודת) הקהל ביציע: שריקות בוז (אזהרה) -> מטר כוסות, בקבוקים ונפצים עליך
+#    CrowdHype     - (עולם) "THE 12TH MAN": קאפו עם מגפון ותוף על המעבר, מד CROWD HYPE -> PITCH INVASION (אוהדים קופצים למסלול)
 #    Floodlight    - (עולם, מלכודת) מגדל זרקור שסורק את המסלול: נכנסת לאור -> כל הזומבים יודעים איפה אתה
 #    Goal          - (עולם) השער (רשת + קורות) מאחורי השוער
 #    Obstacle      - (מוצק + מחסה) "ad_board" שלט פרסומת נייד / "bench" ספסל מחליפים / "cooler" ארגזי שתייה
 #    StadiumFX     - (מסך) קונפטי ונייר, הילה
-#  לשנות: CrowdThrow.CD / WARN_T / N, Floodlight.SPEED / SPAN / ALERT_R.
+#  לשנות: CrowdHype (GAIN, KILL_GAIN, INVASION_FANS, CAPO_HP, DRUM_HP...), Floodlight.SPEED / SPAN / ALERT_R.
 # ============================================================
 
 const Art := preload("res://art.gd")
@@ -148,7 +148,7 @@ class Stand extends Node2D:
 	var w := 420.0
 	var tier := 130.0
 	var _t := 0.0
-	var angry := 0.0                # (CrowdThrow) כמה הקהל כועס - קמים ומנופפים
+	var angry := 0.0                # (CrowdHype) כמה הקהל מתלהב - קמים ומנופפים
 
 	func _ready() -> void:
 		z_index = -1
@@ -196,96 +196,351 @@ class Stand extends Node2D:
 		draw_line(Vector2(-10, -tier - 18), Vector2(w + 10, -tier - 18), Color("9a9aa4"), 2.0)
 
 
-# ---- הקהל זורק עליך ----
-class CrowdThrow extends Node2D:
-	const CD := Vector2(6.0, 9.0)
-	const WARN_T := 1.0
-	const N := 10
-	const SPREAD := 90.0
+# ---- הקהל: "THE 12TH MAN" ----
+#  בכל יציע קרוב עומד CAPO (מנהיג האוהדים) על המעבר העליון: מגפון ותוף ענק. מעל היציע - מד CROWD HYPE.
+#  ההיפ עולה כשאתה נלחם ליד היציע (GAIN לשנייה), והרבה יותר כשאתה הורג זומבים לידו (KILL_GAIN - הרגת את הקבוצה שלהם).
+#  100% = PITCH INVASION: היציע מתפרץ, אוהדים (זומבים רצים בחולצות הקבוצה) קופצים מעל המעקה למסלול ומסתערים,
+#    ונורים זיקוקים בוערים לידך (שטח בוער קטן). אחר כך ההיפ מתאפס ועולה שוב לאט יותר (MAX_INVASIONS לכל יציע).
+#  לירות ב-CAPO (CAPO_HP) = היציע משתתק לגמרי.
+#  "THEY LEARN": אחרי שקאפו אחד מת - האחרים מתכופפים מאחורי התוף ברגע שאתה מכוון אליהם (התוף סופג, DRUM_HP).
+#    שובר את התוף -> אין לו איפה להתחבא. או לעלות אליו מהצד / לירות מהר בלי לכוון עליו זמן רב.
+#  לשנות: GAIN, KILL_GAIN, NEAR, INVASION_FANS, MAX_INVASIONS, MAX_FANS, CAPO_HP, DRUM_HP, COOLDOWN, AIM_COS.
+class CrowdHype extends Node2D:
+	const GAIN := 6.5
+	const KILL_GAIN := 9.0
+	const NEAR := 800.0
+	const DECAY := 9.0
+	const INVASION_FANS := [4, 6, 7]
+	const MAX_INVASIONS := 3
+	const MAX_FANS := 10            # אוהדים חיים מכל היציעים ביחד
+	const CAPO_HP := 45
+	const DRUM_HP := 70
+	const COOLDOWN := 8.0
+	const AIM_COS := 0.985          # כמה ישר צריך לכוון עליו כדי שיתכופף (~10 מעלות)
+	const FLARES := 3
+	const CAPO_SCALE := 1.4         # הקאפו והתוף גדולים מהקהל - שיהיה ברור במי לירות
 	var stand: Node2D = null
 	var w := 420.0
-	var barrages := 0               # לבדיקות
-	var hits := 0
-	var _t := 3.0
-	var _warn := 0.0
-	var _items := []                # [מיקום, מהירות, סוג, חי, פגע]
-	var _hit := false
+	var tier := 130.0
+	var hype := 0.0
+	var invasions := 0              # לבדיקות
+	var fans_spawned := 0
+	var ducks := 0
+	var capo_hp := CAPO_HP
+	var drum_hp := DRUM_HP
+	var capo_dead := false
+	var ducking := false
+	var _cd := 0.0
+	var _queue := 0
+	var _spawn_t := 0.0
+	var _banner := 0.0
+	var _quiet := 0.0
+	var _t := 0.0
+	var _beat := 0.0
+	var _beat_anim := 0.0
+	var _hit := 0.0
+	var _duck_t := 0.0
+	var _told := false
+	var _body: StaticBody2D = null
+
+	func _ready() -> void:
+		z_index = 1
+		add_to_group("crowds")
+		_body = CapoBody.new()
+		_body.crowd = self
+		_body.position = Vector2(w * 0.5 + 8.0 * CAPO_SCALE, -tier - 22.0 * CAPO_SCALE)
+		add_child(_body)
+		Game.story.connect(_on_story)
+
+	func center() -> Vector2:
+		return global_position + Vector2(w * 0.5, -tier)
+
+	func learned() -> bool:   # כבר מת קאפו אחד בשלב הזה?
+		var m := get_parent()
+		return m != null and int(m.get_meta("capos_down", 0)) > 0
+
+	func _on_story(ev: String, info: Dictionary) -> void:
+		if ev != "zkill" or capo_dead or _cd > 0.0 or invasions >= MAX_INVASIONS:
+			return
+		var zz = info.get("z")
+		if zz != null and is_instance_valid(zz) and absf(zz.global_position.x - center().x) < 700.0:
+			hype = minf(hype + KILL_GAIN, 100.0)
+
+	# ---- פגיעה בקאפו / בתוף ----
+	func hit(amount: int, at: Vector2, src: Dictionary) -> void:
+		if capo_dead:
+			return
+		var dmg := int(src.get("fixed", amount))
+		var Sfx := preload("res://sfx.gd")
+		if ducking and drum_hp > 0:   # התוף סופג
+			drum_hp -= dmg
+			Sfx.play("st_drum", at, -2.0, 0.2, 3)
+			preload("res://particles.gd").burst(get_parent(), at, "spark", Vector2.UP, 3)
+			if drum_hp <= 0:
+				_text("THE DRUM IS BROKEN", Color("ffe060"))
+			return
+		capo_hp -= dmg
+		_hit = 0.1
+		preload("res://particles.gd").burst(get_parent(), at, "hit", Vector2.UP, 8)
+		if capo_hp <= 0:
+			_capo_die()
+
+	func _capo_die() -> void:
+		capo_dead = true
+		ducking = false
+		hype = 0.0
+		_queue = 0
+		_quiet = 3.0
+		_body.collision_layer = 0
+		var m := get_parent()
+		m.set_meta("capos_down", int(m.get_meta("capos_down", 0)) + 1)
+		var Sfx := preload("res://sfx.gd")
+		Sfx.play("zdeath", center(), 0.0, 0.1, 2)
+		Sfx.play("st_boo", center() + Vector2(0, -120), 0.0, 0.05, 2)
+		preload("res://particles.gd").burst(m, center() + Vector2(8, -30), "hit", Vector2.UP, 18)
+		_text("THE CAPO IS DOWN - THE STAND GOES QUIET", Color("e0e0e0"))
+		Game.on_zombie_killed(0, {"pos": center() + Vector2(8, -50), "zone": "", "source": "capo"})
+
+	func _text(s: String, col: Color) -> void:
+		var p = preload("res://zombie.gd").HitText.new()
+		p.text = s
+		p.color = col
+		p.size = 15
+		get_parent().add_child(p)
+		p.global_position = center() + Vector2(8, -70)
+
+	func _physics_process(delta: float) -> void:
+		_t += delta
+		_hit -= delta
+		_banner -= delta
+		_quiet -= delta
+		_beat_anim -= delta
+		var pl := get_tree().get_first_node_in_group("player")
+		if pl == null:
+			return
+		var c := center()
+		if not capo_dead:
+			# מתכופף מאחורי התוף כשמכוונים אליו (רק אחרי שלמדו)
+			if learned() and drum_hp > 0 and not pl.dead:
+				var from: Vector2 = pl.global_position + Vector2(0, -36)
+				var to := c + Vector2(8, -24) * CAPO_SCALE - from
+				if to.length() < 1000.0 and pl._aim.dot(to.normalized()) > AIM_COS:
+					if _duck_t <= 0.0:
+						ducks += 1
+						preload("res://sfx.gd").play("st_drum", c, -4.0, 0.1, 2)
+						if not _told:
+							_told = true
+							_text("HE HIDES BEHIND THE DRUM", Color("ffe060"))
+					_duck_t = 0.6
+			_duck_t -= delta
+			ducking = _duck_t > 0.0
+			# ההיפ
+			var near: bool = not pl.dead and absf(pl.global_position.x - c.x) < NEAR and absf(pl.global_position.y - global_position.y) < 420.0
+			if _cd > 0.0:
+				_cd -= delta
+			elif near and invasions < MAX_INVASIONS:
+				hype = minf(hype + GAIN * (1.0 - 0.2 * float(invasions)) * delta, 100.0)
+			else:
+				hype = maxf(hype - DECAY * delta, 0.0)
+			if hype >= 100.0:
+				_invade(pl)
+			# התוף: מהר יותר כשההיפ עולה
+			_beat -= delta
+			if hype > 20.0 and _beat <= 0.0:
+				_beat = lerpf(0.75, 0.26, hype / 100.0)
+				_beat_anim = 0.12
+				if Art.on_screen(self, c, 300.0):
+					preload("res://sfx.gd").play("st_drum", c, lerpf(-12.0, -3.0, hype / 100.0), 0.05, 3)
+		# אוהדים שקופצים מעל המעקה
+		if _queue > 0:
+			_spawn_t -= delta
+			if _spawn_t <= 0.0:
+				_spawn_t = 0.22
+				_queue -= 1
+				_spawn_fan(pl)
+		if stand != null:
+			var want := 1.0 if _banner > 0.0 else (0.0 if capo_dead else hype / 100.0)
+			stand.angry = move_toward(stand.angry, want, delta * 2.0)
+		if Art.on_screen(self, c + Vector2(0, -80), w):
+			queue_redraw()
+
+	func _invade(pl: Node) -> void:
+		invasions += 1
+		hype = 0.0
+		_cd = COOLDOWN
+		_banner = 2.2
+		var alive := get_tree().get_nodes_in_group("crowd_fans").size()
+		_queue = maxi(0, mini(int(INVASION_FANS[mini(invasions - 1, INVASION_FANS.size() - 1)]), MAX_FANS - alive))
+		_spawn_t = 0.35
+		preload("res://sfx.gd").play("st_roar", center() + Vector2(0, -100), 4.0, 0.05, 2)
+		if pl.has_method("_say") and not pl.dead:
+			pl._say("THEY'RE COMING OVER THE WALL!", Color("ffb0a0"))
+		for i in FLARES:   # זיקוקים בוערים לכיוון השחקן
+			var f := Flare.new()
+			var from := global_position + Vector2(randf_range(40.0, w - 40.0), -tier - 60.0 - randf() * 60.0)
+			var tx: float = pl.global_position.x + randf_range(-140.0, 140.0)
+			var fl := randf_range(0.8, 1.1)
+			f.vel = Vector2((tx - from.x) / fl, (global_position.y - from.y) / fl - 0.5 * Flare.GRAV * fl)
+			get_parent().add_child(f)
+			f.global_position = from
+
+	func _spawn_fan(pl: Node) -> void:
+		var m := get_parent()
+		if not m.has_method("_spawn_zombie"):
+			return
+		var S := preload("res://effects/s39_decor.gd")
+		var x := global_position.x + randf_range(30.0, w - 30.0)
+		var z = m._spawn_zombie(x, global_position.y - tier - 2.0, 1 if randf() < 0.75 else 0)
+		z.add_to_group("crowd_fans")
+		z.shirt = S.TEAM[randi() % S.TEAM.size()]
+		z.dormant = false
+		z._alert_t = 30.0
+		z._rush_t = 3.0
+		z.collision_mask &= ~16   # קופץ מעל המעקה ונופל דרך המעבר למטה, למסלול
+		z._drop_t = 0.95
+		z.velocity = Vector2(signf(pl.global_position.x - x) * 90.0, -140.0)
+		fans_spawned += 1
+		preload("res://particles.gd").burst(m, Vector2(x, global_position.y - tier - 10.0), "smoke", Vector2.UP, 3)
+
+	func _draw() -> void:
+		var F := preload("res://effects/flame_fx.gd")
+		var S := preload("res://effects/s39_decor.gd")
+		var font := ThemeDB.fallback_font
+		var cx := w * 0.5
+		var base := Vector2(cx, -tier)
+		# זיקוקים אדומים ביציע כשההיפ גבוה / בפלישה
+		var heat := 1.0 if _banner > 0.0 else (0.0 if capo_dead else clampf((hype - 55.0) / 45.0, 0.0, 1.0))
+		if heat > 0.0:
+			for q in 4:
+				var fx := w * (0.15 + 0.23 * float(q))
+				var fy := -tier - 50.0 - float(q % 2) * 40.0
+				F.glow(self, Vector2(fx, fy), Vector2(26, 26), Color(1.0, 0.25, 0.1, 0.5 * heat))
+				F.tongue(self, Vector2(fx, fy + 4.0), 3.0, 10.0 + 4.0 * sin(_t * 9.0 + float(q)), sin(_t * 5.0 + float(q)) * 2.0, F.PALETTE, heat)
+				for k in 3:   # עשן אדום
+					var kk := fmod(_t * 0.4 + float(k) / 3.0 + float(q) * 0.21, 1.0)
+					F.glow(self, Vector2(fx + kk * 30.0, fy - 10.0 - kk * 80.0), Vector2(14, 12) * (1.0 + kk * 2.0), Color(0.7, 0.15, 0.12, 0.35 * (1.0 - kk) * heat))
+		# התוף והקאפו (מוגדלים סביב נקודת הבסיס)
+		draw_set_transform(base * (1.0 - CAPO_SCALE), 0.0, Vector2(CAPO_SCALE, CAPO_SCALE))
+		var drum := base + Vector2(-16, 0)
+		var shake := 1.5 if _beat_anim > 0.0 else 0.0
+		if drum_hp > 0:
+			draw_rect(Rect2(drum + Vector2(-13, -30 + shake), Vector2(26, 30 - shake)), Color("c02a2a"))
+			draw_rect(Rect2(drum + Vector2(-13, -30 + shake), Vector2(26, 4)), Color("e8e8e8"))
+			draw_rect(Rect2(drum + Vector2(-13, -4), Vector2(26, 4)), Color("e8e8e8"))
+			for q in 4:
+				draw_line(drum + Vector2(-13.0 + float(q) * 8.7, -26 + shake), drum + Vector2(-9.0 + float(q) * 8.7, -4), Color("e0d020"), 1.2)
+		else:   # שבור
+			draw_rect(Rect2(drum + Vector2(-13, -12), Vector2(26, 12)), Color("7a1a1a"))
+			draw_line(drum + Vector2(-13, -12), drum + Vector2(-4, -20), Color("e8e8e8"), 2.0)
+			draw_line(drum + Vector2(13, -12), drum + Vector2(5, -18), Color("e8e8e8"), 2.0)
+		# הקאפו
+		var cp := base + Vector2(8, 0)
+		var sk := Color("7a8a70")
+		var shirt := Color("e0d020")
+		if _hit > 0.0:
+			sk = Color.WHITE
+			shirt = Color.WHITE
+		if capo_dead:   # שוכב על המעבר
+			draw_rect(Rect2(cp + Vector2(-6, -7), Vector2(26, 7)), shirt.darkened(0.3))
+			draw_circle(cp + Vector2(23, -4), 4.5, sk.darkened(0.2))
+			draw_rect(Rect2(cp + Vector2(-20, -4), Vector2(14, 4)), Color("2a2a34"))
+		else:
+			var duck := 18.0 if ducking else 0.0
+			var bob := (maxf(sin(_t * 9.0), 0.0) * 4.0 * hype / 100.0) if not ducking else 0.0
+			var hip := cp + Vector2(0, -16 + duck * 0.5 - bob)
+			var sh := cp + Vector2(1, -32 + duck - bob)
+			var head := sh + Vector2(2, -8)
+			draw_line(hip + Vector2(-2, 0), cp + Vector2(-4, 0), Color("2a2a34"), 4.0)   # רגליים
+			draw_line(hip + Vector2(2, 0), cp + Vector2(4, 0), Color("2a2a34"), 4.0)
+			draw_colored_polygon(PackedVector2Array([sh + Vector2(-7, 0), sh + Vector2(7, 0), hip + Vector2(6, 0), hip + Vector2(-6, 0)]), shirt)
+			draw_line(sh + Vector2(-7, 1), sh + Vector2(7, 1), Color("2a8a3a"), 2.0)
+			draw_string(font, sh + Vector2(-4, 12), "12", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("2a8a3a"))
+			draw_circle(head, 5.0, sk)
+			draw_circle(head + Vector2(2.5, -0.5), 1.1, Color(1.0, 0.85, 0.4))
+			if not ducking:   # מגפון מורם אל המסלול + מקל תוף ביד השנייה
+				var hand := sh + Vector2(10, -6 - (3.0 if _beat_anim > 0.0 else 0.0))
+				draw_line(sh + Vector2(5, 2), hand, sk, 2.5)
+				draw_colored_polygon(PackedVector2Array([hand + Vector2(0, -2), hand + Vector2(10, -6), hand + Vector2(10, 6), hand + Vector2(0, 2)]), Color("e8e8e8"))
+				draw_line(sh + Vector2(-5, 2), drum + Vector2(4, -32 + (4.0 if _beat_anim > 0.0 else 0.0)), sk, 2.0)
+				if hype > 20.0:   # גלי קול
+					for q in 3:
+						var r := 8.0 + fmod(_t * 30.0 + float(q) * 8.0, 24.0)
+						draw_arc(hand + Vector2(10, 0), r, -0.6, 0.6, 8, Color(1, 1, 1, 0.5 * (1.0 - r / 32.0)), 1.5)
+		draw_set_transform_matrix(Transform2D.IDENTITY)
+		# מד ההיפ מעל היציע
+		var mp := Vector2(cx - 90.0, -tier - 200.0)
+		if capo_dead:
+			if _quiet > 0.0:
+				draw_string(font, mp + Vector2(0, -6), "QUIET", HORIZONTAL_ALIGNMENT_CENTER, 180, 16, Color(0.8, 0.8, 0.8, clampf(_quiet, 0.0, 1.0)))
+		else:
+			var k := hype / 100.0
+			var col := Color("2ab04a").lerp(Color("e0d020"), clampf(k * 2.0, 0.0, 1.0)).lerp(Color("e02a2a"), clampf(k * 2.0 - 1.0, 0.0, 1.0))
+			if k > 0.75:
+				col = col.lightened(0.25 * maxf(sin(_t * 14.0), 0.0))
+			draw_rect(Rect2(mp + Vector2(-3, -3), Vector2(186, 18)), Color(0, 0, 0, 0.65))
+			draw_rect(Rect2(mp, Vector2(180.0 * k, 12)), col)
+			draw_rect(Rect2(mp, Vector2(180, 12)), Color(1, 1, 1, 0.6), false, 1.5)
+			var label := "CROWD HYPE" if _cd <= 0.0 else "CROWD HYPE  (%ds)" % int(ceil(_cd))
+			draw_string(font, mp + Vector2(0, -8), label, HORIZONTAL_ALIGNMENT_CENTER, 180, 13, Color(1, 1, 1, 0.9))
+		if _banner > 0.0:   # PITCH INVASION!
+			var a := clampf(_banner, 0.0, 1.0)
+			var sc := 1.0 + 0.08 * sin(_t * 16.0)
+			draw_string_outline(font, Vector2(cx - 200, -tier - 230), "PITCH INVASION!", HORIZONTAL_ALIGNMENT_CENTER, 400, int(30 * sc), 6, Color(0, 0, 0, a))
+			draw_string(font, Vector2(cx - 200, -tier - 230), "PITCH INVASION!", HORIZONTAL_ALIGNMENT_CENTER, 400, int(30 * sc), Color(1.0, 0.25, 0.15, a))
+
+
+# אזור הפגיעה של הקאפו (קליעים פוגעים בשכבה 4)
+class CapoBody extends StaticBody2D:
+	var crowd: Node2D
+
+	func _ready() -> void:
+		collision_layer = 4
+		collision_mask = 0
+		var cs := CollisionShape2D.new()
+		var sh := RectangleShape2D.new()
+		sh.size = Vector2(20, 40) * CrowdHype.CAPO_SCALE
+		cs.shape = sh
+		add_child(cs)
+
+	func take_damage(amount: int, hit_pos: Vector2, _dir: Vector2, _explosive := false, src := {}) -> void:
+		crowd.hit(amount, hit_pos, src)
+
+
+# זיקוק בוער שהקהל זורק: נוחת ומשאיר שטח בוער קטן
+class Flare extends Node2D:
+	const GRAV := 700.0
+	var vel := Vector2.ZERO
+	var _t := 0.0
 
 	func _ready() -> void:
 		z_index = 9
-		add_to_group("hazards")
-
-	func world_rect() -> Rect2:
-		return Rect2(global_position + Vector2(0, -60), Vector2(w, 60))
-
-	func danger_at(p: Vector2, margin := 0.0) -> bool:
-		return _warn > 0.0 and world_rect().grow(margin).has_point(p)
 
 	func _physics_process(delta: float) -> void:
-		_t -= delta
-		var pl := get_tree().get_first_node_in_group("player")
-		var in_front: bool = pl != null and not pl.dead and pl.global_position.x > global_position.x - 60.0 and pl.global_position.x < global_position.x + w + 60.0 and absf(pl.global_position.y - global_position.y) < 40.0
-		if _warn > 0.0:
-			_warn -= delta
-			if stand != null:
-				stand.angry = minf(stand.angry + delta * 3.0, 1.0)
-			if _warn <= 0.0 and pl != null:
-				barrages += 1
-				_hit = false
-				preload("res://sfx.gd").play("st_throw", pl.global_position, 0.0, 0.1, 2)
-				for q in N:   # זורקים לאן שאתה הולך
-					var tx: float = pl.global_position.x + pl.velocity.x * 0.6 + randf_range(-SPREAD, SPREAD)
-					var from := Vector2(clampf(tx + randf_range(-80, 80), global_position.x, global_position.x + w), global_position.y - 160.0 - randf() * 60.0)
-					var fl := randf_range(0.7, 1.1)
-					_items.append([from, Vector2((tx - from.x) / fl, (global_position.y - from.y) / fl - 0.5 * 700.0 * fl), q % 3, true, false])
-		elif _t <= 0.0 and in_front:
-			_warn = WARN_T
-			_t = randf_range(CD.x, CD.y)
-			preload("res://sfx.gd").play("st_boo", global_position + Vector2(w * 0.5, -150), 2.0, 0.05, 2)
-		elif stand != null:
-			stand.angry = maxf(stand.angry - delta, 0.0)
-		for it in _items:
-			if not bool(it[3]):
-				continue
-			it[1] = it[1] + Vector2(0, 700.0 * delta)
-			it[0] = it[0] + it[1] * delta
-			var p: Vector2 = it[0]
-			if not _hit and pl != null and not pl.dead and pl.body_rect().grow(4.0).has_point(p):
-				_hit = true
-				hits += 1
-				pl.hurt(1, Vector2(signf(float(it[1].x)) * 0.6, -0.4))
-			if p.y >= global_position.y - 2.0:
-				it[3] = false
-				for zz in get_tree().get_nodes_in_group("zombies"):
-					if not zz.dead and not zz.is_boss() and absf(zz.global_position.x - p.x) < 14.0 and absf(zz.global_position.y - p.y) < 30.0:
-						zz.take_damage(4, zz.global_position + Vector2(0, -40), Vector2(0, 1), false, {"source": "crowd", "fixed": 4})
-				if int(it[2]) == 2:
-					preload("res://particles.gd").burst(get_parent(), p, "fire", Vector2.UP, 4)
-		if _items.size() > 0 and _items.all(func(it): return not bool(it[3])):
-			_items.clear()
-		if _items.size() > 0 or _warn > 0.0:
-			queue_redraw()
-		elif Engine.get_physics_frames() % 20 == 0:
-			queue_redraw()
+		_t += delta
+		vel.y += GRAV * delta
+		var to := global_position + vel * delta
+		var hit := get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(global_position, to, 1))   # (נופל דרך המעבר העליון - נוחת במסלול)
+		if not hit.is_empty() or _t > 3.0:
+			var at: Vector2 = hit.position if not hit.is_empty() else to
+			var fz = preload("res://environment/fire_zone.gd").new()
+			fz.setup(60.0, 2.6)
+			get_parent().add_child(fz)
+			fz.global_position = at
+			preload("res://sfx.gd").play("fire_whoosh", at, -6.0, 0.1, 2)
+			queue_free()
+			return
+		global_position = to
+		rotation = vel.angle()
+		queue_redraw()
 
 	func _draw() -> void:
-		if _warn > 0.0:   # "!!!" מעל היציע
-			for q in 3:
-				var x := w * (0.25 + 0.25 * float(q))
-				draw_string(ThemeDB.fallback_font, Vector2(x, -190.0 - 6.0 * sin(_warn * 20.0 + float(q))), "!", HORIZONTAL_ALIGNMENT_CENTER, -1, 22, Color(1.0, 0.3, 0.2))
-		for it in _items:
-			if not bool(it[3]):
-				continue
-			var p: Vector2 = it[0] - global_position
-			match int(it[2]):
-				0:   # כוס בירה
-					draw_rect(Rect2(p - Vector2(3, 4), Vector2(6, 8)), Color(0.95, 0.95, 0.95))
-					draw_rect(Rect2(p - Vector2(3, 4), Vector2(6, 3)), Color(1.0, 0.85, 0.3))
-				1:   # בקבוק
-					draw_line(p - Vector2(0, 6), p + Vector2(0, 6), Color(0.3, 0.6, 0.3), 3.0)
-				_:   # נפץ / סינליזדור
-					draw_circle(p, 3.0, Color(1.0, 0.4, 0.2))
-					Art.glow(self, p, 8.0, Color(1.0, 0.4, 0.2, 0.5))
+		var F := preload("res://effects/flame_fx.gd")
+		draw_line(Vector2(-6, 0), Vector2(5, 0), Color("c02a2a"), 3.0)
+		F.glow(self, Vector2(6, 0), Vector2(12, 12), Color(1.0, 0.3, 0.15, 0.7))
+		draw_circle(Vector2(6, 0), 2.5, Color(1.0, 0.85, 0.6))
+		for k in 3:   # עשן אדום נגרר
+			var kk := float(k) / 3.0
+			F.glow(self, Vector2(-8.0 - kk * 20.0, 0), Vector2(5, 5) * (1.0 + kk), Color(0.8, 0.2, 0.15, 0.4 * (1.0 - kk)))
 
 
 # ---- מגדל זרקור שסורק ----

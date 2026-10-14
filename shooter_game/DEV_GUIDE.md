@@ -779,15 +779,24 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   LED boards around the pitch with cameramen. World: TrackGround (red running track, then striped grass for the last GRASS_FROM px),
   Stand (near stand: seat rows full of zombie fans + the upper walkway = upper floor at TIER), Goal (behind the boss), Obstacle
   "ad_board" / "bench" / "cooler". StadiumFX: confetti (stops at the ground).
-- Trap CrowdThrow (one per Stand): when you are in front of it the crowd stands up and boos (WARN_T, "!" + arms up), then N cups,
-  bottles and flares rain down around where you are going (SPREAD). They hit zombies too.
+- The crowd - CrowdHype ("THE 12TH MAN", one per Stand, group "crowds"): a CAPO stands on the walkway with a megaphone and a big drum
+  (drawn x CAPO_SCALE so he stands out), and a CROWD HYPE meter hangs above the stand. Hype rises GAIN/s while you fight within NEAR of
+  the stand and +KILL_GAIN for every zombie you kill near it (Game.story "zkill"); it decays when you leave. The drum beats faster as
+  hype rises. 100% = PITCH INVASION: banner, roar, INVASION_FANS fans (runners in team shirts, group "crowd_fans", at most MAX_FANS alive)
+  hop the railing and drop through the walkway onto the track, and FLARES burning flares land around you (small fire zones). Then a
+  COOLDOWN and hype climbs again more slowly (MAX_INVASIONS per stand). Shoot the CAPO (CAPO_HP, hitbox CapoBody on layer 4) -> the stand
+  goes QUIET for good. THEY LEARN: once one capo is down (main meta "capos_down"), the others duck behind the drum whenever your aim
+  points at them (AIM_COS) - the drum soaks the shots (DRUM_HP). Break the drum, or come from the side / flick-shoot.
 - Trap Floodlight (LIGHTS): a light tower sweeping its beam along the track. Get caught in the light -> every zombie in ALERT_R knows
   where you are and rushes you.
 - HOOLIGAN (enemies/types/hooligan.gd): torcida fan with a lit flare. Throws it BEHIND you (the side away from him) -> FlareFire on the
   ground (BURN_T) cuts off your retreat. With CHANT_N zombies around him he chants "OLE OLE OLE" -> they all rush. Shoot the flare in
   his raised hand -> it burns him.
-- STRIKER (enemies/types/striker.gd): number 9. Keeps KEEP distance and kicks a Ball (bounces, stops on walls). If the ball is blocked by
-  cover he learns to CHIP it over (lob). Shoot the ball in the air -> it flies back at him (OWN GOAL: 10 damage + stun).
+- STRIKER (enemies/types/striker.gd): number 9. Keeps KEEP distance and kicks a Ball. The Ball is a real CharacterBody2D
+  (move_and_collide, mask 1|16): it bounces on the real floor, platforms and obstacle tops, stops at walls, rolls to a stop and fades
+  (REST_T / LIFE). (Old bug: it used an invisible floor at the kicker's height, so balls kicked from the walkway floated in mid-air.)
+  If the ball is blocked by cover he learns to CHIP it over (lob). Shoot the ball -> it homes straight back at him through obstacles
+  (OWN GOAL: 10 damage + stun).
 - REFEREE (enemies/types/referee.gd): counts every shot you fire near him (on_shot). FOUL_N shots -> whistle (a hit cuts it) -> YELLOW
   card: your gun is jammed YELLOW_T (player.jam_t - grenades and specials still work). Second card = RED: jammed RED_T.
 - BOSS GOALKEEPER (enemies/types/goalkeeper.gd, stationary) in the goal at the end of the grass. punt (2 burning balls, lead), throw
@@ -985,6 +994,18 @@ Measured with a headless profiler (60 zombies around the player, fixed 60 fps, C
   dictionary only when they hit something.
 * Profiling hooks: `zombie.gd` has `static var prof_on` / `prof` - set `prof_on = true` and read `prof` (µs per kind for logic and
   draw) to find the expensive zombie types.
+
+## Fire (effects/flame_fx.gd)
+Shared flame drawing for every fire: `tongue()` (teardrop flame tongue, 3-4 colour layers, swaying tip), `puff()` (a bit of flame
+that breaks off and rises), `glow()` (soft radial texture - no hard-edged discs), `additive()` (light blend for glow children),
+PALETTE (orange) and BLUE.
+* environment/fire_zone.gd (Molotov / TORCH bottles / barrels / SUPAY / crowd flares): scorched fuel puddle, a continuous burning bed,
+  overlapping flame tongues, puffs, soft smoke, embers and a light pool (child _Light, additive). Ignite flare -> burn -> fade (FADE_T).
+  It fits itself to the ground under it on the first frame, so it never burns in the air over a pit or past a ledge. A blue modulate
+  (b > 1, SUPAY / AZUFRERO) switches to the BLUE palette.
+* fire.gd (small fires on wrecks / props): same look, smaller. zombie.gd `_draw_burning()`: real flames on burning zombies.
+* TORCH: head / shoulder flames and the bottle's burning rag use the same tongues.
+* Fires redraw 30x/s (20x/s at quality level 2+): about 0.13 ms per fire on screen.
 
 ## Auto quality (quality.gd, autoload `Quality`)
 Watches the real frame rate. A 1-second average under ~52 FPS steps effects down one level (two levels under ~39 FPS);
