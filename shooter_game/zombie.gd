@@ -370,7 +370,29 @@ func _ready() -> void:
 		type_mod.setup()
 
 
+# ---- פרופיילר (בדיקות ביצועים בלבד, כבוי במשחק): זמן לוגיקה / ציור לכל סוג זומבי ----
+static var prof_on := false
+static var prof := {}
+var _bslot := randi() % 2
+var _bs_ratio := -1.0
+var _bs_dir := 1.0
+
+
 func _physics_process(delta: float) -> void:
+	if prof_on:
+		var t0 := Time.get_ticks_usec()
+		_physics_main(delta)
+		var k := "logic:" + _prof_name()
+		prof[k] = int(prof.get(k, 0)) + Time.get_ticks_usec() - t0
+		return
+	_physics_main(delta)
+
+
+func _prof_name() -> String:
+	return str(type_mod.stats().name) if type_mod != null else str(kind)
+
+
+func _physics_main(delta: float) -> void:
 	_time += delta
 	_flash -= delta
 	_voice_cd -= delta
@@ -500,9 +522,16 @@ func _physics_process(delta: float) -> void:
 		var d: Vector2 = tp.global_position - global_position
 		# המוח: תורות התקפה, איגוף, המתנה, נסיגה, גבהים (ai/zombie_brain.gd)
 		if brain != null and tp == player:   # (הבוגד של MIND CONTROL: הולכים אליו ישר)
-			var bs: float = brain.steer(self, tp, d, delta, target_speed)
-			if brain.steer_movement:
-				target_speed = bs
+			# ביצועים: המוח רץ כל פריים שני (30 פעמים בשנייה - מספיק להחלטות). בפריים שביניהם - אותו כיוון ואותו יחס מהירות
+			if _bs_ratio < 0.0 or (Engine.get_physics_frames() + _bslot) % 2 == 0:
+				var bs: float = brain.steer(self, tp, d, delta * (1.0 if _bs_ratio < 0.0 else 2.0), target_speed)
+				_bs_ratio = bs / target_speed if target_speed > 0.01 else 1.0
+				_bs_dir = _dir
+				if brain.steer_movement:
+					target_speed = bs
+			elif brain.steer_movement:
+				target_speed *= _bs_ratio
+				_dir = _bs_dir
 		if type_mod != null:
 			target_speed = type_mod.logic(player, d, delta, target_speed)
 		match kind:
@@ -1136,7 +1165,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		_voice("zhit", 0.85, 3.0)
 	_damage_number(dmg, zone)
 
-	if metal:
+	if metal or source == "fire":   # (בעירה: בלי ריסוס דם וחתיכות בכל נזק אש - חוסך המון חלקיקים)
 		pass
 	elif zone == "head":
 		_spray_blood(global_position + Vector2(0.0, -50.0 * sc), Vector2(dir.x, -0.6), 12, 320.0)
@@ -1155,7 +1184,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 			var lx := (hit_pos.x - global_position.x) * _dir / (sc * wf)
 			_wounds.append(Vector2(clampf(lx, -6.0, 6.0), clampf(ly, -40.0, -22.0)))
 	# חתיכות בשר נתלשות (אפור + אדום) - effects/flesh_fx.gd
-	if dmg > 0 and kind != MECH and not metal and (type_mod == null or bool(type_mod.stats().get("flesh", true))):
+	if dmg > 0 and kind != MECH and not metal and source != "fire" and (type_mod == null or bool(type_mod.stats().get("flesh", true))):
 		FleshFx.burst(get_parent(), hit_pos, dir, skin, zone, hp <= 0, explosive, hp <= 0 and death_load() >= DEATH_HEAVY - 1)
 	if hp <= 0:
 		_die(dir)
@@ -1428,6 +1457,17 @@ func _ragdoll_kind() -> bool:
 
 
 func _draw() -> void:
+	if prof_on:
+		var t0 := Time.get_ticks_usec()
+		_draw_main()
+		var k := "draw:" + _prof_name()
+		prof[k] = int(prof.get(k, 0)) + Time.get_ticks_usec() - t0
+		prof["draws"] = int(prof.get("draws", 0)) + 1
+		return
+	_draw_main()
+
+
+func _draw_main() -> void:
 	if dead and _rag != null:
 		_rag.draw(self)
 		return
@@ -1651,6 +1691,11 @@ static var _vis_count := 0
 static var _vis_prev := 0
 
 
+# הרבה זומבים על המסך: מדלגים על פרטים זעירים בציור
+static func crowded() -> bool:
+	return _vis_prev > 14
+
+
 func _maybe_redraw() -> void:
 	var fr := Engine.get_physics_frames()
 	if fr != _vis_frame:   # סופרים כמה זומבים על המסך בכל פריים
@@ -1662,7 +1707,7 @@ func _maybe_redraw() -> void:
 	_vis_count += 1
 	if type_mod != null and _flash <= 0.0 and not type_mod.wants_redraw():   # סוג שעומד בלי לזוז (GHILLIE מתחבא) - הציור הקודם נשאר
 		return
-	var every := 2 if _vis_prev <= 3 else (3 if _vis_prev <= 10 else 4)   # הרבה זומבים על המסך: כל אחד מתעדכן פחות (חוסך ציור)
+	var every := 2 if _vis_prev <= 3 else (3 if _vis_prev <= 10 else (4 if _vis_prev <= 20 else (5 if _vis_prev <= 32 else 6)))   # הרבה זומבים על המסך: כל אחד מתעדכן פחות (חוסך ציור; התזוזה עצמה נשארת חלקה)
 	_redraw_tick += 1
 	if _redraw_tick % every == 0 or _flash > 0.0:
 		queue_redraw()
@@ -1693,8 +1738,8 @@ func _leg(hip: Vector2, foot: Vector2, pa: Color, sk: Color, shoe_col: Color) ->
 	var ankle := foot + Vector2(0.0, -3.0)
 	var knee := Art.joint(hip, ankle, 11.5, 11.5, 1.0)
 	var mid := knee.lerp(ankle, 0.45)
-	Art.limb(self, PackedVector2Array([hip, knee, mid]), 7.0, pa)
-	Art.limb(self, PackedVector2Array([mid, ankle]), 5.2, sk)
+	Art.limb(self, PackedVector2Array([hip, knee, mid]), 7.0, pa, Art.OUTLINE, false, false)   # (הקצוות מוסתרים: גוף / שולי מכנס)
+	Art.limb(self, PackedVector2Array([mid, ankle]), 5.2, sk, Art.OUTLINE, false, shoe_col.a <= 0.0)
 	# שוליים קרועים של המכנס
 	Art.fill(self, PackedVector2Array([mid + Vector2(-3.8, -1.0), mid + Vector2(3.8, -1.0), mid + Vector2(3.0, 2.0), mid + Vector2(1.0, 0.8), mid + Vector2(-1.0, 2.5), mid + Vector2(-3.0, 0.8)]), pa, Art.NONE)
 	if shoe_col.a > 0.0:
@@ -1707,14 +1752,16 @@ func _arm(shoulder: Vector2, hand: Vector2, sk: Color, sleeve: Color) -> void:
 	var w := 7.0 if _big() else (4.2 if kind == RUNNER or kind == SCREAMER else 5.2)
 	var elbow := Art.joint(shoulder, hand, 9.0, 9.5, -1.0)
 	if kind != WALKER:   # בלי שרוולים (גופייה)
-		Art.limb(self, PackedVector2Array([shoulder, elbow, hand]), w, sk)
+		Art.limb(self, PackedVector2Array([shoulder, elbow, hand]), w, sk, Art.OUTLINE, true, false)   # (כף היד מכסה את הקצה)
 	else:
 		var cuff := shoulder.lerp(elbow, 0.75)
-		Art.limb(self, PackedVector2Array([cuff, elbow, hand]), w * 0.85, sk)
+		Art.limb(self, PackedVector2Array([cuff, elbow, hand]), w * 0.85, sk, Art.OUTLINE, false, false)
 		Art.limb(self, PackedVector2Array([shoulder, cuff]), w + 1.0, sleeve)
 	# כף יד עם אצבעות שמוטות
 	var d := (hand - elbow).normalized()
 	Art.disc(self, hand, w * 0.5 + 0.6, sk)
+	if crowded():   # הרבה זומבים על המסך: בלי אצבעות (לא רואים אותן בגודל הזה)
+		return
 	for i in 3:
 		var a := d.rotated(0.5 + float(i) * 0.35)
 		draw_line(hand + d * 1.5, hand + d * 2.0 + a * 4.0, Art.OUTLINE, 1.6, true)
@@ -1797,6 +1844,16 @@ func _head(c: Vector2, sk: Color) -> void:
 	var ry := 7.5 if _big() else 8.2
 	Art.oval_shaded(self, c, rx, ry, sk, tilt, Art.OUTLINE, 1.4)
 	Art.oval(self, c + Vector2(2.5, -0.5), 4.5, 3.0, Color(0.1, 0.0, 0.05, 0.22), 0.1, Art.NONE)   # עיניים שקועות
+	var lod := crowded()   # הרבה זומבים על המסך: בלי פרטים זעירים (ורידים, סדקים, שערות, שיניים)
+	if not lod:
+		_head_micro(c, sk)
+	else:
+		draw_circle(c + Vector2(4.0, -1.0), 1.1, Color(0.85, 0.88, 0.75, 0.85))
+	_head_rest(c, sk, lod)
+
+
+# פרטים זעירים בפנים (מדולגים כשיש המון זומבים על המסך)
+func _head_micro(c: Vector2, sk: Color) -> void:
 	draw_line(c + Vector2(-4.0, 2.0), c + Vector2(-1.0, 5.0), Color(0.3, 0.1, 0.3, 0.4), 0.7, true)   # ורידים
 	draw_line(c + Vector2(-3.0, -3.0), c + Vector2(-5.0, 0.5), Color(0.3, 0.1, 0.3, 0.4), 0.7, true)
 	# פרטים בפנים: סדקים בעור, עין מתה, שערות
@@ -1808,7 +1865,10 @@ func _head(c: Vector2, sk: Color) -> void:
 		for i in 4:   # שערות דלילות
 			var hs := c + Vector2(-4.0 + float(i) * 1.8, -7.5 + absf(float(i) - 1.5) * 0.6)
 			draw_line(hs, hs + Vector2(-2.0 - float(i) * 0.5, -2.5 + sin(_time * 3.0 + float(i)) * 0.6), Color("2a241e"), 0.8, true)
-	if _det[5]:   # לחי קרועה: רואים שיניים
+
+
+func _head_rest(c: Vector2, sk: Color, lod: bool) -> void:
+	if _det[5] and not lod:   # לחי קרועה: רואים שיניים
 		Art.fill(self, PackedVector2Array([c + Vector2(-1.0, 1.0), c + Vector2(2.5, 0.5), c + Vector2(2.0, 4.0), c + Vector2(-1.5, 3.5)]), Color("5a1010"), Art.NONE)
 		for i in 3:
 			draw_line(c + Vector2(-0.5 + float(i) * 1.0, 1.4), c + Vector2(-0.5 + float(i) * 1.0, 2.6), Color("e0d8b0"), 0.6)
@@ -1822,9 +1882,10 @@ func _head(c: Vector2, sk: Color) -> void:
 	if kind == SPITTER and _spit_anim > 0.0:
 		jaw_open = 5.0
 	Art.fill(self, PackedVector2Array([c + Vector2(1.5, 3.0), c + Vector2(7.5, 2.0), c + Vector2(7.0, 3.5 + jaw_open), c + Vector2(2.0, 5.0 + jaw_open)]), Color("2a0a0c"), Art.OUTLINE, 1.0)
-	for i in 3:   # שיניים
-		var tx := 3.0 + float(i) * 1.6
-		Art.fill(self, PackedVector2Array([c + Vector2(tx, 2.7), c + Vector2(tx + 1.2, 2.6), c + Vector2(tx + 0.6, 4.0)]), Color("e0d8b0"), Art.NONE)
+	if not lod:
+		for i in 3:   # שיניים
+			var tx := 3.0 + float(i) * 1.6
+			Art.fill(self, PackedVector2Array([c + Vector2(tx, 2.7), c + Vector2(tx + 1.2, 2.6), c + Vector2(tx + 0.6, 4.0)]), Color("e0d8b0"), Art.NONE)
 	Art.fill(self, PackedVector2Array([c + Vector2(1.5, 5.0 + jaw_open * 0.5), c + Vector2(7.0, 3.5 + jaw_open), c + Vector2(6.0, 6.5 + jaw_open), c + Vector2(1.0, 7.5 + jaw_open * 0.6)]), Art.shade(sk, 0.1), Art.OUTLINE, 1.0)
 	# עיניים: אחת זוהרת, אחת שקועה
 	Art.oval(self, c + Vector2(0.5, -1.5), 1.6, 1.3, Color("1a0e0e"), 0.0, Art.NONE)
@@ -1838,7 +1899,8 @@ func _head(c: Vector2, sk: Color) -> void:
 	Art.glow(self, eye, 5.0, eye_col)
 	Art.disc(self, eye, 1.2, eye_col.lightened(0.5), Art.NONE)
 	draw_line(c + Vector2(2.0, -4.0), c + Vector2(7.0, -3.2), Art.shade(sk, 0.45), 1.4, true)   # גבה
-	Art.disc(self, c + Vector2(-2.5, 0.5), 1.8, Art.shade(sk, 0.15), Art.OUTLINE, 0.8)            # אוזן
+	if not lod:
+		Art.disc(self, c + Vector2(-2.5, 0.5), 1.8, Art.shade(sk, 0.15), Art.OUTLINE, 0.8)            # אוזן
 	match kind:
 		BRUTE, BOSS:   # קרחת עם תפרים
 			draw_polyline(PackedVector2Array([c + Vector2(-5.0, -4.0), c + Vector2(-1.0, -6.5), c + Vector2(3.0, -6.8)]), Color("3a1a1a"), 1.0, true)

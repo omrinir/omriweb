@@ -96,6 +96,7 @@ func physics(pl: Node, delta: float) -> bool:
 			if o != z and not o.dead and o.type_mod != null and o.type_mod.get("CONFUSED") != null and o.type_mod.state == o.type_mod.CONFUSED \
 					and o.global_position.distance_to(z.global_position) < DECREE_R:
 				confused += 1
+		_rcd = 0.3   # בדיקה הבאה (לא כל פריים - חוסך סריקה של כל האימפריה)
 		if confused > 0:
 			_rcd = RALLY_CD
 			rallies += 1

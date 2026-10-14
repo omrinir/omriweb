@@ -92,19 +92,6 @@ func _physics_process(delta: float) -> void:
 		if mh.hit_test(from, to):
 			mh.pop(velocity.normalized())
 	_dist += from.distance_to(to)
-	var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary, "sniper": sniper, "shot": shot}
-	if god:
-		src["god"] = true
-	src["dmg_mult"] = dmg_mult
-	src["head_mult"] = head_mult
-	src["knockback"] = knockback
-	src["weapon"] = weapon_id
-	if falloff.size() == 3:   # שוטגאן: הרבה נזק מקרוב, יורד עם המרחק
-		src["fixed"] = int(round(lerpf(float(falloff[0]), float(falloff[1]), clampf((_dist - 50.0) / (float(falloff[2]) - 50.0), 0.0, 1.0))))
-	elif fixed_damage.size() == 2:
-		src["fixed"] = randi_range(int(fixed_damage[0]), int(fixed_damage[1]))
-	elif arrow:
-		src["fixed"] = randi_range(13, 19)
 	while true:
 		var query := PhysicsRayQueryParameters2D.create(from, to, collision_mask, _exclude)
 		query.hit_from_inside = true   # זומבי צמוד לקנה (הקרן מתחילה בתוכו) - עדיין נפגע
@@ -115,6 +102,20 @@ func _physics_process(delta: float) -> void:
 			_exclude.append(hit.rid)
 			continue
 		if hit.collider.has_method("take_damage"):
+			# המילון נבנה רק כשיש פגיעה (לא בכל פריים לכל קליע)
+			var src := {"source": "bullet", "bullet": get_instance_id(), "incendiary": incendiary, "sniper": sniper, "shot": shot}
+			if god:
+				src["god"] = true
+			src["dmg_mult"] = dmg_mult
+			src["head_mult"] = head_mult
+			src["knockback"] = knockback
+			src["weapon"] = weapon_id
+			if falloff.size() == 3:   # שוטגאן: הרבה נזק מקרוב, יורד עם המרחק
+				src["fixed"] = int(round(lerpf(float(falloff[0]), float(falloff[1]), clampf((_dist - 50.0) / (float(falloff[2]) - 50.0), 0.0, 1.0))))
+			elif fixed_damage.size() == 2:
+				src["fixed"] = randi_range(int(fixed_damage[0]), int(fixed_damage[1]))
+			elif arrow:
+				src["fixed"] = randi_range(13, 19)
 			# שולחים גם את כיוון הקליע - לפיו הזומבי עף כשהוא מת
 			hit.collider.take_damage(damage, hit.position, velocity.normalized(), false, src)
 			if god:

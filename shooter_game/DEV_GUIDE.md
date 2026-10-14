@@ -966,3 +966,22 @@ flags, and they all work for one goal: to conquer the world.
   GUARD_MULT damage. Below half: crown boomerang (while it flies the bare head takes CROWNLESS_MULT), "FOR THE EMPIRE!" (rally + charge),
   faster bolts. His death: "THE EMPIRE FALLS" - every empire soldier is broken.
 - Game.IMPLEMENTED = 45.
+
+## Performance pass: many zombies on screen
+Measured with a headless profiler (60 zombies around the player, fixed 60 fps, CPU only). Rules for new code:
+* **Particles are batched**: `Particles.burst()` no longer creates a node per burst. All bursts on one parent go into a single
+  layer node (`particles.gd`, parent meta `_particle_layer`, cap `MAX_P`) that draws only what is on screen and sleeps when empty.
+* **Gore caps**: burn ticks (`source == "fire"`) don't spray blood or FleshFx. `effects/flesh_fx.gd` allows at most `MAX_SPRAYS`
+  live sprays (lite mode from half of that).
+* **Zombie drawing**: redraw rate adapts to how many zombies are visible (`_maybe_redraw`: every 2nd frame for 1-3 zombies, every
+  6th for 33+; movement itself stays smooth). `Zombie.crowded()` (more than 14 visible) drops tiny head details and fingers.
+  `Art.limb()` takes `cap_start`/`cap_end` so joined limb segments don't draw hidden circles; `Art.oval_shaded()` caches its
+  per-vertex shading colors; `Art.on_screen()` caches the visible rect once per frame.
+* **Zombie brain** (`ai/zombie_brain.gd`) steers every other frame (alternating slots, double delta); in between, the zombie keeps
+  the last direction and speed ratio. Hazard scan every 4 frames, crowd spacing every 8.
+* **No full-group scans every frame**: empire commanders (OFFICER, COMMISSAR, HERALD) re-check their troops at most ~4 times a
+  second when they have no order to give. Do the same in new types: a timer, not a per-frame `get_nodes_in_group` loop.
+* Enemy `Shot`s (stationary bosses) only redraw on screen and die 1500 px from the player. Bullets build their damage
+  dictionary only when they hit something.
+* Profiling hooks: `zombie.gd` has `static var prof_on` / `prof` - set `prof_on = true` and read `prof` (µs per kind for logic and
+  draw) to find the expensive zombie types.

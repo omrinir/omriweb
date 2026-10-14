@@ -19,6 +19,8 @@ const RED := [Color(0.55, 0.03, 0.04), Color(0.75, 0.06, 0.05), Color(0.4, 0.01,
 const BONE := Color(0.86, 0.84, 0.76)
 
 static var _soft: Texture2D = null
+static var sprays := 0                # ביצועים: כמה ריסוסי CPUParticles2D חיים עכשיו
+const MAX_SPRAYS := 24               # מעל זה - בלי ריסוס; מעל חצי - ריסוס קל (שכבה אחת)
 
 
 # lite = מולטי-קיל (הרבה הריגות בשנייה): ריסוס אחד וחתיכה אחת בלבד
@@ -47,6 +49,10 @@ static func burst(parent: Node, pos: Vector2, dir: Vector2, skin: Color, zone: S
 
 # ריסוס חד-פעמי: טיפות אדומות + אבק אפור (CPUParticles2D)
 static func _spray(parent: Node, pos: Vector2, d: Vector2, grey: Color, kill := false, lite := false) -> void:
+	if sprays >= MAX_SPRAYS:
+		return
+	if sprays >= MAX_SPRAYS / 2:
+		lite = true
 	# שכבה 0: טיפות דם קטנות (הרבה), 1: ערפל דם אדום כהה, 2: אבק בשר אפור
 	for layer in (1 if lite else 3):
 		var p := CPUParticles2D.new()
@@ -74,6 +80,8 @@ static func _spray(parent: Node, pos: Vector2, d: Vector2, grey: Color, kill := 
 		parent.add_child(p)
 		p.global_position = pos
 		p.emitting = true
+		sprays += 1
+		p.tree_exited.connect(func(): sprays -= 1)
 		p.finished.connect(p.queue_free)
 
 

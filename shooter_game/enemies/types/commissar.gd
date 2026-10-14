@@ -86,6 +86,8 @@ func physics(pl: Node, delta: float) -> bool:
 			Sfx.play("of_whistle", z.global_position, 2.0, 0.05, 2)
 			z._popup("VOLLEY!", Color("ffd040"), 15, -85.0)
 			E.order(z, "volley", COMMAND_R)
+		else:
+			_cd = 0.25   # אין פקודה כרגע - בודק שוב בעוד רגע (לא כל פריים)
 	if _pcd <= 0.0 and absf(d.x) < 560.0 and E.clear_shot(z, z.global_position + Vector2(0, -36), pl.global_position + Vector2(0, -24)):
 		_pcd = PISTOL_CD
 		var from: Vector2 = z.global_position + Vector2(z._dir * 16.0, -36.0) * z.sc

@@ -289,6 +289,7 @@ func fire_lob(from: Vector2, target: Vector2, flight: float, dmg: int, kind: Str
 #  קליעים
 # ============================================================
 class Shot extends Node2D:
+	const A := preload("res://art.gd")
 	var owner_t = null
 	var velocity := Vector2.ZERO
 	var damage := 1
@@ -317,7 +318,10 @@ class Shot extends Node2D:
 			return
 		global_position = to
 		rotation = velocity.angle()
-		queue_redraw()
+		if A.on_screen(self, global_position, 60.0):   # (ביצועים: מחוץ למסך לא מציירים)
+			queue_redraw()
+		elif pl != null and global_position.distance_to(pl.global_position) > 1500.0:   # רחוק מדי - לא יחזור
+			_end(false)
 
 	func _end(hit_player: bool) -> void:
 		if _done:

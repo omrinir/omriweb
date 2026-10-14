@@ -58,6 +58,10 @@ var _ambush_side := 0.0
 var _flank_leap := false
 var _director: Node = null
 var _started := false
+# ביצועים: בדיקות יקרות (מלכודות / צפיפות) לא בכל פריים - כל זומבי בתור משלו, והתוצאה נשמרת בין הבדיקות
+var _slot := randi() % 8
+var _haz_stop := false
+var _crowd_k := 1.0
 
 
 func setup(z: Node, level: int, smart: float, overrides: Dictionary) -> void:
@@ -256,27 +260,38 @@ func steer(z: Node, player: Node, d: Vector2, delta: float, base_speed: float) -
 			speed *= 0.35
 
 	# ---- לא נכנסים למלכודות (אש / חומצה / חביות) ----
+	var fr := Engine.get_physics_frames() + _slot
 	if float(p.hazard_awareness) > 0.25 and role != RETREAT and speed > 0.0:
-		var ahead: Vector2 = z.global_position + Vector2(z._dir * 34.0, -12.0)
-		for h in z.get_tree().get_nodes_in_group("hazards"):
-			if h.danger_at(ahead, 6.0) and not h.danger_at(z.global_position + Vector2(0, -12), 0.0) and randf() < float(p.hazard_awareness) + 0.3:   # כבר בפנים? ממשיכים לצאת
-				speed = 0.0
-				if z.is_on_floor() and _hop_cd <= 0.0 and float(p.hazard_awareness) > 0.6 and h.world_rect().size.x < 140.0:
-					z.velocity.y = z.jump_velocity * 1.05   # קופץ מעל אש קטנה
-					z.velocity.x = z._dir * 260.0
-					_hop_cd = 1.2
-				break
+		if fr % 4 == 0:   # (כל 4 פריימים; ביניהם - התוצאה האחרונה)
+			_haz_stop = false
+			var ahead: Vector2 = z.global_position + Vector2(z._dir * 34.0, -12.0)
+			for h in z.get_tree().get_nodes_in_group("hazards"):
+				if h.danger_at(ahead, 6.0) and not h.danger_at(z.global_position + Vector2(0, -12), 0.0) and randf() < float(p.hazard_awareness) + 0.3:   # כבר בפנים? ממשיכים לצאת
+					_haz_stop = true
+					if z.is_on_floor() and _hop_cd <= 0.0 and float(p.hazard_awareness) > 0.6 and h.world_rect().size.x < 140.0:
+						z.velocity.y = z.jump_velocity * 1.05   # קופץ מעל אש קטנה
+						z.velocity.x = z._dir * 260.0
+						_hop_cd = 1.2
+						_haz_stop = false
+					break
+		if _haz_stop:
+			speed = 0.0
+	else:
+		_haz_stop = false
 
 	# ---- גבהים: מטפסים לקומה של השחקן / קופצים למטה ----
 	_heights(z, player, d)
 
 	# ---- התפזרות: השחקן אוהב רימונים -> לא מתקבצים ----
 	var spread_k := PlayerMemory.explosives * adapt_k()
-	if spread_k > 0.3 and speed > 0.0 and Engine.get_physics_frames() % 4 == 0:
-		for o in z.get_tree().get_nodes_in_group("zombies"):
-			if o != z and not o.dead and absf(o.global_position.x - z.global_position.x) < 34.0 and signf(o.global_position.x - z.global_position.x) == z._dir and absf(o.global_position.y - z.global_position.y) < 30.0:
-				speed *= 0.4
-				break
+	if spread_k > 0.3 and speed > 0.0:
+		if fr % 8 == 0:   # (כל 8 פריימים - בודק את כל הזומבים)
+			_crowd_k = 1.0
+			for o in z.get_tree().get_nodes_in_group("zombies"):
+				if o != z and not o.dead and absf(o.global_position.x - z.global_position.x) < 34.0 and signf(o.global_position.x - z.global_position.x) == z._dir and absf(o.global_position.y - z.global_position.y) < 30.0:
+					_crowd_k = 0.4
+					break
+		speed *= _crowd_k
 	return speed
 
 
