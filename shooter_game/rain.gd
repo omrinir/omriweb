@@ -7,6 +7,7 @@ const Sfx := preload("res://sfx.gd")
 var _drops := []
 var _flash := 0.0
 var _next := 6.0
+var _n := 0
 
 
 func _ready() -> void:
@@ -15,7 +16,9 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	for d in _drops:
+	_n = int(float(_drops.size()) * Quality.ambient())   # המשחק איטי: פחות טיפות (quality.gd)
+	for i in _n:
+		var d: Array = _drops[i]
 		d[1] += d[2] * delta
 		d[0] -= d[2] * 0.22 * delta
 		if d[1] > 740.0:
@@ -32,7 +35,8 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var vs := get_viewport_rect().size
-	for d in _drops:
+	for i in _n:
+		var d: Array = _drops[i]
 		var p := Vector2(d[0], d[1])
 		draw_line(p, p + Vector2(-d[3] * 0.22, d[3]), Color(0.7, 0.78, 0.9, 0.35), 1.0)
 	if _flash > 0.0:

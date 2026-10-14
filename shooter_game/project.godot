@@ -17,6 +17,7 @@ Settings="*res://game_settings.gd"
 Game="*res://game_state.gd"
 PlayerMemory="*res://ai/player_memory.gd"
 Touch="*res://ui/touch_controls.gd"
+Quality="*res://quality.gd"
 
 [display]
 

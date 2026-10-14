@@ -58,7 +58,11 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	for it in _items:
+	var amb := Quality.ambient()   # המשחק איטי: מציירים רק חלק (quality.gd)
+	for i in _items.size():
+		var it: Dictionary = _items[i]
+		if amb < 1.0 and float(i % 10) >= amb * 10.0:
+			continue
 		var pos: Vector2 = it["pos"]
 		if it["type"] == 0:
 			# עיתון: מלבן שמתהפך (מסתובב גם "לעומק")

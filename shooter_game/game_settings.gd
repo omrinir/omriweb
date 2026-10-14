@@ -31,6 +31,17 @@ const SAVE_PATH := "user://settings.cfg"
 const AIM_NAMES := ["OFF", "CROSSHAIR", "CROSSHAIR + LINE"]
 var aim_guide := 2
 
+# אפקטים: AUTO = מורידים לבד כשהמשחק איטי (quality.gd), HIGH = תמיד מלא, LOW = תמיד מינימום
+enum { Q_AUTO, Q_HIGH, Q_LOW }
+const QUALITY_NAMES := ["AUTO", "HIGH", "LOW"]
+var quality_mode := Q_AUTO
+
+
+func set_quality_mode(m: int) -> void:
+	quality_mode = clampi(m, 0, 2)
+	_save()
+
+
 var difficulty := NORMAL:
 	set(v):
 		difficulty = clampi(v, 0, 2)
@@ -49,6 +60,7 @@ func _ready() -> void:
 		aim_guide = clampi(int(cfg.get_value("game", "aim_guide", 2)), 0, 2)
 		music_volume = clampf(float(cfg.get_value("audio", "music", 0.8)), 0.0, 1.0)
 		sfx_volume = clampf(float(cfg.get_value("audio", "sfx", 0.9)), 0.0, 1.0)
+		quality_mode = clampi(int(cfg.get_value("video", "quality", Q_AUTO)), 0, 2)
 	_ensure_buses()
 	apply_volumes()
 
@@ -105,4 +117,5 @@ func _save() -> void:
 	cfg.set_value("game", "aim_guide", aim_guide)
 	cfg.set_value("audio", "music", music_volume)
 	cfg.set_value("audio", "sfx", sfx_volume)
+	cfg.set_value("video", "quality", quality_mode)
 	cfg.save(SAVE_PATH)

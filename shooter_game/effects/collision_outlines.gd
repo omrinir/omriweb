@@ -19,6 +19,11 @@ const MASK := 1 | 16          # השכבות שהשחקן מתנגש בהן
 
 var _bodies: Array = []
 var _scan_t := 0.0
+var _sig := 0
+var _cam := Vector2.INF
+
+const REDRAW_MOVE := 200.0
+const VIEW_MARGIN := 420.0
 
 
 func _ready() -> void:
@@ -32,7 +37,29 @@ func _process(delta: float) -> void:
 		_scan_t = 0.5
 		_bodies.clear()
 		_collect(get_parent())
-	queue_redraw()
+	# ביצועים: מציירים מחדש רק כשמשהו השתנה (גוף זז / נשבר / נפתח) או שהמצלמה זזה מעל REDRAW_MOVE.
+	# הציור מכסה את המסך + VIEW_MARGIN מכל צד, אז תזוזה קטנה של המצלמה לא צריכה ציור חדש.
+	var sig := _signature()
+	var cam := get_viewport().get_canvas_transform().affine_inverse() * (get_viewport().get_visible_rect().size * 0.5)
+	if sig != _sig or cam.distance_to(_cam) > REDRAW_MOVE:
+		_sig = sig
+		_cam = cam
+		queue_redraw()
+
+
+# חתימה זולה של מצב כל הגופים: קיים, שכבה, נראה, מיקום, צורות פעילות
+func _signature() -> int:
+	var h := _bodies.size()
+	for b in _bodies:
+		if not is_instance_valid(b) or not b.is_inside_tree():
+			h = h * 31 + 7
+			continue
+		h = h * 31 + (int(b.collision_layer) & MASK) + (2 if b.is_visible_in_tree() else 0)
+		h = h * 31 + hash(b.global_position)
+		for c in b.get_children():
+			if c is CollisionShape2D or c is CollisionPolygon2D:
+				h = h * 3 + (1 if c.disabled else 0)
+	return h
 
 
 func _collect(n: Node) -> void:
@@ -76,7 +103,7 @@ func _draw() -> void:
 	if not OUTLINE_ENABLED:
 		return
 	var vp := get_viewport()
-	var view := (vp.get_canvas_transform().affine_inverse() * vp.get_visible_rect()).grow(60.0)
+	var view := (vp.get_canvas_transform().affine_inverse() * vp.get_visible_rect()).grow(VIEW_MARGIN)
 	var rects := []
 	for b in _bodies:
 		if not is_instance_valid(b) or not b.is_inside_tree():

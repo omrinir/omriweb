@@ -373,7 +373,7 @@ func _ready() -> void:
 # ---- פרופיילר (בדיקות ביצועים בלבד, כבוי במשחק): זמן לוגיקה / ציור לכל סוג זומבי ----
 static var prof_on := false
 static var prof := {}
-var _bslot := randi() % 2
+var _bslot := randi() % 4
 var _bs_ratio := -1.0
 var _bs_dir := 1.0
 
@@ -522,9 +522,11 @@ func _physics_main(delta: float) -> void:
 		var d: Vector2 = tp.global_position - global_position
 		# המוח: תורות התקפה, איגוף, המתנה, נסיגה, גבהים (ai/zombie_brain.gd)
 		if brain != null and tp == player:   # (הבוגד של MIND CONTROL: הולכים אליו ישר)
-			# ביצועים: המוח רץ כל פריים שני (30 פעמים בשנייה - מספיק להחלטות). בפריים שביניהם - אותו כיוון ואותו יחס מהירות
-			if _bs_ratio < 0.0 or (Engine.get_physics_frames() + _bslot) % 2 == 0:
-				var bs: float = brain.steer(self, tp, d, delta * (1.0 if _bs_ratio < 0.0 else 2.0), target_speed)
+			# ביצועים: המוח רץ כל פריים שני (30 פעמים בשנייה - מספיק להחלטות). בפריים שביניהם - אותו כיוון ואותו יחס מהירות.
+			# המשחק איטי (quality.gd רמה 2+) וזומבי מחוץ למסך: כל פריים רביעי (אף אחד לא רואה אותו; על המסך - תמיד 30)
+			var bdiv := 4 if Quality.level >= 2 and not Art.on_screen(self, global_position, 120.0) else 2
+			if _bs_ratio < 0.0 or (Engine.get_physics_frames() + _bslot) % bdiv == 0:
+				var bs: float = brain.steer(self, tp, d, delta * (1.0 if _bs_ratio < 0.0 else float(bdiv)), target_speed)
 				_bs_ratio = bs / target_speed if target_speed > 0.01 else 1.0
 				_bs_dir = _dir
 				if brain.steer_movement:
@@ -1199,6 +1201,8 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 
 # מספר הנזק שקופץ מעל הזומבי וצף למעלה
 func _damage_number(dmg: int, zone: String) -> void:
+	if not Quality.damage_numbers(zone):   # המשחק איטי: בלי מספרי נזק (quality.gd)
+		return
 	var col := Color.WHITE
 	var size := 18
 	match zone:
@@ -1325,7 +1329,7 @@ func _die(dir: Vector2) -> void:
 		velocity = Vector2(clampf((tx - global_position.x) / t_fall, -900.0, 900.0), vy0)
 	_spin = randf_range(8.0, 14.0) * signf(velocity.x if velocity.x != 0.0 else 1.0)
 	_splat_pending = kind != RAT and kind != JETPACK and kind != MECH and randf() < SPLAT_CHANCE
-	if _ragdoll_kind() and not _lite:   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל: גופה פשוטה)
+	if _ragdoll_kind() and not _lite and Quality.ragdolls():   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל / המשחק איטי - quality.gd: גופה פשוטה)
 		_rag = RagdollScript.new()
 		_rag.setup(self, velocity, dir, _last_hit if _last_hit != Vector2.ZERO else global_position + Vector2(0, -30) * sc, _last_boom)
 	_spray_blood(global_position + Vector2(0, -30) * sc, dir, 14, 380.0)
@@ -1428,7 +1432,7 @@ func _try_splat(landed: bool) -> void:
 func _spray_blood(pos: Vector2, dir: Vector2, n: int, power: float) -> void:
 	var lite := _lite or death_load() >= DEATH_HEAVY - 1   # מולטי-קיל: שליש מהטיפות
 	var cnt := maxi(1, int(round(float(n) * BLOOD_AMOUNT * (0.33 if lite else 1.0))))
-	cnt = mini(cnt, MAX_BLOOD - BloodScript.alive)
+	cnt = mini(Quality.scaled(cnt, Quality.blood()), int(float(MAX_BLOOD) * Quality.blood()) - BloodScript.alive)   # המשחק איטי? פחות טיפות (quality.gd)
 	for i in cnt:
 		var b = BloodScript.new()
 		get_parent().add_child(b)
@@ -1693,7 +1697,7 @@ static var _vis_prev := 0
 
 # הרבה זומבים על המסך: מדלגים על פרטים זעירים בציור
 static func crowded() -> bool:
-	return _vis_prev > 14
+	return _vis_prev > Quality.crowded_at()   # (המשחק איטי - quality.gd: גם עם פחות זומבים)
 
 
 func _maybe_redraw() -> void:
@@ -1707,7 +1711,7 @@ func _maybe_redraw() -> void:
 	_vis_count += 1
 	if type_mod != null and _flash <= 0.0 and not type_mod.wants_redraw():   # סוג שעומד בלי לזוז (GHILLIE מתחבא) - הציור הקודם נשאר
 		return
-	var every := 2 if _vis_prev <= 3 else (3 if _vis_prev <= 10 else (4 if _vis_prev <= 20 else (5 if _vis_prev <= 32 else 6)))   # הרבה זומבים על המסך: כל אחד מתעדכן פחות (חוסך ציור; התזוזה עצמה נשארת חלקה)
+	var every := (2 if _vis_prev <= 3 else (3 if _vis_prev <= 10 else (4 if _vis_prev <= 20 else (5 if _vis_prev <= 32 else 6)))) + Quality.redraw_extra()   # הרבה זומבים על המסך: כל אחד מתעדכן פחות (חוסך ציור; התזוזה עצמה נשארת חלקה)
 	_redraw_tick += 1
 	if _redraw_tick % every == 0 or _flash > 0.0:
 		queue_redraw()

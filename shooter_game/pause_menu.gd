@@ -50,7 +50,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _open_pause() -> void:
 	get_tree().paused = true
-	_show("PAUSED", [["RESUME", _resume, Color("b3121a")], ["RESTART", _restart, Color("b3121a")], ["MAIN MENU", _to_menu, Color("5a5a62")]])
+	_show("PAUSED", [["RESUME", _resume, Color("b3121a")], ["RESTART", _restart, Color("b3121a")], ["MAIN MENU", _to_menu, Color("5a5a62")],
+		["EFFECTS: " + Settings.QUALITY_NAMES[int(Settings.quality_mode)], _cycle_quality, Color("2f6a8a")]])
+
+
+# אפקטים: AUTO (יורד לבד כשאיטי) -> HIGH -> LOW (quality.gd)
+func _cycle_quality() -> void:
+	Quality.set_mode((int(Settings.quality_mode) + 1) % 3)
+	_open_pause()
 
 
 # נקרא כשהשחקן מת
