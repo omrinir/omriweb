@@ -1042,3 +1042,10 @@ torn-cheek wounds) - they are part of the game. Only non-gore effects scale:
   camera, so scrolling stays smooth; it redraws at once if the camera moved more than `MAX_SHIFT` px.
 * New non-gore effects should ask `Quality` (`particles()`, `ambient()`, `Quality.scaled(n, mult)`). Never scale blood or gore.
 * `effects/collision_outlines.gd` now redraws only when a body changes (moves, breaks, opens) or the camera moved 200 px.
+
+## Screen kick when firing
+Every shot jolts the camera a few pixels opposite to the barrel and springs back (~0.13 s): shake_camera.gd `fire_kick(dir, px)` -
+a damped spring (kick_stiffness, kick_damping, kick_max), not a random shake, so rapid fire stays readable (SMG averages ~1 px).
+player.gd `_screen_kick(rk)`: px = SCREEN_KICK_BASE + SCREEN_KICK_PER_RECOIL * the weapon's "recoil" (weapon_db), capped at
+SCREEN_KICK_MAX; recoil >= SCREEN_KICK_HEAVY (shotgun, launcher, rocket) also gets a short shake. Measured peaks: pistol 2.3 px,
+SMG 2.4, assault rifle 2.6, rifle 3.2, sniper 3.7, shotgun 7.1. Set SCREEN_KICK_BASE and SCREEN_KICK_PER_RECOIL to 0 to turn it off.

@@ -4,6 +4,8 @@ extends Camera2D
 #  נוצרת ע"י main.gd. כדי לרעוד מכל מקום במשחק:
 #      get_viewport().get_camera_2d().shake(10.0, 0.3)
 #  "זום קטן" (למשל בקפיצה):  ...get_camera_2d().punch_zoom(0.03)
+#  "בעיטת ירייה":  ...get_camera_2d().fire_kick(כיוון הירייה, פיקסלים) - המסך נדחף קצת הפוך לכיוון הקנה
+#  וחוזר מהר כמו קפיץ (לא רעידה אקראית - כל ירייה מרגישה כמו מכה). player.gd -> _screen_kick.
 #  (0.03 = 3% זום פנימה, נכנס בעדינות ודועך חזרה לזום הרגיל)
 #  הזום עובר דרך שני שלבי החלקה ברצף -> עקומת S: מתחיל לאט, מאיץ, ונרגע (בלי "קפיצה" בהתחלה).
 #  שיא אחרי ~0.33 שנ' (כ-80% מהכמות), מחזיק רגע (punch_hold) ודועך חזרה תוך ~שנייה.
@@ -18,6 +20,11 @@ extends Camera2D
 ## כמה מהר הרעידה נחלשת
 @export var decay := 1.0
 
+## בעיטת ירייה: קשיחות הקפיץ / ריסון (גבוה = חוזר מהר יותר) / מקסימום פיקסלים
+@export var kick_stiffness := 650.0
+@export var kick_damping := 30.0
+@export var kick_max := 10.0
+
 var _strength := 0.0
 var _time_left := 0.0
 var _duration := 0.0
@@ -31,6 +38,8 @@ var base_offset := Vector2.ZERO   # הזזה קבועה (טלפון: השחקן 
 var frame_target: Node2D = null   # בוס נייח ענק: המצלמה זזה כדי שגם הוא וגם השחקן ייראו (stationary_boss.gd)
 var frame_half := 180.0           # חצי הרוחב של המטרה (בעולם)
 var _frame_off := 0.0
+var _kick := Vector2.ZERO         # בעיטת ירייה: הזזה נוכחית + מהירות (קפיץ מרוסן)
+var _kick_v := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -43,6 +52,15 @@ func punch_zoom(amount: float) -> void:
 	if amount >= _punch_target:
 		_punch_target = amount
 		_punch_hold_t = punch_hold
+
+
+# בעיטת ירייה: dir = כיוון הירייה, px = כמה פיקסלים בערך (השיא). המסך זז הפוך לקנה וחוזר
+func fire_kick(dir: Vector2, px: float) -> void:
+	if dir == Vector2.ZERO:
+		return
+	var d := dir.normalized()
+	var side := Vector2(-d.y, d.x) * randf_range(-0.3, 0.3)   # קצת הצידה - שלא ירגיש מכני
+	_kick_v += (-d + side) * px * 90.0
 
 
 # strength = כמה פיקסלים המסך זז, duration = כמה שניות
@@ -90,4 +108,14 @@ func _process(delta: float) -> void:
 		if need > 0.0:
 			want = signf(dx) * minf(need, half_w - 110.0)   # (השחקן נשאר על המסך)
 	_frame_off = lerpf(_frame_off, want, 1.0 - exp(-3.0 * delta))
-	offset = base_offset + _anchor_off + shake_off + Vector2(_frame_off, 0.0)
+	# בעיטת ירייה: קפיץ מרוסן שחוזר ל-0
+	if _kick_v != Vector2.ZERO or _kick != Vector2.ZERO:
+		var dt := minf(delta, 1.0 / 30.0)
+		_kick_v += (-kick_stiffness * _kick - kick_damping * _kick_v) * dt
+		_kick += _kick_v * dt
+		if _kick.length() > kick_max:
+			_kick = _kick.limit_length(kick_max)
+		if _kick.length() < 0.05 and _kick_v.length() < 2.0:
+			_kick = Vector2.ZERO
+			_kick_v = Vector2.ZERO
+	offset = base_offset + _anchor_off + shake_off + Vector2(_frame_off, 0.0) + _kick

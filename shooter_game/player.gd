@@ -42,6 +42,12 @@ var fire_delay := 0.7            # שניות בין יריות
 var grenade_speed := 620.0
 var grenade_delay := 0.7
 var recoil_push := 70.0          # כמה כל ירייה דוחפת אחורה על הריצפה
+# בעיטת מסך בכל ירייה (shake_camera.gd -> fire_kick): פיקסלים = BASE + PER_RECOIL * רתיעת הנשק (weapon_db "recoil"), עד MAX.
+# נשק כבד (רתיעה מעל HEAVY) מקבל גם רעידה קצרה. 0 = כבוי.
+const SCREEN_KICK_BASE := 2.0
+const SCREEN_KICK_PER_RECOIL := 2.4
+const SCREEN_KICK_MAX := 7.0
+const SCREEN_KICK_HEAVY := 1.2
 var air_recoil_push := 120.0     # כמה כל ירייה דוחפת באוויר (גם למעלה אם יורים למטה)
 var air_control := 0.35          # שליטה בתנועה באוויר (קטן = הרתיעה מורגשת יותר)
 
@@ -258,6 +264,16 @@ func _ready() -> void:
 func _set_height(h: float) -> void:
 	(_shape.shape as RectangleShape2D).size = Vector2(W, h)
 	_shape.position = Vector2(0.0, -h / 2.0)
+
+
+# בעיטת מסך קטנה בכל ירייה - מרגישים שבאמת יורים (rk = רתיעת הנשק)
+func _screen_kick(rk: float) -> void:
+	var cam := get_viewport().get_camera_2d()
+	if cam == null or not cam.has_method("fire_kick"):
+		return
+	cam.fire_kick(_aim, clampf(SCREEN_KICK_BASE + SCREEN_KICK_PER_RECOIL * rk, 1.0, SCREEN_KICK_MAX))
+	if rk >= SCREEN_KICK_HEAVY:   # שוטגאן / משגר: גם רעידה קצרה
+		cam.shake(2.5, 0.1)
 
 
 func _height() -> float:
@@ -933,6 +949,8 @@ func _fire() -> void:
 		_recoil = 1.0
 		# רתיעה: הירייה דוחפת את הדמות הפוך לכיוון הקנה
 		var rk: float = w.get("recoil", 1.0)
+		if proj != "molotov":
+			_screen_kick(rk)
 		if is_on_floor():
 			velocity.x -= _aim.x * recoil_push * rk
 		elif rk > 0.0:
@@ -1061,6 +1079,7 @@ func _use_special(sh: Vector2) -> void:
 			_cooldown = float(w.get("fire_rate", 1.1))
 			_muzzle_flash = 0.05
 			_recoil = 1.0
+			_screen_kick(1.4)
 			var gl = GrenadeScript.new()
 			gl.impact = true
 			gl.gravity = 650.0
@@ -1073,6 +1092,7 @@ func _use_special(sh: Vector2) -> void:
 			_cooldown = float(w.get("fire_rate", 1.0))
 			_muzzle_flash = 0.05
 			_recoil = 1.0
+			_screen_kick(2.0)
 			if is_on_floor():
 				velocity.x -= _aim.x * recoil_push * 1.3
 			var rkt = RocketScript.new()
