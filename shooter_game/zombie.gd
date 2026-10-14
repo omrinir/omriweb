@@ -1329,7 +1329,7 @@ func _die(dir: Vector2) -> void:
 		velocity = Vector2(clampf((tx - global_position.x) / t_fall, -900.0, 900.0), vy0)
 	_spin = randf_range(8.0, 14.0) * signf(velocity.x if velocity.x != 0.0 else 1.0)
 	_splat_pending = kind != RAT and kind != JETPACK and kind != MECH and randf() < SPLAT_CHANCE
-	if _ragdoll_kind() and not _lite and Quality.ragdolls():   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל / המשחק איטי - quality.gd: גופה פשוטה)
+	if _ragdoll_kind() and not _lite:   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל: גופה פשוטה)
 		_rag = RagdollScript.new()
 		_rag.setup(self, velocity, dir, _last_hit if _last_hit != Vector2.ZERO else global_position + Vector2(0, -30) * sc, _last_boom)
 	_spray_blood(global_position + Vector2(0, -30) * sc, dir, 14, 380.0)
@@ -1432,7 +1432,7 @@ func _try_splat(landed: bool) -> void:
 func _spray_blood(pos: Vector2, dir: Vector2, n: int, power: float) -> void:
 	var lite := _lite or death_load() >= DEATH_HEAVY - 1   # מולטי-קיל: שליש מהטיפות
 	var cnt := maxi(1, int(round(float(n) * BLOOD_AMOUNT * (0.33 if lite else 1.0))))
-	cnt = mini(Quality.scaled(cnt, Quality.blood()), int(float(MAX_BLOOD) * Quality.blood()) - BloodScript.alive)   # המשחק איטי? פחות טיפות (quality.gd)
+	cnt = mini(cnt, MAX_BLOOD - BloodScript.alive)
 	for i in cnt:
 		var b = BloodScript.new()
 		get_parent().add_child(b)
@@ -1872,7 +1872,7 @@ func _head_micro(c: Vector2, sk: Color) -> void:
 
 
 func _head_rest(c: Vector2, sk: Color, lod: bool) -> void:
-	if _det[5] and not lod:   # לחי קרועה: רואים שיניים
+	if _det[5]:   # לחי קרועה: רואים שיניים (גור - נשאר גם בציור המפושט)
 		Art.fill(self, PackedVector2Array([c + Vector2(-1.0, 1.0), c + Vector2(2.5, 0.5), c + Vector2(2.0, 4.0), c + Vector2(-1.5, 3.5)]), Color("5a1010"), Art.NONE)
 		for i in 3:
 			draw_line(c + Vector2(-0.5 + float(i) * 1.0, 1.4), c + Vector2(-0.5 + float(i) * 1.0, 2.6), Color("e0d8b0"), 0.6)

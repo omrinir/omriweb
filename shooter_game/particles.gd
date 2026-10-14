@@ -27,11 +27,13 @@ static func _layer(parent: Node) -> Node:
 static func burst(parent: Node, pos: Vector2, kind: String, dir := Vector2.ZERO, n := 10) -> void:
 	if parent == null:
 		return
-	n = Quality.scaled(n, Quality.particles())   # המשחק איטי? פחות חלקיקים (quality.gd)
-	if n <= 0:
-		return
+	var gore := kind == "hit"   # דם: לא נוגעים בו גם כשהמשחק איטי
+	if not gore:   # עשן / ניצוצות / אבק: המשחק איטי? פחות (quality.gd)
+		n = Quality.scaled(n, Quality.particles())
+		if n <= 0:
+			return
 	var b = _layer(parent)
-	if b._p.size() >= mini(MAX_P, Quality.particle_cap()):
+	if b._p.size() >= (MAX_P if gore else mini(MAX_P, Quality.particle_cap())):
 		return
 	var off: Vector2 = b.to_local(pos)
 	var grav := 600.0

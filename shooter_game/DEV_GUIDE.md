@@ -992,16 +992,19 @@ Watches the real frame rate. A 1-second average under ~52 FPS steps effects down
 Targets follow the screen refresh rate when it is below 60 Hz. Loading hitches, pauses and the first 2.5 s of a scene are ignored.
 Only looks change: zombie damage, speed and intelligence stay the same (off-screen zombies just think less often).
 
+**Blood and gore are never reduced** (blood drops, flesh chunks, blood sprays, "hit" blood particles, ragdoll corpses,
+torn-cheek wounds) - they are part of the game. Only non-gore effects scale:
+
 | Level | What changes |
 |---|---|
 | 0 | everything full |
-| 1 | particles x0.6, blood drops / flesh chunks x0.5, zombies redraw 1 frame less often, simplified zombie drawing above 8 on screen, background redraws every 2nd frame |
-| 2 | particles x0.35, blood x0.25, no ragdolls (simple corpses), damage numbers only for head hits, simplified zombie drawing always, background every 3rd frame, rain/ash x0.45, off-screen zombies think 15x/s instead of 30x/s |
-| 3 | particles x0.18, no blood drops / flesh chunks / blood sprays, no damage numbers, background every 4th frame, rain/ash x0.3 |
+| 1 | smoke / sparks / dust particles x0.6, zombies redraw 1 frame less often, simplified zombie drawing above 8 on screen, background redraws every 2nd frame, rain/ash x0.7 |
+| 2 | smoke / sparks / dust x0.35, damage numbers only for head hits, simplified zombie drawing always, background every 3rd frame, rain/ash x0.45, off-screen zombies think 15x/s instead of 30x/s |
+| 3 | smoke / sparks / dust x0.18, no damage numbers, background every 4th frame, rain/ash x0.3 |
 
 * Pause menu (ESC): **EFFECTS: AUTO / HIGH / LOW** (saved in settings.cfg). HIGH = always level 0, LOW = always level 3.
 * **F3** shows FPS and the current level in the bottom-left corner.
 * The background (`effects/parallax_backdrop.gd`) draws each layer in its own node. Between redraws a layer just moves with the
   camera, so scrolling stays smooth; it redraws at once if the camera moved more than `MAX_SHIFT` px.
-* New effects should ask `Quality` (`particles()`, `blood()`, `chunks()`, `ragdolls()`, `ambient()`, `Quality.scaled(n, mult)`).
+* New non-gore effects should ask `Quality` (`particles()`, `ambient()`, `Quality.scaled(n, mult)`). Never scale blood or gore.
 * `effects/collision_outlines.gd` now redraws only when a body changes (moves, breaks, opens) or the camera moved 200 px.

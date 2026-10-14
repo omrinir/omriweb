@@ -31,7 +31,6 @@ static func burst(parent: Node, pos: Vector2, dir: Vector2, skin: Color, zone: S
 	var grey := skin.lerp(Color(0.42, 0.41, 0.4), 0.6).darkened(0.3)   # בשר זומבי אפור
 	_spray(parent, pos, d, grey, kill, lite)
 	var n := 1 if lite else randi_range(CHUNKS.x, CHUNKS.y) + (3 if kill else 0) + (4 if explosive else 0) + (1 if zone == "head" else 0)
-	n = Quality.scaled(n, Quality.chunks())   # המשחק איטי? פחות חתיכות (quality.gd)
 	for i in n:
 		if Chunk.alive >= MAX_CHUNKS:
 			break
@@ -50,10 +49,9 @@ static func burst(parent: Node, pos: Vector2, dir: Vector2, skin: Color, zone: S
 
 # ריסוס חד-פעמי: טיפות אדומות + אבק אפור (CPUParticles2D)
 static func _spray(parent: Node, pos: Vector2, d: Vector2, grey: Color, kill := false, lite := false) -> void:
-	var cap := mini(MAX_SPRAYS, Quality.spray_cap())   # המשחק איטי? פחות ריסוסים (quality.gd)
-	if sprays >= cap:
+	if sprays >= MAX_SPRAYS:
 		return
-	if sprays >= cap / 2:
+	if sprays >= MAX_SPRAYS / 2:
 		lite = true
 	# שכבה 0: טיפות דם קטנות (הרבה), 1: ערפל דם אדום כהה, 2: אבק בשר אפור
 	for layer in (1 if lite else 3):
