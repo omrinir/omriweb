@@ -1026,8 +1026,9 @@ Watches the real frame rate. A 1-second average under ~52 FPS steps effects down
 Targets follow the screen refresh rate when it is below 60 Hz. Loading hitches, pauses and the first 2.5 s of a scene are ignored.
 Only looks change: zombie damage, speed and intelligence stay the same (off-screen zombies just think less often).
 
-**Blood and gore are never reduced** (blood drops, flesh chunks, blood sprays, "hit" blood particles, ragdoll corpses,
-torn-cheek wounds) - they are part of the game. Only non-gore effects scale:
+**Blood and gore** (blood drops, flesh chunks, blood sprays, "hit" blood particles) are full at level 0 and cut by 35% from
+level 1 on (`Quality.gore()`, table `GORE`): fewer per hit and lower caps on how many live at once. Ragdoll corpses and
+torn-cheek wounds never change. Non-gore effects scale more:
 
 | Level | What changes |
 |---|---|
@@ -1040,7 +1041,7 @@ torn-cheek wounds) - they are part of the game. Only non-gore effects scale:
 * **F3** shows FPS and the current level in the bottom-left corner.
 * The background (`effects/parallax_backdrop.gd`) draws each layer in its own node. Between redraws a layer just moves with the
   camera, so scrolling stays smooth; it redraws at once if the camera moved more than `MAX_SHIFT` px.
-* New non-gore effects should ask `Quality` (`particles()`, `ambient()`, `Quality.scaled(n, mult)`). Never scale blood or gore.
+* New non-gore effects should ask `Quality` (`particles()`, `ambient()`, `Quality.scaled(n, mult)`). New gore asks `Quality.gore()`.
 * `effects/collision_outlines.gd` now redraws only when a body changes (moves, breaks, opens) or the camera moved 200 px.
 
 ## Screen kick when firing
