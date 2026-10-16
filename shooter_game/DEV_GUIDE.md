@@ -1049,3 +1049,109 @@ a damped spring (kick_stiffness, kick_damping, kick_max), not a random shake, so
 player.gd `_screen_kick(rk)`: px = SCREEN_KICK_BASE + SCREEN_KICK_PER_RECOIL * the weapon's "recoil" (weapon_db), capped at
 SCREEN_KICK_MAX; recoil >= SCREEN_KICK_HEAVY (shotgun, launcher, rocket) also gets a short shake. Measured peaks: pistol 2.3 px,
 SMG 2.4, assault rifle 2.6, rifle 3.2, sniper 3.7, shotgun 7.1. Set SCREEN_KICK_BASE and SCREEN_KICK_PER_RECOIL to 0 to turn it off.
+
+## Region 6 - SOUTHERN CONE (levels 46-54): "They learned to plan."
+Each level brings 3 new zombie types; the boss is a giant variant of the level's first type (chase_range > 600, like KRAKEN).
+Game.IMPLEMENTED = 48.
+
+## Stage 46 - "WINE VALLEY" ("THEY LEARNED THE BLADE") - Mendoza vineyards at harvest dusk, region 6 (SOUTHERN CONE) level 1
+- levels/stage_46.gd + effects/s46_decor.gd: dusk sky with long flat sunset clouds, low sun and condors; far layer (0.06) = the snowy Andes
+  with Aconcagua (pink alpenglow, a cloud cap drifting over the peak); mid layer (0.28) = hills, swaying poplar rows, adobe bodegas with
+  flickering arched windows, chimney smoke and a stone bell tower; near layer (0.6) = vineyard rows (posts, wires, autumn leaves and
+  grape clusters swaying). World: VineyardGround, Pergola (grape pergola = upper floor at TIER + 2 ladders, ammo/health on top),
+  BodegaGate (stone arch "BODEGA LA MUERTE" behind the boss), Obstacle "casks" / "bins" / "press" (custom_gen skips reserved spots
+  with free_x - main.gd's generator does not check _rects). HarvestFX: falling vine leaves + warm haze.
+- Trap BarrelStack (STACKS): barrels on a ramp. You come within RANGE in front of it -> creak (0.6 s) -> a RollingBarrel rolls at you
+  (jump it; it crushes zombies for DMG_Z and smashes into wine on walls). Shoot the wedge (layer-4 body) to release one early. 6 barrels.
+- Trap FermentVat (VATS): every CYCLE hisses (WARN_T) then vents a heavy CO2 cloud for CLOUD_T - inside it you are dazed ("CO2 FUMES").
+  Solid cover. Each bullet raises the pressure gauge; VAT_HP hits -> it bursts: wine wave, DMG_Z to zombies within BLAST_R, DMG to you if close.
+- EXECUTIONER (enemies/types/executioner.gd): hooded headsman with a sword longer than he is tall, tip dragging on the ground in front.
+  The flat of the blade blocks body shots from the front ("CLANG"); head, back and legs are open. SLAM = sword raised high -> lands
+  where you stood (crack + shake), then the blade is STUCK in the ground for STUCK_T (x STUCK_MULT damage). SWEEP = sword drawn back
+  low -> sweeps the ground (jump). "THEY LEARN HOW YOU DODGE": jumped sweeps -> slam_bias up ("HE WON'T SWING LOW AGAIN");
+  stepped out of slams -> lunge grows by LUNGE_STEP up to LUNGE_MAX (he steps into the swing) and more sweeps ("HE READS YOUR STEP").
+- HARVESTER (enemies/types/harvester.gd): grape picker with a sickle on a chain. Keeps KEEP away, spins the chain overhead (WIND_T),
+  throws the Sickle. Hooked -> the chain drags you to him (PULL_V, max PULL_MAX) and he slashes. Shoot the chain (a layer-4 body that
+  follows the chain) -> "CHAIN CUT": unarmed for REARM_T. "THEY LEARN YOUR TIMING": jumped over it -> aims higher ("HE AIMS HIGH");
+  ran out of range -> leads you more ("HE LEADS YOU"). Own line-of-sight check (_los) because the brain doesn't run while physics() moves him.
+- CASK (enemies/types/cask.gd): a big winery worker stuck in a wine barrel. The barrel (BARREL_HP) takes body hits (splinters);
+  head and legs are open; explosions hit the barrel double. Barrel broken -> wine spray, FREE_SPEED faster, FREE_MULT damage taken.
+  ROLL: at ROLL_R distance he tucks in (TUCK_T, shaking) and rolls at you (ROLL_V) - jump over. "THEY LEARN YOUR JUMP - TOGETHER":
+  jumps over any rolling cask count in main meta "cask_jumps"; after JUMP_LEARN every cask BOUNCEs right when it reaches you
+  ("THEY BOUNCE NOW") - roll or run instead.
+- BOSS THE HEADSMAN = EXECUTIONER with chase_range > 600: x1.75 size, faster wind-up, SLAM sends a Shockwave both ways along the
+  floor (jump it, WAVE_V / WAVE_RANGE), shorter stuck time, 45% chance of a two-swing combo (SWEEP then SLAM or the other way).
+- Game.IMPLEMENTED = 48 (levels 46-48 = SOUTHERN CONE levels 1-3).
+
+## Stage 47 - "PAMPAS STORM" ("THEY LEARNED TO WRESTLE") - Argentine pampas estancia in an endless thunderstorm, region 6 (SOUTHERN CONE) level 2
+- levels/stage_47.gd + effects/s47_decor.gd: green-grey storm sky, fast clouds that light up with each flash (StormFX.flash_k);
+  far layer (0.06) = flat horizon with anvil storm cells, translucent slanted rain curtains and ground-touching bolts; mid layer (0.28)
+  = white estancia casco (tile roof, arches), swaying ombu trees, spinning windmills, grazing dead cows, fence; near layer (0.62) =
+  waving pampas-grass plumes and wire-fence posts. World: PampaGround, Galpon (tin barn "LA ULTIMA" with a hay loft = upper floor at
+  TIER + 2 ladders, ammo/health on top; GALPONS), Corral (cow skulls, EL TORO's arena at level_w-1100), Obstacle "bale" / "trough" /
+  "carreta", Mud (MUD, slows). StormFX (screen layer, group "storm"): flash every PERIOD 8-11 s with WARN 1.4 s of rumble first,
+  rain scaled by Quality.ambient(), emits Game.story "thunder"; warning() / flashing() / time_to_flash() are read by the traps.
+- Trap Windmill (WINDMILLS, platform = small upper floor at MILL_TIER): during the storm warning the tower glows with blue St Elmo's
+  fire; on the flash the bolt hits the nearest windmill (player within ACTIVE_R): platform + circle R around the base -> DMG to you,
+  DMG_Z to zombies. The lofts are the safe high ground; the mill platforms are NOT.
+- Trap Stampede (STAMPEDES): you come within 260 px -> "STAMPEDE! GET UP HIGH" (WARN_T 2.2) -> a herd of HERD dead cows runs across
+  at SPEED. On the ground = DMG + knockback; stand higher than SAFE_H (obstacle / loft / platform) and it passes under you. Tramples
+  zombies for DMG_Z.
+- TORO (enemies/types/toro.gd): hunched bull-man (horns, tattered poncho, coin belt, gorilla arms). PAW (scrapes the ground) ->
+  CHARGE at CHARGE_V; contact = grabbed: lifts you overhead (pl.grab - mash A/D to break free) for HOLD_T, then THROWS you
+  (THROW_V, THROW_DMG). Close by he does a short REACH grab. Charging into an obstacle/wall = STUN_T (x STUN_MULT damage).
+  "THEY LEARNED TO WRESTLE": jumped his charge -> he leaps and grabs high ("HE READS YOUR JUMP"); rolled past -> turns and
+  re-charges at once ("HE TURNS ON A DIME"); mashed free -> holds shorter and throws faster ("HE THROWS FASTER").
+- BOLEADOR (enemies/types/boleador.gd): gaucho (wide hat, striped poncho, red sash). Keeps KEEP away (backs off inside BACKOFF),
+  spins bolas overhead (SPIN_T) and throws them in an arc (BOLA_V). Hit = TANGLED for TANGLE_T (a Tangle node is your grabbed_by -
+  mash A/D). The bola is a layer-4 body: shoot it out of the air. Shared learning (main meta): running away -> "bola_lead" grows by
+  LEAD_STEP up to LEAD_MAX ("THEY LEAD YOUR RUN"); jumping it -> "bola_high" ("THEY THROW HIGH"). They stand on the lofts.
+- STORMCALLER (enemies/types/stormcaller.gd): soaked black poncho, Lichtenberg scars, quiver of iron rods. Throws a rod (Javelin)
+  that sticks in the ground as a PlantedRod (layer 4, ROD_HP): CHARGE_T with a warning circle R + climbing sparks -> lightning
+  (DMG / Z_DMG); stays live LIVE_T and re-strikes every RESTRIKE. Max MAX_LIVE rods at once, RODS in the quiver. Out of rods or
+  under 50% hp -> CALL: lightning strikes himself -> CHARGED for 7 s (x1.7 speed, x0.75 damage taken, shock on touch, telegraphed
+  arc ARC_R) then regains 2 rods. Shared learning: escaping circles -> "storm_lead" (plants ahead of your run, "THEY PLANT WHERE YOU
+  RUN"); shot 2+ rods -> "storm_rods_shot" (plants two, on both sides, "THEY PLANT TWO"). One near each windmill after the first.
+- Boss EL TORO (toro.gd, chase_range > 600): "EL TORO - JUMP HIS CHARGE", hp 560, scale 2.45. Double charge, throws you high
+  (BOSS_THROW), SLAM leap -> shockwave both ways (jump it); hitting the corral wall also sends a wave.
+- Spawns: zombie_weights BOLEADOR .08 / STORMCALLER .05 / TORO .025; extra_spawns: 2 boleadors per loft, stormcaller per mill,
+  TORO at 0.24 / 0.5 / 0.7. Sounds pm_zap / pm_rumble (stage) + type sounds. Music level1_total_war.
+- To change: GALPONS, TIER, WINDMILLS, MILL_TIER, STAMPEDES, MUD, HARDER, zombie_weights(); trap consts in s47_decor.gd
+  (Windmill R/DMG, Stampede WARN_T/SPEED/HERD/SAFE_H, StormFX PERIOD/WARN); type consts at the top of each type file.
+- Tests (headless, attempt_seed 4747): 1800 frames, no script errors; TORO grab+throw (~450 px, 2 dmg), jump/roll learned, wall stun;
+  boss grab/high throw/slam; boleador throws + tangles; stormcaller rod strikes, call, charged shocks; windmill strike hits on
+  platform; stampede hits a grounded player.
+
+## Stage 48 - "OLD QUARTER" ("THEY LEARNED STEEL") - La Boca / San Telmo, Buenos Aires, region 6 level 3 (the Southern Cone)
+- levels/stage_48.gd + effects/s48_decor.gd: night over Buenos Aires. Three parallax layers moving at different speeds:
+  far_city (0.06: skyline, the Obelisk, the La Boca transporter bridge with a moving gondola, port cranes, ships sailing the
+  Riachuelo), mid_houses (0.28: colourful corrugated-iron conventillos, flickering windows, laundry swaying on lines) and
+  near_street (0.6: three-arm iron lamps, fileteado signs TANGO/BOCA/CAFE/MILONGA, tango couple silhouettes, a bandoneon player).
+  oq_sky = stars + moon. World: CobbleGround (cobbles + tram rails), Conventillo (house with an iron balcony = upper floor at TIER +
+  2 ladders, WALKWAYS), TangoStage ("CAMINITO" stage before the boss arena: floor at STAGE_TIER, painted house fronts, string lights),
+  Obstacle "kiosk" / "cart" (choripan cart) / "planter". QuarterFX: river mist + moths around the lamps.
+- Trap Tram (TRAMS): a bell (oq_bell, WARN_T) and then a tram rushes along a stretch of street (SPEED, LEN). DMG to you, DMG_Z crushes
+  zombies. Climb to a balcony or double jump. CYCLE between runs.
+- Trap SparkWire (WIRES): a torn tram cable dangling into a puddle. It crackles (WARN_T, oq_crackle) and then discharges over the whole
+  puddle (R) for ZAP_T. It shocks you and DMG_Z hits zombies too - lure them in.
+- IRONARMS (enemies/types/ironarms.gd): a dock worker someone fitted with two robotic gun arms. Keeps distance (KEEP), aims (AIM) and
+  fires VOLLEY_N bolts; every CHARGE_EVERY volleys a charged shot that blasts (BLAST_DMG). Each arm has its own HP (ARM_HP) and a hit
+  band on the body: bullets from the front that hit the band hit the ARM (metal ping, sparks) and do not hurt the zombie. Shoot both
+  arms off (they fall as pieces) -> it goes RAGE and charges (RAGE_SPEED). One arm left -> fires slower (ONE_ARM_SLOW). Explosions
+  damage all arms. "THEY LEARNED STEEL": shared learning in main meta - "ia_lead"/"ia_aim_y" (missed shots after you jump raise the
+  aim and the lead, after you crouch lower it), "ia_cover" (shots blocked by cover; at COVER_LEARN they lob arcs over cover).
+- TANGO (enemies/types/tango.gd): always a pair (man + woman; setup spawns the partner, static _spawning guard). They move in a
+  step-step-pause rhythm and stay close (PAIR_GAP). A shot that would hit -> they spin (SPIN_T, collision_layer 0 = bullets pass) with
+  DODGE_CHANCE. "THEY LEARNED YOUR RHYTHM": the gap between your shots (main meta "tango_beat") sets the spin cooldown (spin_cd) - fire
+  in an uneven rhythm. Gancho kick up close (KICK_R). One partner dies -> the other "breaks its heart": +1 damage, x RAGE_SPEED, no
+  more spins.
+- CLOCKWORK (enemies/types/clockwork.gd): a porcelain-masked wind-up doll with a brass key in its back. Runs in bursts (BURST_T x
+  BURST_MULT) while the wind drains (WIND_DRAIN); at zero it STOPS and is vulnerable (STOP_MULT damage) while it rewinds (REWIND_T).
+  A wound clockwork within HELP_R walks over and winds it twice as fast. Shoot the key from behind (KEY_HP) -> HAYWIRE: fast erratic
+  running, damage 2, it hurts itself (HAYWIRE_DPS) until it breaks. "THEY WIND UP OUT OF SIGHT": hits taken while stopped (main meta
+  "cw_stop_hits") at STOP_LEARN -> clockworks retreat to rewind when the wind is low (RETREAT_AT).
+- BOSS THE MACHINIST (ironarms.gd boss variant, chase_range > 600): four arms (BOSS_ARMS: 2 guns + 2 rocket pods, BOSS_ARM_HP each),
+  BOSS_VOLLEY_N barrage, rockets every ROCKET_CD (lobbed, blast), all of the ironarms learning. Below half HP with an arm missing ->
+  REBUILD once (REBUILD_T, takes x0.5 damage meanwhile, arms come back). With no arms left after the rebuild -> RAGE.
+- To tune: WALKWAYS, TIER, TRAMS, WIRES, TANGOS, STAGE_W, zombie_weights() in stage_48.gd; Tram / SparkWire constants in s48_decor.gd.
+- Game.IMPLEMENTED = 48.

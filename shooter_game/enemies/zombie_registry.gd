@@ -47,6 +47,9 @@ enum {
 	WELDER, TANKETTE, FOREMAN, PROTOTYPE, # שלב 43 (מפעל המלחמה בוולטה רדונדה). PROTOTYPE = בוס נייח (טנק-על)
 	PARATROOPER, MORTARMAN, STORMTROOPER, RED_ZEPPELIN, # שלב 44 (סכר איטאיפו). RED_ZEPPELIN = בוס מרחף
 	PRAETORIAN, COMMISSAR, HERALD, EMPEROR, # שלב 45 (הארמון האדום בפטרופוליס). EMPEROR = הבוס האחרון של האימפריה
+	EXECUTIONER, HARVESTER, CASK,  # שלב 46 (עמק היין - מנדוסה). EXECUTIONER = גם הבוס (THE HEADSMAN)
+	TORO, BOLEADOR, STORMCALLER,   # שלב 47 (סערה בפמפס). TORO = גם הבוס (EL TORO)
+	IRONARMS, TANGO, CLOCKWORK,    # שלב 48 (הרובע הישן - בואנוס איירס). IRONARMS = גם הבוס (THE MACHINIST)
 }
 
 const FIRST := 20
@@ -180,6 +183,15 @@ const TYPES := {
 	COMMISSAR: "res://enemies/types/commissar.gd",
 	HERALD: "res://enemies/types/herald.gd",
 	EMPEROR: "res://enemies/types/emperor.gd",
+	EXECUTIONER: "res://enemies/types/executioner.gd",
+	HARVESTER: "res://enemies/types/harvester.gd",
+	CASK: "res://enemies/types/cask.gd",
+	TORO: "res://enemies/types/toro.gd",
+	BOLEADOR: "res://enemies/types/boleador.gd",
+	STORMCALLER: "res://enemies/types/stormcaller.gd",
+	IRONARMS: "res://enemies/types/ironarms.gd",
+	TANGO: "res://enemies/types/tango.gd",
+	CLOCKWORK: "res://enemies/types/clockwork.gd",
 }
 
 static var _stats_cache := {}
