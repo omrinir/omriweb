@@ -1432,8 +1432,8 @@ func _try_splat(landed: bool) -> void:
 
 func _spray_blood(pos: Vector2, dir: Vector2, n: int, power: float) -> void:
 	var lite := _lite or death_load() >= DEATH_HEAVY - 1   # מולטי-קיל: שליש מהטיפות
-	var cnt := maxi(1, int(round(float(n) * BLOOD_AMOUNT * (0.33 if lite else 1.0))))
-	cnt = mini(cnt, MAX_BLOOD - BloodScript.alive)
+	var cnt := maxi(1, int(round(float(n) * BLOOD_AMOUNT * (0.33 if lite else 1.0) * Quality.gore())))   # המשחק איטי: 35% פחות
+	cnt = mini(cnt, int(MAX_BLOOD * Quality.gore()) - BloodScript.alive)
 	for i in cnt:
 		var b = BloodScript.new()
 		get_parent().add_child(b)
