@@ -1049,3 +1049,11 @@ a damped spring (kick_stiffness, kick_damping, kick_max), not a random shake, so
 player.gd `_screen_kick(rk)`: px = SCREEN_KICK_BASE + SCREEN_KICK_PER_RECOIL * the weapon's "recoil" (weapon_db), capped at
 SCREEN_KICK_MAX; recoil >= SCREEN_KICK_HEAVY (shotgun, launcher, rocket) also gets a short shake. Measured peaks: pistol 2.3 px,
 SMG 2.4, assault rifle 2.6, rifle 3.2, sniper 3.7, shotgun 7.1. Set SCREEN_KICK_BASE and SCREEN_KICK_PER_RECOIL to 0 to turn it off.
+
+## Hit reactions (where the bullet lands)
+A zombie that survives a hit reacts for a moment, by zone (zombie.gd `_start_react`, `REACT_TIME`): **head** = the head snaps
+back and the face tips up (0.28 s), **body** = it doubles over and clutches its belly (0.38 s, slows to 60%), **leg** = it hops
+on the other leg with the hit leg lifted (0.5 s, slows to 40%). Only bullet / melee / taser / laser hits; not explosions, fire
+or metal. Strength = weapon "knockback" (`_react_push`, 0.8-1.6); big zombies x0.6, bosses x0.35. A head reaction is not
+overridden by a body/leg hit right after it. Kinds 0-19 bend their joints in `_draw_body`; type modules (20+) get a whole-body
+tilt / hop through `begin_draw` (`react_tilt()`, `react_hop()`). Runner/screamer bend less (their vest polygon flips otherwise).
