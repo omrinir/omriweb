@@ -1064,7 +1064,7 @@ tilt / hop through `begin_draw` (`react_tilt()`, `react_hop()`). Runner/screamer
 
 ## Region 6 - SOUTHERN CONE (levels 46-54): "They learned to plan."
 Each level brings 3 new zombie types; the boss is a giant variant of the level's first type (chase_range > 600, like KRAKEN).
-Game.IMPLEMENTED = 54 (levels 52-54 below the Stage 51 section).
+Game.IMPLEMENTED = 57 (levels 52-57 below the Stage 51 section).
 
 ## Stage 46 - "WINE VALLEY" ("THEY LEARNED THE BLADE") - Mendoza vineyards at harvest dusk, region 6 (SOUTHERN CONE) level 1
 - levels/stage_46.gd + effects/s46_decor.gd: dusk sky with long flat sunset clouds, low sun and condors; far layer (0.06) = the snowy Andes
@@ -1727,6 +1727,592 @@ of *The Strain* (Guillermo del Toro & Chuck Hogan, books and comics).
   when a zombie is flung fast, now has its sway clamped); the boss never opened
   up because a PULL refilled 3 links (`PULL_N` 2); a generator named `crates` ignored the story stretch (renamed `ammo`).
 - Known: the boss SUPPLY drop can fly past `level_w` and fall under the floor (seen here at x 10283; the drop code is in zombie.gd, so other boss levels may do it too).
+
+## Region 7 story (levels 55-57+): THEY LEARNED TO THINK
+Full story bible: `STORY.md` (next to this file). The infection is ECHO: when an infected body dies, a spore cloud carries its
+last moments to the others, so every kill teaches the rest ("THEY LEARN"). The hero is Subject Zero of Project ECHO, cut out
+of the hive and memory-wiped by the suppressant LETHE ("Good. Then it worked." in level 1). The Architect died at 54 and
+nothing stopped: there is no leader any more, the hive thinks as one and wants the hero, its first voice, to "come home".
+* **Spore lesson** (`effects/spore_lesson.gd`, from `zombie.gd` `_die`): from level `SPORE_FROM` (55) a kill sends a small glowing
+  spore puff (CHANCE 0.6) to the nearest living zombie within 650 px, which flashes a ring ("it learned"). Max 3 at once, skipped
+  for bosses, multi-kill "lite" deaths and Quality level 2+.
+* Story scenes: `story/scenes/l55_stranger.gd` (x 4500 in stage_55's story_stretch 3700-5700; the STRANGER explains the spores:
+  "Every one you kill... breathes out what it saw"; actions gust / flock_scatter) and `story/scenes/l57_chorus.gd` (x 6240 in the
+  colony inside stretch 5600-7600; a WADDLER is the body, the MURMUR flock forms a face and the hive speaks for the first time with
+  five layered voices; actions flock_form / flock_break). Voices: `devtools/story_voices.py l55_stranger l57_chorus` (CHORUS layers)
+  then `story_voices_master.py l55_stranger l57_chorus` in /home/claude/work/story.
+
+## Stage 55 - "WIND STEPPE" (THEY LEARNED THE WIND)
+
+Zone 7 (Patagonia), stage 1. The Architect died on the bridge (54) and nothing changed: there is no leader any more, the
+hive thinks as one. The hero walks the empty Patagonian steppe of ESTANCIA LA VENTOSA under a huge blue sky, in a wind that
+never stops. The dead learned two things: the hero does not look up, and the wind can carry them. So they come out of the
+sky and roll along the ground. Here the STRANGER tells him the truth about the spores.
+
+**Files**
+- `levels/stage_55.gd` - the wind, layout, spawns, drifter waves, hints, story hooks. Sounds `w55_whoosh`, `w55_gust`,
+  `w55_sheet`, `w55_rattle`, `w55_creak`, `w55_blade`, `w55_crash`, `w55_hiss`, `w55_beep`, `w55_wire`, `w55_gate`,
+  `w55_stampede`, `w55_baa` (synthesised; no new files). Music `level1_total_war.mp3`.
+- `effects/s55_decor.gd` - sky + 3 parallax layers, all world objects, traps, screen FX, and the shared wind state `W`.
+- `enemies/types/shearer.gd` - SHEARER (+ `Sheep`) and the boss THE ESTANCIERO.
+- `enemies/types/drifter.gd` - DRIFTER (+ `CanopyBody`, `Rock`, `LooseCanopy`).
+- `enemies/types/tumbler.gd` - TUMBLER.
+- `map/thumbs/level_55.png` - level card.
+- Death spores need nothing extra: zombie.gd already sends `SporeScript` (SPORE_FROM 55) on every death.
+
+**The wind (the stage mechanic)**
+- `wind()` returns -1..1; negative means it blows left, into the hero's face. The base is `BREEZE` 0.42 (always left).
+- Cycle (`_wind_tick`):
+  - CALM for `CALM_T` 6.5-10 s;
+  - WARN for `WARN_T` 1.3 s: grass and dust lean hard, a whoosh, and the windsock HUD shows "GUST";
+  - GUST for `GUST_T` 3 s at |wind| = 1;
+  - LULL for `LULL_T` 2.2 s, when the wind drops.
+- The API for zombie types and traps is `gust_k()` (0..1) and `warn_k()` (0..1). `force_gust()` starts a gust now.
+- The wind moves particles, grass, flags, poplars, rotors, sheep, DRIFTERs and TUMBLERs.
+- It pushes the player only in the air (`AIR_PUSH` 75 px/s at full wind). There is no push on the ground, on a ladder or
+  while grabbed, so the wind never takes control away.
+- `Decor.W` (static) is updated every frame by the stage: `wind`, `mag`, `gust`, `warn`, `lean`, `drift`, `spin`, `t`.
+  Every decor class reads it.
+- Screen: `WindFX` draws dust and seed streaks by wind and flashes on a gust. `WindHud` is a small windsock with "GUST!"
+  under STYLE.
+
+**Background (Backdrop)**
+- `steppe_sky`: deep Patagonian blue, a low western sun, lenticular clouds standing over the Andes, torn clouds racing
+  (faster in a gust) and two condors.
+- `far_andes` (0.06): granite needles like Fitz Roy with snow plumes torn off the peaks, glaciers, a turquoise lake strip
+  and cloud shadows running over the steppe.
+- `mid_estancia` (0.28): ochre hills, poplar rows bending in gusts, the estancia casco (red roof), a turbine farm whose
+  rotors follow the wind, guanacos, sheep dots, and Ruta 40 with a dust cloud.
+- `near_steppe` (0.6): fence posts with 4 wires and skulls, coiron tufts that lean and shiver, calafate bushes, bent
+  ñire trees, an Australian windpump and rolling tumbleweeds.
+- `steppe_overlay`: a warm dust haze behind the figures.
+- The level is bright on purpose: no dark areas and no fog.
+
+**Layout / upper floors**
+- `ARCH_X` 360: `EstanciaArch` "ESTANCIA LA VENTOSA" with a flapping flag.
+- `SHED_X` 1100: `WoolShed` "ESQUILA". It has a loft at `SHED_TIER` 150 (invisible `add_floor` + 2 ladders) with AMMO and
+  HEALTH up there, and a `SheetTrap` on the roof.
+- `TOWER_X` 2600: `WaterTower`, deck at `TOWER_TIER` 190, ladder, a GRENADE on top.
+- `PUESTO_X` 3060: a stone shepherds' hut with a smoking chimney. `GAS_X` 3330: the gas bottle.
+- `STORY_X` 3700..5700: the clear story stretch (see Story hooks).
+- `TURBINES`:
+  - 6780 is broken (`BladeDrop`);
+  - 8130 has a maintenance deck at `TURBINE_TIER` 170 with a ladder, HEALTH and AMMO.
+- `CORRAL_X` 7330: the corral.
+- `YARD_X` 9140: the boss arena in front of the big `ShearingYard` shed. It has a warm, lit interior so the boss reads
+  against it. Also in the arena:
+  - `PRESS_X` 9330: a raised `WoolPress` deck (`PRESS_TIER` 130) with AMMO;
+  - HEALTH at `YARD_X`-120;
+  - wool bales at `BALES` (cover, and the boss's charge jams on them).
+- `WindPump`s at `PUMPS` and long `WireFence`s at `FENCES` (both background).
+- Obstacles come from `custom_gen` as `Decor.Obstacle`: `wool` bales, `posts` (fence post piles), `rusty` (a rusted
+  pickup) and `trough`. The name `crates` is not used, because main.gd handles that name itself.
+- Every placed spawn (tumbler, flock) has a `reserve()`d rect, so generated obstacles never cover a spawn point. Without
+  this, zombies were sinking into the floor.
+- `extra_spawns`:
+  - flocks of 4 sheep with 1-2 hidden shearers at `FLOCKS`;
+  - the corral shearer (in `pen_mode`);
+  - 3 perched drifters at `PERCHES` (shed roof, water tower, turbine deck);
+  - tumblers at `TUMBLERS` and a 3-ball `PACK` at 6200-6380;
+  - 2 regulars in the arena.
+- Drifter waves (`_waves`): at `DRIFT_WAVES` the stage launches 1 drifter upwind of the player (player.x ± 680, meta
+  `dr_fly`). Once drifters have learned, it launches 2 ("They come in pairs now..."). Waves never land in the story stretch.
+- `_hints`: the hero says one line the first time he meets each type.
+
+**Traps** (`s55_decor.gd`)
+- `SheetTrap` (shed roof):
+  - A loose sheet rattles (`WARN_T` 1.1) in a gust, then tears off and flies downwind at head height (`V` 470).
+  - It does `DMG` 1 to the player and cuts zombies (`DMG_Z` 55). There are `SHEETS` 3, with a `RELOAD` of 3 s.
+  - Shoot it to tear it off now.
+- `BladeDrop` (turbine 6780):
+  - The cracked blade creaks with a shadow on the ground (`WARN_T` 1.2), then falls (`FALL_T`) and crashes (`R` 110).
+  - It does `DMG` 2 to the player and `DMG_Z` 90 to zombies.
+  - Shoot the red bolt to drop it now.
+- `GasBottle` (`GAS_X`):
+  - A gust knocks it over. It rolls downwind hissing (`ROLL_V` 150) and blows up after `FUSE` 3.4 s (`BOOM_R` 130).
+  - Shoot it to blow it up where it is; another explosion sets it off too.
+- `BarbedWire` (`WIRES` 2060, 3470, 7090, 8440): low barbed wire across the road.
+  - Walking through it snags the player (`SNAG_T` 0.9, slow + 1 heart, `CD` 1.6), so jump it.
+  - Zombies get stuck and bleed.
+  - A rolling TUMBLER gets caught (`snag_wire`) and opens.
+- `Corral` (`CORRAL_X`):
+  - Walk near it (`TRIG_R` 560) and the gate bursts (`WARN_T` 0.7).
+  - `N_SHEEP` 12 sheep stampede at you. They are harmless, but they block shots.
+  - A SHEARER rides inside the flock.
+
+**SHEARER** - a dead shearer from the estancia: boina, moustache, bloody forearms, a blood-soaked leather apron over
+bombachas, and huge sheep shears.
+- **What he learned:** "you shoot what looks like a zombie." So he looks like a sheep. He crawls on all fours under a flayed
+  fleece with a sheep's head on his own and grazes inside a flock (`Sheep`).
+- **The tell:** human legs (boots and bombachas) behind, bloody hands in front, red eyes glinting inside the sheep head,
+  blood on the wool, and sometimes the shear tips glint.
+- **DISGUISE:** creeps toward you while you are in `CREEP_R`.
+- **BURST:** he bursts out when you are too close (`BURST_R`), when he is shot, or when the flock panics. He throws off the
+  fleece in a wool cloud and screams. Then he goes to LEAP (`LEAP_V`) and CHASE.
+- **SNIP:** at `SNIP_R` the shears open wide and glint (`SNIP_WIND` 0.32, the warning), then close (`SNIP_DMG` + slow).
+  Sometimes he does a fast second snip (`COMBO`). After a snip comes RECOVER, a window to shoot him.
+- **Sheep** never die and never hurt you. A bullet into a sheep is swallowed by the wool ("baa") and the sheep runs, and
+  the panic spreads. That is how you split a flock: shoot next to it and the shearer is exposed.
+- **"FOUND ONE":** a hit while he is still disguised and more than `FOUND_R` away counts as found early (main meta
+  `shr_found`).
+- **Learns:** after `LEARN` 2 early finds, the next ones do not rise when you come close. They let you walk past and burst
+  out behind you once you are `PASS_DX` beyond them, and their eyes barely glint (the legs still give them away).
+  Caption: "THEY LET YOU PASS NOW".
+
+**THE ESTANCIERO** (boss; `chase_range > 600`, hp 380, scale 2.25) - a giant shearer with a shearing machine on his back:
+a two-stroke engine, a flywheel, and an articulated drive arm over the shoulder ending in huge hydraulic shears instead of
+a hand.
+- **SNAP:** close in, the shears open (`B_SNAP_WIND` 0.6, hydraulic hiss) and close at body height (`B_SNAP_DMG` 2).
+  - After `JUMP_LEARN` 2 jumps over him, he snaps high: "IT READS YOUR JUMP". Roll or back off instead.
+- **CHARGE:** the engine revs (`B_CHARGE_WIND`, smoke) and he charges with the shears open (`B_CHARGE_V` 480).
+  - If he hits a wall, obstacle or wool bale, the shears jam (`B_STUCK_T` 1.5).
+  - While jammed he is fully open: x`OPEN_MULT` 1.8 from any direction.
+- **CALL:** he whistles to the flock. A stampede runs through the arena (blocking shots) with `CALL_SHEARERS` 2 shearers
+  inside. Up to `CALLS` 3 times, every `CALL_EVERY` 15 s.
+- **Weak spot:** the engine on his back.
+  - From behind or above: x`ENGINE_MULT` 2.2 (sparks, metal hit).
+  - The apron and shears in front: x`FRONT_MULT` 0.65.
+  - The head-zone bonus is mostly cancelled for him (x0.2 on engine and open hits, x0.5 otherwise), so engine shots do not
+    stack the global x2 head bonus.
+- **Death:** the engine explodes, the shears fly and stick in the ground, wool and blood burst, and the giant falls.
+
+**DRIFTER** - a zombie hanging in a harness under a torn, colourful paraglider. Cracked helmet, goggles, a torn
+windbreaker, dangling legs, hands up on the brake toggles.
+- **What it learned:** "the hero does not look up." They died in front of him at eye level, so now they come from the sky,
+  with the wind.
+- **Flight rules:**
+  - It cannot fly against the wind. It drifts downwind (`DRIFT_V` × wind) and can only brake or speed up a little
+    (`STEER`).
+  - A gust lifts it (`CLIMB`); a lull sinks it (`SINK`).
+  - Its ground shadow is the hint.
+  - It always comes down within `AIR_MAX` 6.5 s.
+- **PERCH:** stands on a deck with the folded wing flapping. You downwind within `LAUNCH_R` 640 → LAUNCH.
+- **KITE:** on the ground, the wing inflates behind it. A gust (or `KITE_WAIT`) lifts it.
+- **FLY:** cruises at `CRUISE` 250 px.
+  - Directly above you it drops a rock or fence post (`ROCK_DMG`, with a growing shadow).
+  - Ahead and below (`DIVE_DX`) it screeches, legs up (`DIVE_WIND` 0.4), and dives (`DIVE_V` 390, `DIVE_DMG` 1).
+  - If you passed it upwind (`PASS_DX`), it dumps air and lands.
+- **LANDED → GROUND:** a short daze (a window), then it drops the wing and walks as a weak brain zombie.
+- **Counter - the canopy:** it is a big target (`CanopyBody`, layer 4, `CANOPY_HP` 24).
+  - Every hit tears a hole and throws cloth scraps.
+  - When the canopy is ripped (main meta `dr_rips`, popup "RIPPED!") it goes to SPIRAL and crashes (`CRASH_DMG` 80:
+    "CRASHED!", dust, blood).
+  - Fire burns the canopy at once. Explosions rip it.
+  - Killing the body works too: the empty wing (`LooseCanopy`) then blows away.
+- **Learns:** after `LEARN` 2 ripped canopies, the next ones cut their own lines and drop on you feet first (CUT). They do
+  it when above and ahead of you, or the moment their canopy is hit. Caption: "THEY CUT LOOSE NOW". The stage then sends
+  waves in pairs.
+
+**TUMBLER** - a dead farmhand (torn poncho, scarf) curled up inside a ball of thorny steppe brush (mata negra). The branches
+grew through him. Inside: a red eye and a grey hand between the twigs.
+- **What it learned:** "the hero shoots what walks at him." A tumbleweed rolling in the wind is scenery, and nobody shoots
+  it. So they do not walk; the wind rolls them.
+- **REST:** a ball by the road, rocking in the wind (the tell is the red eye and the hand). You downwind within `ROLL_R`
+  900 → ROLL.
+- **ROLL:**
+  - It rolls fast downwind (`ROLL_V` 215 + gust × `ROLL_GUST` 170).
+  - It bounces on bumps (`HOP`) and over obstacles (`WALL_HOP`).
+  - It never rolls upwind: if you are behind it, it opens and walks.
+  - If you jump over it, it opens behind you.
+- **UNROLL** at `GRAB_R` 58: the ball opens wide with thorny arms spread (`UNROLL_T` 0.28, the warning), then GRAB.
+- **GRAB:** a thorny hug (`player.grab`) that squeezes every `SQUEEZE_EVERY` 0.9 s for 1 heart.
+  - You break free with A/D. It also lets go after `HOLD_MAX` 2.2 s or on a `HEAVY_HIT` 22.
+  - A release leaves it in STUN, a window to shoot it.
+- **WALK:** a brain zombie with the ball on its back like a cloak. A gust with you downwind makes it CURL and roll again
+  (`CURL_CD`).
+- **Counter - the ball:**
+  - Shots strip twigs (`BALL_HP` 30); only `BALL_LEAK` 0.35 of the damage reaches the body. Stripped bare, it is exposed
+    and dazed.
+  - Fire burns the ball at once (and it burns). An explosion breaks the ball.
+  - Barbed wire catches a rolling ball (SNAG).
+- **Learns:** a lone roller stopped before it reaches you is a lesson (main meta `tb_lessons`). After `LEARN` 3 lessons
+  the next ones wait for a gust (`gust_k` > 0.5, or `WAIT_MAX` 9 s) and roll together as a pack (`PACK_R` 650,
+  `PACK_BOOST` 1.2). Caption: "THEY WAIT FOR THE WIND".
+
+**Story hooks** (call on `main._stage`)
+- `story_stretch()` returns `Vector2(3700, 5700)`: flat road with no obstacles, traps, wires or placed zombies, and no
+  drifter waves.
+  - The STRANGER stands at x 4500.
+  - A decor flock (9 sheep, `STORY_FLOCK` 4900..5250) grazes there for the scene.
+- `on_story_beat(id)`:
+  - "gust" - `force_gust()`, a full gust now (the scene's first line)
+  - "flock_scatter" - every sheep within 1400 px flees and nearby shearers burst (the scene's last line)
+  - "calm" - jumps to the lull
+  - "stampede" - bursts the corral
+- `wind()`, `gust_k()`, `warn_k()`, `force_gust()`.
+
+**Tunables** - in each file header.
+- Stage: `BREEZE`, `CALM_T`, `WARN_T`, `GUST_T`, `LULL_T`, `AIR_PUSH`, `SHED_X`, `TOWER_X`, `TURBINES`, `PUESTO_X`, `GAS_X`,
+  `WIRES`, `CORRAL_X`, `BALES`, `STORY_X`, `FLOCKS`, `PERCHES`, `DRIFT_WAVES`, `TUMBLERS`, `PACK`, `PUMPS`, `FENCES`.
+- `zombie_weights()`: SHEARER 0.03, DRIFTER 0.035, TUMBLER 0.05, regulars 0.56, runners 0.32.
+- Balance was not touched (MINIGUN 140, GOD 13.8 s, no big ammo piles).
+
+**Tests** (test project, outside the repo)
+- **Headless:** no script errors in any of these runs:
+  - 1600 frames from the start;
+  - 900 frames with the player at x 3000, 6000, 9300 and 9760 (boss), story marked seen;
+  - 900 frames at 4400 with the story scene playing.
+- **Playtest bot (`t_bot.gd`):** FINISHED in every run. The STRANGER scene played 36 s in each run; the stuck events were
+  fights the mortal bot waited out.
+
+  | Run | Time | Deaths | Stuck | Teleports |
+  | --- | --- | --- | --- | --- |
+  | god, seed 5 | 121 s | 0 | 1 (3 s) | 0 |
+  | mortal, default seed | 152 s | 2 | — | 0 |
+  | mortal, seed 77 | 187 s | 7 | — | — |
+  | mortal, earlier default-seed run | 225 s | 4 | — | 2 |
+
+  - Seed 77 is comparable to stage 54 on the same seed: 188 s, 6 deaths.
+  - The earlier default-seed run teleported twice in the story stretch, waiting on zombies that had walked in.
+- **Behaviour counters (`t55.gd`):** every check passes.
+  - shearer: 1 burst, 1 leap, 6 snips / 6 hits; 2 early finds → learned; a learned one let the player pass and burst
+    behind him.
+  - boss: 2-3 snaps, 2 charges, 1 jam on the bales, 1 flock call, 19-23 engine hits; died in about 16 s of point-blank
+    fire.
+  - drifter:
+    - flight: 3 dives / 3 hits, 3 landings, max air 4.5 s;
+    - canopy: 6 hits → 2 rips → 2 crashes → dead, learned after 2;
+    - learned: 1 cut-loose;
+    - fire: 1 burn → down; blast: rips the canopy.
+    - perched and kiting drifters both launched.
+  - tumbler: roll → unroll → grab (2 squeezes, 1 release); shots stripped the ball; fire burned it; the barbed wire
+    snagged it; learned: waited, then 3 rolled as a pack on the gust.
+  - wind: 3 gusts, range -1..0, the player pushed in the air (260-627 px), all 4 story beats run.
+  - walk (traps): 1 sheet flight, wire snags, 1 blade fall, 1 corral burst. The gas bottle tips only when a gust catches
+    the player near it, so it is not hit on every run.
+- **Fixed during testing:**
+  - A perched drifter landed back on its own deck; its flight `collision_mask` is now 1, restored on landing.
+  - Tumblers and flocks spawned inside generated obstacles and sank; their spawn spots are now reserved.
+  - The boss died too fast because engine hits stacked the head bonus; there are now per-zone multipliers.
+  - The learned shearer burst before the player passed; the pass logic was simplified.
+  - The "ESQUILA" sign was hidden behind the loft pickups; it moved below the loft.
+  - Scripted test scenarios now clear random `cover` obstacles, so they are not flaky.
+
+## Stage 56 - "ICE FJORD" (THEY LEARNED THE COLD)
+
+Zone 7 (Patagonia), stage 2. A frozen fjord under Fitz Roy-style granite spires. Blue glacier walls calve into black water, and dead fishing boats sit frozen in the sea ice.
+The level starts on the wooden dock of a fish cannery on stilts and ends at the glacier front.
+THE ARCHITECT is dead (54) and nothing changed: the hive thinks as one. Here the dead learned two things.
+First, heads break, so they armor them in ice. Second, the cold keeps them from rotting.
+Every kill sends its spores to the nearest corpse-mate (the shared `effects/spore_lesson.gd` from 55, so this level adds no spore code of its own).
+
+**Files**
+- `levels/stage_56.gd` - layout, spawns, freezing water, story beat. Sounds: `ti_crack`, `ti_break`, `cv_groan`, `cv_crash`, `hk_rattle`, `hk_run`, `fd_hiss`, `fj_rumble`.
+- `effects/s56_decor.gd` - sky, 3 parallax layers, all world objects and traps, `IceArt` (shared ice-cliff painter).
+- `enemies/types/thawed.gd` - THAWED, which is also the boss THE GLACIER (+ `IceShards`, `IceBlock`, `Shockwave`, `ShatterFlash`).
+- `enemies/types/buoy.gd` - BUOY, the flyer (+ `Balloon`, `PopFx`, `Ascend`).
+- `enemies/types/sealer.gd` - SEALER (+ `Spot`, `Bubbles`, `IceBreak`).
+- Map picture: `map/thumbs/level_56.png`.
+
+**Background (Backdrop)** - every layer animates on `t`.
+- `fjord_sky`: a bright polar dusk sky with stars, a low sun with a halo, three aurora curtains (green / teal / violet) that wave, clouds and birds.
+- `far_peaks` (0.06): granite spires with snow flags blowing off the tops, and a glacier tongue.
+- `mid_fjord` (0.28): fjord water, drifting icebergs, a stuck trawler and white seabirds.
+  The blue glacier front calves into the water every `CALVE_EVERY` s, or at once when `calve_ms` is set.
+- `near_floes` (0.6): bobbing floes on black water, pressure ridges, frozen piles with icicles, blowing snow and sea smoke.
+- `fjord_overlay`: a cold `haze_band` at screen y 420-612, behind the characters (readability rule).
+- Screen FX: the "ash" particles recolored as blowing snow, plus `FjordFX` (spindrift and a cold tint, scaled by `Quality.ambient()`).
+
+**Ground / water**
+- `IceGround`: snowy sea ice with frozen bubbles and cracks. Before `DOCK_END` it is a frosted plank dock on piles.
+- `WaterLead` (`LEADS`): open water between floes.
+  - Walking through it is slow (`player.in_water`).
+  - After `FREEZE_T` s in it you take 1 damage ("FREEZING WATER!", stage `_physics_process`).
+  - Leads are added to `main._spawn_avoid`, so nothing spawns in the water.
+  - There are no death pits in this level.
+- `FishingHole` (`HOLES`): a hole in the ice with an orange tip-up flag. The flag pops up and the water boils when a SEALER is about to come out.
+- `ice_at(x)` on the stage says where a SEALER may break new ice. It may not on the dock, inside a boat hull or next to open water.
+
+**Layout / upper floors** - every high place has ladders and a pickup.
+- `Cannery` (`CANNERY`): a walkway (`CANNERY_TIER`), a roof (`CANNERY_ROOF`, a third floor) and 3 ladders.
+  The "CONSERVERA AUSTRAL" sign, fish boxes and a `HookLine` hang in front.
+- `FrozenBoat` (`BOATS`: SAN JUAN, MARIA AUXILIADORA, DON PEDRO): a deck (`BOAT_DECK`) and a wheelhouse roof (`BOAT_CAB`), each with a ladder and a pickup.
+- `IceLedge` (`LEDGES`): ledges in the glacier wall (`LEDGE_TIER`), with 2 ladders each.
+- `GlacierArena` (boss) at `level_w - 1100`: the glacier front with a blue ice cave (THE GLACIER comes out of it).
+  - A hiding ledge (`ARENA_LEDGE`, `ARENA_TIER`) with a ladder and ammo.
+  - 2 `Calving` ledges and 2 `FuelDrum`s.
+  - Health and ammo just before the arena.
+- Obstacles `ice_block` (a frozen fish inside), `fish_box` ("MERLUZA") and `net_pile` (nets and floats) come from `custom_gen`.
+  They skip reserved spots and water. All are solid and in group `cover`.
+- `extra_spawns`:
+  - a regular zombie on every deck
+  - a THAWED plus a regular after every drum (`THAWED_AT`): the drum is the answer to the ice
+  - `BUOYS` (8) and `SEALERS` (6, under the fishing holes)
+  - a group next to every boat
+  - 2 regulars in the arena
+- `zombie_weights()`: THAWED 0.045, BUOY 0.03, SEALER 0.03, regulars 0.55, runners 0.33. `zombie_density()` uses `HARDER` by difficulty.
+
+**Traps** (all in group `hazards` with `world_rect()` / `danger_at()` for the bot)
+- `ThinIce` (`THIN`): stand on it and it cracks (`CRACK_T`, crack sounds), then breaks.
+  - The break deals `DMG` plus a slow (`SLOW`) to you and `DMG_Z` to zombies standing on it.
+  - It leaves open water, which joins group `ice_holes` (a SEALER exit), and it refreezes after `REFREEZE`.
+  - A blast breaks it at once (it is `blastable`).
+- `Calving` (`CALVING`): an ice shelf hanging from a glacier wall.
+  - When you come near (`TRIGGER`) it groans, cracks spread and a shadow shows on the floor (`WARN_T`). Then ice chunks fall (`DMG`, `DMG_Z`, 25 on the boss).
+  - Shooting the blue crack (a layer-4 body) drops it in `SHOT_WARN`, which is how you drop it on a crowd.
+  - It regrows after `REGROW_T`. The wall behind it is drawn behind the characters (`Calving.Wall`, z -2).
+- `HookLine` (in front of the cannery): when you enter, a bell rings and a lamp lights (`WARN_T`). Then the cart runs the rail with a fish hook at chest height (`SPEED`).
+  - Crouch, jump or roll under it, or take `DMG`.
+  - It hooks up to 2 zombies (`DMG_Z`), drags them and flings them.
+  - Shooting the motor box starts it on your timing (cooldown `CD`).
+- `FuelDrum` (`DRUMS`): a frozen fuel drum. `HP` bullets crack the frost, then it hisses (`FUSE`) and blows with source "barrel" (`BLAST_R`, `BLAST_DMG`).
+  The blast strips THAWED ice and breaks thin ice nearby.
+
+**THAWED** - a dead fisherman frozen inside a shell of ice. You see the body through the blue armor: a knitted sweater, oilskin bib trousers, a beanie, blue skin and lips, sometimes a frozen fish on the belt.
+- Colors change per zombie (6 sweaters, 4 oilskins, beanie or none, ice tint).
+- Heavy and slow, and its steps crack the ice.
+- **What it learned:** thousands died from a bullet to the head. Ice stops a bullet better than a skull, so they went into the water, came out and froze, helmet first.
+- **Ice plates** (`HEAD`, `CHEST`, `ARM` front forearm, `LEGS`), each with `LAYERS` layers of `LAYER_HP`:
+  - A bullet into an iced plate only chips it (shards, more cracks). It is absorbed (`on_damage` returns false). A broken layer bursts into shards.
+  - The head is armored until the helmet breaks. The first helmet hit pops "ICE HELMET" and the line "They froze their heads... break the ice first. Fire melts it".
+  - A plate that is gone shows frozen flesh (x`SOFT_MULT`, "HEAD EXPOSED").
+  - Fire melts every plate: burning melts `MELT_RATE`/s with steam, and incendiary bullets do x`INC_MELT` and ignite.
+  - Explosions take `BLAST_ICE` from every plate, and the body takes only x`ICED_BLAST` while it is still iced.
+- **SLAM:** it lifts both frozen fists (`WIND_T`) and smashes (`DMG`, plus a `CHILL` slow). Fully stripped, it moves faster (`BARE_SPEED`).
+- **Death:** the ice shatters (`IceShards`: up to 260 shards, batched into one triangle-array draw), frozen gore (`Quality.gore()`) and a ragdoll.
+- **Learns** (main meta):
+  - `th_heads` >= `HEAD_LEARN` (helmets you broke): new ones cover the head with the iced forearm while you aim at it ("IT GUARDS ITS HEAD NOW").
+    Counter: break the arm ice first, shoot the body, or wait for the arm to drop when it slams.
+  - `th_stripped` >= `STRIP_LEARN` (THAWED you fully stripped): new ones refreeze a thin layer (`THIN_HP`) after `REFREEZE_T` without a hit, up to `REFREEZE_MAX` times ("IT REFREEZES").
+    Counter: keep shooting, or use fire (no refreezing while it burns).
+
+**THE GLACIER** (boss, `chase_range > 600`, `boss_name` "THE GLACIER") - a giant (x2.5) inside a glacier block: a red oilskin coat under thick ice, with ice-club arms.
+- Hitbox 46x66. Plates `BOSS_LAYERS` x `BOSS_LAYER_HP`; side hits on the front half go to the ARM plate. It always refreezes (`BOSS_REFREEZE_T`, a full layer on the most damaged plate).
+- **SMASH** (`SMASH_WIND`): an ice shockwave along the floor (`SMASH_R`, `SMASH_DMG`). Jump it or stand on the ledge.
+- **THROW** (`THROW_WIND`): it tears off an `IceBlock` and lobs it at you in an arc, up to the ledge too (`THROW_R`, `THROW_DMG`).
+  The block can be shot out of the air (layer-4 body, also `blastable`). Under 50% hp it throws two.
+- **ROAR -> CALVE:** every `CALVE_EVERY` under 70% hp it roars and stomps, and the arena `Calving` nearest to you drops (`stage.calve_near(x, 0.8)`). The falling ice also hurts the boss.
+- **Death:** a huge shatter and a flash (`ShatterFlash`).
+
+**BUOY** - the flyer. A dead fisherman in an orange survival suit (reflective tape, hood or knit cap, frosted beard).
+His harness is tied to a cluster of 5-6 floats: white or tinted weather balloons, hard orange net floats and boat fenders. The mix and colors change per zombie.
+- **What it learned:** "you shoot what walks at you, on the ground, in front of you". So they rose above the line of fire and drop on you from above.
+- It hovers over you at `ALT_PER` x (floats left) and drifts in the wind.
+- **Attack cycle** (always: it comes down every 2-3 s, `ATTACK_CD`):
+  - **TELL** (`VENT_T`): it pulls the valve (hiss) and a target ring appears on the floor where you stand.
+  - **DROP**: it falls on you feet first (`DROP_SPEED`, `DROP_DMG`). Roll or step aside.
+  - **LOW** (`LOW_T`): it hangs low and swings a gaff hook (`GAFF_*`). Here every weapon reaches its body, melee and flamethrower too.
+  - **RISE**: it climbs back up.
+- **Balloons:** each float is its own `Balloon` body (layer 4, `hit_by_bullet`, plus group `blastable`). Any bullet, pellet, arrow, flame, laser or blast pops it; an orange float takes 2 hits.
+  - With fewer floats it flies lower. With none it falls:
+    - onto the ice: a splat with damage by height (`FALL_DMG_K`, usually death). If it survives it is "GROUNDED", a limping normal zombie.
+    - into open water: it sinks.
+- Killed in the body while 2 or more floats remain: the corpse drifts up into the sky, dripping blood (`Ascend`). A last single float flies away alone.
+- **Learns** (main meta `buoy_pops` >= `POP_LEARN`): new ones circle round and drop from behind you, on the side you are not aiming at ("IT COMES FROM BEHIND").
+  The hiss and the floor ring still warn you. Counter: turn and roll.
+- Unlike glider / ironwing / swinger / stacker it has no wings, rope or perch. It is lift you can shoot off piece by piece, and the drop is a vertical stomp with a floor marker.
+
+**SEALER** - a dead seal hunter wearing the pelt of a seal he killed.
+- The seal's head is his hood (snout, black eyes, whiskers) and the hind flippers hang behind.
+- He wears sealskin boots, oilskin trousers (yellow / orange / navy), a red rope belt and an iced beard.
+- He carries a hakapik: a wooden club with a hammer and hook head.
+- The pelt is a silver harp seal with a dark "harp" saddle, or a brown fur seal.
+- **What it learned:** "you shoot what you can see". So they went under the ice where bullets cannot reach and come up only to strike.
+- **Cycle:**
+  - **SUB**: it swims under the ice. `collision_layer` is 0 and every hit is absorbed. You see only a dark seal-shaped shadow and a bubble trail moving inside the ice (z above the ground).
+    It heads for the open `ice_holes` node nearest you within `EXIT_R`: a fishing hole, a lead, broken thin ice or its own break. If there is none, it breaks the ice `BREAK_X` from you.
+  - **TELL** (`TELL_T`): the water boils and the tip-up flag jumps, or cracks spread over the ice.
+    The bubbles are a `Spot` body. Shoot them and it is thrown out "SPOTTED", stunned (`STUN_T`, damage x`STUN_MULT`). A blast over its shadow does the same (depth charge).
+  - **BURST**: it leaps out at you, club first (`LUNGE_V`, `LUNGE_DMG`).
+  - **SLIDE**: it lands and belly-slides like a seal (`SLIDE_T`). The hitbox becomes low and wide while it lies down.
+  - **RETURN**: it walks to the nearest open hole (`HOLE_R`) and **DIVE**s. It clubs you if you are close (`CLUB_*`).
+    With no hole near, it **CHOP**s a new one (`CHOP_T`, a window to shoot it). An `IceBreak` refreezes after 14 s.
+- **Learns** (main meta `sealer_spotted` >= `SPOT_LEARN`): it fakes the bubbles at one hole (decoy `Bubbles`), swims fast (`FEINT_SPEED`) under you and bursts from the other side (`FEINT_BEHIND`, a short crack tell).
+  Popup "THE BUBBLES LIE NOW" and the line "They saw me shoot the bubbles... watch the shadow, not the bubbles".
+
+**Story beats** - `on_story_beat("calve")`: the glacier in the background calves now (`Decor.calve_ms`, a rumble and a camera shake). The hanging `Calving` within 900 px of the player that is nearest drops too, with its normal warning. This level has no story scene.
+
+**Tunables** - in each file header.
+- Stage: `DOCK_END`, `CANNERY`, `BOATS`, `LEDGES`, `LEADS`, `HOLES`, `THIN`, `CALVING`, `DRUMS`, `THAWED_AT`, `BUOYS`, `SEALERS`, `FREEZE_T`, `zombie_weights()`.
+- Decor: `CALVE_EVERY`, and the trap constants above.
+
+## Stage 57 - "PENGUIN COAST" (THEY LEARNED TO BE MANY)
+
+Zone 7 (Patagonia), stage 3. A cold, windy beach at the end of the world: a living penguin colony on a pebble beach,
+giant kelp, an old red-and-white lighthouse and a ruined whaling station (rusty oil tanks, a flensing gantry, whale
+bones). THE ARCHITECT died at the bridge (stage 54) and nothing changed: there is no leader any more, the hive thinks
+as one. Here the dead learned that a body can be shot, so some of them stopped needing one: a flock of dead birds
+flies in the shape of a man, and the dead hide inside the colony because they learned you won't shoot into a crowd
+of the living. Near the lighthouse the hive speaks for the first time (THE CHORUS scene).
+
+**Files**
+- `levels/stage_57.gd` - layout, spawns, decks + pickups, story hooks. Sounds `pg_squawk`, `pg_flee`, `s57_burst`,
+  `s57_whoosh`, `s57_chain`, `s57_swoosh`, `s57_wave_roar`, `s57_wave_crash`, `s57_wind`, `s57_chorus` (all synth).
+- `effects/s57_decor.gd` - sky + 3 parallax layers, the colony, all world objects, traps and the screen FX.
+- `enemies/types/waddler.gd` - WADDLER (also the boss, THE BEACHMASTER). Sounds `wd_*`, `bm_*`.
+- `enemies/types/murmur.gd` - MURMUR (+ `FX`: falling dead birds / feathers / fleeing birds). Sounds `mm_*`.
+- `enemies/types/blubber.gd` - BLUBBER. Sounds `bl_*`.
+- `map/thumbs/level_57.png`.
+
+**Background (Backdrop)**
+- `coast_sky`: heavy overcast gradient, a pale band of light over the sea, moving sun rays, wind-torn clouds, gulls and
+  petrels riding the wind (some are blown backwards in a gust).
+- `far_coast` 0.06: the snowy Tierra del Fuego range, cliffs, icebergs on the horizon, a rusty wrecked whaler and a far
+  lighthouse that blinks.
+- `mid_bay` 0.28: rolling waves breaking on rocks, sea lions and penguins on the rocks, kelp beds, and a distant
+  murmuration that keeps changing shape (a hint of the MURMUR). THE CHORUS face also lives here: 190 birds that form a
+  giant face over the sea (`Decor.U.face_ms`), move its mouth while it talks (`U.talk`) and break apart (`U.break_ms`).
+- `near_shore` 0.6: the pebble bank behind the road with tussock grass in the wind, whale ribs, upturned boats, anchor
+  chains, penguin burrows with heads peeking out, walking gulls.
+- `coast_overlay` + `CoastFX` (screen): wind streaks, sea spray, snow flecks, `gust()`.
+- Everything is batched into triangle arrays (`U.flush` -> `RenderingServer.canvas_item_add_triangle_array`).
+
+**Layout / upper floor**
+- `COLONIES` (1150, 2350, 4150, 8450): a `Colony` each with 1-2 WADDLERs hidden inside. `STORY_COLONY` 6240 has no
+  zombies (the scene actor stands in it). `BOSS_COLONY` 9620 is in the arena.
+- `SKELETONS` 2700: a `WhaleSkeleton` with a plank along the spine (deck at `SKEL_TIER` 170, 2 ladders, AMMO up top).
+- `TANKS` 3330 / 4640: whale-oil tanks with a walkway on the roof (`TANK_TIER` 165, ladder, HEALTH / AMMO).
+- `GANTRY` 3820: the flensing gantry (deck at `GANTRY_TIER` 205, 2 ladders, a GRENADE) with the `GantryHook` under it.
+- `LIGHTHOUSE_X` 5350: the keeper's house roof (`HOUSE_TIER` 150) and the lamp gallery (`GALLERY_TIER` 300, HEALTH),
+  ladders to both. Lamp beam sweeps.
+- Obstacles `drums` / `boat` / `boulders` / `vertebra` come from `custom_gen`.
+- `ARENA_X` 9240: `BossBeach` (wet boulders, the slipway, a whale skull, the "ESTACION BALLENERA PUNTA 1906" sign),
+  HEALTH + AMMO, a regular and a runner.
+
+**The penguin colony** (`Decor.Colony`, group `s57_colonies`)
+- Harmless animated penguins (Magellanic, King and Gentoo, each one varied). They huddle (`HUDDLE`), wander
+  (`WANDER`), and scatter (`SCATTER_T`) when you fire within `HEAR_R` 560 px, walk into them (`TOUCH_R`), or a blast
+  or a charge hits them. Scattered penguins run, belly-slide and tumble, then regroup (`REGROUP_T`).
+- While huddled the colony is a shield (`ColonyBody`, layer 4): a bullet into the crowd hits a penguin (it falls, feathers,
+  no kill, no score) and the colony scatters. "THE COLONY SCATTERS"; the hero: "Not the birds... they hide in there."
+
+**Traps**
+- `OilBurst` (`OIL_BURSTS` 3640, 5000, 8900): a small whale-oil tank on the road. Shoot it (or blast it) and oil gushes
+  out into a `Slick` (`SPREAD` 300 px) that ignites after `IGNITE_T` 0.7 s (`FireZone`, `BURN_T`).
+- `Slick` (group `s57_slicks`): slippery (`player.slip_t`), zombies stumble on it (`STUMBLE`), it ignites from fire,
+  explosions, burning zombies or a fire hazard and spreads the fire to slicks next to it. A wave douses it. The BLUBBER
+  leaves one when it dies.
+- `GantryHook`: stand under it (`TRIG_R`) and the chain rattles while the hook pulls back (`WIND_T`), then it swings
+  across the road (`SWING_T`): `DMG` to you, `DMG_Z` to zombies (impales them). Shoot the pulley to swing it when you
+  want (`release`).
+- `WaveSurge` (`WAVES` 1620 / 7760): a stretch the sea washes over. A wave rises behind (`WARN_T`, a roar), then floods
+  the road (`SURGE_T`): it pushes you back (`PUSH`), knocks zombies down and douses burning slicks. Up on a deck or in
+  a jump it misses you.
+- `SlickRocks` (`ROCKS` 880, 3150, 8180): flat wet rocks with kelp. You slip and zombies stumble.
+
+**WADDLER** - a hunched dead man in a black-and-white parka whose hood is shaped like a penguin's head (white cheek
+stripe, orange patch, a peak like a beak), long sleeves that hang like flippers, claws, orange rubber boots.
+Learned from: the hero does not shoot into a crowd of the living, so they hide among the living.
+- **HIDE:** crouches inside a colony and moves with it. Hidden it takes x`HIDE_MULT` 0.6.
+- **REVEAL:** the colony scatters, you come close (`AMBUSH_R`) or it is hit: it stands up taller than the penguins,
+  red eyes, blood on the white front (`REVEAL_T`, a shriek).
+- **WADDLE -> WIND -> LUNGE:** a fast waddle, then a crouch (`WIND_T`) and a clawed leap (`LUNGE_V`, `LUNGE_DMG`).
+- **FLOP:** a missed lunge lands it on its belly sliding (`FLOP_T`, x`FLOP_MULT` 1.5).
+- Counter: one shot near the colony (or walk into it) scatters the penguins and exposes it; jump or roll the lunge.
+- **Learns** (main meta `wd_kills` >= `LEARN_KILLS` 2): "IT WAITS FOR THE COLONY NOW" - when the colony scatters it
+  does not attack but runs with the penguins and waits for them to huddle around it again (`WAIT`, up to `WAIT_MAX`),
+  pushes the colony towards you (`Colony.lure`) and only leaps out when you are very close (`LEARN_R`, a shorter wind).
+  While it waits it is exposed.
+- Scene actor: `talking`, `tilt`, `smile`, `t`. Out of group "zombies" it never lunges or deals damage and takes no hits.
+
+**THE BEACHMASTER** (boss, `chase_range > 600`) - a giant WADDLER, master of the beach, with feathers stuck in the parka
+and a harpoon in the back.
+- **SLIDE:** drops on its belly (`SLIDE_WIND`, dust) and slides along the beach (`SLIDE_V`) - jump it. It flattens
+  penguins and stops after it passes you by `SLIDE_PAST` or at the arena edge (`ARENA_W`).
+- **WALLOW:** after a slide it lies on its belly (`WALLOW_T`), its back open (x`WALLOW_MULT` 1.6).
+- **FLOP:** when you are close (`FLOP_R`) it jumps and lands on you: a shock ring on the ground (`SLAM_R`).
+- **ROAR:** roars (`ROAR_T`, chest open x`ROAR_MULT`) and calls `ROAR_N` WADDLERs out of the surf (up to `ROAR_MAX`).
+- Front armour x`ARMOR` 0.8. Learns in the fight: after 2 jumped slides or below half HP, "IT TURNS BACK NOW" - the
+  slide reverses at once.
+- Death: its summons drop with it, the colonies scatter, big roar + shake.
+
+**MURMUR** - a flock of dead birds (imperial shags, kelp gulls, brown skuas; red eyes, rotting raw patches) flying in the
+shape of a man: head, shoulders, an arm reaching out with talons, two legs. One bird in the chest is red and glows -
+the heart - and pale green spore threads tie every bird to the next.
+Learned from: a body can be shot (the Architect died and nothing changed), so they stopped needing one body.
+- **GATHER -> FORM:** a swirling cloud high in the sky; when you come within `WAKE_R` it forms the man.
+- **DRIFT:** hovers above you (`HOVER_H`) to one side (`SIDE_OFF`), each flock at its own height, and switches sides
+  after every dive. Two flocks never merge into one blob.
+- **WIND -> SWOOP:** the shape tightens into a clawed hand pointing at you, the heart blazes, a screech (`WIND_T`),
+  then it dives through you in an arc (`SWOOP_T`): `RAKE_DMG`. It always comes down within `SWOOP_CD` + `WIND_T`
+  (about 2-3 s).
+- **Hits:** every bullet is traced from its entry point along its path: it kills the first bird it passes (`BIRD_R`).
+  The bird falls dead with feathers and blood, and the shape re-forms smaller. A bullet through a gap flies on
+  (pierce). Every `BIRD_HP` damage is one bird. Below `BREAK_FRAC` of its birds the flock breaks: half fall dead,
+  half flee into the sky ("THE FLOCK BREAKS"). Head/leg zones are normalised (x0.45 / x1.5).
+- **The heart:** a shot aimed at the red bird hits it even through the birds around it: x`HEART_MULT` 3, the flock
+  flinches apart, a new heart is chosen after `HEART_BACK`. `HEART_HITS` 3 hearts break the flock at once.
+- **Explosions** (x`BLAST_MULT` 2) tear a chunk from the side facing the blast and blow the rest apart. Fire sets birds
+  burning and they drop one by one. Every weapon kills it (bullets, melee, blasts, fire, taser/laser).
+- Counter: shoot the heart while it tightens before a dive (it is densest then), jump/roll the swoop, grenade it low.
+- **Learns** (main meta `mm_breaks` >= `LEARN_BREAKS` 2 broken flocks): "IT SPLITS NOW" - a heavy hit (blast, heart, or
+  `SPLIT_DMG`+) on a flock of `SPLIT_MIN`+ birds splits it into two smaller flocks that attack from both sides (once).
+  "IT FEINTS NOW" - sometimes (`FEINT_CHANCE`) it dives halfway, pulls up and then dives for real.
+- Performance: no node per bird. The whole flock is one triangle array; falling/fleeing birds and feathers are one
+  shared `FX` node per level (`CAP` 140). `N_BIRDS` 52 per flock, at most `TOTAL_MAX` 240 birds across all flocks
+  (never fewer than `N_MIN` 34 per flock). The bird hitbox is the flock's bounding box, refitted every frame.
+
+**BLUBBER** - a dead man who crawled inside the hide of a huge bull elephant seal and is sewn into it: a long grey-brown
+sack of blubber, peeling moult patches, pink battle scars, crude black stitches. The seal's head with its drooping
+proboscis is a helmet; under it, in the seal's open mouth, is the pale face of the dead man with red eyes. His human
+arms come out of the chest like flippers and drag the body. The back is torn open: raw red flesh, spine and ribs - the
+weak spot. Each one varies (hide tone, moult, scars, a stuck harpoon, kelp).
+Learned from: the elephant seals on the beach survive anything with blubber and a belly that slides on the pebbles.
+- **SEEK:** galumphs towards you, slowly. If you get behind it, it turns slowly (`TURN_T`, back exposed x`TURN_MULT` 1.8).
+- **BELLOW -> CHARGE:** rears up, proboscis inflates, a deep bellow (`BELLOW_T`), then a belly-first charge
+  (`CHARGE_V` 440, up to `CHARGE_T`, stops `CHARGE_PAST` after passing you): `CHARGE_DMG` + knockback, bowls other
+  zombies over, scatters colonies. Hitting a wall stuns it ("STUCK!", `WALL_STUN`).
+- **WALLOW:** after a charge it wallows in the sand (`WALLOW_T`), open from every side (x`WALLOW_MULT` 1.5).
+- **Armour:** the front hide takes x`FRONT_MULT` 0.6 (x`CHARGE_FRONT` 0.3 while charging, "THICK HIDE", after 3 the
+  hero says "Its hide's too thick - get behind it!"). The back takes x`BACK_MULT` 1.8. Fire x`FIRE_MULT` 1.3.
+- **Death:** a big wet burst (blood, blubber chunks, water, shake) that leaves a flammable oil `Slick` (`SLICK_W`) and
+  the flat empty hide on the beach.
+- Counter: wait for the charge, jump it, and shoot its back while it wallows or turns.
+- **Learns** (main meta `bl_dodges` >= `LEARN_DODGES` 2 dodged charges): "IT FAKES THE CHARGE" - a short fake lurch
+  (`LURCH_T`) that stops dead so you jump for nothing, then the real charge after a short bellow (`FEINT_PAUSE`).
+
+**Spores** ("they learn", story rule 3): the shared `effects/spore_lesson.gd` (zombie.gd, from level 55) carries the
+lesson from every kill to the nearest zombie. The stage adds nothing on top of it.
+
+**Story hooks** (call on `main._stage`)
+- `story_stretch()` returns `Vector2(5600, 7600)`, a clean beach right after the lighthouse: no spawns, traps or obstacles.
+  `story_colony()` returns the colony at 6240 (`STORY_COLONY`), where `story/scenes/l57_chorus.gd` stands its WADDLER.
+- `on_story_beat(id)`:
+  - "flock_form" - 190 birds form a giant face over the sea
+  - "flock_break" - the face breaks apart and flies off (+ a gust)
+  - "talk_on" / "talk_off" - the face's mouth moves
+  - "penguins_flee" - every colony within 1500 px scatters
+  - "wind" - a gust
+  - "beam" - the lighthouse beam brightens
+
+**Tunables** - in each file header. Stage: `COLONIES`, `STORY_COLONY`, `BOSS_COLONY`, `SKELETONS`, `TANKS`, `GANTRY`,
+`LIGHTHOUSE_X`, `OIL_BURSTS`, `WAVES`, `ROCKS`, `MURMURS`, `BLUBBERS`, `STORY_X`, `ARENA_X`, `zombie_weights()`
+(WADDLER 0.03, MURMUR 0.025, BLUBBER 0.03, regulars 0.56, runners 0.33).
+
+**Tests** (test project, outside the repo)
+- Headless `t_run`: 1500 frames from the start, and 900 frames each at px 3000 / 6000 / 9300 / 9760 (boss arena), with the story scene allowed to play. There was no SCRIPT ERROR in any run.
+- `t57.gd diag`: 900 frames each at 3000 / 6000 / 9300 / 9760 with the story trigger removed. There were no errors.
+- Behaviour tests (`t57.gd <mode>`) use counters:
+  - **waddler**:
+    - Hides in the colony.
+    - Reveals when hit.
+    - Lunges 2/2, both hit.
+    - Kills 2 zombies with the summon.
+    - Learned (via main meta) after 6 lures and lunges early.
+  - **boss**: killed at frame 1663 while staying inside the arena.
+  - **murmur**:
+    - Flock breaks and 38 dead birds land.
+    - The learned flock re-forms at 52 birds.
+    - A heavy hit on a learned flock splits it (34 -> 21 + 20).
+    - Blasts take chunks.
+  - **heart**: 3 heart hits kill a flock that still has 11 birds.
+  - **blubber**:
+    - Front shots are armoured: 4 shots did 33 damage, while 1 back shot did 23.
+    - The charge bowls over 2 zombies.
+    - Death leaves a slick.
+    - After 2 dodges it learns and fakes the charge (lurch).
+  - **traps**:
+    - Oil burst makes a slick, and the slick ignites.
+    - Gantry hook hits 1 and hooks 2.
+    - Wave surge knocks the player back.
+    - Slick rocks cause 2 stumbles (0 slips in this run).
+  - **colony**: scatters on a shot and regroups.
+- `t_bot` with god=0: FINISHED in 152.5 s at 97% progress, boss killed, 2 deaths, stuck 7, tp 0, worst frame 49 ms, avg 11.1 ms. Level 54 baseline: 204 s, 10 deaths. With god=1 it finished in 100.8 s.
+- xvfb opengl3 renders: `/mnt/project-files/levels-55-57/shots/l57_{lineup,whaling,murmur,boss}.png`.
+- Known issues and notes:
+  - The test project stubbed the level 55/56 workers' WIP files, because they had parse errors at the time.
+  - An earlier bot run had a single 309 ms frame at x~3384 (first use of something). It did not happen again on the final run.
+  - Godot prints "1 resources still in use at exit" at the end of the headless traps test. This comes from the test harness quitting.
 
 # Polish pass (2026-10-17)
 
