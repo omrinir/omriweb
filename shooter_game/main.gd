@@ -712,7 +712,9 @@ func _unstick_spawns(floor_y: float) -> void:
 		return
 	var ss := get_world_2d().direct_space_state
 	for z in get_tree().get_nodes_in_group("zombies"):
-		if z.kind >= 20 or z.kind in [5, 7, 8, 11, 18, 19] or z.on_ceiling or absf(z.global_position.y - floor_y) > 24.0:
+		if z.kind in [5, 7, 8, 11, 18, 19] or z.on_ceiling or absf(z.global_position.y - floor_y) > 24.0:
+			continue
+		if z.kind >= 20 and not _in_prop(ss, z.global_position.x, floor_y):   # סוגים 20+: רק בתוך חבית / ארגז / גוש בטון (prop.gd, brick.gd) - אף אחד לא מתחבא שם בכוונה
 			continue
 		if not _solid_at(ss, z.global_position.x, floor_y):
 			continue
@@ -728,6 +730,49 @@ func _unstick_spawns(floor_y: float) -> void:
 			if moved:
 				break
 			d += 20.0
+	# חפצים (תחמושת / נשקים / שיקויים) שהונחו בתוך מכשול של השלב: הקרן של pickup.gd מתחילה בתוך הגוף ולא פוגעת בו,
+	# אז החפץ נופל לכביש בתוך הגוף ואי אפשר לראות / לאסוף אותו (בוט: שלבים 8, 16, 49) -> הצידה למקום פנוי
+	for p in get_tree().get_nodes_in_group("pickups"):
+		if not _pickup_stuck(ss, p.global_position, floor_y):
+			continue
+		var d := 26.0
+		while d <= UNSTICK_REACH * 1.5:
+			var moved := false
+			for sgn in [1.0, -1.0]:
+				var np: Vector2 = p.global_position + Vector2(d * sgn, 0.0)
+				if not _pickup_stuck(ss, np, floor_y) and not _in_pit(np.x - 10.0, np.x + 10.0, 10.0):
+					p.global_position = np
+					p._resting = false
+					moved = true
+					break
+			if moved:
+				break
+			d += 26.0
+
+
+func _in_prop(ss: PhysicsDirectSpaceState2D, x: float, floor_y: float) -> bool:
+	var q := PhysicsShapeQueryParameters2D.new()
+	var r := RectangleShape2D.new()
+	r.size = Vector2(18.0, 34.0)
+	q.shape = r
+	q.transform = Transform2D(0.0, Vector2(x, floor_y - 24.0))
+	q.collision_mask = 1
+	for h in ss.intersect_shape(q, 4):
+		var scr: Script = h.collider.get_script() if h.collider != null else null
+		if scr != null and (scr == PropScript or scr.resource_path.ends_with("brick.gd")):   # חבית / ארגז / מכונית / גוש בטון
+			return true
+	return false
+
+
+# האם חפץ בנקודה הזו (או במקום שבו ינחת על הכביש) בתוך גוף מוצק
+func _pickup_stuck(ss: PhysicsDirectSpaceState2D, pos: Vector2, floor_y: float) -> bool:
+	var q := PhysicsPointQueryParameters2D.new()
+	q.collision_mask = 1
+	for y in ([pos.y, floor_y - 14.0] if absf(pos.y - floor_y) < 60.0 else [pos.y]):
+		q.position = Vector2(pos.x, y)
+		if not ss.intersect_point(q, 1).is_empty():
+			return true
+	return false
 
 
 func _solid_at(ss: PhysicsDirectSpaceState2D, x: float, floor_y: float) -> bool:
@@ -949,7 +994,7 @@ func _start_at_checkpoint(player: Node2D) -> void:
 
 # נקודות אספקה קבועות + נשקים לפי מבנה ההתקדמות (progression/arsenal.gd)
 func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
-	var points: Array = _stage.supply_points() if _stage != null else Arsenal.SUPPLY_POINTS
+	var points: Array = Arsenal.supply_points_for(Game.level, _stage.supply_points() if _stage != null else Arsenal.SUPPLY_POINTS)   # שלבים 1-5: עוד ארגז לפני הבוס
 	for sp in points:
 		var x := _free_spot(level_w * float(sp[0]))
 		var kinds: Array = {"ammo": [PickupScript.AMMO], "supply": [PickupScript.SUPPLY], "health": [PickupScript.HEALTH, PickupScript.AMMO]}.get(sp[1], [PickupScript.AMMO])

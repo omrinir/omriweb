@@ -23,7 +23,8 @@ static func has_style(style: String) -> bool:
 # ---------------- ביד ----------------
 # hand = מקום היד, la = כיוון הכוונה, t = זמן (לאנימציה), cool = כמה זמן עד הירייה הבאה (0 = מוכן)
 # מחזיר את מקום הלוע (להבזק)
-static func draw_held(ci: CanvasItem, style: String, hand: Vector2, la: Vector2, t: float, mag_out: bool, cool: float, bl: float) -> Vector2:
+# spin = זווית הקנים של המיניגאן (player._spin_ang, -1 = לפי הזמן), spin_k = מהירות הסיבוב 0..1
+static func draw_held(ci: CanvasItem, style: String, hand: Vector2, la: Vector2, t: float, mag_out: bool, cool: float, bl: float, spin := -1.0, spin_k := 0.0) -> Vector2:
 	var n := la.rotated(PI / 2.0)
 	var g := func(x: float, y: float) -> Vector2: return hand + la * x + n * y
 	var poly := func(pts: Array, col: Color, w := 1.0) -> void:
@@ -60,9 +61,11 @@ static func draw_held(ci: CanvasItem, style: String, hand: Vector2, la: Vector2,
 		"crossbow":   # קשת מוצלבת: גוף עץ, זרועות, מיתר, חץ דרוך
 			poly.call([Vector2(-10.0, -0.5), Vector2(14.0, -1.4), Vector2(14.0, 1.4), Vector2(-10.0, 3.5)], WOOD, 1.0)
 			poly.call([Vector2(0.0, 1.2), Vector2(3.0, 1.2), Vector2(2.0, 7.0), Vector2(-1.0, 6.5)], METAL, 0.9)
-			var tip_a: Vector2 = g.call(10.0, -11.0)
-			var tip_b: Vector2 = g.call(10.0, 11.0)
-			Art.limb(ci, PackedVector2Array([tip_a, g.call(15.0, -4.0), g.call(15.0, 4.0), tip_b]), 1.8, Color("3a3a40"), Art.OUTLINE)
+			var tip_a: Vector2 = g.call(11.0, -8.5)   # (עבר "weapons": קשת קטנה ומעוקלת יותר - הייתה "מסגרת" גדולה)
+			var tip_b: Vector2 = g.call(11.0, 8.5)
+			Art.limb(ci, PackedVector2Array([tip_a, g.call(14.5, -4.5), g.call(15.5, 0.0), g.call(14.5, 4.5), tip_b]), 1.7, Color("3a3a40"), Art.OUTLINE)
+			ci.draw_arc(g.call(17.0, 0.0), 1.8, -PI / 2.0, PI / 2.0, 6, METAL, 1.0, true)   # רכוב (סטירופ) בקדמת הקשת
+			poly.call([Vector2(2.0, -1.6), Vector2(8.0, -1.6), Vector2(8.0, -3.6), Vector2(2.0, -3.6)], Color("16161a"), 0.8)   # כוונת קטנה
 			var pull := 4.0 if cool <= 0.0 else -1.0
 			ci.draw_polyline(PackedVector2Array([tip_a, g.call(pull + 2.0, 0.0), tip_b]), Color(0.9, 0.88, 0.8, 0.85), 0.8, true)
 			if cool <= 0.0:   # חץ דרוך
@@ -107,15 +110,34 @@ static func draw_held(ci: CanvasItem, style: String, hand: Vector2, la: Vector2,
 			if not mag_out:
 				poly.call([Vector2(5.0, 1.6), Vector2(9.0, 1.6), Vector2(9.0, 8.0), Vector2(5.0, 8.0)], Color("18181c"), 0.9)
 			return g.call(bl + 1.0, -0.4)
-		"minigun":   # מיניגאן: 6 קנים מסתובבים, מנוע, ידית עליונה
-			poly.call([Vector2(-6.0, -4.0), Vector2(8.0, -4.0), Vector2(8.0, 4.0), Vector2(-6.0, 4.0)], Color("3a3a40"), 1.0)
+		"minigun":   # מיניגאן: 6 קנים מסתובבים (עומק: האחוריים כהים), מנוע, ידית עליונה, תוף תחמושת
+			if not mag_out:   # קופסת תחמושת + חגורת כדורים לנשק
+				poly.call([Vector2(-9.0, 3.0), Vector2(0.0, 3.0), Vector2(0.0, 11.0), Vector2(-9.0, 11.0)], Color("3a4a2a"), 0.9)
+				for b in 4:
+					ci.draw_line(g.call(-6.5 + float(b) * 2.0, 3.4), g.call(-5.0 + float(b) * 2.6, 0.6), Color("c8a040"), 1.1, true)
+			poly.call([Vector2(-7.0, -4.2), Vector2(7.0, -4.2), Vector2(8.0, -2.6), Vector2(8.0, 3.6), Vector2(-7.0, 4.2)], Color("3a3a42"), 1.0)   # מנוע
+			ci.draw_line(g.call(-6.0, -3.2), g.call(7.0, -3.2), hi, 0.9, true)
+			for r in 3:   # צלעות קירור
+				ci.draw_line(g.call(-4.0 + float(r) * 3.0, -2.6), g.call(-4.0 + float(r) * 3.0, 2.6), Color(0, 0, 0, 0.35), 0.8, true)
 			poly.call([Vector2(-1.0, 3.6), Vector2(3.0, 3.6), Vector2(2.0, 8.5), Vector2(-2.0, 8.0)], METAL, 0.9)
-			ci.draw_arc(g.call(0.0, -5.5), 3.0, PI, TAU, 8, METAL, 1.4, true)   # ידית נשיאה
-			var spin := t * (40.0 if cool > 0.0 else 4.0)
-			for k in 3:
-				var off := sin(spin + float(k) * TAU / 3.0) * 2.4
-				bar.call(8.0, bl, off, 1.4, STEEL.lightened(0.1 * float(k)))
-			poly.call([Vector2(bl - 3.0, -3.2), Vector2(bl - 1.0, -3.2), Vector2(bl - 1.0, 3.2), Vector2(bl - 3.0, 3.2)], METAL, 0.8)
+			ci.draw_arc(g.call(0.0, -6.0), 3.2, PI, TAU, 10, METAL, 1.6, true)   # ידית נשיאה
+			var ang := spin if spin >= 0.0 else t * (40.0 if cool > 0.0 else 3.0)
+			var order := []   # קודם האחוריים
+			for k in 6:
+				var a := ang + float(k) * TAU / 6.0
+				order.append([cos(a), sin(a) * 2.7])
+			order.sort_custom(func(p, q): return p[0] < q[0])
+			poly.call([Vector2(8.0, -3.6), Vector2(bl - 2.0, -3.4), Vector2(bl - 2.0, 3.4), Vector2(8.0, 3.6)], Color("1a1a1f"), 0.6)   # צל בין הקנים
+			for o in order:
+				var lit: float = 0.5 + 0.5 * float(o[0])
+				bar.call(8.0, bl, float(o[1]), 1.3, STEEL.lerp(Color("8a8a96"), lit * 0.75))
+			if spin_k > 0.55:   # מהר מאוד: טשטוש תנועה
+				var bw := Color(0.75, 0.75, 0.8, 0.22 * (spin_k - 0.55) / 0.45)
+				ci.draw_colored_polygon(PackedVector2Array([g.call(9.0, -3.2), g.call(bl - 1.0, -3.2), g.call(bl - 1.0, 3.2), g.call(9.0, 3.2)]), bw)
+			for cx in [10.0, bl - 2.0]:   # טבעות מהדק
+				poly.call([Vector2(cx - 1.2, -3.8), Vector2(cx + 1.2, -3.8), Vector2(cx + 1.2, 3.8), Vector2(cx - 1.2, 3.8)], METAL, 0.8)
+			if spin_k > 0.85:   # קנים מתחממים בירי ארוך
+				Art.glow(ci, g.call(bl - 3.0, 0.0), 4.0, Color(1.0, 0.45, 0.15, 0.25 * (spin_k - 0.85) / 0.15))
 			return g.call(bl + 1.0, 0.0)
 		"dbreath":   # DRAGON'S BREATH: שוטגאן משאבה עם קנה מושחר-אדום ומשאבה כתומה
 			poly.call([Vector2(-11.0, -0.5), Vector2(-2.0, -1.6), Vector2(-1.0, 2.2), Vector2(-11.0, 4.2)], Color("3a1c14"), 1.0)

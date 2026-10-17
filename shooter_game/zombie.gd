@@ -289,6 +289,8 @@ const HEAVY_KB := 150.0                   # knockback מזה ומעלה = מכה
 const HITSTOP_HEAD := 0.045               # עצירת זמן קטנה בהריגה בראש (שניות אמיתיות)
 const HITSTOP_HEAVY := 0.055              # ... בהריגה ממכה חזקה
 const HITSTOP_BOSS := 0.28                # ... במוות של בוס
+const HEAD_HEAVY := 1.6                   # נשק עם damage מעל זה: גם הראש מוכפל (x damage x HEAD_HEAVY_K), לא בבוס
+const HEAD_HEAVY_K := 0.6
 var _angle := 0.0
 var _dead_t := 0.0
 var _bled_on: Dictionary = {}
@@ -802,7 +804,10 @@ func rush(from: Vector2) -> void:
 func ignite(t: float) -> void:
 	if dead:
 		return
+	var was := _burn_t
 	_burn_t = maxf(_burn_t, t)
+	if was > 0.5:   # כבר בוער (להביור / DRAGON'S BREATH מציתים עשרות פעמים בשנייה): רק מאריכים, בלי עוד חלקיקים
+		return
 	var c := global_position + Vector2(0, -30.0 * sc)
 	Particles.burst(get_parent(), c, "fire", Vector2.ZERO, 16)
 	Particles.burst(get_parent(), c, "smoke", Vector2.ZERO, 8)
@@ -1078,8 +1083,17 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 			else:
 				_popup("TRANSFORMER %d/3" % (3 - _transformer), Color("80c0ff"), 17, -125.0)
 			return
-		_popup("NO EFFECT", Color("c0c0c8"), 14, -120.0)
+		if _time - float(get_meta("ne_t", -9.0)) > 0.3:   # לא ערימה של NO EFFECT אחד על השני (נשק אוטומטי)
+			set_meta("ne_t", _time)
+			_popup("NO EFFECT", Color("c0c0c8"), 14, -120.0)
 		Sfx.play("shield", hit_pos)
+		var ne: int = int(get_meta("no_eff", 0)) + 1   # רמז: שחקן שיורה מלפנים לא מבין למה זה לא עובד
+		set_meta("no_eff", ne)
+		if ne % 5 == 1 and ne <= 21:
+			_popup("SHOOT HIS BACK!", Color("ffd34a"), 20, -150.0)
+			var pl := get_tree().get_first_node_in_group("player")
+			if ne == 1 and pl != null and pl.has_method("_say"):
+				pl._say("His front is armored... get behind him!", Color("ffd34a"))
 		return
 	# שוטר: המגן חוסם מלפנים (חוץ מהרגליים)
 	if kind == COP and (source == "bullet" or source == "melee") and dir.x * _dir < 0.0 and not _lying():
@@ -1141,6 +1155,8 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		dmg = int(src.fixed)
 	elif src.has("dmg_mult") and zone != "head":   # נשק חלש/חזק יותר (weapons/weapon_db.gd). ירייה בראש נשארת קטלנית
 		dmg = maxi(1, int(round(float(dmg) * float(src.dmg_mult))))
+	elif zone == "head" and float(src.get("dmg_mult", 1.0)) > HEAD_HEAVY and not is_boss():   # נשק כבד (מגנום, אנטי-חומרי, רייל): ראש אף פעם לא חלש מגוף
+		dmg = int(round(float(dmg) * float(src.dmg_mult) * HEAD_HEAVY_K))
 	elif zone == "head" and float(src.get("head_mult", 1.0)) < 1.0:   # נשק אוטומטי: ירייה בראש לא הורגת מיד
 		dmg = maxi(1, int(round(float(dmg) * float(src.head_mult))))
 	if src.get("god", false):   # GOD MODE: נזק פי 4 (+300%)
@@ -1808,6 +1824,7 @@ func _draw_body() -> void:
 		draw_line(tb + Vector2(4, -6), head + Vector2(-2, 2), Color("1a1a1a"), 1.2, true)
 		var gl := 0.5 + 0.5 * sin(_time * 12.0)
 		Art.glow(self, tb + Vector2(0, -10), 7.0, Color(0.5, 0.75, 1.0, 0.5 * gl))
+		Art.glow(self, tb + Vector2(0, 3), 13.0, Color(0.45, 0.7, 1.0, 0.18 + 0.14 * gl))   # נקודת התורפה זוהרת - רואים מה לירות
 		if randf() < 0.3:
 			var sp := tb + Vector2(randf_range(-6, 5), -9)
 			draw_line(sp, sp + Vector2(randf_range(-6, 6), -randf_range(3, 8)), Color(0.8, 0.9, 1.0), 1.0)

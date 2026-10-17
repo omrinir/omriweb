@@ -18,6 +18,10 @@ const FRICTION := 0.93        # כמה מהירות נשארת לאורך הקר
 const BOUNCE := 0.22
 const SIM_MAX := 4.0
 enum { HEAD, NECK, PELVIS, KNEE_B, FOOT_B, KNEE_F, FOOT_F, ELBOW_B, HAND_B, ELBOW_F, HAND_F }
+const HEAD_K := 0.83          # ראש הגופה (6 פיקסלים) מול ראש הזומבי החי (7.2) - להעתקת השיער
+# כיפת השיער של zombie.gd -> _head (אותן נקודות, x קדימה, y למטה)
+const HAIR_CAP := [Vector2(-6.8, -2.0), Vector2(-5.6, -5.6), Vector2(-2.0, -7.9), Vector2(2.5, -7.8), Vector2(5.4, -5.8), Vector2(3.0, -6.0),
+	Vector2(1.0, -4.9), Vector2(-1.0, -6.2), Vector2(-3.0, -4.6), Vector2(-4.6, -5.4), Vector2(-5.8, -1.4)]
 
 var z: Node2D
 var p := PackedVector2Array()       # מיקום (קואורדינטות מקומיות של הזומבי)
@@ -238,8 +242,30 @@ func draw(ci: CanvasItem) -> void:
 	else:
 		var hd := (p[HEAD] - p[NECK]).normalized()
 		Art.limb(ci, PackedVector2Array([p[NECK], p[NECK].lerp(p[HEAD], 0.45)]), 3.6 * sc, sk)
-		Art.oval_shaded(ci, p[HEAD], 6.0 * sc, 6.6 * sc, sk, hd.angle() + PI / 2.0)
 		var side := Vector2(-hd.y, hd.x) * (1.0 if float(z._dir) > 0.0 else -1.0)
+		var hk := int(z.kind)
+		var hair: Color = z.hair
+		var bald: bool = z._bald
+		var k := HEAD_K * sc   # נקודה בראש של zombie.gd (x קדימה, y למטה) -> בגופה
+		var L := func(x: float, y: float) -> Vector2: return p[HEAD] + side * (x * k) - hd * (y * k)
+		var rot := hd.angle() + PI / 2.0
+		if hk < 20:   # שיער כמו בזומבי החי (zombie.gd -> _head): צבע לכל זומבי, קרחים בלי
+			if hk == 1:   # RUNNER: שיער ארוך פרוע - נשפך אחורה ולמטה (כבידה)
+				for i in 5:
+					var a: Vector2 = L.call(-4.0 + float(i) * 1.2, -6.5 + float(i) * 0.4)
+					ci.draw_line(a, a + (-side * (8.0 + float(i)) + Vector2(0, 5.0 + float(i) * 1.4)) * sc, hair, 2.0 * sc, true)
+			elif hk != 2 and not bald:   # שיער מאחור (לא BRUTE)
+				Art.oval(ci, L.call(-2.5, -2.5), 6.0 * k, 5.5 * k, hair, rot, Art.OUTLINE, 1.0)
+		Art.oval_shaded(ci, p[HEAD], 6.0 * sc, 6.6 * sc, sk, rot)
+		if hk < 20 and hk != 2 and hk != 5 and hk != 7 and hk != 9:   # כיפת שיער / קרחת (לא BRUTE, BOSS, CONDUCTOR, COP)
+			if not bald:
+				var cap := PackedVector2Array()
+				for v: Vector2 in HAIR_CAP:
+					cap.append(L.call(v.x, v.y))
+				ci.draw_colored_polygon(cap, hair)
+				ci.draw_line(L.call(-4.2, -6.6), L.call(0.5, -8.0), Color(1, 1, 1, 0.2), 1.0, true)
+			else:
+				Art.oval(ci, L.call(-2.0, -5.0), 2.2 * k, 1.4 * k, Color(0.42, 0.06, 0.05, 0.75), rot, Art.NONE)
 		var eye := p[HEAD] + side * 2.6 * sc + hd * 0.5 * sc
 		ci.draw_line(eye + Vector2(-1.4, -1.4) * sc, eye + Vector2(1.4, 1.4) * sc, Color(0.1, 0.05, 0.05), 1.2)   # עין X
 		ci.draw_line(eye + Vector2(-1.4, 1.4) * sc, eye + Vector2(1.4, -1.4) * sc, Color(0.1, 0.05, 0.05), 1.2)

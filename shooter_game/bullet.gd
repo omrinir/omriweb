@@ -1,6 +1,7 @@
 extends Node2D
 const VIS_SCALE := 0.45   # גודל הקליע על המסך (רק ויזואלי)
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
+const FlameFx := preload("res://effects/flame_fx.gd")   # להבות הלהביור (לשון אש + הילה רכה)
 # ============================================================
 #  קליע. נוצר ע"י player.gd בכל ירייה.
 #  הקליע בודק התנגשות עם קרניים (Raycast) כדי שלא יעבור דרך
@@ -220,10 +221,18 @@ func _draw() -> void:
 		var k := clampf(_age / maxf(_life0, 0.01), 0.0, 1.0)
 		var r := 5.0 + 21.0 * k
 		var a := 1.0 - k * k
-		draw_circle(Vector2.ZERO, r * 1.7, Color(1.0, 0.3, 0.05, 0.13 * a))
-		draw_circle(Vector2.ZERO, r, Color(1.0, 0.45, 0.08, 0.7 * a).lerp(Color(0.25, 0.2, 0.2, 0.5 * a), maxf(k - 0.55, 0.0) * 2.0))
-		if k < 0.6:
-			draw_circle(Vector2(1.5, 0), r * 0.55, Color(1.0, 0.92, 0.55, 0.85 * (1.0 - k / 0.6)))
+		# (עבר "weapons": במקום עיגולים קשים - הילה רכה + לשון אש שעולה למעלה בעולם, ובסוף עשן רך)
+		draw_set_transform(Vector2.ZERO, -rotation, Vector2.ONE)   # הלשון עולה למעלה גם כשיורים באלכסון
+		var ph := float(get_instance_id() % 97)
+		FlameFx.glow(self, Vector2.ZERO, Vector2(r * 1.9, r * 1.5), Color(1.0, 0.38, 0.06, 0.26 * a))
+		if k < 0.75:
+			var tk := 1.0 - k / 0.75
+			FlameFx.tongue(self, Vector2(0.0, r * 0.45), r * 0.95, r * (1.5 + 0.7 * FlameFx.wobble(_age, ph)), sin(_age * 9.0 + ph) * r * 0.35, FlameFx.PALETTE, 0.95 * tk, k < 0.35)
+		else:   # עשן חם שמתפזר
+			FlameFx.glow(self, Vector2(0.0, -r * 0.3), Vector2(r, r), Color(0.22, 0.18, 0.17, 0.5 * a))
+		if k < 0.3:   # ליבה לבנה-חמה ליד הלוע
+			FlameFx.glow(self, Vector2.ZERO, Vector2(r * 0.8, r * 0.8), Color(1.0, 0.95, 0.7, 0.8 * (1.0 - k / 0.3)))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		return
 	if arrow:   # חץ: מוט עץ, ראש מתכת ונוצות
 		draw_line(Vector2(-22.0, 0.0), Vector2(4.0, 0.0), Color("8a6a40"), 1.6, true)

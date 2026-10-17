@@ -24,6 +24,10 @@ const SUPPLY_POINTS := [[0.2, "ammo"], [0.4, "supply"], [0.6, "ammo"], [0.8, "su
 const CACHE_AT := 0.47               # מטמון הנשק באמצע השלב
 const DROP_CHANCE := Vector2(0.03, 0.2)   # סיכוי שזומבי מפיל תחמושת: [כשיש מלא, כשכמעט נגמר]
 const EMPTY_DROP := 0.35             # כשאין תחמושת בכלל בשום נשק
+# שלבים 1-5 (רק רובה + שוטגאן / אקדח, בלי מחסניות גדולות): נקודת אספקה נוספת לפני הבוס, וסיכוי נפילה גבוה יותר כשנגמר
+const EARLY_LEVELS := 5
+const EARLY_SUPPLY := [0.9, "supply"]
+const EARLY_DROP := 0.3              # במקום DROP_CHANCE.y בשלבים האלה
 
 
 # ============================================================
@@ -212,7 +216,17 @@ static func ammo_drop_chance(player: Node) -> float:
 			cur = float(s.ammo) / mx
 	if total <= 0:
 		return EMPTY_DROP
-	return lerpf(DROP_CHANCE.y, DROP_CHANCE.x, clampf(cur * 2.5, 0.0, 1.0))
+	var low := EARLY_DROP if Game.level <= EARLY_LEVELS else DROP_CHANCE.y
+	return lerpf(low, DROP_CHANCE.x, clampf(cur * 2.5, 0.0, 1.0))
+
+
+# נקודות האספקה של השלב (main.gd -> _spawn_supplies): בשלבים הראשונים עוד ארגז לפני הבוס
+static func supply_points_for(lv: int, base: Array) -> Array:
+	if lv > EARLY_LEVELS:
+		return base
+	var out := base.duplicate()
+	out.append(EARLY_SUPPLY)
+	return out
 
 
 # ציוד לתרגול (כפתורי שלבים בתפריט): הנשקים שהיו לך בערך בשלב הזה, עם תחמושת

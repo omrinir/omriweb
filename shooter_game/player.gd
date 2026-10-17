@@ -127,6 +127,9 @@ var grabbed_by: Node = null      # יד מהביוב תופסת את הרגל
 var _mash := 0
 var _mash_last := 0
 var dead := false
+const PIN_T := 0.3               # נתקע בתוך גוף (velocity.y גדל ולא זז) יותר מזה -> משחררים (_unwedge)
+var _pin_t := 0.0
+var _pin_y := 0.0
 
 const W := 22.0
 const BREATH_SPEED := 1.6        # מהירות הנשימה
@@ -163,6 +166,12 @@ const MUZZLE_T := 0.06           # כמה זמן הבזק הלוע נראה
 # גודל הבזק הלוע לפי סוג הנשק ("style" ב-weapon_db)
 const MUZZLE_SIZE := {"shotgun": 2.1, "ashotgun": 1.9, "sniper": 1.8, "rifle": 1.45, "ar": 1.25, "smg": 1.0, "pistol": 1.0, "launcher": 1.6,
 	"dbarrel": 2.3, "dbreath": 2.1, "revolver": 1.35, "lever": 1.35, "dmr": 1.5, "hsniper": 2.0, "lmg": 1.35, "minigun": 1.15, "rail": 1.5}
+# צבעי הבזק הלוע: [אור, כוכב להבה, חרוט, ליבה]. רייל = כחול חשמלי, DRAGON'S BREATH = אש אדומה-כתומה
+const MUZZLE_PAL := {"_": [Color(1.0, 0.68, 0.28), Color(1.0, 0.6, 0.16), Color(1.0, 0.94, 0.62), Color(1.0, 1.0, 0.93)],
+	"rail": [Color(0.35, 0.75, 1.0), Color(0.45, 0.82, 1.0), Color(0.85, 0.97, 1.0), Color(1.0, 1.0, 1.0)],
+	"dbreath": [Color(1.0, 0.5, 0.15), Color(1.0, 0.38, 0.06), Color(1.0, 0.75, 0.3), Color(1.0, 0.95, 0.7)]}
+const MUZZLE_CONE := {"sniper": 24.0, "hsniper": 28.0, "rail": 30.0, "dbreath": 26.0, "dbarrel": 18.0, "lever": 19.0, "revolver": 17.0}   # אורך החרוט הקדמי
+const MUZZLE_JETS := ["sniper", "rifle", "hsniper", "dmr"]   # נשקים עם בולם לוע (סילונים לצדדים)
 var _recoil := 0.0
 var _dead_t := 0.0
 var _push_t := 0.0
@@ -234,6 +243,14 @@ var _anim := "idle"
 var _was_floor := true
 var _dodge_slow := 0.0
 var _fire_test := false   # לבדיקות אוטומטיות בלבד
+# ---- MINIGUN: הסתובבות קנים (weapon_db "spin_up" = שניות עד מהירות מלאה) ----
+var _spin := 0.0                 # 0 = עומד, 1 = מהירות מלאה
+var _spin_ang := 0.0             # זווית הקנים (לציור)
+var _spin_snd := 0.0             # מתי לנגן שוב את יללת המנוע
+var _spin_fired := false         # ירה בסיבוב הזה (צליל האטה רק אחרי ירי)
+const SPIN_START := 0.35         # קצב האש בהתחלה (חלק מהמלא) - יורה מיד, ומאיץ
+const SPIN_DOWN := 0.7           # שניות עד עצירה כשמרפים
+const SPIN_MOVE := 0.8           # מהירות הליכה בזמן ירי במיניגאן
 # ---- מכשיר שאיבת כוח חיים ----
 const DRAIN_TIME := 1.8          # כמה שניות לוקחת השאיבה
 var _drain_target: Node = null
@@ -368,6 +385,7 @@ func _physics_process(delta: float) -> void:
 
 	if not is_on_floor():
 		velocity.y += gravity * delta
+	_pin_check(delta)
 
 	if _drain_target != null:
 		_drain_process(delta)
@@ -468,6 +486,8 @@ func _physics_process(delta: float) -> void:
 		speed *= 0.78
 	if slow_t > 0.0:   # שלג עד הברכיים
 		speed *= 0.55
+	if _spin > 0.3 and _spin_fired:   # מיניגאן יורה: קצת יותר איטי (לא בריצה מלאה)
+		speed *= SPIN_MOVE
 	var acc := accel if is_on_floor() else accel * air_control
 	if slip_t > 0.0 and is_on_floor():   # קרח חלק
 		acc *= 0.12
@@ -676,6 +696,7 @@ func _physics_process(delta: float) -> void:
 		LaserCannon.tick(self, trigger or _fire_test, delta)
 	else:
 		laser_charge = 0.0
+		_spin_update(delta, trigger or _fire_test)
 		if (trigger or _fire_test) and _cooldown <= 0.0:
 			_fire()
 	_fire_test = false
@@ -722,6 +743,35 @@ func _move() -> void:
 	velocity *= _rt
 	move_and_slide()
 	velocity /= _rt
+
+
+# רשת ביטחון: שחקן שנכנס לתוך גוף מוצק (מכונית שהחליקה לתוכו בשלב 23, נדחק בין שני מכשולים)
+# Godot לא מחלץ אותו - הוא "באוויר", velocity.y גדל ל-15000 ואי אפשר לזוז. אחרי PIN_T קופצים למקום הפנוי הקרוב.
+func _pin_check(delta: float) -> void:
+	if is_on_floor() or velocity.y < 600.0 or dead or grabbed_by != null or _drain_target != null or _climbing or _hook_state == 2 \
+			or absf(global_position.y - _pin_y) > 0.5:
+		_pin_t = 0.0
+		_pin_y = global_position.y
+		return
+	_pin_t += delta
+	if _pin_t < PIN_T:
+		return
+	_pin_t = 0.0
+	var h := _height()
+	var q := PhysicsShapeQueryParameters2D.new()
+	var box := RectangleShape2D.new()
+	box.size = Vector2(W - 1.0, h - 1.0)
+	q.shape = box
+	q.collision_mask = collision_mask & ~16
+	q.exclude = [get_rid()]
+	var ss := get_world_2d().direct_space_state
+	for r in [4.0, 8.0, 14.0, 22.0, 32.0, 46.0, 64.0, 90.0]:
+		for off in [Vector2(0.0, -r), Vector2(-r, 0.0), Vector2(r, 0.0), Vector2(-r, -r), Vector2(r, -r)]:
+			q.transform = Transform2D(0.0, global_position + off + Vector2(0.0, -h * 0.5))
+			if ss.intersect_shape(q, 1).is_empty():
+				global_position += off
+				velocity = Vector2.ZERO
+				return
 
 
 # ============================================================
@@ -915,6 +965,31 @@ func _can_stand() -> bool:
 	return get_world_2d().direct_space_state.intersect_shape(q, 1).is_empty()
 
 
+# MINIGUN: מחזיקים ירי = הקנים מסתובבים ומאיצים (יללת מנוע), מרפים = מאטים. נשק אחר = עוצר מיד
+func _spin_update(delta: float, held: bool) -> void:
+	var su := float(WeaponDB.val(gun, "spin_up", 0.0)) if weapon == GUN else 0.0
+	if su <= 0.0:
+		_spin = 0.0
+		_spin_fired = false
+		return
+	held = held and ammo > 0 and _reload_t <= 0.0
+	if held:
+		if _spin <= 0.0:
+			Sfx.play("minigun_spin", global_position, -4.0, 0.03, 2)
+			_spin_snd = 0.42
+		_spin = minf(_spin + delta / su, 1.0)
+		_spin_snd -= delta
+		if _spin_snd <= 0.0 and _spin >= 1.0:   # מסתובב במהירות מלאה: זמזום רציף
+			_spin_snd = 0.26
+			Sfx.play("minigun_hum", global_position, -9.0, 0.02, 2)
+	else:
+		if _spin >= 0.5 and _spin_fired:
+			Sfx.play("minigun_wind", global_position, -6.0, 0.03, 2)
+		_spin_fired = false   # (גם מבטל את האטת ההליכה)
+		_spin = maxf(_spin - delta / SPIN_DOWN, 0.0)
+	_spin_ang += delta * (2.0 + 46.0 * _spin)
+
+
 func _fire() -> void:
 	# ניצולה ממש קרובה? במקום לירות - מפעילים את המכשיר
 	var s := _drain_candidate()
@@ -952,11 +1027,18 @@ func _fire() -> void:
 			mag -= 1
 		var proj: String = w.get("projectile", "bullet")
 		Sfx.play(w.get("sound", "rifle"), global_position, w.get("sound_db", 0.0), 0.08, 5, float(w.get("pitch", 1.0)))   # pitch: נשקי ההתקדמות (weapon_db)
+		if w.has("sound2"):   # שכבת בס לנשק כבד (weapons/weapon_sounds.gd: boom_heavy / boom_50 / thud_auto / rail_zap...)
+			Sfx.play(str(w.sound2), global_position, float(w.get("sound2_db", 0.0)), 0.06, 4)
 		Game.on_shot()
 		PlayerMemory.on_shot(gun)
 		Game.make_noise(global_position, 380.0)   # יריות מעירות זומבים מסביב
 		# שדרוג קצב אש (בחנות) משפיע על כל הנשקים
-		_cooldown = float(w.fire_rate) * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
+		var cd := float(w.fire_rate) * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
+		if w.has("spin_up"):   # מיניגאן: מאיץ מ-SPIN_START לקצב מלא; השארית נשמרת (קצב מדויק מתחת לפריים)
+			_spin_fired = true
+			_cooldown = maxf(_cooldown, -0.017) + cd / lerpf(SPIN_START, 1.0, _spin)
+		else:
+			_cooldown = cd
 		_muzzle_flash = 0.0 if proj == "arrow" or proj == "molotov" or proj == "flame" else MUZZLE_T
 		_mf_seed = randi()
 		if float(w.get("recoil", 1.0)) >= 0.7 and proj == "bullet":   # שוטגאן / צלף: עשן קטן מהקנה
@@ -2245,8 +2327,9 @@ func _draw_muzzle(m: Vector2, la: Vector2, n: Vector2, style: String) -> void:
 	var s: float = float(MUZZLE_SIZE.get(style, 1.0)) * (0.6 + 0.4 * k)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = _mf_seed
-	Art.glow(self, m + la * 6.0 * s, 30.0 * s, Color(1.0, 0.68, 0.28, 0.26 * k))   # אור על הדמות והסביבה
-	Art.glow(self, m + la * 5.0 * s, 12.0 * s, Color(1.0, 0.82, 0.42, 0.85 * k))
+	var pal: Array = MUZZLE_PAL.get(style, MUZZLE_PAL["_"])   # [אור, כוכב, חרוט, ליבה]
+	Art.glow(self, m + la * 6.0 * s, 30.0 * s, Color(pal[0], 0.26 * k))   # אור על הדמות והסביבה
+	Art.glow(self, m + la * 5.0 * s, 12.0 * s, Color(pal[0].lightened(0.25), 0.85 * k))
 	var c := m + la * 4.0 * s
 	var pts := PackedVector2Array()
 	for i in 14:
@@ -2256,13 +2339,24 @@ func _draw_muzzle(m: Vector2, la: Vector2, n: Vector2, style: String) -> void:
 		if i % 2 == 0:
 			r = rng.randf_range(6.5, 10.5) * s * (1.9 if i == 0 else 1.0)   # הקרן הקדמית ארוכה
 		pts.append(c + (la * d.x + n * d.y) * r)
-	draw_colored_polygon(pts, Color(1.0, 0.6, 0.16, 0.95 * k))
-	var ln := (24.0 if style == "sniper" else 15.0) * s
-	draw_colored_polygon(PackedVector2Array([m + n * -2.6 * s, m + la * ln, m + n * 2.6 * s]), Color(1.0, 0.94, 0.62, k))
-	draw_circle(m + la * 3.0 * s, 2.8 * s, Color(1.0, 1.0, 0.93, k))
-	if style == "sniper" or style == "rifle":
-		for sd in [-1.0, 1.0]:
-			draw_line(m + la * 2.0 * s, m + la * 5.0 * s + n * sd * 9.0 * s, Color(1.0, 0.8, 0.42, 0.8 * k), 2.2 * s)
+	draw_colored_polygon(pts, Color(pal[1], 0.95 * k))
+	var ln: float = float(MUZZLE_CONE.get(style, 15.0)) * s
+	draw_colored_polygon(PackedVector2Array([m + n * -2.6 * s, m + la * ln, m + n * 2.6 * s]), Color(pal[2], k))
+	draw_circle(m + la * 3.0 * s, 2.8 * s, Color(pal[3], k))
+	if style in MUZZLE_JETS:   # בולם לוע: סילונים לצדדים (אנטי-חומרי: גם זוג אחורי)
+		var jc := Color(pal[1].lightened(0.2), 0.8 * k)
+		for sd in [-1.0, 1.0]:   # סילון מחודד (משולש), לא קו עבה
+			var b0 := m + la * 2.0 * s
+			draw_colored_polygon(PackedVector2Array([b0 - la * 1.3 * s, b0 + la * 1.3 * s, b0 + la * 3.0 * s + n * sd * 9.0 * s]), jc)
+			if style == "hsniper":   # בולם כפול: עוד זוג קטן מאחור
+				var b1 := m - la * 1.5 * s
+				draw_colored_polygon(PackedVector2Array([b1 - la * 1.0 * s, b1 + la * 1.0 * s, b1 + la * 1.5 * s + n * sd * 7.0 * s]), Color(jc, 0.6 * k))
+	if style == "rail":   # רייל: טבעת חשמל + קשתות קטנות
+		draw_arc(m + la * 2.0 * s, 7.0 * s * (1.6 - k * 0.6), 0.0, TAU, 18, Color(0.6, 0.9, 1.0, 0.7 * k), 1.6 * s, true)
+		for i in 3:
+			var a := rng.randf_range(-1.2, 1.2)
+			var e := m + (la * cos(a) + n * sin(a)) * rng.randf_range(10.0, 16.0) * s
+			draw_polyline(PackedVector2Array([m, m.lerp(e, 0.5) + n * rng.randf_range(-3.0, 3.0) * s, e]), Color(0.75, 0.95, 1.0, 0.85 * k), 1.0, true)
 
 
 func _draw_rifle(hand: Vector2, la: Vector2) -> void:
@@ -2311,7 +2405,7 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 		return
 	var xs := str(WeaponDB.val(dg, "style", ""))
 	if GunArt.has_style(xs):   # נשקי ההתקדמות (weapons/gun_art.gd)
-		_draw_muzzle(GunArt.draw_held(self, xs, hand, la, _time, _mag_out, _cooldown, float(WeaponDB.val(dg, "barrel", 25.0))), la, n, xs)
+		_draw_muzzle(GunArt.draw_held(self, xs, hand, la, _time, _mag_out, _cooldown, float(WeaponDB.val(dg, "barrel", 25.0)), _spin_ang if xs == "minigun" else -1.0, _spin), la, n, xs)
 		return
 	Art.fill(self, PackedVector2Array([g.call(-11.0, -0.5), g.call(-2.0, -1.6), g.call(-1.0, 2.2), g.call(-11.0, 4.2)]), wood, Art.OUTLINE, 1.0)
 	Art.fill(self, PackedVector2Array([

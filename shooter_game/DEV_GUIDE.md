@@ -1709,3 +1709,181 @@ WEAPONS tab is sorted by unlock stage; locked guns show "ARRIVES AT STAGE N" (no
 ### Also changed
 `progression/arsenal.gd`: test flags `TEST_MIND_EVERY_LEVEL` (MIND CONTROL at every stage start) and
 `TEST_LASER_LEVEL` (laser cannon at stage 3) were left on - turned off; both still come from normal special finds.
+
+## Level bug fixes (polish pass round 2, "levels")
+
+### Player can no longer get pinned (HIGHWAY 7 and everywhere)
+* **Why it happened.** When the player's box overlaps a solid body by even 2-3 px, Godot's `move_and_slide` does not push him out. Every slide hits the same body, so `is_on_floor()` stays false, gravity keeps adding up (`velocity.y` reached 15000+), and he can't move. Three things caused the overlap:
+  1. The Stage 23 car (`effects/s23_decor.gd` `Car`, an `AnimatableBody2D` moved by `position.x += step`) drove into the player.
+  2. The bottom corner of the car's collision box sat exactly at road level. Walking into a parked car could snag on that corner.
+  3. A sliding car shoved the player into a gap narrower than his body, between two obstacles.
+* **Car fixes** (`s23_decor.gd`):
+  * `LIFT` (8 px): the car's collision box now ends 8 px above the road, so it has no corner at foot height. It still looks like it touches the ground, and nothing fits under it.
+  * `_carry()`: a car sliding at a player who is beside it (not on the roof) pushes him ahead with `move_and_collide`. If he is already against a wall, the car stops instead of crushing him.
+  * `_unpin()`: runs after each slide step and when the car stops. If the player is still inside `solid_rect()`, it moves him out to the nearer free side, or onto the roof if that side is blocked.
+* **Generic safety net** (`player.gd` `_pin_check`): if the player is in the air with `velocity.y > 600` and his y has not changed for `PIN_T` (0.3 s), he is moved to the nearest free spot. It tries offsets up, sideways and diagonally, from 4 px out to 90 px, using a shape query with the player's box and his collision mask minus one-way floors. His velocity is then set to zero. The check is skipped while he is grabbed, draining, climbing or hooked, and it costs nothing when he is not stuck.
+* **Test:** `t_car.gd` (outside the repo) runs 70 scripted and random car-meets-player scenarios: pushed from the side, on the roof, falling onto either corner, walking or jumping into the car, crouching, overlapping at the start. A run counts as pinned when max `velocity.y` goes above 1000 and the player never gets back on the floor.
+  * Before (HEAD): 14 of 70 pinned.
+  * After: 0 of 70.
+  * Bot on level 23 (four seeds): no teleports and no pinned episodes.
+
+### Pass barrier waits ("THEY'RE BEHIND YOU", `environment/pass_barrier.gd`)
+* **Why players waited.**
+  * Locked zombies had brain roles like HOLD, FLANK, COVER or WAIT, so they hung back off screen or behind cover instead of coming.
+  * The wall waited for the very last straggler.
+  * The safety timeout was 40 s.
+* **Changes:**
+  * Every `PUSH_EVERY` (2 s) the locked zombies get `hear_noise(player)` and a forced `brain.command(ATTACK)`, so they come and fight.
+  * `_not_stale`: a locked zombie that is not "in the fight" (closer than `NEAR` = 420 px and in line of sight) and is not getting closer is dropped after `STALE` (4 s).
+  * The wall opens when `LEFT_OK` (1) zombie is left, or when `LEFT_LATE` (2) are left after `LATE_T` (7 s).
+  * `TIMEOUT` is now 12 s (was 40).
+* **Bot results** (god mode; total barrier time per level, before -> after with the final tuning):
+
+  | Level / seed | Before | After |
+  |---|---|---|
+  | 39 / 1273 | 86 s, longest 41 s | 39 s, longest 8 s |
+  | 39 / 5 | 84 s | 26 s |
+  | 41 / 5 | 59 s, longest 40 s | 24 s |
+  | 43 / 1301 | 62 s | 44 s, longest 9 s |
+  | 43 / 5 | 70 s, longest 41 s | 12 s |
+  | 50 / 1350 | 26 s | 24 s, longest 8 s |
+
+  Every episode now lasts 9.4 s or less (before: up to 41 s).
+  Finish times: level 39 went from 135 s / 127 s to 85 s / 73 s, and level 43 from 100 s / 111 s to 85 s / 56 s.
+
+### Pickups / zombies inside solids (`main.gd` `_unstick_spawns`)
+* **Pickups.** `pickup.gd` lands by casting a ray down from its spawn point. If that point is inside an obstacle that was never `reserve()`d (stage `brick.gd` blocks, `prop.gd` barrels or cars), the ray never hits it. The pickup then rests on the road inside the obstacle, where you can't see or collect it.
+  * Fix: one physics frame after the build, each pickup whose spawn point, or the spot where it will land on the road, is inside a solid moves sideways to free road. It checks steps of 26 px out to 390 px and avoids pits.
+* **Zombies of types 20+** used to be skipped by `_unstick_spawns`, because some hide inside things on purpose. They are now moved too when the body they are inside is a `prop.gd` or `brick.gd` obstacle; nothing hides in those on purpose. Example: stage 14 places CRUMBLERs lying down at fixed x in the halls, and some ended up inside concrete blocks.
+* **Test:** `t_place.gd` (outside the repo) builds levels x seeds and counts pickups and zombies inside solids. Levels 8/14/16/49 x 5 seeds: pickups inside 8 -> 0, zombies inside 5 -> 0.
+  All 51 levels x 3 seeds: pickups inside 8 -> 0, zombies inside 22 -> 16. The 16 left are on purpose: ceiling crawlers, the WALL CRAWLER on furniture, HANGED in trees, GHILLIE and SCARECROW, plus 2 level 42 CONSCRIPTs in StaticBody2D trenches, which are probably meant to be dug in.
+
+### CONDUCTOR hint (`zombie.gd`, level 2 boss)
+* A front hit still shows "NO EFFECT". On the 1st, 6th, 11th, 16th and 21st front hit it also shows a bigger yellow "SHOOT HIS BACK!". On the first one the hero also says "His front is armored... get behind him!".
+* The transformer on his back now has a second, larger pulsing blue glow, so you can see where to shoot.
+* "NO EFFECT" now pops up at most once every 0.3 s (`ne_t` meta). With an automatic gun the popups used to stack into an unreadable pile.
+
+### "Invalid polygon data, triangulation failed" (level 6)
+* Cause: `effects/s6_building.gd`, the moonlight cone under a hole in the ceiling. The top edge was drawn from `g0 + 6` to `g1 - 6`. When a hole is narrower than 12 px, those two points swap sides and the quad crosses itself. This happened in about 1 of 4 random level 6 layouts, and the cone was then not drawn.
+* Fix: the top of the cone is now centred on the hole with a half-width of at least 2 px.
+* How it was found: a test copy where every `draw_colored_polygon` / `draw_polygon` call was rewritten by regex to go through a checker. The checker runs `Geometry2D.triangulate_polygon` and prints the CanvasItem and the points when it fails. `get_stack()` is empty without a debugger, so the node and points are what identify the culprit. Level 6 start, 12 runs: 2 of 8 failed before, 0 of 12 after.
+
+## Weapons round 2 (polish pass "weapons")
+
+Builds on "Gun feel + kill feel" and "Weapon + ability progression". Covers the balance of the 11 progression guns,
+the MINIGUN spin-up, heavy shot sounds, per-gun muzzle flashes, ragdoll hair and early-level ammo.
+
+### Balance rules (how damage works, see `zombie.gd -> take_damage`)
+* Regular zombie = 30 HP. Body hit = 12-15 x `damage`, leg = 7-10 x `damage`, head = 30 (sniper weapons 60).
+* `falloff` / `fixed_damage` replace the zone damage (shotguns, crossbow, flamethrower), per pellet.
+* **New:** a weapon with `damage` > `HEAD_HEAVY` (1.6) also multiplies the head: head x damage x `HEAD_HEAVY_K` (0.6),
+  not on bosses. Before, ANTI-MATERIEL / RAILGUN did *less* on a headshot (60) than on a body shot (71 / 81).
+  Now REVOLVER 36, LEVER-ACTION 43, MARKSMAN 31, SNIPER 61, ANTI-MATERIEL 126, RAILGUN 162 (x2 on a PERFECT hit).
+* Fire rate is quantized to physics frames (`_cooldown = fire_rate`): 0.085 really fires every 0.1 s. The table uses
+  the real rate. The MINIGUN keeps the remainder instead (`_cooldown = max(_cooldown, -1 frame) + rate`), so 0.045 = 22/s.
+
+### Final table (base stats, no shop upgrades)
+"Brute" = a 60 HP heavy (late-game heavies are 50-60 HP; the BRUTE kind itself has 30). Shots = body shots, all pellets
+hitting (shotguns at point blank). DPS = raw; sustained = including reload.
+
+| Stage | Gun | Role | Body dmg | Head | Pierce | Shots walker / brute | DPS / sustained | Ammo start/box/max |
+|---|---|---|---|---|---|---|---|---|
+| 1 | RIFLE | starter | 17 | 30 | 0 | 2 / 4 | 28 / 26 | 30/10/60 |
+| 2 | SHOTGUN | close | 6x10 | - | 0 | 1 / 1 | 71 / 57 | 8/3/16 |
+| 4 | PISTOL | fast precision | 11 | 30 | 0 | 3 / 6 | 37 / 32 | 36/12/96 |
+| 7 | SMG | spray | 4 | 12 | 0 | 8 / 15 | 34 / 28 | 90/24/150 |
+| 9 | SNIPER | one-shot, pierce | 34 | 61 | 3 | 1 / 2 | 27 / 23 | 5/2/10 |
+| **10** | **REVOLVER** | heavy hand cannon | 27 (was 22) | 36 | 1 | 2 (25% 1) / 3 | 68 / 44 (was 52 / 35) | 24/8/48 |
+| 12 | ASSAULT RIFLE | auto | 7 | 15 | 0 | 5 / 9 | 38 / 33 | 60/24/120 |
+| **16** | **DOUBLE BARREL** | 2-shell burst | 8x13 | - | 0 | 1 / 1 | 446 / 133 | 12/4/28 (unchanged) |
+| **18** | **LEVER-ACTION** | one-shot line rifle | 32 (was 26) | 43 | 2 | 1 (75%) / 2 | 64 / 46 (was 52 / 37) | 21/7/42 |
+| 19 | ASSAULT SHOTGUN | auto close | 7x11 | - | 0 | 1 / 1 | 231 / 155 | 16/6/40 |
+| **22** | **CROSSBOW** | silent, always one-shot, pierce, bolts come back | 38-46 (was 30-38) | same | 4 (3) | 1 / 2 | 60 (was 40) | 14/5/28 (12/4/24) |
+| **24** | **FLAMETHROWER** | crowd at close range + burn | 2x4 + burn 7/s | - | 2 | ~4 puffs | 120 + burn | 200/70/360 (160/50/320) |
+
+FLAMETHROWER reach: `bullet_speed` 720 -> 900 and `range` 340 -> 480. The puffs slow down (x(1 - 1.6 dt)), so the real
+reach was only ~270 px (bot at stage 24: 9 kills in 100 s). Now ~350 px (34 kills).
+| **27** | **LMG** | 80-round suppression | 7-8 (was 7) | 15 | 1 | 5 / 9 | 70 / 53 | 160/40/320 |
+| **30** | **DRAGON'S BREATH** | pump shotgun, sets the crowd on fire | 8x13 (was 7x11) | - | 0 | 1 / 1 | 189 / 142 (was 96 / 77) | 14/5/30 (12/4/24) |
+| **36** | **ANTI-MATERIEL** | kills a whole line (pierce 8) | 71 | 126 (60) | 8 | 1 / 1 | 51 / 41 (was 42 / 34) | 10/4/20 (8/3/16) |
+| **37** | **MARKSMAN RIFLE** | fast precision | 23 (was 18) | 31 | 1 | 2 / 3 (was 4) | 92 / 69 (was 67 / 51) | 36/12/72 |
+| **45** | **MINIGUN** | spin up, then 22 rounds/s | 7-8 (was 6) | 15 | 1 (0) | 5 / 9 | 156 / 117 (was 120 / 91) | 400/100/800 (300/80/600) |
+| **50** | **RAILGUN** | crosses the screen (pierce 20) | 91 (was 81) | 162 (60) | 20 | 1 / 1 | 101 / 67 (was 81 / 51) | 12/4/24 (9/3/18) |
+
+Other changes in `weapons/weapon_db.gd`:
+* REVOLVER fire_rate 0.42 -> 0.4, knockback 140 -> 150 (= `HEAVY_KB`: kills always fling the body).
+* LEVER-ACTION knockback 150 -> 170. CROSSBOW fire_rate 0.85 -> 0.7, knockback 90 -> 110.
+* DRAGON'S BREATH: falloff [11, 2.5, 470] -> [13, 3, 520], pellets 7 -> 8, fire_rate 0.8 -> 0.55, reload 1.2 -> 1.1, range 1000.
+  It was weaker than the ASSAULT SHOTGUN it comes 11 stages after.
+* ANTI-MATERIEL fire_rate 1.7 -> 1.4, magazine 4 -> 5. MARKSMAN fire_rate 0.27 -> 0.24.
+* MINIGUN damage 0.42 -> 0.55, fire_rate 0.05 -> 0.045, pierce 1, reload 3.2 -> 3.0, `spin_up` 0.4.
+* RAILGUN damage 4.0 -> 4.5, fire_rate 1.0 -> 0.9, magazine 3 -> 4.
+* LMG damage 0.5 -> 0.55, knockback 55 -> 65.
+* Why none trivializes the game: ammo stays the limit (heavy guns have 10-24 rounds per pickup), bosses are excluded from
+  the head bonus, and the strongest DPS guns (DOUBLE BARREL, DRAGON'S BREATH, FLAMETHROWER) only work at close range.
+
+### MINIGUN spin-up (`player.gd -> _spin_update`)
+* `_spin` 0..1. Holding fire spins up in `spin_up` (0.4 s); releasing spins down in `SPIN_DOWN` (0.7 s).
+* It fires at once: the rate starts at `SPIN_START` (35%) of full and ramps to 100% (`cd / lerp(SPIN_START, 1, _spin)`).
+  So a tap still shoots, and holding feels like a ramp, not a delay.
+* Walk speed x `SPIN_MOVE` (0.8) while it is spinning and firing (not after release).
+* Sounds (`weapons/weapon_sounds.gd`): `minigun_spin` (rising whine on spin start), `minigun_hum` (repeats every 0.26 s at
+  full speed), `minigun_wind` (falling whine on release after firing).
+* Art (`gun_art.gd`, "minigun"): 6 barrels drawn back-to-front around `player._spin_ang` (light ones in front), motion blur
+  above 55% speed, clamp rings, motor with cooling ribs, ammo box with a belt, barrels glow orange after a long burst.
+  `draw_held()` takes 2 new optional arguments: `spin` (angle, -1 = use time) and `spin_k` (0..1).
+
+### Heavy shot sounds (`"sound2"` in weapon_db)
+A second synthesized layer plays with the normal shot (`player._fire`): `boom_heavy` (REVOLVER, DOUBLE BARREL, LEVER-ACTION),
+`boom_50` (ANTI-MATERIEL: deep boom + echo), `thud_auto` (LMG, MINIGUN, MARKSMAN: short low punch), `rail_zap` (RAILGUN:
+falling electric zap + sub boom), `xbow_snap` (CROSSBOW), `fire_whoosh` (DRAGON'S BREATH). Volume = `sound2_db`.
+
+### Muzzle flashes (`player.gd -> _draw_muzzle`)
+* `MUZZLE_PAL`: per-style colours [light, flame star, cone, core]. RAILGUN is electric blue (plus a ring and 3 small arcs),
+  DRAGON'S BREATH is red-orange.
+* `MUZZLE_CONE`: forward cone length per style (longer for heavy guns). `MUZZLE_JETS`: styles with a muzzle brake (side jets):
+  rifle, sniper, MARKSMAN, ANTI-MATERIEL (also a rear pair).
+
+### Held art fixes (`weapons/gun_art.gd`) and the flame stream (`bullet.gd`)
+* CROSSBOW: the bow limbs were a big outlined diamond (+-11 px); now a smaller curved prod (+-8.5) with a stirrup and a small sight.
+* FLAMETHROWER puffs were 3 hard concentric circles (an orange ball). Now each puff is a soft `FlameFx.glow` halo, a
+  `FlameFx.tongue` that always points up in world space (the node is rotated, so it draws with `draw_set_transform(-rotation)`)
+  and sways per puff, a white-hot core for the first 30% of its life and soft dark smoke for the last 25%.
+* Muzzle-brake jets are tapered triangles now (they were 2.2 x size px thick lines, which read as bars on the ANTI-MATERIEL).
+
+### Ragdoll hair (`effects/ragdoll.gd -> draw`)
+Corpses of kinds 0-19 now draw the same hair as the living zombie (`zombie.gd -> _head`): `z.hair` colour, back-hair oval
+(not BRUTE, not bald), RUNNER's long hair (hangs back and down), the hair cap on top (`HAIR_CAP`, same points as the living
+head, not BRUTE / BOSS / CONDUCTOR / COP) and the scalp sore on bald zombies. `HEAD_K` maps the living head size (7.2) to the
+corpse head (6.0). Registry types (20+) are unchanged (they draw their own heads).
+
+### Fire particle fix (`zombie.gd -> ignite`)
+`ignite()` burst 24 particles every call. The FLAMETHROWER / DRAGON'S BREATH call it on every pellet hit (~30 times a
+second per zombie). Now a zombie that is already burning (> 0.5 s left) only gets its timer extended.
+
+### Early-level ammo (`progression/arsenal.gd`)
+* Levels 1-`EARLY_LEVELS` (5) get one more supply point, `EARLY_SUPPLY` = [0.9, "supply"] (an x3 ammo crate in the
+  boss arena): `Arsenal.supply_points_for(lv, base)`, called from `main.gd -> _spawn_supplies`.
+* The ammo drop chance when the gun in hand is nearly empty is `EARLY_DROP` (0.3) instead of 0.2 on those levels.
+* Bot (god = 0, practice loadout) before: level 3 ran dry at x=3417 and then 15 more times at the boss (rifle + shotgun
+  vs the door boss), TIMEOUT with the boss at 553/600. After: 1-2 short dry spells, boss killed, FINISHED (2 seeds).
+  Levels 1, 2, 4, 5 were fine before (level 4: one dry spell at x=6820).
+
+### Test results
+* All 51 levels, 600 frames headless, invulnerable player firing nonstop and switching through all 11 new guns + rifle +
+  shotgun every 46 frames (`t_sweep.gd`): 0 SCRIPT ERROR / Parse Error / polygon errors (run twice, the second time with the final files).
+* Bot (`t_wbot.gd`, god = 0, 100 s, each new gun alone on its own stage): no script errors. FINISHED: DOUBLE BARREL 16
+  (95 kills), LEVER-ACTION 18, LMG 27, MARKSMAN 37 (39 kills in 44 s), MINIGUN 45 (68 kills in 83 s). The rest hit the 100 s
+  cap on long levels (REVOLVER 10, CROSSBOW 22, DRAGON'S BREATH 30, ANTI-MATERIEL 36, RAILGUN 50) - the bot is slow on
+  those layouts with any gun; single runs are noisy (PISTOL vs REVOLVER on stage 10: 42 s vs 62 s, then 100 s).
+* Synth levels (peak / RMS of the new sounds) are in the same range as the shotgun.
+* Screenshots: `/mnt/project-files/polish/shots/weapons_guns_before.png`, `weapons_guns_after.png`,
+  `weapons_guns_after_fixes.png`, `weapons_ragdoll_hair_before_after.png`.
+
+### Testing tools (outside the repo, in the test project)
+* `t_wbot.gd` = `t_bot.gd` + `FORCE_GUN=<id>` (only that gun, infinite ammo) and a `WBOT` line (time, kills, damage).
+* `t_gunshot.gd -- <level> <ids> <prefix> [zoom]` - holds each gun, fires, saves a zoomed crop with the flash. Use `--fixed-fps 60`.
+* `t_corpse.gd -- out.png` - kills a row of zombies next to the player and saves a crop of the corpses (scaled x3).
+* `t_sweep.gd -- <level>` - 600 frames, invulnerable, fires nonstop through all new guns.
+* Render with `--fixed-fps 60`: without it a slow software renderer runs several physics steps per frame and corpses /
+  flashes are gone before the screenshot.
