@@ -27,8 +27,27 @@ func _initialize() -> void:
 	root.add_child(main_node)
 	current_scene = main_node
 
+var t_last := 0
+var ms_open := 0.0
+var n_open := 0
+var ms_base := 0.0
+var n_base := 0
+var is_open := false
+
 func _process(_d: float) -> bool:
 	f += 1
+	var now := Time.get_ticks_usec()
+	var ms := float(now - t_last) / 1000.0
+	if OS.get_environment("CPU_MS") != "":   # בלי רינדור: זמן הסקריפטים בלבד
+		ms = (Performance.get_monitor(Performance.TIME_PROCESS) + Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)) * 1000.0
+	t_last = now
+	if f > 400 and not is_open:
+		ms_base += ms
+		n_base += 1
+	elif is_open:
+		ms_open += ms
+		n_open += 1
+	is_open = false
 	if pl == null:
 		pl = main_node.get_tree().get_first_node_in_group("player")
 		return false
@@ -50,6 +69,7 @@ func _process(_d: float) -> bool:
 	for n in pl.get_parent().get_children():
 		if n.has_method("_collapse"):
 			open_frames += 1
+			is_open = true
 			if open_frames == 1:
 				print("singularity open at frame ", f)
 			if n._t >= 0.45 and shot != "" and not shot_a:
@@ -69,6 +89,7 @@ func _process(_d: float) -> bool:
 			if not is_instance_valid(z) or z.dead:
 				dead += 1
 		print("KILLED ", dead, "/", zs.size())
+		print("FRAME MS base %.1f  black hole %.1f" % [ms_base / maxf(n_base, 1), ms_open / maxf(n_open, 1)])
 		quit()
 	return false
 

@@ -13,8 +13,8 @@ const PULL_R := 340.0       # טווח השאיבה
 const PULL_V := 560.0       # מהירות שאיבה מקסימלית (בקצה החיצוני חלשה יותר)
 const PULL_T := 1.9         # כמה זמן החור פתוח
 const CORE := 26.0          # ליבה: מי שהגיע לכאן נתקע במרכז
-const CRUSH := 3            # נזק כל CRUSH_TICK לזומבים שליד הליבה
-const CRUSH_TICK := 0.2
+const CRUSH := 8            # נזק כל CRUSH_TICK לזומבים שליד הליבה (פגיעות נדירות וחזקות = זול יותר מהרבה קטנות)
+const CRUSH_TICK := 0.5
 const BOSS_K := 0.3
 const BLAST_R := 170.0
 const BLAST_DMG := 60
@@ -56,13 +56,41 @@ static func draw_icon(ci: CanvasItem, c: Vector2, s: float, t: float) -> void:
 	ci.draw_rect(Rect2(c + Vector2(-2.0, -9.5) * s, Vector2(4.0, 3.0) * s), Color("9a9aa2"))
 
 
+# ---- ציור חלקיקים בקריאה אחת (מהיר: מאות חלקיקים = draw call אחד, בלי draw_circle) ----
+# נקודה = מעוין קטן
+static func _dot(pts: PackedVector2Array, cols: PackedColorArray, c: Vector2, r: float, col: Color) -> void:
+	pts.append_array([c + Vector2(0, -r), c + Vector2(r, 0), c + Vector2(0, r), c + Vector2(0, -r), c + Vector2(0, r), c + Vector2(-r, 0)])
+	for i in 6:
+		cols.append(col)
+
+
+# כתם רך = משושה שקוף בקצוות (לענן הכהה)
+static func _blob(pts: PackedVector2Array, cols: PackedColorArray, c: Vector2, r: float, col: Color) -> void:
+	var edge := Color(col, 0.0)
+	for i in 6:
+		pts.append_array([c, c + Vector2.from_angle(TAU * i / 6.0) * r, c + Vector2.from_angle(TAU * (i + 1) / 6.0) * r])
+		cols.append_array([col, edge, edge])
+
+
+# שובל = משולש מהראש (רחב) לזנב (שקוף)
+static func _streak(pts: PackedVector2Array, cols: PackedColorArray, head: Vector2, tail: Vector2, w: float, col: Color) -> void:
+	var n := (head - tail).orthogonal().normalized() * w
+	pts.append_array([head + n, head - n, tail])
+	cols.append_array([col, col, Color(col, 0.0)])
+
+
+static func _flush(ci: CanvasItem, pts: PackedVector2Array, cols: PackedColorArray) -> void:
+	if not pts.is_empty():
+		RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), PackedInt32Array(), pts, cols)
+
+
 # ---- החור השחור: רק חלקיקים ----
 class Singularity extends Node2D:
 	const Boom := preload("res://explosion.gd")
 	const Sfx := preload("res://sfx.gd")
 	const GG := preload("res://weapons/gravity_grenade.gd")
-	const N_LIGHT := 200   # נקודות אור שנשאבות
-	const N_DARK := 80     # ענן כהה שמסתובב במרכז ("החור")
+	const N_LIGHT := 150   # נקודות אור שנשאבות
+	const N_DARK := 45     # ענן כהה שמסתובב במרכז ("החור")
 	var _t := 0.0
 	var _tick := 0.0
 	var _done := false
@@ -178,13 +206,15 @@ class Singularity extends Node2D:
 	func _draw() -> void:
 		var ck := _collapse_k()
 		var flat := Vector2(1.0, 0.8)   # מעט פחוס - מערבולת ולא עיגול
+		var pts := PackedVector2Array()
+		var cols := PackedColorArray()
 		# קודם הענן הכהה (החור), מעליו נקודות האור
 		for p in _pts:
 			if not p[3] or p[1] <= 0.0:
 				continue
 			var pos: Vector2 = Vector2.from_angle(p[0]) * p[1] * flat
 			var a: float = clampf(p[5] / 0.3, 0.0, 1.0) * (1.0 - ck * 0.5)
-			draw_circle(pos, p[4] * (1.0 - 0.5 * ck), Color(0.02, 0.0, 0.05, 0.55 * a))
+			GG._blob(pts, cols, pos, p[4] * 1.6 * (1.0 - 0.5 * ck), Color(0.02, 0.0, 0.05, 0.75 * a))
 		for p in _pts:
 			if p[3] or p[1] <= 0.0:
 				continue
@@ -195,15 +225,13 @@ class Singularity extends Node2D:
 			if int(p[2] * 10.0) % 4 == 0:
 				col = GG.DEEP.lerp(GG.COL, near)   # חלק סגולים
 			var a: float = clampf(p[5] / 0.25, 0.0, 1.0) * lerpf(0.35, 1.0, near)
-			# שובל לאורך המסלול: נקודות שהולכות וקטנות מאחור, כך רואים את הסיבוב
-			var step: float = _spin(dist, p[6]) * p[2] * 0.022
-			for j in range(5, -1, -1):
-				var q: Vector2 = Vector2.from_angle(p[0] - step * float(j)) * (dist + (4.0 if not p[6] else 0.0) * float(j)) * flat
-				var f := 1.0 - float(j) / 6.0
-				if j == 0:
-					draw_circle(q, size * 2.6, Color(col, 0.16 * a))   # הילה רכה
-				draw_circle(q, size * (0.45 + 0.55 * f), Color(col, a * f * f))
-
+			var pos: Vector2 = Vector2.from_angle(p[0]) * dist * flat
+			# שובל לאורך המסלול, כך רואים את הסיבוב
+			var back: float = _spin(dist, p[6]) * p[2] * 0.11
+			var tail: Vector2 = Vector2.from_angle(p[0] - back) * (dist + (0.0 if p[6] else 22.0)) * flat
+			GG._streak(pts, cols, pos, tail, size * 0.8, Color(col, 0.55 * a))
+			GG._dot(pts, cols, pos, size * 1.2, Color(col, a))
+		GG._flush(self, pts, cols)
 
 # הקריסה: התפרצות חלקיקים החוצה (ניצוצות אור + מעט אבק כהה)
 class Flash extends Node2D:
@@ -234,6 +262,13 @@ class Flash extends Node2D:
 
 	func _draw() -> void:
 		var a := 1.0 - _t / LIFE
+		var pts := PackedVector2Array()
+		var cols := PackedColorArray()
 		for p in _p:
-			var col: Color = Color(0.02, 0.0, 0.06, 0.5 * a) if p[3] else Color(GG.COL_HOT.lerp(GG.COL, _t / LIFE), a)
-			draw_circle(p[0], p[2] * (0.4 + 0.6 * a), col)
+			if p[3]:
+				GG._blob(pts, cols, p[0], p[2] * 1.6 * (0.4 + 0.6 * a), Color(0.02, 0.0, 0.06, 0.6 * a))
+			else:
+				var col := Color(GG.COL_HOT.lerp(GG.COL, _t / LIFE), a)
+				GG._streak(pts, cols, p[0], p[0] - p[1] * 0.03, p[2] * 0.7, col)
+				GG._dot(pts, cols, p[0], p[2] * 1.2 * (0.4 + 0.6 * a), col)
+		GG._flush(self, pts, cols)
