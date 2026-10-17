@@ -8,7 +8,7 @@ from PIL import Image, ImageFilter, ImageEnhance
 REC = "/tmp/claude-0/rec/l2.mkv"
 POS = "/tmp/claude-0/rec/l2_pos.csv"
 LOG = "/tmp/claude-0/rec/l2.log"
-OUT = "/tmp/claude-0/short5"
+OUT = "/tmp/claude-0/short6"
 FONTDIR = "/home/claude/omriweb/shooter_game/fonts"
 MUSIC = "/home/claude/omriweb/shooter_game/music/level1_total_war.mp3"
 SW, SH = 2560, 1440          # source frame
@@ -41,17 +41,27 @@ for s in SHOTS:
     starts.append(t)
     t += (s["b"] - s["a"]) / s["speed"]
 TOTAL = t
-impacts = []   # output times of kills that are on screen
+impacts = []   # only the big moments listed per shot ("hits"): explosions, multi-kills, the boss
 for s, st in zip(SHOTS, starts):
-    for g in kills:
-        if s["a"] <= g < s["b"]:
-            impacts.append(st + (g - s["a"]) / s["speed"])
-for s, st in zip(SHOTS, starts):   # extra hits the edit asks for (explosions, boss)
     for g in s.get("hits", []):
         impacts.append(st + (g - s["a"]) / s["speed"])
 impacts.sort()
 json.dump({"starts": starts, "total": TOTAL, "impacts": impacts}, open(f"{OUT}/timeline.json", "w"))
 print("total", round(TOTAL, 2), "impacts", len(impacts))
+
+
+def zoom_at(s, u):
+    keys = s.get("zk")
+    if not keys:
+        return s.get("zoom", 1.0)
+    if u <= keys[0][0]:
+        return keys[0][1]
+    for (u0, z0), (u1, z1) in zip(keys, keys[1:]):
+        if u <= u1:
+            k = (u - u0) / max(1e-6, u1 - u0)
+            k = k * k * (3 - 2 * k)   # smoothstep: eases in and out
+            return z0 + (z1 - z0) * k
+    return keys[-1][1]
 
 
 def frames(a, b):
@@ -86,18 +96,18 @@ for si, (s, st) in enumerate(zip(SHOTS, starts)):
                 break
         fi = min(int(round(g * 60)), len(xs) - 1)
         # zoom: shot zoom, a slow push-in, and a punch on every impact
-        z = s["zoom"] * (1.0 + s.get("push", 0.0) * j / max(1, nout))
+        z = zoom_at(s, j / FPS)
         shake = 0.0
         flash = 0.0
         for it in impacts:
             d = T - it
             if 0 <= d < 0.6:
-                z *= 1.0 + 0.13 * math.exp(-d / 0.10)
-                shake = max(shake, 26.0 * math.exp(-d / 0.08))
+                z *= 1.0 + 0.07 * math.exp(-d / 0.12)
+                shake = max(shake, 14.0 * math.exp(-d / 0.08))
                 if d < 1.5 / FPS:
                     flash = max(flash, 0.55)
-        if j < 3 and si > 0 and s.get("flash_in", True):
-            flash = max(flash, 0.5 * (1 - j / 3))
+        if j < 2 and si > 0 and s.get("flash_in", False):
+            flash = max(flash, 0.35 * (1 - j / 2))
         ch = SH / z
         cw = ch * FW / FH
         cx = xs[fi] + s.get("dx", 0) * SCALE + random.uniform(-shake, shake)

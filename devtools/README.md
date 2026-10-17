@@ -20,6 +20,7 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
 - `kokoro_voiceovers.py` - natural voiceovers with Kokoro-82M (Apache-2.0). Needs `pip install kokoro-onnx` (user-approved 2026-10-17),
   the q8 model from the npm package `kokoro-q8-shards` (6 parts, concatenate; sha256 fbae9257...) and the voice .bin files from the npm
   package `kokoro-local-runtime` (`voices/*.bin`, float32 reshaped to (510,1,256), saved together as voices.npz).
-- `build_short_followcam.py` + `mix_short_followcam.py` + `shots_level2.json` - retention-style Short: record at
-  `--resolution 2560x1440` with `REC_POS=<csv>`, then a 4:5 follow-cam crop on the player, punch zoom / shake / flash on
-  every kill, speed ramps per shot, captions and music. Shots are listed in the json (game seconds, speed, zoom, dx, dy).
+- `build_short_followcam.py` + `mix_short_followcam.py` + `shots_level2.json` + `level2_vo_lines.txt` - 30 s level 2 Short: record at
+  `--resolution 2560x1440` with `REC_POS=<csv>`, then a 4:5 follow-cam crop on the player. No slow motion (it wrecked the audio);
+  zoom only where a shot lists `zk` keyframes, punch/shake/flash only on its `hits`. Narrator = Kokoro am_onyx at speed 0.85
+  (lines file), music = level1_total_war from 22 s (its first 21 s are silent), game audio ducked under the voice.
