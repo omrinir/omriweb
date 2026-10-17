@@ -38,6 +38,8 @@ const AcidScript := preload("res://acid.gd")
 const FireScript := preload("res://fire.gd")
 const FlameFx := preload("res://effects/flame_fx.gd")
 const PickupScript := preload("res://pickup.gd")
+const SporeScript := preload("res://effects/spore_lesson.gd")   # פטגוניה: הנבגים מעבירים את השיעור (THEY LEARN)
+const SPORE_FROM := 55              # מאיזה שלב רואים את הנבגים עוברים מהמת לחי הכי קרוב
 const DebrisScript := preload("res://debris.gd")
 const Particles := preload("res://particles.gd")
 const FleshFx := preload("res://effects/flesh_fx.gd")
@@ -1426,6 +1428,8 @@ func _die(dir: Vector2) -> void:
 		heavy_kill = _last_kb >= HEAVY_KB
 	velocity = (Vector2(dir.x, minf(dir.y, 0.0)).normalized() * randf_range(420.0, 620.0) * fl / sqrt(sc * wf) + Vector2(0.0, -260.0 * minf(fl, 1.3))) * DEATH_FLING
 	_kill_feel()
+	if Game.level >= SPORE_FROM and not _lite and not is_boss() and Quality.level < 2:   # "THEY LEARN": השיעור עובר הלאה
+		SporeScript.send(get_parent(), global_position + Vector2(0.0, -40.0 * sc), self)
 	if kind == JETPACK:   # מתרסק בנקודה אקראית בתוך המסך שרואים
 		var vp := get_viewport()
 		var view := vp.get_canvas_transform().affine_inverse() * vp.get_visible_rect()
