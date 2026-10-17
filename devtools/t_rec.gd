@@ -3,6 +3,7 @@ extends "res://t_bot.gd"
 # env REC_SPECIAL=<special id> gives that item at frame 60 (e.g. gravity). REC_NOMUSIC=1 mutes the music bus.
 
 var _hooked := false
+var _pos_file: FileAccess = null
 
 # highlights log: one line per kill streak step, used to pick the best moments
 func _on_streak(count: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void:
@@ -25,6 +26,15 @@ func _physics_process(d: float) -> bool:
 	var sp := OS.get_environment("REC_SPECIAL")
 	if sp != "" and pl != null and f % 240 == 60 and pl.special == "":
 		pl.take_special(sp)
+	# REC_POS=<csv path>: player's on-screen position every frame, for a follow-cam crop in the edit
+	var pos_path := OS.get_environment("REC_POS")
+	if pos_path != "" and pl != null:
+		if _pos_file == null:
+			_pos_file = FileAccess.open(pos_path, FileAccess.WRITE)
+		var sp2: Vector2 = pl.get_global_transform_with_canvas().origin
+		_pos_file.store_line("%.4f,%d,%d" % [f / 60.0, sp2.x, sp2.y])
+		if f % 120 == 0:
+			_pos_file.flush()
 	if boss_seen_f == f:
 		print("EV t=%.2f boss_seen" % (f / 60.0))
 	if boss_dead_f == f:
