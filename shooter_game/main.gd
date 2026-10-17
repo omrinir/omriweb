@@ -1017,7 +1017,7 @@ func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
 		spc.setup(Vector2(_free_spot(level_w * _rng.randf_range(lo, hi)), floor_y - 30.0), Vector2.ZERO)
 	# פריט מיוחד חדש ("intro" ב-Arsenal.SPECIALS): בשלב הראשון שלו הוא מחכה קרוב להתחלה
 	for k in Arsenal.SPECIALS:
-		if int(Arsenal.SPECIALS[k].get("intro", -1)) == Game.level:
+		if Game.level in Arsenal.SPECIALS[k].get("intro", []):
 			var it = PickupScript.new()
 			it.kind = PickupScript.SPECIAL
 			it.special = k
