@@ -334,7 +334,7 @@ func load_dict(d: Dictionary) -> bool:
 	var up = d.get("upgrades", {})
 	for k in up:
 		upgrades[k] = int(up[k])
-	preload("res://abilities/ability_db.gd").migrate_upgrades(upgrades)
+	scrap += preload("res://abilities/ability_db.gd").migrate_upgrades(upgrades)   # יכולות שהוסרו: מחזירים את מה שנקנה
 	var sw = d.get("seen_weapons", [])
 	for w in sw:
 		mark_weapon_seen(int(w))
@@ -836,7 +836,7 @@ func _load() -> void:
 		scrap = int(d.get("scrap", 0))
 		for k in d.get("upgrades", {}):
 			upgrades[k] = int(d.upgrades[k])
-		preload("res://abilities/ability_db.gd").migrate_upgrades(upgrades)
+		scrap += preload("res://abilities/ability_db.gd").migrate_upgrades(upgrades)   # יכולות שהוסרו: מחזירים את מה שנקנה
 		for w in d.get("seen_weapons", []):
 			mark_weapon_seen(int(w))
 		var asl = d.get("ability_slots", [])

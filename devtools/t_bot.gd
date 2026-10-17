@@ -305,21 +305,16 @@ func _fight() -> void:
 	var sh: Vector2 = pl.global_position + pl._front_shoulder()
 	var dir: Vector2 = (t[1] - sh).normalized()
 	# special: crowd or boss
-	if pl.special in ["grenade", "molotov", "launcher", "rocket"] and spec_cd <= 0 and (t[3] >= 3 or z.is_boss()) and float(t[2]) > 150.0:
-		pl.weapon = 1
+	if pl.special in ["grenade", "gravity", "molotov", "launcher", "rocket"] and spec_cd <= 0 and (t[3] >= 3 or z.is_boss()) and float(t[2]) > 150.0:
 		spec_cd = 240
 		spec_used += 1
-		spec_back = true
 		pl._aim = (dir + Vector2(0, -0.25)).normalized()
-		pl._fire_test = true
+		pl.use_item()   # C on the item in the POWERS bar
 		return
 	if pl.special == "laser" and spec_cd <= 0 and (t[3] >= 3 or z.is_boss()):
-		pl.weapon = 1
 		pl._aim = dir
-		pl._fire_test = true
-		if spec_cd < -150:
+		if pl.use_item():
 			spec_cd = 300
-			spec_back = true
 		return
 	pl._aim = dir
 	pl._fire_test = true
@@ -428,7 +423,7 @@ func _move() -> void:
 				boss_hp_f = f
 	if stall > 5.0 and dumped < 3 and f % 20 == 0:
 		dumped += 1
-		print("DUMP f=%d pos=%s vel=%s floor=%s crouch=%s climb=%s keys=%s run=%s daze=%s slow=%s grab=%s hook=%s roll=%s want=%s" % [f, str(pl.global_position), str(pl.velocity), str(on_floor), str(pl._crouching), str(pl._climbing), str(keys), str(pl._running), str(pl._daze_t), str(pl.slow_t), str(pl.grabbed_by), str(pl._hook_state), str(pl._roll_t), str(want)])
+		print("DUMP f=%d pos=%s vel=%s floor=%s crouch=%s climb=%s keys=%s run=%s daze=%s slow=%s grab=%s hook=%s roll=%s want=%s" % [f, str(pl.global_position), str(pl.velocity), str(on_floor), str(pl._crouching), str(pl._climbing), str(keys), str(pl._running), str(pl._daze_t), str(pl.slow_t), str(pl.grabbed_by), "-", str(pl._roll_t), str(want)])
 		var qq := PhysicsShapeQueryParameters2D.new()
 		var rs := RectangleShape2D.new()
 		rs.size = Vector2(400, 400)

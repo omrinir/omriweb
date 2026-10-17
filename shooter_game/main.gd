@@ -222,8 +222,7 @@ func _ready() -> void:
 	if Game.is_night() or Game.is_subway() or (_stage != null and _stage.dark_level()):
 		var tip = preload("res://ui/tip_banner.gd").new()
 		tip.seconds = 4.0
-		var fi: int = Game.ability_slots.find("flashlight")
-		tip.sub = ("Press %d to pick it, then C to turn it on" % ((fi + 6) % 10)) if fi >= 0 else "Equip FLASHLIGHT in UPGRADES -> ABILITIES"
+		tip.sub = "Press E until FLASHLIGHT is picked, then C to turn it on"
 		add_child(tip)
 
 	# "המפקד הנסתר": תורות התקפה, תקשורת, פקודות (ai/squad_director.gd)
@@ -294,7 +293,7 @@ func _ready() -> void:
 	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
-	label.text = "A/D move (x2 run)  W jump/climb  S crouch (SxS drop)  LMB fire  R reload  Q wheel  1-5  C ability (6-0)  G drop  E special  SHIFT roll  F hook  RMB scope  L aim"
+	label.text = "A/D move (x2 run)  W jump/climb  S crouch (SxS drop)  LMB fire  R reload  Q wheel  1-5  C use power  E next power  G drop  SHIFT roll  RMB scope  L aim"
 	label.position = Vector2(12, 8)
 	label.visible = not TouchAPI.on()   # טלפון: אין מקלדת
 	label.add_theme_color_override("font_color", Color.WHITE)

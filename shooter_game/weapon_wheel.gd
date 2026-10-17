@@ -5,7 +5,7 @@ const AbilityDB := preload("res://abilities/ability_db.gd")
 const Upgrades := preload("res://progression/upgrade_db.gd")
 # ============================================================
 #  גלגל נשקים / יכולות (מחזיקים Q). הזמן מאט.
-#  שני עמודים נפרדים: WEAPONS / ABILITIES (5 מקומות בכל אחד).
+#  שני עמודים: WEAPONS (5 מקומות) / POWERS (כל היכולות שנפתחו + הפריט המיוחד, abilities/ability_runner.gd -> powers()).
 #  מחליפים עמוד: TAB, גלגלת העכבר, או לחיצה על הלשונית.
 #  מכוונים עם העכבר, משחררים Q = בוחרים. קליק ימני / G = לזרוק נשק.
 #  בנוסף: בר הנשקים בפינה (עם אנימציה כשמחליפים נשק).
@@ -18,9 +18,9 @@ var slow := 0.25                  # מהירות הזמן כשהגלגל פתו�
 
 var _open := false
 var _k := 0.0                     # אנימציית פתיחה 0..1
-var _page := 0                    # 0 = נשקים, 1 = יכולות
+var _page := 0                    # 0 = נשקים, 1 = POWERS (יכולות + פריט)
 var _page_k := 0.0                # אנימציית החלפת עמוד
-var _hover := -1                  # 0-4
+var _hover := -1                  # 0..n-1
 var _g_was := false
 var _tab_was := false
 var _t := 0.0
@@ -63,7 +63,8 @@ func _process(delta: float) -> void:
 		var m := get_viewport().get_mouse_position() - c
 		_hover = -1
 		if m.length() > r_in * 0.6 and m.length() < r_out + 60.0:
-			_hover = int(floor(fposmod(rad_to_deg(m.angle()) + 126.0, 360.0) / 72.0)) % 5
+			var n := _sectors()
+			_hover = int(floor(fposmod(rad_to_deg(m.angle()) + 90.0 + 180.0 / float(n), 360.0) / (360.0 / float(n)))) % n
 		var tab := Input.is_physical_key_pressed(KEY_TAB)
 		if tab and not _tab_was:
 			_page = 1 - _page
@@ -100,19 +101,6 @@ func _input(event: InputEvent) -> void:
 			_drop_hovered()
 		MOUSE_BUTTON_LEFT:
 			var c := get_viewport().get_visible_rect().size * 0.5
-			if _page == 1:   # מיני-תפריט: יכולת מהמאגר -> למקום הנבחר
-				var res := _reserve()
-				for k in mini(res.size(), RES_MAX):
-					if _res_rect(c, k, mini(res.size(), RES_MAX)).has_point(event.position):
-						_swap_in(str(res[_res_page * RES_MAX + k]) if _res_page * RES_MAX + k < res.size() else "")
-						get_viewport().set_input_as_handled()
-						return
-				if res.size() > RES_MAX:
-					var n := mini(res.size(), RES_MAX)
-					if _res_rect(c, -1, n).has_point(event.position) or _res_rect(c, n, n).has_point(event.position):
-						_res_page = (_res_page + 1) % int(ceil(float(res.size()) / float(RES_MAX)))
-						get_viewport().set_input_as_handled()
-						return
 			for i in 2:   # לחיצה על לשונית
 				if _tab_rect(c, i).has_point(event.position):
 					_page = i
@@ -122,6 +110,13 @@ func _input(event: InputEvent) -> void:
 			elif _page == 1 and _hover >= 0 and player.abilities != null:
 				player.abilities.select(_hover)
 	get_viewport().set_input_as_handled()
+
+
+# כמה פלחים בגלגל: נשקים = 5, POWERS = כמה שיש (לפחות 5)
+func _sectors() -> int:
+	if _page == 1 and player != null and player.abilities != null:
+		return maxi(5, player.abilities.powers().size())
+	return 5
 
 
 func _drop_hovered() -> void:
@@ -155,7 +150,7 @@ func _draw() -> void:
 	var f := ThemeDB.fallback_font
 	draw_rect(Rect2(Vector2.ZERO, vs), Color(0, 0, 0, 0.4 * a))
 	# לשוניות
-	var names := ["WEAPONS", "ABILITIES"]
+	var names := ["WEAPONS", "POWERS"]
 	var tab_cols := [Color(1.0, 0.75, 0.35), Color(0.45, 0.75, 1.0)]
 	for i in 2:
 		var r := _tab_rect(c, i)
@@ -175,9 +170,11 @@ func _draw() -> void:
 		draw_circle(c, (r_out + 28.0 - float(i) * 4.0) * sc, Color(acc_page, 0.035 * a))
 	draw_circle(c, (r_out + 8.0) * sc, Color(0.05, 0.05, 0.07, 0.9 * a))
 	var gap := deg_to_rad(1.8)
-	for i in 5:
-		var a0 := deg_to_rad(-126.0 + 72.0 * float(i)) + gap + spin
-		var a1 := deg_to_rad(-126.0 + 72.0 * float(i + 1)) - gap + spin
+	var n := _sectors()
+	var step := 360.0 / float(n)
+	for i in n:
+		var a0 := deg_to_rad(-90.0 - step * 0.5 + step * float(i)) + gap + spin
+		var a1 := deg_to_rad(-90.0 - step * 0.5 + step * float(i + 1)) - gap + spin
 		var mid := (a0 + a1) * 0.5
 		var hov := i == _hover
 		var pop := 12.0 if hov else 0.0
@@ -197,7 +194,8 @@ func _draw() -> void:
 		if _page == 0 and player != null and i == player.cur_slot and player.weapon == player.GUN:
 			draw_arc(c + off, (r_out + pop + 6.0) * sc, a0, a1, 16, Color(1, 1, 1, 0.95 * a), 3.0, true)
 		var ic := c + off + Vector2.from_angle(mid) * ((r_in + r_out) * 0.52 + pop * 0.4) * sc
-		draw_string(f, c + off + Vector2.from_angle(mid) * (r_in + 13.0) * sc + Vector2(-4, 5), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.45 * a))
+		var key := str(i + 1) if _page == 0 else (str((i + 6) % 10) if i < 5 else "")
+		draw_string(f, c + off + Vector2.from_angle(mid) * (r_in + 13.0) * sc + Vector2(-4, 5), key, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.45 * a))
 		if _page == 0:
 			if s != null:
 				draw_weapon(self, ic + Vector2(0, -6), s.id, sc * (1.25 if hov else 1.05), a)
@@ -207,9 +205,14 @@ func _draw() -> void:
 					draw_string(f, ic + Vector2(-40, 40), "RMB/G: DROP", HORIZONTAL_ALIGNMENT_CENTER, 80, 10, Color(1.0, 0.5, 0.4, 0.9 * a))
 			else:
 				draw_string(f, ic + Vector2(-30, 5), "EMPTY", HORIZONTAL_ALIGNMENT_CENTER, 60, 12, Color(1, 1, 1, 0.25 * a))
-		else:   # יכולות
+		else:   # POWERS: יכולות + הפריט
 			var ab: String = player.abilities.slot(i) if player != null and player.abilities != null else ""
-			if ab != "":
+			if ab == player.abilities.ITEM:
+				draw_item(self, ic + Vector2(0, -6), player.special, sc * (1.3 if hov else 1.1), a)
+				draw_string(f, ic + Vector2(-30, 24), "x%d" % player.special_uses, HORIZONTAL_ALIGNMENT_CENTER, 60, 14, Color(1, 1, 1, 0.85 * a))
+				if i == player.abilities.cur:
+					draw_arc(c + off, (r_out + pop + 6.0) * sc, a0, a1, 16, Color(1, 1, 1, 0.95 * a), 3.0, true)
+			elif ab != "":
 				AbilityDB.draw_icon(self, ic + Vector2(0, -4), ab, sc * (1.35 if hov else 1.1), a)
 				var ck: float = player.abilities.cooldown_k(ab)
 				if ck > 0.0:
@@ -235,18 +238,20 @@ func _draw() -> void:
 			sub = "SLOT %d" % (_hover + 1)
 	elif _hover >= 0 and player != null and player.abilities != null:
 		var ab: String = player.abilities.slot(_hover)
-		if ab != "":
+		if ab == player.abilities.ITEM:
+			title = player.abilities.power_name(ab)
+			sub = "x%d  [C]" % player.special_uses
+			tcol = Color(player.abilities.power_color(ab), a)
+		elif ab != "":
 			title = str(AbilityDB.val(ab, "name", ""))
 			sub = "PASSIVE" if AbilityDB.val(ab, "passive", false) else ("READY  [C]" if player.abilities.cooldown_left(ab) <= 0.0 else "%.1fs" % player.abilities.cooldown_left(ab))
 			tcol = Color(AbilityDB.val(ab, "color", Color.WHITE), a)
 		else:
 			title = "EMPTY"
-			sub = "UNLOCK IN LATER STAGES"
+			sub = "MORE IN LATER STAGES"
 	draw_string(f, c + Vector2(-60, -2), title, HORIZONTAL_ALIGNMENT_CENTER, 120, 16, tcol)
 	draw_string(f, c + Vector2(-60, 17), sub, HORIZONTAL_ALIGNMENT_CENTER, 120, 12, Color(1, 1, 1, 0.6 * a))
-	if _page == 1:
-		_draw_reserve(c, a)
-	draw_string(f, c + Vector2(-200, (r_out + 42.0) * sc), ("RELEASE Q = SELECT      CLICK BELOW = SWAP IN" if _page == 1 else "RELEASE Q = EQUIP      RMB / G = DROP"), HORIZONTAL_ALIGNMENT_CENTER, 400, 13, Color(1, 1, 1, 0.5 * a))
+	draw_string(f, c + Vector2(-250, (r_out + 42.0) * sc), ("RELEASE Q = SELECT      C = USE      E / MOUSE WHEEL = NEXT" if _page == 1 else "RELEASE Q = EQUIP      RMB / G = DROP"), HORIZONTAL_ALIGNMENT_CENTER, 500, 13, Color(1, 1, 1, 0.5 * a))
 
 
 # ---- בר הנשקים בפינה: 5 קופסאות, הנבחר מורם וזוהר ----
@@ -262,7 +267,7 @@ func _draw_bar() -> void:
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = Color(0, 0, 0, 0.35)
 	bg.set_corner_radius_all(10)
-	draw_style_box(bg, Rect2(org - Vector2(6, 6), Vector2(5.0 * (bw + sp) + 6.0 + 52.0, bh + 20.0)))
+	draw_style_box(bg, Rect2(org - Vector2(6, 6), Vector2(5.0 * (bw + sp) + 6.0, bh + 20.0)))
 	# סימון זז (מחליק לנשק הנבחר)
 	var gun_on: bool = player.weapon == player.GUN
 	if gun_on:
@@ -304,28 +309,6 @@ func _draw_bar() -> void:
 			if cur and _shine < 1.0:
 				var sx := r.position.x + (bw + 30.0) * _shine - 15.0
 				draw_colored_polygon(PackedVector2Array([Vector2(sx, r.position.y), Vector2(sx + 10, r.position.y), Vector2(sx - 2, r.end.y), Vector2(sx - 12, r.end.y)]), Color(1, 1, 1, 0.35 * (1.0 - _shine)))
-	# רימונים
-	var gr := Rect2(org + Vector2(5.0 * (bw + sp), 0.0), Vector2(44.0, bh))
-	var gsb := StyleBoxFlat.new()
-	gsb.set_corner_radius_all(7)
-	gsb.bg_color = Color(0.1, 0.12, 0.08, 0.9)
-	gsb.border_color = Color(0.55, 0.65, 0.3, 0.95 if not gun_on else 0.35)
-	gsb.set_border_width_all(2 if not gun_on else 1)
-	draw_style_box(gsb, gr)
-	# פריט נפץ (SPECIAL): רימון / מולוטוב / משגר. ריק = מקום אפור
-	if player.special == "":
-		draw_string(f, gr.position + Vector2(0, 24), "-", HORIZONTAL_ALIGNMENT_CENTER, 44, 14, Color(1, 1, 1, 0.3))
-	else:
-		var swid: int = int(Arsenal.SPECIALS[player.special].weapon)
-		if player.special == "god":
-			player.PickupScript.draw_potion(self, gr.get_center() + Vector2(-6, 2), 0.85, Time.get_ticks_msec() / 1000.0)
-		elif swid < 0:
-			draw_circle(gr.get_center() + Vector2(-6, 0), 6.0, Color("5d7030"))
-			draw_rect(Rect2(gr.get_center() + Vector2(-8, -9), Vector2(4, 4)), Color("9a9aa2"))
-		else:
-			draw_weapon(self, gr.get_center() + Vector2(-2, 0), swid, 0.42)
-		draw_string(f, gr.position + Vector2(0, 24), "x%d" % player.special_uses, HORIZONTAL_ALIGNMENT_RIGHT, 40, 13, Color.WHITE)
-	draw_string(f, gr.position + Vector2(3, 11), "E", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1, 1, 1, 0.45))
 	_draw_ability_bar(Vector2(org.x, org.y + bh + 30.0))
 	# שם הנשק קופץ אחרי החלפה
 	if _name_t > 0.0 and gun_on and player.slots[player.cur_slot] != null:
@@ -473,119 +456,65 @@ static func draw_weapon(ci: CanvasItem, p: Vector2, id: int, s: float, alpha := 
 
 
 # ---- בר היכולות (מתחת לבר הנשקים): 5 קופסאות קטנות, טעינה מסתובבת, C = הפעלה ----
+# ---- בר POWERS: כל היכולות שנפתחו + הפריט המיוחד, בשורה אחת. C = שימוש, E / גלגלת = הבא ----
 func _draw_ability_bar(org: Vector2) -> void:
 	if player == null or player.abilities == null:
 		return
 	var ab = player.abilities
-	var any := false
-	for i in 5:
-		if ab.slot(i) != "":
-			any = true
-	if not any:
+	var list: Array = ab.powers()
+	if list.is_empty():
 		return
 	var f := ThemeDB.fallback_font
 	var bs := 30.0
-	for i in 5:
-		var id: String = ab.slot(i)
+	for i in list.size():
+		var id: String = list[i]
 		var r := Rect2(org + Vector2(float(i) * (bs + 5.0), 0.0), Vector2(bs, bs))
 		var sb := StyleBoxFlat.new()
 		sb.set_corner_radius_all(6)
-		var cur: bool = i == ab.cur
-		if id == "":
-			sb.bg_color = Color(1, 1, 1, 0.03)
-			sb.border_color = Color(1, 1, 1, 0.08)
-			sb.set_border_width_all(1)
-			draw_style_box(sb, r)
-			continue
-		var col: Color = AbilityDB.val(id, "color", Color.WHITE)
+		var cur: bool = id == ab.cur_id
+		var col: Color = ab.power_color(id)
 		sb.bg_color = Color(0.08, 0.08, 0.1, 0.9).lerp(col, 0.15 if cur else 0.04)
 		sb.border_color = Color(col, 0.95 if cur else 0.35)
 		sb.set_border_width_all(2 if cur else 1)
-		draw_style_box(sb, r)
-		var ck: float = ab.cooldown_k(id)
-		AbilityDB.draw_icon(self, r.get_center(), id, 0.75, 1.0 if ck <= 0.0 else 0.35)
-		if ck > 0.0:   # טעינה: חלק כהה שיורד
-			draw_rect(Rect2(r.position, Vector2(bs, bs * ck)), Color(0, 0, 0, 0.55))
-		if ab.is_active(id):
-			draw_rect(r.grow(2.0), Color(col, 0.6 + 0.3 * sin(_t * 10.0)), false, 2.0)
-		draw_string(f, r.position + Vector2(2, 9), str((i + 6) % 10), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 1, 1, 0.4))
-	draw_string(f, org + Vector2(5.0 * (bs + 5.0) + 4.0, 20.0), "C", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.6))
+		draw_style_box(sb, r.grow(2.0) if cur else r)
+		if id == ab.ITEM:
+			draw_item(self, r.get_center() + Vector2(0, -2), player.special, 0.75, 1.0)
+			draw_string(f, r.position + Vector2(0, bs - 2), "x%d" % player.special_uses, HORIZONTAL_ALIGNMENT_RIGHT, bs - 2, 9, Color.WHITE)
+		else:
+			var ck: float = ab.cooldown_k(id)
+			AbilityDB.draw_icon(self, r.get_center(), id, 0.75, 1.0 if ck <= 0.0 else 0.35)
+			if ck > 0.0:   # טעינה: חלק כהה שיורד
+				draw_rect(Rect2(r.position, Vector2(bs, bs * ck)), Color(0, 0, 0, 0.55))
+			if ab.is_active(id):
+				draw_rect(r.grow(2.0), Color(col, 0.6 + 0.3 * sin(_t * 10.0)), false, 2.0)
+		if i < 5:
+			draw_string(f, r.position + Vector2(2, 9), str((i + 6) % 10), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 1, 1, 0.4))
+	var tx := org.x + float(list.size()) * (bs + 5.0) + 4.0
+	draw_string(f, Vector2(tx, org.y + 13.0), "C  USE", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.65))
+	draw_string(f, Vector2(tx, org.y + 26.0), "E  NEXT", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.45))
+	var cid: String = ab.cur_id
+	if cid != "":   # השם של מה שנבחר, מתחת לבר
+		draw_string_outline(f, Vector2(org.x, org.y + bs + 14.0), ab.power_name(cid), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color(0, 0, 0, 0.6))
+		draw_string(f, Vector2(org.x, org.y + bs + 14.0), ab.power_name(cid), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(ab.power_color(cid), 0.9))
 
 
-# ============================================================
-#  מיני-תפריט יכולות (עמוד ABILITIES): כל היכולות שנפתחו ולא נמצאות ב-5 המקומות.
-#  לחיצה על יכולת = נכנסת למקום הנבחר (המסומן בגלגל), והיכולת שהייתה שם חוזרת למאגר.
-#  יותר מ-8 יכולות? החיצים בצדדים מחליפים דף (מוכן ל-24 יכולות).
-# ============================================================
-const RES_MAX := 8
-var _res_page := 0
-
-
-func _reserve() -> Array:
-	var out := []
-	for id in AbilityDB.unlocked(Game.reached_level()):
-		if not id in Game.ability_slots:
-			out.append(id)
-	return out
-
-
-# k = מקום בשורה (-1 / n = חיצי דפים)
-func _res_rect(c: Vector2, k: int, n: int) -> Rect2:
-	var w := 46.0
-	var gap := 8.0
-	var total := float(n) * (w + gap) - gap
-	return Rect2(Vector2(c.x - total * 0.5 + float(k) * (w + gap), c.y + r_out + 82.0), Vector2(w, w))
-
-
-func _swap_in(id: String) -> void:
-	if id == "" or player == null or player.abilities == null:
-		return
-	var ab = player.abilities
-	while Game.ability_slots.size() < 5:
-		Game.ability_slots.append(null)
-	var slot_i: int = ab.cur
-	if Game.ability_slots[slot_i] != null:   # המקום הנבחר תפוס -> אם יש מקום ריק, משתמשים בו
-		for i in 5:
-			if Game.ability_slots[i] == null:
-				slot_i = i
-				break
-	Game.ability_slots[slot_i] = id
-	ab.cur = slot_i
-	Sfx.play("weapon", null, -4.0)
-	player._say(str(AbilityDB.val(id, "name", "")), AbilityDB.val(id, "color", Color.WHITE))
-
-
-func _draw_reserve(c: Vector2, a: float) -> void:
-	var res := _reserve()
-	var f := ThemeDB.fallback_font
-	var y0 := c.y + r_out + 74.0
-	if res.is_empty():
-		draw_string(f, Vector2(c.x - 200, y0 + 30), "NO OTHER ABILITIES YET", HORIZONTAL_ALIGNMENT_CENTER, 400, 12, Color(1, 1, 1, 0.3 * a))
-		return
-	var pages := int(ceil(float(res.size()) / float(RES_MAX)))
-	_res_page = clampi(_res_page, 0, pages - 1)
-	var n := mini(res.size(), RES_MAX)
-	draw_string(f, Vector2(c.x - 250, y0 - 2), "OTHER ABILITIES  -  CLICK TO PUT IN SLOT %d" % (player.abilities.cur + 1), HORIZONTAL_ALIGNMENT_CENTER, 500, 12, Color(0.75, 0.8, 1.0, 0.8 * a))
-	var mouse := get_viewport().get_mouse_position()
-	for k in n:
-		var i := _res_page * RES_MAX + k
-		if i >= res.size():
-			break
-		var id: String = res[i]
-		var r := _res_rect(c, k, n)
-		var hov := r.has_point(mouse)
-		var col: Color = AbilityDB.val(id, "color", Color.WHITE)
-		var sb := StyleBoxFlat.new()
-		sb.set_corner_radius_all(8)
-		sb.bg_color = Color(0.06, 0.06, 0.09, 0.92 * a).lerp(col, 0.2 if hov else 0.05)
-		sb.border_color = Color(col, (0.95 if hov else 0.45) * a)
-		sb.set_border_width_all(2 if hov else 1)
-		draw_style_box(sb, r.grow(3.0 if hov else 0.0))
-		AbilityDB.draw_icon(self, r.get_center(), id, 1.1 if hov else 0.95, a)
-		if hov:
-			draw_string(f, Vector2(r.get_center().x - 80, r.end.y + 16), str(AbilityDB.val(id, "name", "")), HORIZONTAL_ALIGNMENT_CENTER, 160, 12, Color(col, a))
-	if pages > 1:   # חיצי דפים
-		for side in [-1, n]:
-			var r := _res_rect(c, side, n)
-			draw_string(f, r.position + Vector2(0, 30), "<" if side < 0 else ">", HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 22, Color(1, 1, 1, 0.7 * a))
-		draw_string(f, Vector2(c.x - 60, y0 + 78), "%d / %d" % [_res_page + 1, pages], HORIZONTAL_ALIGNMENT_CENTER, 120, 11, Color(1, 1, 1, 0.5 * a))
+# אייקון של פריט מיוחד (progression/arsenal.gd -> SPECIALS) לבר ולגלגל. s ~1 = 24 פיקסלים
+static func draw_item(ci: CanvasItem, c: Vector2, kind: String, s: float, alpha := 1.0) -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	match kind:
+		"god":
+			preload("res://pickup.gd").draw_potion(ci, c, 0.85 * s, t)
+		"laser":
+			preload("res://weapons/laser_cannon.gd").draw_gun(ci, c + Vector2(-12.0, 0.0) * s, Vector2.RIGHT, t, 0.3, 0.85 * s)
+		"mind":
+			preload("res://effects/mind_control.gd").draw_device(ci, c + Vector2(-8.0, 0.0) * s, Vector2.RIGHT, t, 1.3 * s)
+		"gravity":
+			preload("res://weapons/gravity_grenade.gd").draw_icon(ci, c, s, t)
+		"grenade":
+			ci.draw_circle(c + Vector2(0.0, 2.0) * s, 6.5 * s, Color(Color("6d8236"), alpha))
+			ci.draw_circle(c + Vector2(-2.0, 0.0) * s, 2.5 * s, Color(Color("8aa048"), alpha))
+			ci.draw_rect(Rect2(c + Vector2(-2.0, -7.0) * s, Vector2(4.0, 4.0) * s), Color(Color("9a9aa2"), alpha))
+		_:
+			var wid: int = int(preload("res://progression/arsenal.gd").SPECIALS.get(kind, {}).get("weapon", -1))
+			if wid >= 0:
+				draw_weapon(ci, c, wid, 0.42 * s, alpha)

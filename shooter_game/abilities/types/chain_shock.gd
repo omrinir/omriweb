@@ -2,9 +2,8 @@ extends "res://abilities/ability_base.gd"
 # ============================================================
 #  CHAIN LIGHTNING - ברק מהמכשיר לזומבי הכי קרוב לכוונה (עד RANGE), וממנו קופץ לזומבים
 #  הכי קרובים (עד JUMP פיקסלים בין קפיצה לקפיצה). כל פגיעה: נזק + שיתוק קצר + זומבי רטוב/מתכת לא משנה.
-#  משתמש בברקים של SHOCK BLAST (dark_pulse.gd -> Zap). POWER: עוד קפיצות + נזק.
+#  ברק מקפץ (Zap למטה). POWER: עוד קפיצות + נזק.
 # ============================================================
-const DarkPulse := preload("res://abilities/types/dark_pulse.gd")
 const RANGE := 520.0
 const JUMP := 230.0
 
@@ -46,7 +45,7 @@ func activate() -> bool:
 	var prev := sh
 	for z in hit:   # ברק אחד שעובר מזומבי לזומבי
 		var p: Vector2 = z.global_position + Vector2(0, -28)
-		var seg = DarkPulse.Zap.new()
+		var seg = Zap.new()
 		seg.from = prev
 		seg.to = [p]
 		player.get_parent().add_child(seg)
@@ -56,3 +55,29 @@ func activate() -> bool:
 	Sfx.play("zap", sh, 6.0)
 	Sfx.play("taser", sh, 0.0)
 	return true
+
+
+# ברק מזגזג ממקור לכל נקודה ב-to (נעלם אחרי 0.22 שנ')
+class Zap extends Node2D:
+	var from := Vector2.ZERO
+	var to := []
+	var _t := 0.22
+
+	func _ready() -> void:
+		z_index = 15
+
+	func _process(delta: float) -> void:
+		_t -= delta
+		if _t <= 0.0:
+			queue_free()
+		queue_redraw()
+
+	func _draw() -> void:
+		var a := clampf(_t / 0.22, 0.0, 1.0)
+		for p in to:
+			var pts := PackedVector2Array([from])
+			for i in range(1, 6):
+				pts.append(from.lerp(p, float(i) / 6.0) + Vector2(randf_range(-9, 9), randf_range(-9, 9)))
+			pts.append(p)
+			draw_polyline(pts, Color(0.35, 0.8, 1.0, 0.5 * a), 4.0, true)
+			draw_polyline(pts, Color(0.9, 0.97, 1.0, a), 1.4, true)

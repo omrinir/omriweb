@@ -137,6 +137,8 @@ func _draw() -> void:
 				preload("res://weapons/laser_cannon.gd").draw_gun(self, bob + Vector2(-12, 0), Vector2.RIGHT, _t, 0.3 + 0.3 * sin(_t * 3.0), 1.1)
 			elif special == "mind":   # מכשיר MIND CONTROL
 				preload("res://effects/mind_control.gd").draw_device(self, bob + Vector2(-8, 0), Vector2.RIGHT, _t, 1.5)
+			elif special == "gravity":   # רימון כבידה: כדור כהה עם טבעת סגולה
+				preload("res://weapons/gravity_grenade.gd").draw_icon(self, bob, 1.1, _t)
 			elif special == "grenade":
 				for i in 2:
 					var gp := bob + Vector2(-5.0 + float(i) * 10.0, 0.0)

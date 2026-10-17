@@ -22,32 +22,21 @@ extends RefCounted
 #    keep                  - ציוד קבוע (פנס, ג'טפאק, LAST BREATH): יכולת חדשה לא מחליפה אותו כשכל 5 המקומות מלאים
 # ============================================================
 
-# סדר הרשימה = סדר ההתקדמות (unlock_level). 13 יכולות פרוסות על שלבים 1-46, אחת בכל כמה שלבים (progression/arsenal.gd -> rewards)
+# סדר הרשימה = סדר ההתקדמות (unlock_level). 8 יכולות פרוסות על שלבים 1-46 (progression/arsenal.gd -> rewards).
+# כל היכולות שנפתחו + הפריט המיוחד שמחזיקים = בר אחד (POWERS, ability_runner.gd -> powers())
 const ABILITIES := [
 	{"id": "flashlight", "name": "FLASHLIGHT", "color": Color("ffe6a8"), "cooldown": 25.0, "unlock_level": 1, "icon": "torch", "cd_after": true, "keep": true,
 		"power_desc": "Longer battery (50s -> 2 min max)", "power_base": 80,
 		"desc": "A warm light that cuts through the dark for 50s. They can see you too. Flickers when the battery dies. C again = off."},
-	{"id": "dark_pulse", "name": "SHOCK BLAST", "color": Color("5ac8ff"), "cooldown": 10.0, "unlock_level": 3, "icon": "pulse",
-		"power_desc": "Bigger radius, harder knockback, more damage",
-		"desc": "Your device discharges: knocks back and stuns everything around you and breaks grabs. For when they swarm you."},
 	{"id": "flare", "name": "FLARE", "color": Color("ff4a3a"), "cooldown": 16.0, "duration": 6.0, "unlock_level": 5, "icon": "flare",
 		"power_desc": "Burns longer and hotter (sets more of them on fire)",
 		"desc": "Throw a burning road flare. They think it's you and run to it - and catch fire. Smart ones learn to ignore it."},
 	{"id": "jetpack", "name": "JETPACK", "color": Color("ff9a3a"), "cooldown": 40.0, "unlock_level": 6, "icon": "jet", "cd_after": true, "keep": true,
 		"power_desc": "More flight time (20s -> 32s max)", "power_base": 110,
 		"desc": "Fly! Hold W/SPACE to thrust, fire while flying. 20s of fuel, burns only in the air. C again = land."},
-	{"id": "last_breath", "name": "LAST BREATH", "color": Color("e8e0c8"), "cooldown": 0.0, "unlock_level": 8, "icon": "heart", "passive": true, "keep": true,
-		"power_desc": "Longer invulnerability; level 3+ = twice per stage",
-		"desc": "Once per stage: a killing blow leaves you at 1 heart, briefly untouchable."},
 	{"id": "fire_rounds", "name": "INCENDIARY ROUNDS", "color": Color("ff8a20"), "cooldown": 18.0, "duration": 7.0, "unlock_level": 11, "icon": "fire",
 		"power_desc": "Lasts longer (+20% per level)",
 		"desc": "For 7 seconds every bullet sets zombies on fire. Burning zombies panic and spread it."},
-	{"id": "hunters_sight", "name": "MOTION SCANNER", "color": Color("4aff8a"), "cooldown": 12.0, "duration": 4.0, "unlock_level": 15, "icon": "radar",
-		"power_desc": "Scan lasts longer",
-		"desc": "A scan pulse shows every zombie through walls, darkness and cover - and which ones wait in AMBUSH."},
-	{"id": "smoke", "name": "SMOKE BOMB", "color": Color("a8b0b8"), "cooldown": 14.0, "duration": 5.0, "unlock_level": 20, "icon": "smoke",
-		"power_desc": "Bigger, longer cloud",
-		"desc": "Smoke at your feet: zombies inside choke and lose track of you. They can't learn what they can't see."},
 	{"id": "focus", "name": "FOCUS", "color": Color("8ab8ff"), "cooldown": 22.0, "duration": 3.0, "unlock_level": 25, "icon": "focus",
 		"power_desc": "Slow time for longer",
 		"desc": "Time slows down around you for 3s (you move at full speed) and your magazine is refilled. Line up the headshots."},
@@ -57,16 +46,15 @@ const ABILITIES := [
 	{"id": "adrenaline", "name": "ADRENALINE SHOT", "color": Color("ff4a6a"), "cooldown": 30.0, "duration": 6.0, "unlock_level": 33, "icon": "syringe",
 		"power_desc": "Lasts longer; level 3+ heals 2 hearts",
 		"desc": "Stab a syringe: +1 heart and for 6s you shoot twice as fast, reload faster and run harder."},
-	{"id": "mortar", "name": "MORTAR STRIKE", "color": Color("ff6a3a"), "cooldown": 35.0, "unlock_level": 40, "icon": "mortar",
-		"power_desc": "More shells, more damage",
-		"desc": "Mark the spot you aim at: 4 mortar shells land there a second later. Don't stand under it."},
 	{"id": "chain_shock", "name": "CHAIN LIGHTNING", "color": Color("b48aff"), "cooldown": 14.0, "unlock_level": 46, "icon": "chain",
 		"power_desc": "Jumps to more zombies, more damage",
 		"desc": "A bolt from your device hits the zombie you aim at and jumps to 5 more nearby. Stuns and burns through crowds."},
 ]
 
 # יכולות ישנות שהוחלפו (שמירות ישנות): id ישן -> id חדש
-const MIGRATE := {"decoy": "flare", "phantom_step": "smoke", "silence": "focus", "blood_hook": "fire_rounds"}
+const MIGRATE := {"decoy": "flare", "silence": "focus", "blood_hook": "fire_rounds"}
+# יכולות שהוסרו (id -> unlock_level שהיה, למחיר): שדרוגים שנקנו להן מוחזרים כ-scrap (migrate_upgrades)
+const REMOVED := {"dark_pulse": 3, "last_breath": 8, "hunters_sight": 15, "smoke": 20, "mortar": 40, "phantom_step": 20}
 
 
 static func count() -> int:
@@ -105,14 +93,25 @@ static func migrate_slots(slots: Array) -> Array:
 	return out
 
 
-# שדרוגים שנקנו ליכולת שהוחלפה עוברים ליכולת החדשה ("a.<id>.<track>")
-static func migrate_upgrades(up: Dictionary) -> void:
+# שדרוגים שנקנו ליכולת שהוחלפה עוברים ליכולת החדשה ("a.<id>.<track>").
+# יכולת שהוסרה (REMOVED): השדרוגים נמחקים ומחזירים את המחיר. מחזיר כמה scrap להחזיר
+static func migrate_upgrades(up: Dictionary) -> int:
+	var refund := 0
 	for k in up.keys():
 		var parts := str(k).split(".")
-		if parts.size() == 3 and parts[0] == "a" and MIGRATE.has(parts[1]):
+		if parts.size() != 3 or parts[0] != "a":
+			continue
+		if MIGRATE.has(parts[1]):
 			var nk := "a.%s.%s" % [MIGRATE[parts[1]], parts[2]]
 			up[nk] = maxi(int(up.get(nk, 0)), int(up[k]))
 			up.erase(k)
+		elif REMOVED.has(parts[1]):
+			var U = load("res://progression/upgrade_db.gd")
+			var base := int(U.ABILITY_TRACKS[parts[2]].base) if U.ABILITY_TRACKS.has(parts[2]) else 60
+			for l in int(up[k]):
+				refund += U.cost(base, int(REMOVED[parts[1]]), l)
+			up.erase(k)
+	return refund
 
 
 # היכולות שנפתחו עד שלב מסוים

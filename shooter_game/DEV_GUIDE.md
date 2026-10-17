@@ -1887,3 +1887,21 @@ second per zombie). Now a zombie that is already burning (> 0.5 s left) only get
 * `t_sweep.gd -- <level>` - 600 frames, invulnerable, fires nonstop through all new guns.
 * Render with `--fixed-fps 60`: without it a slow software renderer runs several physics steps per frame and corpses /
   flashes are gone before the screenshot.
+
+## POWERS bar: abilities + special items in one menu (2026-10-17)
+This replaces the separate ability slots (6-0, reserve swap-in) and the separate special-item box (E) described above.
+- **One list**: `abilities/ability_runner.gd -> powers()` = every unlocked ability (`AbilityDB.unlocked(reached_level)`, unlock order) plus `"item"` when the player carries a special (`player.special`). No slots, no reserve; `Game.ability_slots` is still saved but no longer used.
+- **Controls**: C = use the selected power. E or mouse wheel = next / previous power. 6-0 = powers 1-5. Q wheel, POWERS page = pick any (the page has as many sectors as powers, min 5). Touch: NEXT (E) and USE (C).
+- **Items through C**: `player.use_item()` puts the item in hand, throws / fires it once toward the aim (`_use_special`), and goes back to the gun after `ITEM_SHOW` (0.35 s). `_item_cd` keeps the item's own fire rate. LASER CANNON: C starts an automatic charge (`_laser_auto`), the beam fires by itself, then back to the gun (`laser_cannon.beam_done`). The trigger (LMB) only fires guns now.
+- Picking up an item selects it (`abilities.on_item_taken`); when it runs out the selection returns to the ability that was selected before.
+- HUD: weapon bar has only the 5 gun slots; the POWERS row under it shows abilities and the item (xN uses), the selected name, and "C USE / E NEXT". Item icons: `weapon_wheel.draw_item()`.
+- **Removed abilities**: SHOCK BLAST (dark_pulse), LAST BREATH, MOTION SCANNER (hunters_sight), SMOKE BOMB, MORTAR STRIKE. Their stages now give a WEAPON MOD. Old saves: upgrades bought for them are refunded as scrap (`AbilityDB.REMOVED`, `migrate_upgrades` returns the refund). CHAIN LIGHTNING keeps its own `Zap` class (it used to borrow it from dark_pulse.gd).
+- **Removed the grappling hook** (F): no rope, no swing. Levels never needed it (the playtest bot finishes all 51 without it).
+- Test: `devtools/t_powers.gd` (cycling, C on grenade / launcher / laser / potion, abilities, screenshots of the bar and wheel).
+
+## GRAVITY GRENADE (weapons/gravity_grenade.gd, special "gravity")
+- Special item from stage 6 (`Arsenal.SPECIALS.gravity`: 2 uses, weight 1.5), used with C from the POWERS bar like grenades.
+- Extends `grenade.gd`: thrown, bounces, fuse 0.9 s. Then a `Singularity` opens 26 px above the landing point for `PULL_T` (1.9 s): every zombie within `PULL_R` (340) is staggered and its velocity is set toward the core (`PULL_V` 560, weaker at the edge, bosses x`BOSS_K` 0.3). Zombies at the core are held there and crushed (`CRUSH` 3 every 0.2 s).
+- Then it collapses: `Boom.blast` with `BLAST_R` 170 and `BLAST_DMG` 60 (source "grenade", so armour that ignores bullets still takes it), 1 heart to the player if he stands inside, plus a purple `Flash` ring.
+- Look: spiral arms, particles streaking inward, a shrinking range ring, glowing event horizon around a black core. Drawn at z_index 2 so the zombies being pulled show on top. Sounds reuse `lz_charge` (pitch 0.45) and `lz_fire` (pitch 0.6).
+- Icons: `draw_icon()` (bar, wheel, pickup, in hand). Test: `devtools/t_gravity.gd` (6 zombies around a point: 5/6 pulled in and killed on stages 12 and 46).

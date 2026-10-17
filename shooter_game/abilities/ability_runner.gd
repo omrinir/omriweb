@@ -1,16 +1,21 @@
 extends Node
 # ============================================================
-#  ABILITY RUNNER - היכולות שהדמות מחזיקה (5 מקומות, Game.ability_slots).
-#  נוצר ע"י player.gd. C = הפעלת היכולת שנבחרה. בוחרים יכולת בגלגל (Q, עמוד ABILITIES)
-#  או במקשים 6-0 (= מקומות 1-5 של היכולות).
-#  יכולות שנפתחות (abilities/ability_db.gd -> unlock_level) נכנסות לבד למקום פנוי.
+#  ABILITY RUNNER - בר POWERS אחד: כל היכולות שנפתחו + הפריט המיוחד שמחזיקים (רימונים, משגר, לייזר...).
+#  נוצר ע"י player.gd.
+#    C              = שימוש ב-POWER שנבחר (יכולת, או הפריט: נזרק / נורה לכיוון הכוונת)
+#    E / גלגלת      = ה-POWER הבא / הקודם
+#    6-0            = POWER 1-5 בבר,  Q (עמוד POWERS) = בחירה בגלגל
+#  יכולת נכנסת לבר לבד כשמגיעים לשלב שלה (abilities/ability_db.gd -> unlock_level). אין מקומות ואין מאגר.
+#  "item" = הפריט המיוחד (player.special). כשלוקחים פריט הוא נבחר, כשהוא נגמר חוזרים ליכולת הקודמת.
 # ============================================================
 const AbilityDB := preload("res://abilities/ability_db.gd")
 const Upgrades := preload("res://progression/upgrade_db.gd")
 const Sfx := preload("res://sfx.gd")
+const ITEM := "item"
 
 var player: Node = null
-var cur := 0
+var cur_id := ""       # ה-POWER שנבחר (id של יכולת, או ITEM)
+var _prev_id := ""     # מה היה נבחר לפני שלקחנו פריט
 var _inst := {}        # id -> מופע של היכולת
 var _cd := {}          # id -> כמה שניות נשארו
 var _c_was := false
@@ -19,64 +24,100 @@ var uses := 0          # לבדיקות
 
 
 func _ready() -> void:
-	cur = -1
-	_fill_slots()
-	if cur < 0 or slot(cur) == "":
-		cur = 0
-		for i in 5:
-			if slot(i) != "":
-				cur = i
-				break
-	for id in _equipped():
+	var list := powers()
+	for id in list:   # יכולת שנפתחה בשלב הזה = מוכנה ל-C מיד
+		if id != ITEM and int(AbilityDB.val(id, "unlock_level", 1)) == Game.reached_level():
+			cur_id = id
+	if cur_id == "" and not list.is_empty():
+		cur_id = list[0]
+	for id in list:
 		var a := _ability(id)
 		if a != null:
 			a.on_level_start()
 
 
-# מכניס יכולות שנפתחו למקומות פנויים
-func _fill_slots() -> void:
-	while Game.ability_slots.size() < 5:
-		Game.ability_slots.append(null)
-	for id in AbilityDB.unlocked(Game.reached_level()):
-		if id in Game.ability_slots:
-			continue
-		var placed := false
-		for i in 5:
-			if Game.ability_slots[i] == null:
-				Game.ability_slots[i] = id
-				placed = true
-				break
-		# המקומות מלאים: יכולת שנפתחה בשלב הזה מחליפה את הכי ישנה - אבל לא ציוד קבוע ("keep": פנס, ג'טפאק, LAST BREATH).
-		# הישנה עוברת למאגר (גלגל Q -> ABILITIES, או בחנות)
-		if not placed and int(AbilityDB.val(id, "unlock_level", 1)) == Game.reached_level():
-			var oldest := -1
-			for i in 5:
-				var sid := str(Game.ability_slots[i])
-				if AbilityDB.val(sid, "keep", false):
-					continue
-				if oldest < 0 or int(AbilityDB.val(sid, "unlock_level", 99)) < int(AbilityDB.val(str(Game.ability_slots[oldest]), "unlock_level", 99)):
-					oldest = i
-			Game.ability_slots[maxi(oldest, 0)] = id
-		if id in Game.ability_slots and int(AbilityDB.val(id, "unlock_level", 1)) == Game.reached_level():
-			cur = Game.ability_slots.find(id)   # היכולת החדשה מוכנה ל-C מיד
-
-
-func slot(i: int) -> String:
-	if i < 0 or i >= Game.ability_slots.size() or Game.ability_slots[i] == null:
-		return ""
-	return str(Game.ability_slots[i])
-
-
-func _equipped() -> Array:
-	var out := []
-	for i in 5:
-		if slot(i) != "":
-			out.append(slot(i))
+# הבר: יכולות שנפתחו (לפי סדר הפתיחה) ואחריהן הפריט, אם יש
+func powers() -> Array:
+	var out := AbilityDB.unlocked(Game.reached_level())
+	if player != null and player.special != "":
+		out.append(ITEM)
 	return out
 
 
+# תאימות: ה-POWER במקום i בבר ("" = אין)
+func slot(i: int) -> String:
+	var list := powers()
+	return str(list[i]) if i >= 0 and i < list.size() else ""
+
+
+# המקום של ה-POWER הנבחר בבר
+var cur: int:
+	get:
+		return powers().find(cur_id)
+
+
+func select(i: int) -> void:
+	select_id(slot(i))
+
+
+func select_id(id: String) -> void:
+	if id == "" or not id in powers():
+		return
+	cur_id = id
+	Sfx.play("ui", null)
+	player._say(power_name(id), power_color(id))
+
+
+# dir = 1 הבא, -1 הקודם (מסתובב)
+func cycle(dir: int) -> void:
+	var list := powers()
+	if list.is_empty():
+		return
+	var i := list.find(cur_id)
+	select_id(str(list[posmod(i + dir, list.size())]))
+
+
+func power_name(id: String) -> String:
+	if id == ITEM:
+		return str(player.Arsenal.SPECIALS[player.special].name) if player != null and player.special != "" else ""
+	return str(AbilityDB.val(id, "name", ""))
+
+
+func power_color(id: String) -> Color:
+	if id == ITEM:
+		return player.Arsenal.SPECIALS[player.special].color if player != null and player.special != "" else Color.WHITE
+	return AbilityDB.val(id, "color", Color.WHITE)
+
+
+# נקרא מ-player.take_special: הפריט נבחר כדי ש-C ישתמש בו מיד
+func on_item_taken() -> void:
+	if cur_id != ITEM:
+		_prev_id = cur_id
+	cur_id = ITEM
+
+
+func cooldown_left(id: String) -> float:
+	if id == ITEM:
+		return 0.0
+	return maxf(float(_cd.get(id, 0.0)), 0.0)
+
+
+func cooldown_k(id: String) -> float:   # 0 = מוכן, 1 = הרגע הופעל
+	if id == ITEM:
+		return 0.0
+	var total := Upgrades.ability_cooldown(id)
+	return clampf(cooldown_left(id) / maxf(total, 0.01), 0.0, 1.0)
+
+
+func is_active(id: String) -> bool:
+	if id == ITEM:
+		return false
+	var a := _ability(id)
+	return a != null and a.active()
+
+
 func _ability(id: String) -> RefCounted:
-	if id == "":
+	if id == "" or id == ITEM:
 		return null
 	if not _inst.has(id):
 		var path := AbilityDB.script_path(id)
@@ -90,35 +131,16 @@ func _ability(id: String) -> RefCounted:
 	return _inst[id]
 
 
-func select(i: int) -> void:
-	if slot(i) == "":
-		return
-	cur = i
-	Sfx.play("ui", null)
-	player._say(str(AbilityDB.val(slot(i), "name", "")), AbilityDB.val(slot(i), "color", Color.WHITE))
-
-
-func cooldown_left(id: String) -> float:
-	return maxf(float(_cd.get(id, 0.0)), 0.0)
-
-
-func cooldown_k(id: String) -> float:   # 0 = מוכן, 1 = הרגע הופעל
-	var total := Upgrades.ability_cooldown(id)
-	return clampf(cooldown_left(id) / maxf(total, 0.01), 0.0, 1.0)
-
-
-func is_active(id: String) -> bool:
-	var a := _ability(id)
-	return a != null and a.active()
-
-
 func use_current() -> bool:
-	var id := slot(cur)
+	var id := cur_id
 	if id == "" or player.dead:
 		return false
-	if AbilityDB.val(id, "passive", false):
-		player._say("PASSIVE", Color(1, 1, 1, 0.7))
-		return false
+	if id == ITEM:
+		if not player.use_item():
+			Sfx.play("empty", null, -6.0)
+			return false
+		uses += 1
+		return true
 	var a := _ability(id)
 	if a != null and a.active() and AbilityDB.val(id, "cd_after", false) and a.has_method("stop"):   # C שוב = כיבוי
 		a.stop()
@@ -135,11 +157,10 @@ func use_current() -> bool:
 	return true
 
 
-# מכה קטלנית: יכולת פסיבית מצילה? (LAST BREATH)
+# מכה קטלנית: יכולת פסיבית מצילה? (אין כרגע יכולות כאלה)
 func on_lethal_hit() -> bool:
-	for id in _equipped():
-		var a := _ability(id)
-		if a != null and a.on_lethal_hit():
+	for id in _inst:
+		if _inst[id].on_lethal_hit():
 			return true
 	return false
 
@@ -147,6 +168,9 @@ func on_lethal_hit() -> bool:
 func _process(delta: float) -> void:
 	if player == null:
 		return
+	if cur_id == ITEM and player.special == "":   # הפריט נגמר: חוזרים ליכולת שהייתה
+		var list := powers()
+		cur_id = _prev_id if _prev_id in list else (str(list[0]) if not list.is_empty() else "")
 	for id in _cd.keys():
 		_cd[id] = float(_cd[id]) - delta
 	for id in _inst:
@@ -164,10 +188,20 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not (event is InputEventKey and event.pressed and not event.echo) or player == null or not player.controllable:
+	if player == null or not player.controllable or player.dead or player.wheel_open:
+		return
+	if event is InputEventMouseButton and event.pressed:   # גלגלת = ה-POWER הבא / הקודם
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			cycle(1)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			cycle(-1)
+		return
+	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
 	var k: int = event.physical_keycode
-	if k >= KEY_6 and k <= KEY_9:
+	if k == KEY_E:
+		cycle(1)
+	elif k >= KEY_6 and k <= KEY_9:
 		select(k - KEY_6)
 	elif k == KEY_0:
 		select(4)

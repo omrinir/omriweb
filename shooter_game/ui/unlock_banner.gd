@@ -43,10 +43,7 @@ func _card_for(it: Dictionary) -> Dictionary:
 				"sub": "IT'S WAITING AHEAD  -  WALK OVER IT", "col": WeaponDB.val(id, "color", Color.WHITE), "t": SHOW_T}
 		"ability":
 			var aid := str(it.id)
-			var si: int = Game.ability_slots.find(aid)
-			var how := ("READY - PRESS C   (KEY %d)" % ((si + 6) % 10)) if si >= 0 else "EQUIP IT: Q WHEEL -> ABILITIES"
-			if AbilityDB.val(aid, "passive", false):
-				how = "PASSIVE - ALWAYS ON"
+			var how := "READY - PRESS C   (E = NEXT POWER)"
 			return {"kind": "ability", "id": aid, "head": "NEW ABILITY", "name": str(AbilityDB.val(aid, "name", "?")),
 				"sub": str(AbilityDB.val(aid, "desc", "")), "hint": how, "col": AbilityDB.val(aid, "color", Color.WHITE), "t": SHOW_T + 1.2}
 		_:
