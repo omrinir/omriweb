@@ -11,3 +11,7 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
 - `t_spawn.gd` - spawn placement analysis (args `levels seeds dyn_seconds`, e.g. `-- 1,2,3 1,2 150`).
 - `t_light.gd` - renders the start and middle of each level for lighting contact sheets.
 - `t_zoo.gd` + `zoo.sh outdir kinds zoom` - draws every zombie kind side by side.
+- `t_rec.gd` + `build_short.py` - promo clips. `t_rec.gd` is the bot with the HUD hidden; record with
+  `xvfb-run ... godot --path . --rendering-driver opengl3 --write-movie out.avi --fixed-fps 60 -s res://t_rec.gd -- <level> 1 <sec> <start_x>`
+  (env `REC_SPECIAL=gravity` hands the bot an item). `build_short.py` cuts the clips into a 1080x1920 Short with captions,
+  music and a narrator voice (espeak-ng + mbrola us2 run through sox; paths at the top of the script).
