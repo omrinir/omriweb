@@ -150,8 +150,8 @@ func begin_draw(shadow := true) -> void:
 		k = k * k * (3.0 - 2.0 * k)
 		var outer := Transform2D(PI / 2.0 * z._lie_side * k, Vector2(0.0, lerpf(-28.0, -9.0, k) * z.sc))
 		z.draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * z.sc)))
-	else:
-		z.draw_set_transform(Vector2.ZERO, 0.0, s)
+	else:   # (תגובת פגיעה: כל הגוף נוטה / קופץ מסביב לרגליים - zombie.gd react_tilt)
+		z.draw_set_transform_matrix(Transform2D(z.react_tilt(), Vector2(0.0, z.react_hop() * z.sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO))
 
 
 func end_draw() -> void:

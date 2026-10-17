@@ -257,6 +257,12 @@ var _leg_hits := 0
 var _one_leg := false
 var _hop_t := 0.0
 var _headless := false
+# תגובת פגיעה (לפי איפה הכדור פגע): ראש נזרק אחורה / מתקפל מכדור בבטן / קופץ על רגל אחת
+const REACT_TIME := {"head": 0.28, "body": 0.38, "leg": 0.5}
+var _react_t := 0.0              # כמה זמן נשאר לתגובה
+var _react_zone := ""
+var _react_push := 1.0           # עוצמה (נשק חזק = תגובה חזקה יותר)
+var _react_dx := -1.0            # לאיזה כיוון הכדור דחף (במערכת של הזומבי: -1 = אחורה)
 var _wounds: Array[Vector2] = []
 # רגל ביד
 var _carry: Node2D = null
@@ -396,6 +402,7 @@ func _prof_name() -> String:
 func _physics_main(delta: float) -> void:
 	_time += delta
 	_flash -= delta
+	_react_t -= delta
 	_voice_cd -= delta
 	_attack_t -= delta
 	_bite_anim -= delta
@@ -608,6 +615,8 @@ func _physics_main(delta: float) -> void:
 	else:
 		if _duck_t > 0.0:
 			target_speed *= 0.3   # מתכופף = כמעט לא זז
+		if _react_t > 0.0 and _react_zone != "head":   # נפגע ברגל / בבטן: מאט לרגע
+			target_speed *= 0.4 if _react_zone == "leg" else 0.6
 		if has_meta("drum_t") and float(get_meta("drum_t")) > _time:   # DRUMMER (שלב 41): צועדים בקצב התוף - מהר יותר
 			target_speed *= 1.3
 		velocity.x = move_toward(velocity.x, _dir * target_speed * _speed_mul, 600.0 * delta)
@@ -1192,12 +1201,54 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	if hp <= 0:
 		_die(dir)
 	else:
+		if not explosive and not metal and source in ["bullet", "melee", "taser", "laser"]:
+			_start_react(zone, dir, src)
 		if on_ceiling:   # נפגע על התקרה: נופל
 			_drop_down()
 		velocity.x += dir.x * (110.0 + (float(src.get("knockback", 0.0)) if not is_boss() else 0.0))   # הדיפה לפי הנשק
 		# לפעמים הוא בורח ומתחבא מאחורי מכונית / מחסום (אם יש אחד קרוב)
 		if _cover_state == 0 and not was_lying and not is_boss() and randf() < cover_chance:
 			_try_cover(get_tree().get_first_node_in_group("player"))
+
+
+# תגובת פגיעה: מתחיל אנימציה קצרה לפי איפה הכדור פגע (ראש / בטן / רגל)
+func _start_react(zone: String, dir: Vector2, src: Dictionary) -> void:
+	if not REACT_TIME.has(zone):
+		return
+	if _react_t > 0.0 and _react_zone == "head" and zone != "head":   # ראש חזק יותר - לא נדרס ע"י כדור קטן אחריו
+		return
+	_react_zone = zone
+	_react_t = REACT_TIME[zone]
+	_react_dx = signf(dir.x * _dir) if dir.x != 0.0 else -1.0
+	_react_push = clampf(0.8 + float(src.get("knockback", 60.0)) / 200.0, 0.8, 1.6)
+	if is_boss() or _big():   # בוס / ענק: בקושי זז
+		_react_push *= 0.35 if is_boss() else 0.6
+
+
+# 0..1: עולה מהר, נרגע לאט
+func _react_k() -> float:
+	if _react_t <= 0.0 or dead or _lying():
+		return 0.0
+	var a := 1.0 - _react_t / float(REACT_TIME[_react_zone])
+	return clampf(a / 0.12, 0.0, 1.0) * (1.0 - a) * (1.0 - a)
+
+
+# לסוגים שמציירים את עצמם (enemies/zombie_type.gd begin_draw): כל הגוף נוטה / קופץ
+func react_tilt() -> float:
+	var k := _react_k() * _react_push
+	match _react_zone:
+		"head":
+			return _react_dx * 0.16 * k * _dir   # נזרק אחורה
+		"body":
+			return 0.22 * k * _dir   # מתקפל קדימה
+	return 0.0
+
+
+func react_hop() -> float:
+	if _react_zone != "leg" or _react_k() <= 0.0:
+		return 0.0
+	var a := 1.0 - _react_t / float(REACT_TIME["leg"])
+	return -absf(sin(a * PI * 3.0)) * 5.0 * (1.0 - a) * _react_push
 
 
 # מספר הנזק שקופץ מעל הזומבי וצף למעלה
@@ -1557,9 +1608,28 @@ func _draw_body() -> void:
 	var ck := 0.0 if dead or _lying() else _crouch_k   # התכופפות
 	var hip := Vector2(0.0, -24.0 - bob * 0.5 + 11.0 * ck)
 	var sh := Vector2(lean + 3.0 * ck, -41.0 - bob * 0.5 + (1.0 if _big() else 0.0) + 12.0 * ck)
+	# תגובת פגיעה
+	var rk := _react_k() * _react_push
+	var hop := react_hop()
+	var thin := kind == RUNNER or kind == SCREAMER   # גוף צר: מתקפל פחות (אחרת הפוליגון של הגופייה מתהפך)
+	if rk > 0.0 and _react_zone == "body":   # כדור בבטן: מתקפל קדימה
+		if thin:
+			sh.x += 3.0 * rk
+		else:
+			sh += Vector2(6.0 * rk, minf(6.0 * rk, maxf(0.0, hip.y - sh.y - 14.0)))   # (לא יותר מדי למטה - הגוף לא מתהפך)
+		hip.x -= 2.0 * rk
+	elif rk > 0.0 and _react_zone == "leg":   # כדור ברגל: נשען על הרגל השנייה
+		sh.x -= 2.0 * rk
+	hip.y += hop
+	sh.y += hop
 	var head := sh + Vector2(2.5 + lean * 0.35, -9.0)
 	if _big():
 		head = sh + Vector2(3.5, -7.5)
+	if rk > 0.0 and _react_zone == "body" and thin:   # (הראש צונח קדימה במקום הכתפיים)
+		head += Vector2(1.5, 3.0) * rk
+	if rk > 0.0 and _react_zone == "head":   # ירייה בראש: הראש נזרק אחורה
+		head += Vector2(_react_dx * 7.0, -2.0) * rk
+		sh.x += _react_dx * 2.5 * rk
 
 	# כפות רגליים
 	var stride := 7.0 if kind == RUNNER and _chasing else 5.0
@@ -1573,6 +1643,10 @@ func _draw_body() -> void:
 		f2 = Vector2(-4.0, -4.0)
 	f1.x += 5.0 * ck
 	f2.x -= 5.0 * ck
+	if hop != 0.0 or (rk > 0.0 and _react_zone == "leg"):   # קופץ על רגל אחת: הרגל הפגועה באוויר
+		f1 = Vector2(1.0, hop)
+		if not _one_leg:
+			f2 = Vector2(-4.0, -7.0 * minf(1.0, rk + 0.3) + hop)
 
 	# ---- יד אחורית ----
 	var reach := sin(_time * 3.0) * 1.5
@@ -1596,6 +1670,10 @@ func _draw_body() -> void:
 		front_hand = fs + Vector2(15.0, -3.0 + sin(_time * 2.3) * (3.0 if kind == DRUNK else 1.0))
 	if kind == HURLER and (_imp != null or _hurl_wind > 0.0):   # מחזיק זומבי קטן ביד אחת (היד השנייה חופשית)
 		front_hand = _hurl_hand()
+	if rk > 0.0 and _react_zone == "body" and _carry == null and kind != HURLER:   # מחזיק את הבטן
+		var belly := (sh + hip) * 0.5 + Vector2(7.0, 1.0)
+		front_hand = front_hand.lerp(belly, minf(1.0, rk))
+		back_hand = back_hand.lerp(belly + Vector2(-2.0, -3.0), minf(1.0, rk))
 	if dead or _lying():
 		back_hand = bs + Vector2(-4.0, 15.0)
 		front_hand = fs + Vector2(5.0, 15.0)
@@ -1725,11 +1803,11 @@ func _maybe_redraw() -> void:
 	if not Art.on_screen(self, global_position):
 		return
 	_vis_count += 1
-	if type_mod != null and _flash <= 0.0 and not type_mod.wants_redraw():   # סוג שעומד בלי לזוז (GHILLIE מתחבא) - הציור הקודם נשאר
+	if type_mod != null and _flash <= 0.0 and _react_t <= 0.0 and not type_mod.wants_redraw():   # סוג שעומד בלי לזוז (GHILLIE מתחבא) - הציור הקודם נשאר
 		return
 	var every := (2 if _vis_prev <= 3 else (3 if _vis_prev <= 10 else (4 if _vis_prev <= 20 else (5 if _vis_prev <= 32 else 6)))) + Quality.redraw_extra()   # הרבה זומבים על המסך: כל אחד מתעדכן פחות (חוסך ציור; התזוזה עצמה נשארת חלקה)
 	_redraw_tick += 1
-	if _redraw_tick % every == 0 or _flash > 0.0 or (_burn_t > 0.0 and _redraw_tick % 2 == 0):   # בוער: הלהבות זזות
+	if _redraw_tick % every == 0 or _flash > 0.0 or (_react_t > 0.0 and (_vis_prev <= 20 or _redraw_tick % 2 == 0)) or (_burn_t > 0.0 and _redraw_tick % 2 == 0):   # בוער: הלהבות זזות
 		queue_redraw()
 
 
@@ -1850,6 +1928,8 @@ func _torso_brute(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color, pa: Colo
 
 func _head(c: Vector2, sk: Color) -> void:
 	var tilt := sin(_time * 1.3) * 0.08
+	if _react_zone == "head":   # ירייה בראש: הפנים מסתובבות למעלה
+		tilt += _react_dx * 0.7 * _react_k() * _react_push
 	match kind:
 		RUNNER:   # שיער ארוך ופרוע מאחור
 			for i in 6:

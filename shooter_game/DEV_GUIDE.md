@@ -1026,8 +1026,9 @@ Watches the real frame rate. A 1-second average under ~52 FPS steps effects down
 Targets follow the screen refresh rate when it is below 60 Hz. Loading hitches, pauses and the first 2.5 s of a scene are ignored.
 Only looks change: zombie damage, speed and intelligence stay the same (off-screen zombies just think less often).
 
-**Blood and gore are never reduced** (blood drops, flesh chunks, blood sprays, "hit" blood particles, ragdoll corpses,
-torn-cheek wounds) - they are part of the game. Only non-gore effects scale:
+**Blood and gore** (blood drops, flesh chunks, blood sprays, "hit" blood particles) are full at level 0 and cut by 35% from
+level 1 on (`Quality.gore()`, table `GORE`): fewer per hit and lower caps on how many live at once. Ragdoll corpses and
+torn-cheek wounds never change. Non-gore effects scale more:
 
 | Level | What changes |
 |---|---|
@@ -1040,7 +1041,7 @@ torn-cheek wounds) - they are part of the game. Only non-gore effects scale:
 * **F3** shows FPS and the current level in the bottom-left corner.
 * The background (`effects/parallax_backdrop.gd`) draws each layer in its own node. Between redraws a layer just moves with the
   camera, so scrolling stays smooth; it redraws at once if the camera moved more than `MAX_SHIFT` px.
-* New non-gore effects should ask `Quality` (`particles()`, `ambient()`, `Quality.scaled(n, mult)`). Never scale blood or gore.
+* New non-gore effects should ask `Quality` (`particles()`, `ambient()`, `Quality.scaled(n, mult)`). New gore asks `Quality.gore()`.
 * `effects/collision_outlines.gd` now redraws only when a body changes (moves, breaks, opens) or the camera moved 200 px.
 
 ## Screen kick when firing
@@ -1049,6 +1050,14 @@ a damped spring (kick_stiffness, kick_damping, kick_max), not a random shake, so
 player.gd `_screen_kick(rk)`: px = SCREEN_KICK_BASE + SCREEN_KICK_PER_RECOIL * the weapon's "recoil" (weapon_db), capped at
 SCREEN_KICK_MAX; recoil >= SCREEN_KICK_HEAVY (shotgun, launcher, rocket) also gets a short shake. Measured peaks: pistol 2.3 px,
 SMG 2.4, assault rifle 2.6, rifle 3.2, sniper 3.7, shotgun 7.1. Set SCREEN_KICK_BASE and SCREEN_KICK_PER_RECOIL to 0 to turn it off.
+
+## Hit reactions (where the bullet lands)
+A zombie that survives a hit reacts for a moment, by zone (zombie.gd `_start_react`, `REACT_TIME`): **head** = the head snaps
+back and the face tips up (0.28 s), **body** = it doubles over and clutches its belly (0.38 s, slows to 60%), **leg** = it hops
+on the other leg with the hit leg lifted (0.5 s, slows to 40%). Only bullet / melee / taser / laser hits; not explosions, fire
+or metal. Strength = weapon "knockback" (`_react_push`, 0.8-1.6); big zombies x0.6, bosses x0.35. A head reaction is not
+overridden by a body/leg hit right after it. Kinds 0-19 bend their joints in `_draw_body`; type modules (20+) get a whole-body
+tilt / hop through `begin_draw` (`react_tilt()`, `react_hop()`). Runner/screamer bend less (their vest polygon flips otherwise).
 
 ## Region 6 - SOUTHERN CONE (levels 46-54): "They learned to plan."
 Each level brings 3 new zombie types; the boss is a giant variant of the level's first type (chase_range > 600, like KRAKEN).
