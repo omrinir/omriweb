@@ -4,7 +4,7 @@ import subprocess, wave
 
 import os
 REC = os.environ.get("REC_FILE", "/tmp/claude-0/rec/l1m.avi")
-OUT = "/tmp/claude-0/short3"
+OUT = "/tmp/claude-0/short4"
 FONTDIR = "/home/claude/omriweb/shooter_game/fonts"
 MUSIC = "/home/claude/omriweb/shooter_game/music/level1_zombie_joyride.ogg"
 W, H = 1080, 1920
@@ -24,16 +24,13 @@ SEGS = [
     (0.2, 2.6, 0.5, False),    # end card background: the burning city from the intro
 ]
 # narrator: (line no, segment index, offset into that segment, caption)
-VO = [  # (line no, segment index, offset into that segment, caption)
-    (1, 0, 0.1, "HE SAID HELLO. ADORABLE."),
-    (2, 1, 0.3, "HE IS NOT WRONG. TECHNICALLY."),
-    (3, 2, 0.3, "DAY ONE. THE PLAN: PANIC."),
-    (4, 3, 0.2, "THIS HUMAN'S PLAN: HEADSHOTS."),
-    (5, 4, 0.0, "HEADSHOT. HEADSHOT. HEADSHOT.\\NI AM OUT OF WORDS."),
-    (6, 5, 0.4, "SOMEONE HAS TO CLEAN THIS UP.\\NNOT ME. NO HANDS."),
-    (7, 6, 0.6, "OH GOOD. A BIG ONE."),
-    (8, 8, 1.6, "WAS A BIG ONE."),
-    (9, 9, 0.2, "WOULD YOU SURVIVE LEVEL 1?"),
+VO = [  # (line no, segment index, offset into that segment, caption). Silent over the intro: the game's own dialogue plays there.
+    (1, 2, 0.6, "THE DEAD ARE BACK."),
+    (2, 3, 0.3, "AT FIRST... THEY'RE SLOW."),
+    (3, 4, 0.3, "SO YOU AIM FOR THE {\\c&H3C3CFF&}HEAD."),
+    (4, 5, 0.8, "BUT EVERY LEVEL... THEY {\\c&H00D7FF&}LEARN."),
+    (5, 6, 0.8, "AND SOME OF THEM... GET {\\c&H3C3CFF&}BIGGER."),
+    (6, 9, 0.4, ""),
 ]
 # kills from the recording log (game time, headshot?) for the live carnage counter
 KILLS = []
@@ -95,17 +92,13 @@ for n, si, off, cap in VO:
     prev_end = t + d
     vo_t.append((n, t))
     print(f"vo {n} {t:.2f}-{t + d:.2f}")
-    # typewriter: letters appear over ~55% of the spoken line (karaoke with an invisible "not yet" colour)
-    chars = list(cap.replace("\\N", "\n"))
-    per = max(1, int(d * 55 / max(1, len(chars))))
-    body = "".join(("\\N" if c == "\n" else f"{{\\k{per}}}{c}") for c in chars)
-    events.append(("Robot", t, t + d + 0.35, "{\\fad(60,120)}" + body))
+    if cap:
+        events.append(("Robot", t, t + d + 0.4, "{\\fad(120,200)}" + cap))
 
 e0 = starts[-1]
 # hook (first two shots), then the logo and a live kill / headshot counter
 events.append(("Hook", 0, starts[2], r"{\fad(0,150)}POV: DAY 1 OF THE\NZOMBIE APOCALYPSE"))
 events.append(("Logo", starts[2], e0, r"{\fad(150,0)}THEY LEARN"))
-events.append(("Unit", 0, e0, "◉ NARRATOR UNIT  ·  SARCASM 90%"))
 # game time shown at each video moment -> how many kills had happened by then
 marks = []
 for i, (a, b, sp, _) in enumerate(SEGS[:-1]):
@@ -137,7 +130,7 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Robot,DejaVu Sans Mono,58,&H00FFF2C8,&HFF000000,&H90000000,&H90000000,-1,0,0,0,100,100,1,0,3,18,0,8,70,70,1500,1
+Style: Robot,Bangers,92,&H00FFFFFF,&H00FFFFFF,&H00000000,&H90000000,0,0,0,0,100,100,3,0,1,7,4,8,60,60,1520,1
 Style: Unit,DejaVu Sans Mono,34,&H00C8B478,&H00C8B478,&H00000000,&H00000000,-1,0,0,0,100,100,2,0,1,3,0,8,60,60,1474,1
 Style: Hook,Bangers,112,&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,0,0,0,0,100,100,3,0,1,8,5,8,40,40,150,1
 Style: Count,Bangers,84,&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,0,0,0,0,100,100,4,0,1,7,4,8,40,40,285,1
@@ -164,10 +157,10 @@ parts = [f"[{k + 2}:a]aresample=48000,aformat=channel_layouts=stereo,adelay={int
          for k, (n, t) in enumerate(vo_t)]
 af = ";".join(parts) + ";"
 af += "".join(f"[v{k}]" for k in range(len(vo_t))) + f"amix=inputs={len(vo_t)}:normalize=0,atrim=0:{total:.3f},volume=1.7,asplit[vo][key];"
-af += f"[0:a]volume=0.75[game];[1:a]atrim=0:{total:.3f},volume=0.45,afade=t=out:st={total - 1.8:.3f}:d=1.8[mus];"
+af += f"[0:a]volume=0.75[game];[1:a]atrim=0:{total:.3f},volume='if(lt(t\\,{starts[2]:.2f})\\,0.18\\,0.45)':eval=frame,afade=t=out:st={total - 1.8:.3f}:d=1.8[mus];"
 af += "[game][mus]amix=inputs=2:normalize=0[bed];[bed][key]sidechaincompress=threshold=0.04:ratio=7:attack=15:release=350[duck];"
 af += "[duck][vo]amix=inputs=2:normalize=0,alimiter=limit=0.9[aout]"
 run(["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", f"[0:v]{vf}[vout];{af}",
      "-map", "[vout]", "-map", "[aout]", "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-pix_fmt", "yuv420p",
-     "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-t", f"{total:.3f}", f"{OUT}/they_learn_short_v3.mp4"])
+     "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-t", f"{total:.3f}", f"{OUT}/they_learn_short_v4.mp4"])
 print("done")
