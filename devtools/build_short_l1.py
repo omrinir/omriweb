@@ -4,7 +4,7 @@ import subprocess, wave
 
 import os
 REC = os.environ.get("REC_FILE", "/tmp/claude-0/rec/l1m.avi")
-OUT = "/tmp/claude-0/short2"
+OUT = "/tmp/claude-0/short3"
 FONTDIR = "/home/claude/omriweb/shooter_game/fonts"
 MUSIC = "/home/claude/omriweb/shooter_game/music/level1_zombie_joyride.ogg"
 W, H = 1080, 1920
@@ -17,24 +17,29 @@ SEGS = [
     (31.0, 34.4, 1.0, True),   # first contact
     (34.6, 38.6, 1.0, True),   # from above, sharpshooter
     (40.0, 42.9, 1.0, True),   # top gun, big headshot
-    (50.2, 54.4, 1.0, True),   # explosion, streak x4-x6
+    (50.2, 55.2, 1.0, True),   # explosion, streak x4-x6
     (60.8, 64.3, 1.0, True),   # boss shows up
     (67.6, 68.6, 1.0, True),
     (68.6, 69.8, 0.5, False),  # boss kill in slow motion
     (0.2, 2.6, 0.5, False),    # end card background: the burning city from the intro
 ]
 # narrator: (line no, segment index, offset into that segment, caption)
-VO = [
-    (1, 0, 0.15, "SARCASM SETTING: 90%"),
-    (2, 1, 0.3, "DAY ONE OF THE APOCALYPSE.\\NGOING GREAT."),
-    (3, 2, 0.3, "THE DEAD ARE SLOW. AND STUPID."),
-    (4, 3, 0.0, "FOR NOW."),
-    (5, 3, 1.3, "RECOMMENDED STRATEGY: RUN."),
-    (6, 4, 0.6, "HUMAN IGNORED RECOMMENDATION."),
-    (7, 5, 0.9, "FINE. AIM FOR THE HEAD."),
-    (8, 6, 0.6, "OH GOOD. A BIG ONE."),
-    (9, 9, 0.2, "TRY TO KEEP UP."),
+VO = [  # (line no, segment index, offset into that segment, caption)
+    (1, 0, 0.1, "HE SAID HELLO. ADORABLE."),
+    (2, 1, 0.3, "HE IS NOT WRONG. TECHNICALLY."),
+    (3, 2, 0.3, "DAY ONE. THE PLAN: PANIC."),
+    (4, 3, 0.2, "THIS HUMAN'S PLAN: HEADSHOTS."),
+    (5, 4, 0.0, "HEADSHOT. HEADSHOT. HEADSHOT.\\NI AM OUT OF WORDS."),
+    (6, 5, 0.4, "SOMEONE HAS TO CLEAN THIS UP.\\NNOT ME. NO HANDS."),
+    (7, 6, 0.6, "OH GOOD. A BIG ONE."),
+    (8, 8, 1.6, "WAS A BIG ONE."),
+    (9, 9, 0.2, "WOULD YOU SURVIVE LEVEL 1?"),
 ]
+# kills from the recording log (game time, headshot?) for the live carnage counter
+KILLS = []
+for ln in open(REC.replace(".avi", ".log")):
+    if ln.startswith("EV") and " kill " in ln:
+        KILLS.append((float(ln.split("t=")[1].split()[0]), "head=true" in ln))
 
 
 def run(cmd):
@@ -97,9 +102,30 @@ for n, si, off, cap in VO:
     events.append(("Robot", t, t + d + 0.35, "{\\fad(60,120)}" + body))
 
 e0 = starts[-1]
-events.append(("Logo", 0, e0, "THEY LEARN"))
-events.append(("Level", 0, e0, "LEVEL 1  ·  THEY HUNGER"))
+# hook (first two shots), then the logo and a live kill / headshot counter
+events.append(("Hook", 0, starts[2], r"{\fad(0,150)}POV: DAY 1 OF THE\NZOMBIE APOCALYPSE"))
+events.append(("Logo", starts[2], e0, r"{\fad(150,0)}THEY LEARN"))
 events.append(("Unit", 0, e0, "◉ NARRATOR UNIT  ·  SARCASM 90%"))
+# game time shown at each video moment -> how many kills had happened by then
+marks = []
+for i, (a, b, sp, _) in enumerate(SEGS[:-1]):
+    marks.append((starts[i], a))
+    for g, _h in KILLS:
+        if a <= g < b:
+            marks.append((starts[i] + (g - a) / sp + 0.02, g + 0.001))
+marks.sort()
+def counts(g):
+    return (sum(1 for kg, _h in KILLS if kg <= g), sum(1 for kg, h in KILLS if kg <= g and h))
+last = None
+for j, (vt, g) in enumerate(marks):
+    if vt < starts[2] or counts(g) == last:
+        continue
+    last = counts(g)
+    k, hs = last
+    end = next((m[0] for m in marks[j + 1:] if counts(m[1]) != last), e0)
+    pop = r"{\fscx130\fscy130\t(0,160,\fscx100\fscy100)}" if k > 0 else ""
+    events.append(("Count", vt, min(end, e0), pop + f"KILLS {k}   {{\\c&H3C3CFF&}}HEADSHOTS {hs}"))
+events.append(("Boss", starts[6] + 0.5, starts[9], r"{\fad(80,200)\fscx150\fscy150\t(0,200,\fscx100\fscy100)}BOSS FIGHT"))
 events.append(("Title", e0 + 0.2, total, r"{\fad(250,0)\fscx140\fscy140\t(0,400,\fscx100\fscy100)}THEY LEARN"))
 events.append(("Tag", e0 + 0.9, total, r"{\fad(300,0)}COMING SOON TO STEAM"))
 
@@ -113,6 +139,9 @@ WrapStyle: 0
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Robot,DejaVu Sans Mono,58,&H00FFF2C8,&HFF000000,&H90000000,&H90000000,-1,0,0,0,100,100,1,0,3,18,0,8,70,70,1500,1
 Style: Unit,DejaVu Sans Mono,34,&H00C8B478,&H00C8B478,&H00000000,&H00000000,-1,0,0,0,100,100,2,0,1,3,0,8,60,60,1474,1
+Style: Hook,Bangers,112,&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,0,0,0,0,100,100,3,0,1,8,5,8,40,40,150,1
+Style: Count,Bangers,84,&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,0,0,0,0,100,100,4,0,1,7,4,8,40,40,285,1
+Style: Boss,Bangers,120,&H002A2AE0,&H002A2AE0,&H00000000,&HA0000000,0,0,0,0,100,100,6,0,1,8,6,8,40,40,500,1
 Style: Logo,Bangers,150,&H002A2AE0,&H002A2AE0,&H00000000,&HA0000000,0,0,0,0,100,100,6,0,1,8,6,8,40,40,120,1
 Style: Level,Bangers,72,&H00FFFFFF,&H00FFFFFF,&H00000000,&H90000000,0,0,0,0,100,100,4,0,1,6,3,8,40,40,290,1
 Style: Title,Bangers,210,&H002A2AE0,&H00FFFFFF,&H00000000,&HA0000000,0,0,0,0,100,100,8,0,1,10,8,5,40,40,0,1
@@ -140,5 +169,5 @@ af += "[game][mus]amix=inputs=2:normalize=0[bed];[bed][key]sidechaincompress=thr
 af += "[duck][vo]amix=inputs=2:normalize=0,alimiter=limit=0.9[aout]"
 run(["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", f"[0:v]{vf}[vout];{af}",
      "-map", "[vout]", "-map", "[aout]", "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-pix_fmt", "yuv420p",
-     "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-t", f"{total:.3f}", f"{OUT}/they_learn_short_v2.mp4"])
+     "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-t", f"{total:.3f}", f"{OUT}/they_learn_short_v3.mp4"])
 print("done")
