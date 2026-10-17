@@ -135,7 +135,7 @@ func _process(delta: float) -> void:
 # שלבים זוגיים = רכבת תחתית
 # העולמות מתחלפים: 0 = רחוב, 1 = רכבת תחתית, 2 = מפעל
 # איזה עולם בכל שלב: 0 רחוב, 1 רכבת תחתית, 2 מפעל, 3 רחוב בלילה עם גשם
-const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12, 14: 13, 15: 14, 16: 15, 17: 16, 18: 17, 19: 18, 20: 19, 21: 20, 22: 21, 23: 22, 24: 23, 25: 24, 26: 25, 27: 26, 28: 27, 29: 28, 30: 29, 31: 30, 32: 31, 33: 32, 34: 33, 35: 34, 36: 35, 37: 36, 38: 37, 39: 38, 40: 39, 41: 40, 42: 41, 43: 42, 44: 43, 45: 44}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
+const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12, 14: 13, 15: 14, 16: 15, 17: 16, 18: 17, 19: 18, 20: 19, 21: 20, 22: 21, 23: 22, 24: 23, 25: 24, 26: 25, 27: 26, 28: 27, 29: 28, 30: 29, 31: 30, 32: 31, 33: 32, 34: 33, 35: 34, 36: 35, 37: 36, 38: 37, 39: 38, 40: 39, 41: 40, 42: 41, 43: 42, 44: 43, 45: 44, 46: 45, 47: 46, 48: 47, 49: 48, 50: 49, 51: 50}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
 func world() -> int:
 	return LEVEL_WORLD.get(level, (level - 1) % 4)
 
@@ -160,7 +160,7 @@ func is_factory() -> bool:
 #  מפה: 7 אזורים, 9 שלבים בכל אזור (כרגע 3 השלבים הראשונים קיימים)
 # ============================================================
 const LEVELS_PER_REGION := 9
-const IMPLEMENTED := 45           # כמה שלבים כבר בנויים
+const IMPLEMENTED := 51           # כמה שלבים כבר בנויים
 const REGIONS := [
 	{"name": "NORTHERN AMAZON", "color": Color(0.45, 0.85, 0.3), "desc": "Where it started. The first ones only hunger.",
 		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Ruined District", "Highrise", "The Works", "Research Site", "Zone Zero"]},
@@ -417,6 +417,12 @@ const LEVEL_TITLES := [
 	["THEY LEARNED TO BUILD", "The train went to Volta Redonda, the steel city. The furnaces never stop: they build tanks now. Stop the line - and kill the welders first."],
 	["THEY LEARNED THE SKY", "Itaipu. The biggest dam in the Americas powers their war now. They drop from the sky behind you, and when the floodgates open - climb."],
 	["THEY LEARNED YOU", "Petropolis. The old imperial palace is red now, and the Emperor of the Dead sits on the throne. His army knows every trick you used. End it."],
+	["THEY LEARNED THE BLADE", "Mendoza at harvest. The vineyards run red, and not with wine. When the big sword goes up - step aside. When it goes low - jump."],
+	["THEY LEARNED TO WRESTLE", "The endless pampas in a thunderstorm. Never let the big one get his hands on you - and stay off the iron rods when the sky turns white."],
+	["THEY LEARNED STEEL", "Buenos Aires. Tango in the painted streets of La Boca - and the dead have bolted guns to their arms. Shoot the arms off."],
+	["THEY LEARNED TO BREATHE WATER", "The Tigre delta, lost in the fog. The drowned float, the lights on the water lie - and whatever grows on the dead, burn it before it blooms."],
+	["THEY LEARNED TO PULL THE STRINGS", "Recoleta. The city of the dead has a puppet master now. Cut the strings, watch the moon - and never stand too close to a coffin that scratches."],
+	["THEY LEARNED TO HERD", "An estancia at high noon. They ride, they brand, they drive you like cattle. If they mark you - wash it off before the whole herd comes."],
 ]
 func level_title() -> Array:
 	var t: Array = LEVEL_TITLES[(level - 1) % LEVEL_TITLES.size()].duplicate()
