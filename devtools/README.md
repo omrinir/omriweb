@@ -24,3 +24,6 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
   `--resolution 2560x1440` with `REC_POS=<csv>`, then a 4:5 follow-cam crop on the player. No slow motion (it wrecked the audio);
   zoom only where a shot lists `zk` keyframes, punch/shake/flash only on its `hits`. Narrator = Kokoro am_onyx at speed 0.85
   (lines file), music = level1_total_war from 22 s (its first 21 s are silent), game audio ducked under the voice.
+- `story_voices.py` + `story_voices_master.py` - voices for the level 52 (QUISLING) and 54 (STRANGER) story scenes: Kokoro
+  (player am_onyx, stranger bm_lewis pitched down + metallic comb, quisling am_michael + whisper + tremble; whisper = pyworld
+  resynthesis with all-noise excitation), then mastered to about -18 dB mean like the level 1 scene.
