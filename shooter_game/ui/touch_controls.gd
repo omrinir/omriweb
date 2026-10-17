@@ -7,7 +7,7 @@ extends CanvasLayer
 #        למטה = כריעה (S), למעלה = טיפוס בסולם (W).
 #    ג'ויסטיק ימני (צף, בחצי הימני): כיוון + ירי אוטומטי כל עוד מחזיקים. עזרת כיוון קטנה (ASSIST)
 #        אל הזומבי הקרוב לכיוון הירי.
-#    כפתורים: JUMP (W) מימין; RELOAD (R), SWAP (נשק הבא), GREN (E), HOOK (F), SKILL (C) למעלה משמאל; II = הפסקה (ESC).
+#    כפתורים: JUMP (W) מימין; RELOAD (R), SWAP (נשק הבא), NEXT (E = ה-POWER הבא), USE (C = שימוש) למעלה משמאל; II = הפסקה (ESC).
 #  מצלמה בטלפון (main.gd): זום MOBILE_ZOOM, והשחקן ברבע השמאלי של המסך (shake_camera.base_offset).
 #  איך זה עובד: הכפתורים "לוחצים" על המקשים האמיתיים (Input.parse_input_event), כך שכל הקוד של
 #  המקלדת עובד בלי שינוי. רק הכיוון והירי נקראים ישירות: player.gd -> Touch.aim_point() / Touch.fire.
@@ -33,9 +33,8 @@ var buttons := [
 	["jump", Vector2(1196, 620), 60.0, KEY_W, "JUMP"],
 	["reload", Vector2(44, 212), 32.0, KEY_R, "RELOAD"],
 	["swap", Vector2(122, 212), 32.0, 0, "SWAP"],
-	["grenade", Vector2(200, 212), 32.0, KEY_E, "GREN"],
-	["hook", Vector2(278, 212), 32.0, KEY_F, "HOOK"],
-	["skill", Vector2(356, 212), 32.0, KEY_C, "SKILL"],
+	["next", Vector2(200, 212), 32.0, KEY_E, "NEXT"],
+	["skill", Vector2(278, 212), 32.0, KEY_C, "USE"],
 	["pause", Vector2(905, 52), 26.0, KEY_ESCAPE, "II"],
 ]
 

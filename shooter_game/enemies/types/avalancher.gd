@@ -203,6 +203,7 @@ func draw() -> bool:
 		var yy := -30.0 + float(q) * 5.0
 		z.draw_line(Vector2(-12.0 + float(q), yy), Vector2(12.0 + float(q) * 0.5, yy), col([Color("e0b030"), Color("2a6a4a"), Color("e0e0d0")][q]), 1.5)
 	Art.oval_shaded(z, head, 5.6, 6.0, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -2), head + Vector2(0, -10), head + Vector2(6, -2)]), col(Color("c04a2a")))   # צ'ולו
 	z.draw_line(head + Vector2(-6, -2), head + Vector2(-6, 6), col(Color("c04a2a")), 2.0)
 	z.draw_line(head + Vector2(6, -2), head + Vector2(6, 6), col(Color("c04a2a")), 2.0)

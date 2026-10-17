@@ -1026,8 +1026,9 @@ Watches the real frame rate. A 1-second average under ~52 FPS steps effects down
 Targets follow the screen refresh rate when it is below 60 Hz. Loading hitches, pauses and the first 2.5 s of a scene are ignored.
 Only looks change: zombie damage, speed and intelligence stay the same (off-screen zombies just think less often).
 
-**Blood and gore are never reduced** (blood drops, flesh chunks, blood sprays, "hit" blood particles, ragdoll corpses,
-torn-cheek wounds) - they are part of the game. Only non-gore effects scale:
+**Blood and gore** (blood drops, flesh chunks, blood sprays, "hit" blood particles) are full at level 0 and cut by 35% from
+level 1 on (`Quality.gore()`, table `GORE`): fewer per hit and lower caps on how many live at once. Ragdoll corpses and
+torn-cheek wounds never change. Non-gore effects scale more:
 
 | Level | What changes |
 |---|---|
@@ -1040,7 +1041,7 @@ torn-cheek wounds) - they are part of the game. Only non-gore effects scale:
 * **F3** shows FPS and the current level in the bottom-left corner.
 * The background (`effects/parallax_backdrop.gd`) draws each layer in its own node. Between redraws a layer just moves with the
   camera, so scrolling stays smooth; it redraws at once if the camera moved more than `MAX_SHIFT` px.
-* New non-gore effects should ask `Quality` (`particles()`, `ambient()`, `Quality.scaled(n, mult)`). Never scale blood or gore.
+* New non-gore effects should ask `Quality` (`particles()`, `ambient()`, `Quality.scaled(n, mult)`). New gore asks `Quality.gore()`.
 * `effects/collision_outlines.gd` now redraws only when a body changes (moves, breaks, opens) or the camera moved 200 px.
 
 ## Screen kick when firing
@@ -1049,3 +1050,858 @@ a damped spring (kick_stiffness, kick_damping, kick_max), not a random shake, so
 player.gd `_screen_kick(rk)`: px = SCREEN_KICK_BASE + SCREEN_KICK_PER_RECOIL * the weapon's "recoil" (weapon_db), capped at
 SCREEN_KICK_MAX; recoil >= SCREEN_KICK_HEAVY (shotgun, launcher, rocket) also gets a short shake. Measured peaks: pistol 2.3 px,
 SMG 2.4, assault rifle 2.6, rifle 3.2, sniper 3.7, shotgun 7.1. Set SCREEN_KICK_BASE and SCREEN_KICK_PER_RECOIL to 0 to turn it off.
+
+## Hit reactions (where the bullet lands)
+A zombie that survives a hit reacts for a moment, by zone (zombie.gd `_start_react`, `REACT_TIME`): **head** = the head snaps
+back and the face tips up (0.28 s), **body** = it doubles over and clutches its belly (0.38 s, slows to 60%), **leg** = it hops
+on the other leg with the hit leg lifted (0.5 s, slows to 40%). Only bullet / melee / taser / laser hits; not explosions, fire
+or metal. Strength = weapon "knockback" (`_react_push`, 0.8-1.6); big zombies x0.6, bosses x0.35. A head reaction is not
+overridden by a body/leg hit right after it. Kinds 0-19 bend their joints in `_draw_body`; type modules (20+) get a whole-body
+tilt / hop through `begin_draw` (`react_tilt()`, `react_hop()`). Runner/screamer bend less (their vest polygon flips otherwise).
+
+## Region 6 - SOUTHERN CONE (levels 46-54): "They learned to plan."
+Each level brings 3 new zombie types; the boss is a giant variant of the level's first type (chase_range > 600, like KRAKEN).
+Game.IMPLEMENTED = 51.
+
+## Stage 46 - "WINE VALLEY" ("THEY LEARNED THE BLADE") - Mendoza vineyards at harvest dusk, region 6 (SOUTHERN CONE) level 1
+- levels/stage_46.gd + effects/s46_decor.gd: dusk sky with long flat sunset clouds, low sun and condors; far layer (0.06) = the snowy Andes
+  with Aconcagua (pink alpenglow, a cloud cap drifting over the peak); mid layer (0.28) = hills, swaying poplar rows, adobe bodegas with
+  flickering arched windows, chimney smoke and a stone bell tower; near layer (0.6) = vineyard rows (posts, wires, autumn leaves and
+  grape clusters swaying). World: VineyardGround, Pergola (grape pergola = upper floor at TIER + 2 ladders, ammo/health on top),
+  BodegaGate (stone arch "BODEGA LA MUERTE" behind the boss), Obstacle "casks" / "bins" / "press" (custom_gen skips reserved spots
+  with free_x - main.gd's generator does not check _rects). HarvestFX: falling vine leaves + warm haze.
+- Trap BarrelStack (STACKS): barrels on a ramp. You come within RANGE in front of it -> creak (0.6 s) -> a RollingBarrel rolls at you
+  (jump it; it crushes zombies for DMG_Z and smashes into wine on walls). Shoot the wedge (layer-4 body) to release one early. 6 barrels.
+- Trap FermentVat (VATS): every CYCLE hisses (WARN_T) then vents a heavy CO2 cloud for CLOUD_T - inside it you are dazed ("CO2 FUMES").
+  Solid cover. Each bullet raises the pressure gauge; VAT_HP hits -> it bursts: wine wave, DMG_Z to zombies within BLAST_R, DMG to you if close.
+- EXECUTIONER (enemies/types/executioner.gd): hooded headsman with a sword longer than he is tall, tip dragging on the ground in front.
+  The flat of the blade blocks body shots from the front ("CLANG"); head, back and legs are open. SLAM = sword raised high -> lands
+  where you stood (crack + shake), then the blade is STUCK in the ground for STUCK_T (x STUCK_MULT damage). SWEEP = sword drawn back
+  low -> sweeps the ground (jump). "THEY LEARN HOW YOU DODGE": jumped sweeps -> slam_bias up ("HE WON'T SWING LOW AGAIN");
+  stepped out of slams -> lunge grows by LUNGE_STEP up to LUNGE_MAX (he steps into the swing) and more sweeps ("HE READS YOUR STEP").
+- HARVESTER (enemies/types/harvester.gd): grape picker with a sickle on a chain. Keeps KEEP away, spins the chain overhead (WIND_T),
+  throws the Sickle. Hooked -> the chain drags you to him (PULL_V, max PULL_MAX) and he slashes. Shoot the chain (a layer-4 body that
+  follows the chain) -> "CHAIN CUT": unarmed for REARM_T. "THEY LEARN YOUR TIMING": jumped over it -> aims higher ("HE AIMS HIGH");
+  ran out of range -> leads you more ("HE LEADS YOU"). Own line-of-sight check (_los) because the brain doesn't run while physics() moves him.
+- CASK (enemies/types/cask.gd): a big winery worker stuck in a wine barrel. The barrel (BARREL_HP) takes body hits (splinters);
+  head and legs are open; explosions hit the barrel double. Barrel broken -> wine spray, FREE_SPEED faster, FREE_MULT damage taken.
+  ROLL: at ROLL_R distance he tucks in (TUCK_T, shaking) and rolls at you (ROLL_V) - jump over. "THEY LEARN YOUR JUMP - TOGETHER":
+  jumps over any rolling cask count in main meta "cask_jumps"; after JUMP_LEARN every cask BOUNCEs right when it reaches you
+  ("THEY BOUNCE NOW") - roll or run instead.
+- BOSS THE HEADSMAN = EXECUTIONER with chase_range > 600: x1.75 size, faster wind-up, SLAM sends a Shockwave both ways along the
+  floor (jump it, WAVE_V / WAVE_RANGE), shorter stuck time, 45% chance of a two-swing combo (SWEEP then SLAM or the other way).
+- Game.IMPLEMENTED = 48 (levels 46-48 = SOUTHERN CONE levels 1-3).
+
+## Stage 47 - "PAMPAS STORM" ("THEY LEARNED TO WRESTLE") - Argentine pampas estancia in an endless thunderstorm, region 6 (SOUTHERN CONE) level 2
+- levels/stage_47.gd + effects/s47_decor.gd: green-grey storm sky, fast clouds that light up with each flash (StormFX.flash_k);
+  far layer (0.06) = flat horizon with anvil storm cells, translucent slanted rain curtains and ground-touching bolts; mid layer (0.28)
+  = white estancia casco (tile roof, arches), swaying ombu trees, spinning windmills, grazing dead cows, fence; near layer (0.62) =
+  waving pampas-grass plumes and wire-fence posts. World: PampaGround, Galpon (tin barn "LA ULTIMA" with a hay loft = upper floor at
+  TIER + 2 ladders, ammo/health on top; GALPONS), Corral (cow skulls, EL TORO's arena at level_w-1100), Obstacle "bale" / "trough" /
+  "carreta", Mud (MUD, slows). StormFX (screen layer, group "storm"): flash every PERIOD 8-11 s with WARN 1.4 s of rumble first,
+  rain scaled by Quality.ambient(), emits Game.story "thunder"; warning() / flashing() / time_to_flash() are read by the traps.
+- Trap Windmill (WINDMILLS, platform = small upper floor at MILL_TIER): during the storm warning the tower glows with blue St Elmo's
+  fire; on the flash the bolt hits the nearest windmill (player within ACTIVE_R): platform + circle R around the base -> DMG to you,
+  DMG_Z to zombies. The lofts are the safe high ground; the mill platforms are NOT.
+- Trap Stampede (STAMPEDES): you come within 260 px -> "STAMPEDE! GET UP HIGH" (WARN_T 2.2) -> a herd of HERD dead cows runs across
+  at SPEED. On the ground = DMG + knockback; stand higher than SAFE_H (obstacle / loft / platform) and it passes under you. Tramples
+  zombies for DMG_Z.
+- TORO (enemies/types/toro.gd): hunched bull-man (horns, tattered poncho, coin belt, gorilla arms). PAW (scrapes the ground) ->
+  CHARGE at CHARGE_V; contact = grabbed: lifts you overhead (pl.grab - mash A/D to break free) for HOLD_T, then THROWS you
+  (THROW_V, THROW_DMG). Close by he does a short REACH grab. Charging into an obstacle/wall = STUN_T (x STUN_MULT damage).
+  "THEY LEARNED TO WRESTLE": jumped his charge -> he leaps and grabs high ("HE READS YOUR JUMP"); rolled past -> turns and
+  re-charges at once ("HE TURNS ON A DIME"); mashed free -> holds shorter and throws faster ("HE THROWS FASTER").
+- BOLEADOR (enemies/types/boleador.gd): gaucho (wide hat, striped poncho, red sash). Keeps KEEP away (backs off inside BACKOFF),
+  spins bolas overhead (SPIN_T) and throws them in an arc (BOLA_V). Hit = TANGLED for TANGLE_T (a Tangle node is your grabbed_by -
+  mash A/D). The bola is a layer-4 body: shoot it out of the air. Shared learning (main meta): running away -> "bola_lead" grows by
+  LEAD_STEP up to LEAD_MAX ("THEY LEAD YOUR RUN"); jumping it -> "bola_high" ("THEY THROW HIGH"). They stand on the lofts.
+- STORMCALLER (enemies/types/stormcaller.gd): soaked black poncho, Lichtenberg scars, quiver of iron rods. Throws a rod (Javelin)
+  that sticks in the ground as a PlantedRod (layer 4, ROD_HP): CHARGE_T with a warning circle R + climbing sparks -> lightning
+  (DMG / Z_DMG); stays live LIVE_T and re-strikes every RESTRIKE. Max MAX_LIVE rods at once, RODS in the quiver. Out of rods or
+  under 50% hp -> CALL: lightning strikes himself -> CHARGED for 7 s (x1.7 speed, x0.75 damage taken, shock on touch, telegraphed
+  arc ARC_R) then regains 2 rods. Shared learning: escaping circles -> "storm_lead" (plants ahead of your run, "THEY PLANT WHERE YOU
+  RUN"); shot 2+ rods -> "storm_rods_shot" (plants two, on both sides, "THEY PLANT TWO"). One near each windmill after the first.
+- Boss EL TORO (toro.gd, chase_range > 600): "EL TORO - JUMP HIS CHARGE", hp 560, scale 2.45. Double charge, throws you high
+  (BOSS_THROW), SLAM leap -> shockwave both ways (jump it); hitting the corral wall also sends a wave.
+- Spawns: zombie_weights BOLEADOR .08 / STORMCALLER .05 / TORO .025; extra_spawns: 2 boleadors per loft, stormcaller per mill,
+  TORO at 0.24 / 0.5 / 0.7. Sounds pm_zap / pm_rumble (stage) + type sounds. Music level1_total_war.
+- To change: GALPONS, TIER, WINDMILLS, MILL_TIER, STAMPEDES, MUD, HARDER, zombie_weights(); trap consts in s47_decor.gd
+  (Windmill R/DMG, Stampede WARN_T/SPEED/HERD/SAFE_H, StormFX PERIOD/WARN); type consts at the top of each type file.
+- Tests (headless, attempt_seed 4747): 1800 frames, no script errors; TORO grab+throw (~450 px, 2 dmg), jump/roll learned, wall stun;
+  boss grab/high throw/slam; boleador throws + tangles; stormcaller rod strikes, call, charged shocks; windmill strike hits on
+  platform; stampede hits a grounded player.
+
+## Stage 48 - "OLD QUARTER" ("THEY LEARNED STEEL") - La Boca / San Telmo, Buenos Aires, region 6 level 3 (the Southern Cone)
+- levels/stage_48.gd + effects/s48_decor.gd: night over Buenos Aires. Three parallax layers moving at different speeds:
+  far_city (0.06: skyline, the Obelisk, the La Boca transporter bridge with a moving gondola, port cranes, ships sailing the
+  Riachuelo), mid_houses (0.28: colourful corrugated-iron conventillos, flickering windows, laundry swaying on lines) and
+  near_street (0.6: three-arm iron lamps, fileteado signs TANGO/BOCA/CAFE/MILONGA, tango couple silhouettes, a bandoneon player).
+  oq_sky = stars + moon. World: CobbleGround (cobbles + tram rails), Conventillo (house with an iron balcony = upper floor at TIER +
+  2 ladders, WALKWAYS), TangoStage ("CAMINITO" stage before the boss arena: floor at STAGE_TIER, painted house fronts, string lights),
+  Obstacle "kiosk" / "cart" (choripan cart) / "planter". QuarterFX: river mist + moths around the lamps.
+- Trap Tram (TRAMS): a bell (oq_bell, WARN_T) and then a tram rushes along a stretch of street (SPEED, LEN). DMG to you, DMG_Z crushes
+  zombies. Climb to a balcony or double jump. CYCLE between runs.
+- Trap SparkWire (WIRES): a torn tram cable dangling into a puddle. It crackles (WARN_T, oq_crackle) and then discharges over the whole
+  puddle (R) for ZAP_T. It shocks you and DMG_Z hits zombies too - lure them in.
+- IRONARMS (enemies/types/ironarms.gd): a dock worker someone fitted with two robotic gun arms. Keeps distance (KEEP), aims (AIM) and
+  fires VOLLEY_N bolts; every CHARGE_EVERY volleys a charged shot that blasts (BLAST_DMG). Each arm has its own HP (ARM_HP) and a hit
+  band on the body: bullets from the front that hit the band hit the ARM (metal ping, sparks) and do not hurt the zombie. Shoot both
+  arms off (they fall as pieces) -> it goes RAGE and charges (RAGE_SPEED). One arm left -> fires slower (ONE_ARM_SLOW). Explosions
+  damage all arms. "THEY LEARNED STEEL": shared learning in main meta - "ia_lead"/"ia_aim_y" (missed shots after you jump raise the
+  aim and the lead, after you crouch lower it), "ia_cover" (shots blocked by cover; at COVER_LEARN they lob arcs over cover).
+- TANGO (enemies/types/tango.gd): always a pair (man + woman; setup spawns the partner, static _spawning guard). They move in a
+  step-step-pause rhythm and stay close (PAIR_GAP). A shot that would hit -> they spin (SPIN_T, collision_layer 0 = bullets pass) with
+  DODGE_CHANCE. "THEY LEARNED YOUR RHYTHM": the gap between your shots (main meta "tango_beat") sets the spin cooldown (spin_cd) - fire
+  in an uneven rhythm. Gancho kick up close (KICK_R). One partner dies -> the other "breaks its heart": +1 damage, x RAGE_SPEED, no
+  more spins.
+- CLOCKWORK (enemies/types/clockwork.gd): a porcelain-masked wind-up doll with a brass key in its back. Runs in bursts (BURST_T x
+  BURST_MULT) while the wind drains (WIND_DRAIN); at zero it STOPS and is vulnerable (STOP_MULT damage) while it rewinds (REWIND_T).
+  A wound clockwork within HELP_R walks over and winds it twice as fast. Shoot the key from behind (KEY_HP) -> HAYWIRE: fast erratic
+  running, damage 2, it hurts itself (HAYWIRE_DPS) until it breaks. "THEY WIND UP OUT OF SIGHT": hits taken while stopped (main meta
+  "cw_stop_hits") at STOP_LEARN -> clockworks retreat to rewind when the wind is low (RETREAT_AT).
+- BOSS THE MACHINIST (ironarms.gd boss variant, chase_range > 600): four arms (BOSS_ARMS: 2 guns + 2 rocket pods, BOSS_ARM_HP each),
+  BOSS_VOLLEY_N barrage, rockets every ROCKET_CD (lobbed, blast), all of the ironarms learning. Below half HP with an arm missing ->
+  REBUILD once (REBUILD_T, takes x0.5 damage meanwhile, arms come back). With no arms left after the rebuild -> RAGE.
+- To tune: WALKWAYS, TIER, TRAMS, WIRES, TANGOS, STAGE_W, zombie_weights() in stage_48.gd; Tram / SparkWire constants in s48_decor.gd.
+- Game.IMPLEMENTED = 48.
+
+## Stage 49 - "RIVER DELTA" ("THEY LEARNED TO BREATHE WATER") - the Tigre / Parana delta on a foggy morning, region 6 (SOUTHERN CONE) level 4
+- levels/stage_49.gd + effects/s49_decor.gd: pale foggy morning sky with a hazy sun disc, slow fog bands and herons; far layer (0.06) =
+  the wide brown river, low islands with poplars and weeping willows, a ferry crossing slowly; mid layer (0.28) = colourful stilt houses,
+  a Tudor-style rowing club, boats bobbing on the water; near layer (0.6) = reeds swaying, red ceibo flowers, mooring posts and floating
+  debris drifting. World: DeltaGround (plank boardwalk over mud), StiltDeck (STILTS: verandas of stilt houses = upper floor at TIER,
+  2 ladders each, ammo/health on top), Channel (CHANNELS: open water cutting the boardwalk, you wade = slower), RowingClub
+  ("CLUB DE REMO" behind the boss), Obstacle "wreck" (a beached boat) / "crates" / "nets" (custom_gen skips reserved spots with free_x).
+  DeltaFX: fog bands, mosquito swarms, green river tint.
+- Trap SinkingDock (DOCKS): rotten planks. Step on one -> creak + "!" (WARN_T) -> it snaps: DMG to you, SLOW_T stuck in the mud
+  ("STUCK IN THE MUD"), DMG_Z to zombies standing on it. After that it is a water hole (TideDirector treats it as water).
+- Trap TideDirector ("THE RIVER RISES"): every CYCLE seconds (first one after 18 s) - "THE RIVER IS RISING - GET HIGH!" (WARN_T), the water
+  rises H px over the whole boardwalk for HIGH_T, then falls (FALL_T). Owns player.in_water (channels, broken docks, high tide) and sets
+  main meta "tide" (0..1) - FLOATER floats faster, ANGLER swims under water to you. Climb a stilt deck or an obstacle to stay dry.
+- FLOATER (enemies/types/floater.gd): a drowned body bloated with river gas (Last of Us bloater / police-diver "floaters"). Every belly hit
+  swells it (SWELL_PER); full belly or death = pops into a toxic GasCloud (hurts + dazes you "TOXIC GAS", GAS_DMG_Z to other zombies,
+  floaters immune). Next to you (SELF_R) it swells itself (SELF_T, green glow + gurgle) and pops. Faster in the tide (TIDE_SPEED).
+  "THEY LEARN WHERE TO WALK - TOGETHER": popped from far (> FAR_D) counts in main meta "floater_far"; after HIDE_LEARN every floater
+  walks behind another zombie ("THEY HIDE BEHIND THE OTHERS") so you can't pop it early without hitting the crowd.
+- ANGLER (enemies/types/angler.gd): a hunched fisherman with a bone rod growing from his back and a glowing "luz mala" lantern hanging in
+  front of his needle-toothed mouth. Waits submerged in a channel (LURK - only hat and eyes above water; body shots just SPLASH, only the
+  eye band is open). You come within SPRING_R -> the lantern swings (SWING_T) -> he leaps at you (LEAP_V), grabs and drags you (DRAG_T,
+  DRAG_V, shake free A/D) then bites. Shoot the lantern (layer-4 body) -> "BLINDED" for BLIND_T, takes BLIND_MULT damage, no more lurking.
+  "THEY LEARN THE LIGHT GIVES THEM AWAY": after DARK_LEARN lanterns shot (main meta "lures_shot") lanterns stay dark until you are within
+  DARK_R and swing faster (SWING_T_DARK) - "THE LIGHTS GO DARK".
+- SPOREWALKER (enemies/types/sporewalker.gd): a corpse overgrown by the delta's damp - mushroom caps on head and shoulder, shelf fungi on
+  the back, white mycelium, glowing spores (Cordyceps). Close to you (PUFF_R) it swells (PUFF_WIND) and puffs a SporeCloud: slow
+  (slow_t) + blur (daze "SPORES"); shooting it point-blank (HIT_PUFF_D) also bursts a small puff. On death a Stalk grows from the corpse
+  (layer-4 body + "blastable"): shoot it STALK_HP times ("CUT") or blow/burn it ("BURNED") within GROW_T, or it blooms - raises up to
+  RAISE_MAX corpses within RAISE_R ("RISE!") or, with no corpses around, spawns 1-2 hungry runners ("HUNGRY!"). Killed while burning
+  (fire bullets / explosion) = no stalk at all. "THEY CHOOSE WHERE TO DIE": after LEARN_CUT stalks cut (main meta "spore_cut") a hurt
+  sporewalker (< SEEK_HP) walks to the nearest corpse (SEEK_R) to die there, and stalks grow faster (GROW_T_LEARNED) and raise one more.
+- BOSS THE RIVER MOTHER = FLOATER with chase_range > 600: x2 size, doesn't self-pop; belly hits do BELLY_MULT. Spits GasBubbles in an arc
+  (SPIT_CD, a small gas cloud where they land), belches up to BELCH_MAX little floaters (BELCH_CD), below half HP a GAS WAVE around her
+  (WAVE_WARN then a WAVE_R cloud, every WAVE_CD). Dies in a huge gas cloud - step back.
+- Spawns (extra_spawns): SQUADS of FLOATER + walker + 1-2 SPOREWALKERs, an ANGLER in every channel past x 900, a SPOREWALKER on every deck.
+
+## Stage 50 – "TANGO CEMETERY" ("THEY LEARNED TO PULL THE STRINGS")
+
+Recoleta at night. Files: `levels/stage_50.gd`, `effects/s50_decor.gd`, `enemies/types/puppeteer.gd`, `lobizon.gd`, `coffin_breaker.gd`.
+
+**Level** (`stage_50.gd`): `MAUSOLEUMS` (3 roofs at `TIER` 150, 2 ladders each, ammo/health on top) are the upper floor. Traps: `ANGELS` (AngelStatue) and `CRYPTS` (CryptDoor). Obstacles: grave / sarcophagus / urn (`custom_gen`, checked with `free_x`). `COFFINS` are coffin spawns (one sits on a roof). `SQUADS` alternate between a puppeteer with 3 dolls and a lobizon with a walker. Boss: `Registry.PUPPETEER` in front of the RecoletaGate. Music: `level2_suspense.mp3`. The `rc_*` sounds are in `SOUNDS`.
+
+**Moon** (`s50_decor.gd` MoonCycle, group `moon_cycle`): clouds (`CLOUD_T` 14-19 s), then a warning "THE CLOUDS ARE PARTING..." (`WARN_T` 3 s, howl), then "FULL MOON" (`FULL_T` 11 s). Shared through statics `S50.moon_k` (visual 0..1), `moon_warn` and `full_now` (gameplay, flips instantly). Use `S50.moon_full()` / `moon_rising()`. MoonFX draws the darkness, silver light, ground fog and banners. `force(state, t)` is for tests.
+
+**Decor**: `cem_sky` (moon and a cloud bank that slides off), `far_city` 0.06 (skyline, Basilica del Pilar with a swinging bell, bats), `mid_tombs` 0.28 (mausoleum rows, candles, fog), `near_cypress` 0.6 (cypresses, iron fence, cats with glowing eyes). Inner classes reach the statics through `const S50 := preload(self)`.
+
+**PUPPETEER**: strings up to `MAX_STRINGS` 3 zombies (boss 6) within `STRING_R`. Each string is `StringCut` (StaticBody2D, layer 4, mask 0, `hit_by_bullet`) on the middle of the string, so shooting the string cuts it. Puppets get `_speed_mul × PUPPET_SPEED` and meta `puppet`/`pp_mul`. JERK (`JERK_CD`, `JERK_WIND` telegraph: bar pulled back, strings flare) makes all the puppets lunge together. A strung puppet that dies is re-raised once (`REVIVES`, boss 3): "DANCE AGAIN!". A puppet farther than `STRING_MAX` slips off. He moves on his own and holds `HOLD_R` from you. When he dies, all strings snap and puppets stagger for `SNAP_STUN`. Learning: main meta `pp_cuts` ≥ `CUT_LEARN` gives double strings (2 hits each) and a faster re-string. Boss "THE BOKOR": `WHIP` (0.5 s windup, `WHIP_R`) and `SUMMON_CD` (raises 2 strung dolls).
+
+**LOBIZON**: slow human under the clouds. It starts the TURN (howl, `TURN_T`) when the moon is about to be full. As a WOLF it gets leaps, a 2-hit claw combo, `REGEN` and `WOLF_MULT` armour. It REVERTS (×1.5 damage) when the clouds return. Learning: if you sit up high during a full moon for `ABOVE_LEARN` s, it sets main meta `lobizon_climb` and every lobizon leaps onto roofs. Without a MoonCycle it uses its own cycle (`OWN_CYCLE`).
+
+**COFFIN BREAKER**: its own state machine, not `dormant`. The coffin hitbox is small and absorbs bullets. Approaching (`HINT_R`) gives faint scratches. `WAKE_R` triggers SCRATCH (`WARN_T`, lid jumps, fingers), then it bursts and leaves a CoffinBox. If you are close it keeps the lid as a front shield (`LID_HP`). It throws the lid (LidShot) if you are past `THROW_R` / `FLEE_R` or up high. GRAB (mash A/D) bites every `BITE_T`; on release it is stunned. Shooting a closed coffin early opens it early with no shield. Learning: main meta `cb_early` ≥ `EARLY_LEARN` makes later coffins patient: they ignore shots, stay silent, wait until you pass (`PASS_D`), then burst out behind you ("BEHIND YOU").
+
+## Stage 51 - "THE RANCH" (THEY LEARNED TO HERD)
+
+Zone 6 (Southern Cone), stage 6. An Argentine estancia ("La Patrona") at blazing summer noon: white sun, dust, dead quiet.
+The dead gauchos still work the land - they ride, keep bees and brand cattle. Now they brand *you*.
+
+**Files**
+- `levels/stage_51.gd` - layout, spawns, sounds (`rn_creak`, `rn_pour`, `rn_bellow`).
+- `effects/s51_decor.gd` - sky + 3 parallax layers + all world objects / traps.
+- `enemies/types/rider.gd` - RIDER (also the boss, EL PATRON).
+- `enemies/types/beekeeper.gd` - BEEKEEPER (+ `Swarm`, `HoneyPuddle`).
+- `enemies/types/brander.gd` - BRANDER (+ `Brand`, the mark on the player).
+
+**Background (Backdrop)** - `ranch_sky` (white-blue noon sky, sun with turning rays, circling vultures),
+`far_plain` 0.06 (heat-shimmer horizon, mirage band, eucalyptus line, distant dust of a dead herd),
+`mid_casco` 0.28 (the casco with gallery + green shutters, Australian windmills + round tank, barn, silos, waving flag),
+`near_fence` 0.6 (wire fence, swaying purple thistles, rolling tumbleweeds, cattle skulls). All layers animate on `t`.
+Screen FX: `S17.HeatHaze` shader + dust particles + `RanchFX` (dust motes scaled by `Quality.ambient()`, a dust gust every 12-18 s, warm glare).
+
+**Layout / upper floor**
+- `TOWERS` - wooden water towers. Their deck is an invisible `add_floor` with 2 ladders, and each holds a pickup.
+- `SILOS` - grain silos with a catwalk (floor + ladder + pickup). A `GrainChute` trap sits next to each one.
+- Riders can't climb, so a deck is safe from the horse. The rider circles underneath and waits.
+- `CHUTES` (steer trap), `TROUGHS` (8 + 1 in the arena), `ASADO` (smoke), `BEES`, `COOPS`.
+- `DomaArena` (boss) at `level_w - 1100`.
+- Obstacles `bales` / `drums` / `tractor` come from `custom_gen` and skip reserved spots.
+- `extra_spawns`:
+  - a regular zombie on every deck
+  - a beekeeper by each set of bee boxes
+  - a brander guarding every 2nd trough
+  - 3 riders in the open
+
+**Traps**
+- `GrainChute`: walk under the pipe and it creaks (`WARN_T`), then pours grain (`POUR_T`).
+  - The pour does damage + slow to the player and buries zombies (`DMG_Z`).
+  - It leaves a slowing pile (`PILE_T`).
+  - Shooting the red hatch triggers it on your timing.
+- `Chute`: approach and the gate shakes (`WARN_T`), then a dead steer (`Steer`) runs down the road toward you.
+  - Jump it or roll. It tramples zombies too, and collapses on a wall.
+  - It has HP (`STEER_HP`). Shooting the latch opens the gate early.
+- `Trough` (group `troughs`): stand in it to wash off a brand. `AsadoPit` (group `smoke_src`, `SMOKE_R`): its smoke disperses bee swarms.
+- `Decor.smoky(tree, p)` returns true for asado smoke or any fire hazard (`fire_zone` with `zombie_burn`) within 150 px.
+
+**RIDER** - a dead gaucho on a dead horse.
+- **TROT:** approaches. If you're too close it backs off to build a run-up. The horse leaps bales and drums.
+- **WIND:** a telegraph, with a neigh and the facón raised.
+- **CHARGE** (`CHARGE_V`) through you plus `OVERSHOOT`:
+  - The horse tramples (`TRAMPLE_DMG`).
+  - A jump that's too low gets cut by the facón (`SLASH_DMG`).
+  - Ramming a wall or obstacle makes it **STUMBLE** (damage x`STUMBLE_MULT`).
+- **Two HP pools:**
+  - Hits at horse height (local y > -36) go to `horse_hp`.
+  - Hits on the rider are re-mapped so a head is a head and a torso is a torso.
+  - Explosions and fire hit both.
+  - When the horse dies a `HorseCorpse` stays on the ground and the rider is thrown (`THROWN_T`). He then fights on foot with his own HP, with a smaller hitbox resized at runtime.
+- **Learns:**
+  - Jump a charge once (`JUMP_LEARN`) and the next charge stops right in front of you and **REARS**: the hooves strike high and catch jumpers. Then it keeps charging.
+  - Counter: roll through it or back off.
+
+**EL PATRON** (boss, `chase_range > 600`, `boss_name` "EL PATRON - SHOOT THE HORSE"):
+- **The horse:** armored (`HORSE_ARMOR` on bullets; explosions do full damage). While mounted the rider takes x`RIDER_GUARD`.
+- **LASSO** (`LASSO_WIND`):
+  - The loop flies at you.
+  - If caught you are dragged (`DRAG_V`) straight into a rear-up hoof strike.
+  - Shooting the rope cuts it (the `Rope` body on layer 4 has `hit_by_bullet`).
+- **CALL:** whistles for 2 riders at `CALL_AT` hp fractions, up to 4 riders alive.
+- **STAMPEDE:** under 60% hp, every 2nd charge brings `STAMPEDE_N` dead steers (`s51_decor.Steer`) alongside.
+- **On foot:** faster, still throws the lasso, and always hunts.
+
+**BEEKEEPER** - a ragged beekeeper whose body is a hive, with a big hive box strapped to his back.
+- Keeps distance (`KEEP_R`). **RELEASE** (`RELEASE_T`, loud buzz) lets out a `Swarm`.
+- **The swarm:**
+  - It has HP (`SWARM_HP`); bullets do 6 or the gun's fixed damage. It chases you and stings (`STING_DMG` every `STING_T`).
+  - It is dispersed by: smoke (asado, fire), explosions (it is in group `blastable`), incendiary bullets, or a burning zombie nearby.
+  - Cover stops it: horizontal moves are ray-checked on mask 1.
+- **The hive:**
+  - Shots from behind, or above the head, hit the hive (`HIVE_HP`).
+  - Breaking it splashes a `HoneyPuddle` that slows you and releases one ANGRY swarm (faster, more HP).
+  - After that the beekeeper has no more swarms and goes berserk.
+- **Learns:** once its swarm has been stuck behind your cover for `BLOCK_LEARN` seconds, swarms go wide. They climb over the cover and come down on you from the other side ("THEY LEARN YOUR COVER").
+
+**BRANDER** - a heavy gaucho in a scorched leather apron with a red-hot "P" branding iron.
+- **AIM** (`AIM_T`, sizzle, glowing tip), then **THRUST** (`THRUST_T`), then **RECOVER**.
+- A hit does damage and puts a `Brand` node on the player (`BRAND_T`). Brands stack up to `BRAND_MAX`.
+- **While branded:**
+  - Every `HERD_EVERY` seconds, every zombie within `HERD_R` gets `_alert_t`, `_rush_t` and `brain.seen_t = 0` / `last_seen`, so the whole herd converges ("THE HERD KNOWS YOU").
+  - Standing in a trough washes the brand off and bumps the `brand_washes` meta on main.
+- **Learns:** once you've washed a brand, branders guard the water. When you're branded or near a trough, they stand between you and the nearest trough (`GUARD_R`).
+- Test helper: `apply_brand(player, t)` is static.
+
+**Tunables** - in each file header. Stage: `TOWERS`, `TIER`, `SILOS`, `SILO_TIER`, `CHUTES`, `TROUGHS`, `ASADO`, `BEES`, `zombie_weights()`
+(BRANDER 0.07, BEEKEEPER 0.05, RIDER 0.03, regulars 0.52, runners 0.33).
+
+# Polish pass (2026-10-17)
+
+Six areas were reworked together: gun and kill feel, zombie spawn placement, lighting, zombie art, bot playtest bug fixes, and gun/ability progression. Each section below covers one area.
+
+## Gun feel + kill feel (polish pass "gunfeel")
+
+**Weapon balance** (`weapons/weapon_db.gd`). A regular zombie has 30 HP. Body hits do 12-15 x `damage`. Head hits do 30, and `damage` does not multiply them (only `head_mult` for automatics). Targets after this pass:
+
+| Weapon | damage | fire_rate | knockback | Body shots to kill a walker |
+|---|---|---|---|---|
+| RIFLE | 1.25 (was 1.0) | 0.6 (0.7) | 85 (60) | 2 (was 3) |
+| PISTOL | 0.8 (0.5) | 0.3 (0.38) | 55 (40) | 3 (5) |
+| SMG | 0.33 (0.25), spread 0.1 (0.13) | 0.11 (0.13) | 30 (22) | 7 (9) |
+| ASSAULT RIFLE | 0.55 (0.45) | 0.17 (0.2) | 60 (50) | 4 (5) |
+| SNIPER | 1.7 (1.0) | 1.25 (1.5) | 230 (120) | 1, and it pierces 3 (was 2) |
+| SHOTGUN | falloff [10, 2, 460] (was [9, 1, 420]) | 0.85 (1.0) | 190 (150) | 1 at close range |
+| ASSAULT SHOTGUN | unchanged | unchanged | 200 (170) | 1 at close range |
+
+`knockback` now also sets how far the corpse flies (see below).
+
+**Kill feel** (`zombie.gd`):
+- `_die` scales the corpse fling by the killing weapon's knockback: `KILL_FLING` [0.75 .. 1.75] over knockback 0..220.
+  Bullet and melee only. Explosions keep their own launch.
+- A kill with knockback >= `HEAVY_KB` (150: shotgun, assault shotgun, sniper) sets `heavy_kill`. The ragdoll
+  (`effects/ragdoll.gd`) then never takes its 30% "crumple in place" branch, so the body always flies.
+- `_kill_feel()`: plays `kill_punch` on a body kill (louder on a heavy kill), or `kill_crack` on a headshot kill.
+  Both are synthesized in `weapons/weapon_sounds.gd`. It also asks the camera for a hit-stop:
+  `HITSTOP_HEAD` 45 ms, `HITSTOP_HEAVY` 55 ms, `HITSTOP_BOSS` 280 ms. Only for kills on screen.
+- Survivor knockback is applied once per trigger pull (`_kb_shot` = `Game.shot_id`). Before, all 6-7 shotgun pellets added
+  110+knockback each, so a zombie was thrown ~1800 px/s, out of shotgun range, and the shotgun almost never killed.
+- Damage numbers: pellets of the same trigger pull (`Game.shot_id`) merge into one number. It counts up and grows a little
+  instead of stacking 6 numbers.
+
+**Hit-stop** (`shake_camera.gd` `hit_stop(sec)`):
+- Sets `Engine.time_scale = hitstop_scale` (0.08) for `sec` real seconds, then restores 1.0.
+- The player compensates for time_scale (`_rt`), so the hero keeps moving and rapid fire is never slowed. Only the world freezes.
+- At most one hit-stop per `hitstop_gap` (0.22 s). A boss always gets one.
+- Never runs during BULLET TIME, the sniper scope or the weapon wheel (time_scale already < 1). If one of those changes
+  time_scale during a hit-stop, it is not overwritten.
+- While active, `Engine` has meta `"hitstop"`. `hud.gd` skips the BULLET TIME tint then.
+- To turn it off: set the HITSTOP_* consts in zombie.gd to 0.
+
+**Shots** (`player.gd`, `bullet.gd`):
+- Muzzle flash `_draw_muzzle()`:
+  - a 7-point flame star with a new shape on every shot (`_mf_seed`), a bright forward cone, a white core,
+    and a soft light around the hero;
+  - size per style (`MUZZLE_SIZE`), lasts `MUZZLE_T` = 0.06 s;
+  - rifle and sniper also get side jets (a muzzle brake). The pistol uses the same flash.
+- Shotgun and sniper shots leave 2-3 smoke particles at the barrel.
+- Shell casings per weapon: shotgun = thick red shell, sniper = long brass, pistol/SMG = small.
+- Tracer: every bullet draws a fading streak behind it, about one frame of travel long (`TRACER_K`, 24-80 px).
+  Colors: warm; blue for sniper/pierce; orange for incendiary; red for GOD.
+  The streak grows from 0 on the first frames, so it never draws back into the hero.
+  The bullet node redraws only while the streak grows (first ~2 frames), and is static after that.
+- Flesh hit flash `bullet.gd FleshHit` (zombies only):
+  - a white-hot dot, 4 short rays and a small red mist on the exit side, 0.09 s;
+  - capped at `MAX_ALIVE` (14) at once.
+
+**Movement / responsiveness** (`player.gd`):
+- `walk_speed` 190 -> 205, `accel` 1800 -> 2300: snappier starts and stops. Jump height and run speed are unchanged.
+- The post-shot movement lock (`_push_t`, accel x0.25 for 0.12 s) now applies only to weapons with recoil >= `PUSH_HEAVY` (0.7).
+  SMG / AR / pistol / rifle no longer drag your walk speed while you hold the trigger (true run & gun).
+- Auto-reload: firing the last round in the magazine starts the reload at once. It no longer waits for the next trigger pull.
+- Muzzle-flash sizes also cover the new progression styles (dbarrel, dbreath, revolver, lever, dmr, hsniper, lmg, minigun, rail).
+  Their casings use the matching shell type.
+
+**Dark-level hero rim** (`player.gd` `_is_dark()`, `RIM_COL`):
+- On night, subway and `stage.dark_level()` levels, a faint cold halo is drawn behind the hero sprite (two `Art.glow` calls),
+  so the black coat no longer disappears into dark backgrounds.
+- The check is cached once per level. To change the strength, edit `RIM_COL.a` (0.3).
+
+**Testing** (scripted shooter, kept outside the repo):
+- Kills per weapon, level 3, 8 zombies, 11 s:
+  - rifle 6 -> 8 kills;
+  - pistol 7 -> 8;
+  - SMG 8 in 601 frames -> 8 in 520;
+  - sniper: the same 8 kills in 2 shots instead of 4.
+- All 51 levels ran 600 frames headless with firing (rotating weapons) and no script errors.
+- Hit-stop always restored `time_scale` (3-20 hit-stop frames per run).
+- CPU time with 45 zombies and SMG fire: 31.4 / 30.8 s before vs 32.1 / 30.0 s after, which is within noise.
+
+## Zombie placement and pace (polish pass, "spawns")
+
+**Regular scatter** (`main.gd` -> `_spawn_zombies`). The level is split into equal **slots** (`SPAWN_FIRST` .. `level_w - SPAWN_END`).
+Each group (picked from the stage's `zombie_weights`, group sizes as before: rats pack, dog pair, 2-3 cluster) gets one slot and a
+random spot inside it (`SPAWN_JITTER`). Before, x was fully random: up to 3.5 empty screens on levels 1-4 and piles of 6+ in one spot.
+* `_group_spot` / `_group_fits`: the whole group must fit on free road: not near a reserved rect (`_near_brick`), not within
+  `SPAWN_CP_CLEAR` of the checkpoint, at least `SPAWN_GAP` from other scatter zombies, not on a hazard or a blocked range
+  (`_spawn_blocked`). No room in the slot -> `_emptiest_spot` (the free spot farthest from every other zombie).
+* `_spawn_blocked(x0, x1)`: hazards near the road (group `hazards`, their `rect`) + `_spawn_avoid` ranges
+  (the subway's electrified rails - zombies used to spawn on them and die on frame 1).
+* A rats pack counts as 3 zombies toward the level's count (it used to eat 5-7 of the budget and leave long gaps).
+* Hurler imps stand one on each side of the hurler (they used to overlap the next group member).
+* **Floors**: `SPAWN_FLOOR_SHARE` of single, small built-in zombies (kinds 0-19, not brute/mech/dog/boss) stand on a platform
+  (group `platforms`) inside their slot instead of the road (`_spawn_on_floor`). A stage can turn this off:
+  `scatter_on_floors() -> false` (stage 9: roofs are the safe route). Types 20+ are placed on floors by the stages themselves.
+* `_spawn_group(rng, x, floor_y, kind, n, dormant_ok)` spawns one group; the pace director uses it too.
+
+**After `extra_spawns`**
+* `_settle_scatter()`: a scatter zombie standing on top of another zombie (`SPAWN_OVERLAP`) - usually one the stage placed on
+  purpose - steps aside to a free spot. Stage-placed zombies never move.
+* `_unstick_spawns()` (one physics frame later, when the physics space can be queried): a built-in zombie (kind < 20) whose body
+  is inside a solid on the road (a stage obstacle that was not `reserve()`d, a squad placed at a fixed x) moves sideways to free
+  floor (up to `UNSTICK_REACH`). Types 20+ are left alone - some hide inside things on purpose (BLEND IN trees, coffins, vents).
+
+**Checkpoint restart**: `CP_RESTART_CLEAR` (440, was 260) - no zombie waiting right in your face when TRY AGAIN starts at the checkpoint.
+
+**PACE DIRECTOR** (`levels/pace_director.gd`, created by `main.gd`): when no zombie is on screen for `IDLE_GAP` s and none is coming
+within `COMING` px ahead (and fewer than `MAX_AWAKE` are chasing nearby), a group of 2-3 (stage weights) enters from off-screen
+ahead (`AHEAD_MIN..AHEAD_MAX`) already alerted and running at the player. Checks ground with a ray (no pits / water / channels),
+a shape query (not inside a wall), `_near_brick` and `_spawn_blocked`. Budget per level = `BUDGET_SHARE` x the scatter count.
+Not before `START_X`, not in the last `BOSS_ZONE` px, not during story scenes, not when the player is under the road.
+A stage with its own wave system returns `pace_stream() -> false` (stage 16).
+
+**Measuring**: a headless SceneTree script walks the player through a level (teleport, invulnerable, "kills" the nearest visible
+zombie every 0.6 s, walks when nothing awake is within 420 px) and prints screen-window counts, biggest gap, overlaps,
+zombies inside solids / floating / on hazards / next to start or checkpoint, on-screen time, longest empty stretch and stuck zombies.
+(Kept outside the repo: devtools/t_spawn.gd - copy it into a test project, args `levels seeds dyn_seconds`, e.g. `-- 1,2,3 1,2 150`; run with
+`--fixed-fps 60`.)
+
+**Numbers** (normal difficulty, levels 1-51 x seeds 1-3 = 153 builds; "screen" = a 1024 px camera window slid along the level in 128 px steps):
+
+| | before | after |
+|---|---|---|
+| screens with no zombie (all / levels 1-4) | 7.2% / 40.3% | 0.9% / 4.7% |
+| screens with <= 1 zombie | 19.4% | 9.5% |
+| biggest empty stretch, average (worst) | 1351 px (5037) | 852 px (1801) |
+| most zombies in one screen, average | 9.5 | 7.9 |
+| overlapping pairs (< 16 px apart) per level | 3.2 | 0.4 |
+| built-in zombies spawned inside a solid (153 builds) | 16 | 2 |
+| zombies above the road (floors / roofs) per level | 4.8 | 5.5 |
+
+Walk-through bot (19 sampled levels): longest stretch with nothing on screen 5.2 s avg / 14.2 s worst -> 3.4 s / 6.8 s;
+first zombie on screen 2.8 s -> 1.9 s (levels 1 and 4 used to take 14 s / 7 s); kills per run 28.4 -> 31.4 (pace director); stuck ~0.1.
+
+## Lighting / readability pass (polish: lighting)
+
+Goal: characters (player + zombies) must always read against the background, no flat/placeholder backgrounds,
+no seams or gaps. Contact sheets: `/mnt/project-files/polish/shots/lighting_contact_before.png` / `_after.png`.
+
+### Shared helpers (effects/backdrop_kit.gd)
+* `Kit.glow_tex()` - one shared radial GradientTexture2D (built once, static).
+* `Kit.soft_glow(ci, c, r, col, squash := 1.0)` - soft halo (one textured quad). Use it instead of stacked
+  transparent `draw_circle`s, which show hard rings.
+* `Kit.soft_ellipse(ci, c, rx, ry, angle, col)` - rotated soft blob (nebula, mist, clouds).
+* `Kit.soft_smoke(...)` - smoke column made of soft blobs. `Kit.smoke_column` and `Kit.fire_glow` now draw soft
+  blobs too (all levels that use them changed look: no more "bubble" smoke / ringed fire glows).
+* `Kit.haze_band(ci, vp, y0, y1, col)` - vertical haze gradient (transparent at y0 -> col at y1). Put it in a
+  backdrop `overlay` just above the road (about y 420-612 on screen) to lift the background behind the
+  characters: dark silhouettes read again without brightening the whole level.
+* `Kit.gradient_sky` bands now overlap (height used `steps` instead of `steps - 1` -> 1-2 px gaps could appear).
+* `art.gd -> Art.glow()`: radius >= 24 px now draws the soft texture (3 circles = visible rings on big glows);
+  small glows keep the old 3-circle look.
+
+### Rules of thumb for new levels
+* Keep the band behind the characters (screen y ~430-607) mid-tone, not near-black and not white. If the art there
+  is dark, add `bg.overlay = func(ci, v, t): Kit.haze_band(ci, v, 420.0, 612.0, Color(..., 0.2-0.26))`.
+* Darkness overlays (subway.gd, s11 NightOverlay, s14 StormOverlay, s26 BunkerDark, s29 MineDark): the soft light
+  around the player is 130 px (`subway.gd -> PLAYER_GLOW`), so zombies that come close are visible even in black areas.
+* Sky gradients drawn by hand: band height = span / (steps - 1) + 1, and use 24-36 steps (12 shows posterized stripes).
+* Screen-space fog/whiteout events: keep a full-screen white fill under ~0.15-0.2 alpha (stage 28 cloud was 0.28).
+
+### Old levels rebuilt
+* **Level 3 (factory)** - `factory.gd -> FactoryBg` is now a `parallax_backdrop.gd` subclass: smoggy sunset sky
+  (soft sun, drifting smog bands, birds), far = cooling towers with steam + striped chimneys with red blinking lights +
+  gas flare, mid = refinery (tanks, gas spheres, distillation columns with lights, pipe rack, foundry with flickering
+  furnace windows, conveyor tower), near = big pipe with a steam-spitting valve, gantry crane with swinging load,
+  sodium lamp with light cone; overlay = warm haze behind the characters + rising embers. Tunables: consts at the top
+  of `FactoryBg` (HZ, FAR/MID/NEAR colors, LAMP).
+* **Level 2 (subway)** - `subway.gd -> TunnelBg` rebuilt the same way: tiled station wall with mosaic band, station
+  name signs (`NAMES`), torn posters, graffiti, damp stains; steel pillars with rivets and hazard stripes and sagging
+  cables; hanging fluorescent fixtures (some dead, some flickering) with light pools; overlay = pale haze behind the
+  characters + shadow under the ceiling. `darkness` 0.62 -> 0.52, player glow 70 -> 130 px.
+* **Level 1/4 (street, background.gd)** - sun halo and smoke clouds are soft (no rings). Level 4 night world tint
+  (main.gd CanvasModulate) 0.5/0.56/0.75 -> 0.64/0.68/0.86 so the player and zombies are not swallowed by the dark city.
+
+### Per-level tweaks
+* 7: world_tint 0.82/0.78/0.72 -> 0.92/0.88/0.82.
+* 14: StormOverlay darkness 0.52 -> 0.45, player glow 130.  11/26/29: player glow 130; 29 MineDark 0.55 -> 0.48.
+* 18: sky had dark seams every 52 px (band gap) + the sky showed between the terraces and the road -> fixed
+  (quarry floor fill), 36-step sky, soft sun halo.  19: 36-step sky (was 12 visible stripes), soft sun halo.
+* 25 / 36: haze band overlay behind the characters; 36 slope color lightened (2c2630 -> 3a3242).
+* 28: valley-mist band is a gradient (was a rect with a hard top line); the passing cloud is 0.15 (was 0.28) with soft blobs.
+* 34: Milky Way drawn with soft ellipses (hard-edged ellipses before).
+* 22: sky = smooth gradient (was 5 hard bands), soft low clouds, soft spray at the dam foot, damp streaks on the dam.
+* 44: dam wall got concrete pour lines, water streaks, shadow under the crest and moss at the foot (was flat grey).
+* 47: haze band overlay behind the characters (dark storm grass).
+
+### Performance
+`draw_circle` is the expensive primitive in backdrops (tessellated every redraw). The new backdrops use rects and the
+shared glow texture instead: measured on a heavily loaded machine, subway backdrop ~0.6 ms/frame, factory ~1.5 ms/frame
+(all layers). Kit.smoke_column / fire_glow / Art.glow (r >= 24) are now one textured quad per blob, cheaper than before.
+
+### Testing
+`t_light.gd` (devtools/t_light.gd): renders start + middle of each level with the
+player invulnerable and the 3 nearest zombies pulled next to him; one Godot process does a list of levels.
+
+## Zombie art polish (zombieart)
+
+How zombies look; behaviour, hit boxes and silhouettes are unchanged.
+
+### Per-instance variation (kinds 0-19)
+* `zombie.gd -> _vary(rng)` runs once in `_ready()` for the built-in kinds (`type_mod == null`), using the same
+  per-instance RNG as `_det` (seeded by the instance id), so the look is stable for a zombie's lifetime.
+* Skin: lerped 0..40% toward one of `SKIN_MIX` (grey-blue, jaundiced, pale, green, bruised). Animals (RAT/DOG/HOUND)
+  only get a light/dark fur tint.
+* WALKER and HURLER pick a shirt from `SHIRTS` and pants from `PANTS_MIX`. Kinds in `VARY_SHIRT` keep their base colour
+  with a small hue/saturation shift. COP, CONDUCTOR, DRUNK, etc. keep their uniform colours (only the pants lightness varies).
+* `hair` (from `HAIRS`), `_bald` (22%) and `_gore_arm` (35%) are new per-instance fields. Registry types keep the old
+  defaults (`hair` = 3a3026, not bald, no gore arm), so `z._head()` / `z._arm()` look the same for them.
+
+### Drawing changes in zombie.gd
+* `_head`: the back-hair oval and RUNNER's long hair use `hair`. For kinds < 20 (not BRUTE/BOSS/COP/CONDUCTOR) a hair cap
+  is drawn on top of the skull with no outline, because an outlined cap read as a dark hood at game zoom. Bald zombies get a
+  sore on the scalp instead.
+* `_head_rest`: a dim glint in the second (sunken) eye so faces read with two eyes; for kinds < 20, `_det[0]` adds blood drool.
+* `_arm(..., gore := false)`: torn flesh and exposed bone on the forearm. Only the front arm of kinds 0-19 with `_gore_arm` passes
+  true. It is skipped when `crowded()` is true.
+* `_torso_walker`: an open collar plus two buttons.
+* `_draw_rat`: pink tail, nose and ear, a highlight on the back, a raw sore and a red eye. The colours are `RAT_*` consts. The draw
+  cost matches the old rat (A/B median about +2%).
+* `_draw_hand`: a torn wet sleeve (one polygon), an exposed bone and a shaded palm. The colours are `HAND_*` consts.
+
+### Registry types
+* `enemies/zombie_type.gd -> face(head, eye := Vector2(3.5, -0.5))` is a new shared helper for the plain "oval head + one eye dot"
+  types. It draws a sunken socket, an open jaw with teeth (opens more while biting), cheek rot from `z._det[5]` and a soft glow
+  around the eye (`eye.x = INF` = no glow). Call it right after the head oval and before the hat and eye. These types use it:
+  sapper, sniper, handler, blackout, echo, dynamiter, signaler, boulder, spotter, panel, axeman, quipu, avalancher, guardian,
+  cinder, bellringer, frostbite, office, washer, striker, referee, capoeira, kite, courier, netter, boleador, tango,
+  harvester and stormcaller.
+* `enemies/empire_kit.gd -> soldier()` is shared by 19 empire types. It adds a darker collar, light on the shoulders, pocket flaps,
+  a per-instance blood stain with a bullet hole (`_det[0]`), a zombie face (socket, jaw, teeth, cheek rot) and a red eye glow.
+  `helmet()` is now shaded and outlined, with a chin strap and a highlight.
+* `spare_parts.gd`: a stitched-on skin patch, an X-stitched eye, a glowing eye, a jaw with teeth, an ear, and a stained gown with a
+  stitched belly wound.
+* `goliath.gd`: apron pocket, blood smears, ribs, veins, a sunken eye socket and an eye glow.
+
+### Testing tools (outside the repo)
+* Zoo: `devtools/t_zoo.gd` (`zoo.sh outdir kinds zoom`) spawns every kind 0-19 and every registry kind
+  (boss variants via `chase_range = 650`). Each kind is frozen in walk and attack poses on a neutral and a dark band.
+  Use `REPEAT=n` for a crowd of one kind.
+* Draw cost: `AB=1 [ABSWAP=1] REPEAT=4 prof.sh <proj> "kinds"` (headless) spawns half the zombies with the old `zombie_b0.gd`
+  in the same process and prints the before/after µs per draw from the `zombie.gd` prof hooks. Swap the bands with ABSWAP
+  and take the median: the machine is noisy.
+* Zoomed renders exaggerate outlines because the 2D AA feather is in canvas units. Judge the art at zoom 1.25 (game) and 2.5.
+
+## Playtest bot + bug fixes (polish pass, "playtest")
+
+### Autoplay bot (test tool, kept OUTSIDE the repo)
+`devtools/t_bot.gd` (a SceneTree script, like the other `t_*.gd` tools). It plays one level the way a
+player would and prints one `BOT ...` summary line plus details:
+```
+godot --headless --fixed-fps 60 --path . -s res://t_bot.gd -- <level> <god 1/0> <max_sec> [start_x] [stuck_shot.png]
+BOT_SEED=1234 godot ...      # level layout seed (default 1000 + level*7, so runs are repeatable)
+```
+* Input is real: physical key events (`Input.parse_input_event`) for A/D (double-tap = run), W (jump / double jump /
+  ladder), S (double tap = drop through a floor). Aiming/firing uses `player._aim` + `player._fire_test` (head height of
+  the nearest zombie with line of sight, layer 1). Reloads when idle, switches to a slot with ammo, throws specials
+  (grenade / molotov / launcher / rocket / laser) at crowds of 3+ or at the boss.
+* god = 1: `_invuln` every frame (+ ammo refill when everything is empty, counted as `refills`). god = 0: health is held at
+  100000 and every real hit is counted -> `deaths` = damage / max HP (infinite-lives difficulty measure).
+* Escapes: jumps on walls / gaps / stalls, double jump at the apex, climbs a ladder when stuck, drops through floors,
+  backs off and run-jumps; after 25 s at the same x it teleports 260 px forward and logs `TELEPORT` (= a real stuck spot).
+  With the pass barrier up and nothing visible it walks back to the zombies the wall waits for; at a locked exit with
+  nothing to shoot it walks to the boss; if the boss takes no damage for 8 s it backs off and jumps over its charge.
+* Logged: result (FINISHED / TIMEOUT), time, boss name / time killed / HP left, stuck episodes (x, y, what body blocks at
+  knee and head height), barrier episodes + who the wall waits for after 15 s, story scene time (forced finish after
+  90 s = hang), zombies falling out of the world / inside a solid body for 3 s / floating 4 s, pickups inside solids or
+  under the floor, frames over 25 ms, "PASSED LOCKED GATE". SCRIPT ERROR / ERROR lines come from the Godot log itself.
+* Frame times are wall clock: only meaningful on an idle machine.
+
+### Bugs found and fixed
+* `exit.gd`: the locked gate's invisible wall was 400 px tall - a double jump from a boss's head / a machine went over it,
+  and the player was then stuck between the locked gate and the level end (level 7). Now 1600 px.
+* `environment/pass_barrier.gd` ("THEY'RE BEHIND YOU"): the wall waited the full 40 s (up to 160 s per level) for
+  zombies that can never come: underground / underwater ones (collision layer without 4: GRAVEBORN, DROWNED), leashed
+  ones (types with a `LEASH` const: LIVEWIRE), and wanderers that walk away from the player more than `LOST_RANGE`
+  (800 px). They are no longer locked / are dropped from the list.
+* `enemies/types/driller.gd`: THE EXCAVATOR (level 18 boss) only drove toward a player closer than 900 px. Once the player
+  ran past it to the gate it sat off screen forever (locked gate, no boss in view). A boss that has met the player
+  (`_met`) now keeps coming from any distance.
+* `levels/stage_9.gd`: the tunnel ladders stood in the middle of the 96 px road holes. At the top of the climb there is no
+  floor under the player, so he fell back into the tunnel (bot stuck 25 s, real players must know to jump off sideways).
+  Ladders now stand at the hole edge (`LADDER_EDGE`), so the feet land on the road.
+* `enemies/types/ambusher.gd` (cape) and `zombie.gd _torso_runner` (vest): self-intersecting polygons ->
+  "Invalid polygon data, triangulation failed" (8-69 errors per level in levels 5-7, 15, 20, 25, 27, 32, 37, 48) and the
+  shape was simply not drawn that frame (cape / vest flicker). Cape point moved onto the back line; the runner vest drops
+  its neck notch when the torso leans far forward and the polygon would cross itself.
+
+### Known, not fixed (see the final report for the full list)
+* Test toggles still on: `Arsenal.TEST_MIND_EVERY_LEVEL = true` (a MIND CONTROL pickup at the start of every level) and
+  `TEST_LASER_LEVEL = 3`.
+* CONDUCTOR (level 2 boss) can only be hurt in the back; a player who stays in front never damages it (by design, but there
+  is no hint besides "NO EFFECT").
+* Level 23 (HIGHWAY 7): the player can get pinned against a moving car (AnimatableBody2D): on the road, not on floor,
+  velocity.y growing to 15000+, cannot move for 25 s (bot teleported). Not fixed.
+* Bot limitation: it walks to a ladder's x with a 6 px tolerance; a ladder against a wall (stage 9 tunnel exit) can leave it
+  pressing into the wall instead of climbing (a human just presses W). Bump the tolerance in `t_bot.gd` before trusting
+  long stuck times near ladders.
+
+### Results
+Before/after table of the 51-level god-mode sweep: `devtools/playtest_results_2026-10-17.md`.
+
+## Weapon + ability progression (polish pass "progression")
+
+The player now gets something new at almost every stage of the 51-level campaign: a new gun, a new
+ability, or a free WEAPON MOD. One table drives everything: `"unlock_level"` in `weapons/weapon_db.gd`
+(guns) and in `abilities/ability_db.gd` (abilities). `progression/arsenal.gd -> rewards(lv)` reads both and
+adds a WEAPON MOD to every stage from `MOD_FROM` (11) that has no gun / ability of its own.
+
+### Unlock table (W = weapon, A = ability, M = WEAPON MOD)
+
+| Stage | Reward | | Stage | Reward |
+|---|---|---|---|---|
+| 1 | W RIFLE (start kit) + A FLASHLIGHT | | 27 | W LMG (region 3 finale) |
+| 2 | W SHOTGUN | | 28 | A SENTRY GUN (Andes start) |
+| 3 | A SHOCK BLAST | | 29 | M |
+| 4 | W PISTOL | | 30 | W DRAGON'S BREATH |
+| 5 | A FLARE | | 31-32 | M |
+| 6 | A JETPACK (Highrise) | | 33 | A ADRENALINE SHOT |
+| 7 | W SMG | | 34-35 | M |
+| 8 | A LAST BREATH | | 36 | W ANTI-MATERIEL (Andes finale) |
+| 9 | W SNIPER (region 1 finale) | | 37 | W MARKSMAN RIFLE (Southeast start) |
+| 10 | W REVOLVER (Northeast start) | | 38-39 | M |
+| 11 | A INCENDIARY ROUNDS | | 40 | A MORTAR STRIKE (Harbor of War) |
+| 12 | W ASSAULT RIFLE | | 41-44 | M |
+| 13 | M | | 45 | W MINIGUN (Empire finale) |
+| 14 | W TASER | | 46 | A CHAIN LIGHTNING (Southern Cone start) |
+| 15 | A MOTION SCANNER | | 47-49 | M |
+| 16 | W DOUBLE BARREL (The Flood) | | 50 | W RAILGUN |
+| 17 | M | | 51 | M |
+| 18 | W LEVER-ACTION (region 2 finale) | | 52-63 | M (planned levels) |
+| 19 | W ASSAULT SHOTGUN (Plateau start) | | | |
+| 20 | A SMOKE BOMB | | | |
+| 21, 23, 26 | M | | | |
+| 22 | W CROSSBOW | | | |
+| 24 | W FLAMETHROWER (Burning Fields) | | | |
+| 25 | A FOCUS | | | |
+
+To change it: edit the `unlock_level` numbers. Nothing else needs to change (banner, gifts, shop order,
+practice loadout and mods all follow).
+
+### How a reward reaches the player
+* **New gun**: `main.gd -> _spawn_supplies` places it at the start of its stage (`Arsenal.offers().new`) as a
+  pickup with `gift = true` (`pickup.gd`: light beam + floating "NEW"). If all 5 slots are full, picking it up
+  swaps out the oldest gun (lowest unlock_level); that gun is dropped on the floor so it can be taken back
+  (`player.gd -> _take_weapon`). Older unlocked guns you don't own still come back in the mid-level weapon cache.
+* **New ability**: `abilities/ability_runner.gd -> _fill_slots` equips it in a free slot or replaces the oldest
+  ability that is not gear (`"keep": true` = FLASHLIGHT, JETPACK, LAST BREATH never get pushed out), and selects
+  it so C uses it right away. Replaced abilities stay in the reserve (Q wheel -> ABILITIES, or the shop).
+* **WEAPON MOD** (`pickup.gd MOD`, blue tool box): `Arsenal.apply_mod` gives +1 level on the lowest upgrade track
+  of the gun in your hands (or another of your guns; all maxed = `MOD_SCRAP` scrap). Claimed once per stage:
+  `Game.upgrades["m.<stage>"]` (saved with the upgrades), so TRY AGAIN / CONTINUE never give it twice. Not in PRACTICE.
+* **Banner** (`ui/unlock_banner.gd`, group "unlock_banner"): after the stage title (5 s) one card per reward -
+  icon, NEW WEAPON / NEW ABILITY / WEAPON MOD, name, what to do. Picking up a gift or mod shows an instant card
+  (`picked_weapon`, `picked_mod`). Waits during story scenes. Ability cards only the first time a stage is played.
+* **CONTINUE / checkpoints / TRY AGAIN**: gifts are offered from the level-start loadout (`Game.weapon_slots`), so a
+  retry offers the gun again; starting at a checkpoint moves the gifts you did not take to just ahead of the
+  checkpoint (`main.gd -> _start_at_checkpoint`). PRACTICE uses `Arsenal.loadout_for(lv)` (the 4 newest guns of
+  that stage + rifle), so the stage's own gun is already in hand.
+
+### New guns (weapons/weapon_db.gd ids 12-22; art in `weapons/gun_art.gd`)
+REVOLVER (heavy 6-shot, pierces 1), DOUBLE BARREL (2 shells, 8 pellets, 0.22 s between barrels), LEVER-ACTION
+(pierces 2), CROSSBOW (bolt, flat arc via `"gravity"`, pierces 3, bolts can be picked up again), FLAMETHROWER
+(`"projectile": "flame"` -> `bullet.gd` flame puffs that grow, slow down and ignite; no reload), LMG (80 box mag),
+DRAGON'S BREATH (`"incendiary": true` shotgun), ANTI-MATERIEL (.50, RMB scope via `"scope": true`, pierces 8),
+MARKSMAN RIFLE (fast semi-auto precision), MINIGUN (200 rounds, spinning barrels), RAILGUN (pierces 20, scope).
+New weapon fields: `pitch` (shot sound pitch), `incendiary`, `gravity`, `scope`, `flame`.
+`gun_art.gd`: `draw_held()` (called from `player._draw_rifle` when the style is in `STYLES`) and `draw_icon()`
+(called first in `weapon_wheel.draw_weapon`). New sound: `"flamer"` in `weapons/weapon_sounds.gd`.
+
+### Abilities (abilities/ability_db.gd + abilities/types/<id>.gd)
+| id | Name | What it does |
+|---|---|---|
+| flashlight | FLASHLIGHT | unchanged |
+| dark_pulse | SHOCK BLAST | was DARK PULSE: same knockback/stun/grab break, now electric (blue rings + bolts to each zombie) |
+| flare | FLARE | replaces DECOY ECHO: thrown road flare in group "decoys" (zombies chase it, `zombie._target_for_brain`), ignites zombies that reach it, lights dark levels ("dyn_lights") |
+| jetpack | JETPACK | unchanged, unlock moved 2 -> 6 |
+| last_breath | LAST BREATH | unchanged |
+| fire_rounds | INCENDIARY ROUNDS | replaces BLOOD HOOK: 7 s INCENDIARY boost |
+| hunters_sight | MOTION SCANNER | was HUNTER'S SIGHT: same see-through-walls overlay, green scan ring + beep |
+| smoke | SMOKE BOMB | replaces PHANTOM STEP: cloud; zombies inside stagger and lose you (`brain.sees/last_seen`); while you stand in it nobody within 900 px sees you |
+| focus | FOCUS | replaces SILENCE: BULLET TIME boost (world 0.35x, player full speed) + magazine refill, blue screen tint |
+| sentry | SENTRY GUN | auto-turret 12 s, shoots the nearest zombie in line of sight (`bullet.gd` bullets) |
+| adrenaline | ADRENALINE SHOT | +1 heart + ADRENALINE boost 6 s |
+| mortar | MORTAR STRIKE | marks the aim point, 4-6 shells land (`rocket.gd -> mini_boom`) |
+| chain_shock | CHAIN LIGHTNING | bolt to the zombie you aim at, jumps to 5+ more |
+
+Each has an icon (`draw_icon`), sound, cooldown, POWER/COOLDOWN shop tracks and `power_desc`.
+**Old saves**: `AbilityDB.MIGRATE` maps decoy->flare, phantom_step->smoke, silence->focus, blood_hook->fire_rounds;
+`game_state.gd` runs `migrate_slots` / `migrate_upgrades` on load (bought levels move to the new ability).
+Weapon ids did not change (new guns are appended), so old weapon slots load as before.
+
+### Shop
+WEAPONS tab is sorted by unlock stage; locked guns show "ARRIVES AT STAGE N" (not reached yet) or
+"FIND IT FIRST (STAGE N, OR A WEAPON CACHE)". Abilities stay "???" until their stage. Only unlocked items can be bought.
+
+### Also changed
+`progression/arsenal.gd`: test flags `TEST_MIND_EVERY_LEVEL` (MIND CONTROL at every stage start) and
+`TEST_LASER_LEVEL` (laser cannon at stage 3) were left on - turned off; both still come from normal special finds.
+
+## Level bug fixes (polish pass round 2, "levels")
+
+### Player can no longer get pinned (HIGHWAY 7 and everywhere)
+* **Why it happened.** When the player's box overlaps a solid body by even 2-3 px, Godot's `move_and_slide` does not push him out. Every slide hits the same body, so `is_on_floor()` stays false, gravity keeps adding up (`velocity.y` reached 15000+), and he can't move. Three things caused the overlap:
+  1. The Stage 23 car (`effects/s23_decor.gd` `Car`, an `AnimatableBody2D` moved by `position.x += step`) drove into the player.
+  2. The bottom corner of the car's collision box sat exactly at road level. Walking into a parked car could snag on that corner.
+  3. A sliding car shoved the player into a gap narrower than his body, between two obstacles.
+* **Car fixes** (`s23_decor.gd`):
+  * `LIFT` (8 px): the car's collision box now ends 8 px above the road, so it has no corner at foot height. It still looks like it touches the ground, and nothing fits under it.
+  * `_carry()`: a car sliding at a player who is beside it (not on the roof) pushes him ahead with `move_and_collide`. If he is already against a wall, the car stops instead of crushing him.
+  * `_unpin()`: runs after each slide step and when the car stops. If the player is still inside `solid_rect()`, it moves him out to the nearer free side, or onto the roof if that side is blocked.
+* **Generic safety net** (`player.gd` `_pin_check`): if the player is in the air with `velocity.y > 600` and his y has not changed for `PIN_T` (0.3 s), he is moved to the nearest free spot. It tries offsets up, sideways and diagonally, from 4 px out to 90 px, using a shape query with the player's box and his collision mask minus one-way floors. His velocity is then set to zero. The check is skipped while he is grabbed, draining, climbing or hooked, and it costs nothing when he is not stuck.
+* **Test:** `t_car.gd` (outside the repo) runs 70 scripted and random car-meets-player scenarios: pushed from the side, on the roof, falling onto either corner, walking or jumping into the car, crouching, overlapping at the start. A run counts as pinned when max `velocity.y` goes above 1000 and the player never gets back on the floor.
+  * Before (HEAD): 14 of 70 pinned.
+  * After: 0 of 70.
+  * Bot on level 23 (four seeds): no teleports and no pinned episodes.
+
+### Pass barrier waits ("THEY'RE BEHIND YOU", `environment/pass_barrier.gd`)
+* **Why players waited.**
+  * Locked zombies had brain roles like HOLD, FLANK, COVER or WAIT, so they hung back off screen or behind cover instead of coming.
+  * The wall waited for the very last straggler.
+  * The safety timeout was 40 s.
+* **Changes:**
+  * Every `PUSH_EVERY` (2 s) the locked zombies get `hear_noise(player)` and a forced `brain.command(ATTACK)`, so they come and fight.
+  * `_not_stale`: a locked zombie that is not "in the fight" (closer than `NEAR` = 420 px and in line of sight) and is not getting closer is dropped after `STALE` (4 s).
+  * The wall opens when `LEFT_OK` (1) zombie is left, or when `LEFT_LATE` (2) are left after `LATE_T` (7 s).
+  * `TIMEOUT` is now 12 s (was 40).
+* **Bot results** (god mode; total barrier time per level, before -> after with the final tuning):
+
+  | Level / seed | Before | After |
+  |---|---|---|
+  | 39 / 1273 | 86 s, longest 41 s | 39 s, longest 8 s |
+  | 39 / 5 | 84 s | 26 s |
+  | 41 / 5 | 59 s, longest 40 s | 24 s |
+  | 43 / 1301 | 62 s | 44 s, longest 9 s |
+  | 43 / 5 | 70 s, longest 41 s | 12 s |
+  | 50 / 1350 | 26 s | 24 s, longest 8 s |
+
+  Every episode now lasts 9.4 s or less (before: up to 41 s).
+  Finish times: level 39 went from 135 s / 127 s to 85 s / 73 s, and level 43 from 100 s / 111 s to 85 s / 56 s.
+
+### Pickups / zombies inside solids (`main.gd` `_unstick_spawns`)
+* **Pickups.** `pickup.gd` lands by casting a ray down from its spawn point. If that point is inside an obstacle that was never `reserve()`d (stage `brick.gd` blocks, `prop.gd` barrels or cars), the ray never hits it. The pickup then rests on the road inside the obstacle, where you can't see or collect it.
+  * Fix: one physics frame after the build, each pickup whose spawn point, or the spot where it will land on the road, is inside a solid moves sideways to free road. It checks steps of 26 px out to 390 px and avoids pits.
+* **Zombies of types 20+** used to be skipped by `_unstick_spawns`, because some hide inside things on purpose. They are now moved too when the body they are inside is a `prop.gd` or `brick.gd` obstacle; nothing hides in those on purpose. Example: stage 14 places CRUMBLERs lying down at fixed x in the halls, and some ended up inside concrete blocks.
+* **Test:** `t_place.gd` (outside the repo) builds levels x seeds and counts pickups and zombies inside solids. Levels 8/14/16/49 x 5 seeds: pickups inside 8 -> 0, zombies inside 5 -> 0.
+  All 51 levels x 3 seeds: pickups inside 8 -> 0, zombies inside 22 -> 16. The 16 left are on purpose: ceiling crawlers, the WALL CRAWLER on furniture, HANGED in trees, GHILLIE and SCARECROW, plus 2 level 42 CONSCRIPTs in StaticBody2D trenches, which are probably meant to be dug in.
+
+### CONDUCTOR hint (`zombie.gd`, level 2 boss)
+* A front hit still shows "NO EFFECT". On the 1st, 6th, 11th, 16th and 21st front hit it also shows a bigger yellow "SHOOT HIS BACK!". On the first one the hero also says "His front is armored... get behind him!".
+* The transformer on his back now has a second, larger pulsing blue glow, so you can see where to shoot.
+* "NO EFFECT" now pops up at most once every 0.3 s (`ne_t` meta). With an automatic gun the popups used to stack into an unreadable pile.
+
+### "Invalid polygon data, triangulation failed" (level 6)
+* Cause: `effects/s6_building.gd`, the moonlight cone under a hole in the ceiling. The top edge was drawn from `g0 + 6` to `g1 - 6`. When a hole is narrower than 12 px, those two points swap sides and the quad crosses itself. This happened in about 1 of 4 random level 6 layouts, and the cone was then not drawn.
+* Fix: the top of the cone is now centred on the hole with a half-width of at least 2 px.
+* How it was found: a test copy where every `draw_colored_polygon` / `draw_polygon` call was rewritten by regex to go through a checker. The checker runs `Geometry2D.triangulate_polygon` and prints the CanvasItem and the points when it fails. `get_stack()` is empty without a debugger, so the node and points are what identify the culprit. Level 6 start, 12 runs: 2 of 8 failed before, 0 of 12 after.
+
+## Weapons round 2 (polish pass "weapons")
+
+Builds on "Gun feel + kill feel" and "Weapon + ability progression". Covers the balance of the 11 progression guns,
+the MINIGUN spin-up, heavy shot sounds, per-gun muzzle flashes, ragdoll hair and early-level ammo.
+
+### Balance rules (how damage works, see `zombie.gd -> take_damage`)
+* Regular zombie = 30 HP. Body hit = 12-15 x `damage`, leg = 7-10 x `damage`, head = 30 (sniper weapons 60).
+* `falloff` / `fixed_damage` replace the zone damage (shotguns, crossbow, flamethrower), per pellet.
+* **New:** a weapon with `damage` > `HEAD_HEAVY` (1.6) also multiplies the head: head x damage x `HEAD_HEAVY_K` (0.6),
+  not on bosses. Before, ANTI-MATERIEL / RAILGUN did *less* on a headshot (60) than on a body shot (71 / 81).
+  Now REVOLVER 36, LEVER-ACTION 43, MARKSMAN 31, SNIPER 61, ANTI-MATERIEL 126, RAILGUN 162 (x2 on a PERFECT hit).
+* Fire rate is quantized to physics frames (`_cooldown = fire_rate`): 0.085 really fires every 0.1 s. The table uses
+  the real rate. The MINIGUN keeps the remainder instead (`_cooldown = max(_cooldown, -1 frame) + rate`), so 0.045 = 22/s.
+
+### Final table (base stats, no shop upgrades)
+"Brute" = a 60 HP heavy (late-game heavies are 50-60 HP; the BRUTE kind itself has 30). Shots = body shots, all pellets
+hitting (shotguns at point blank). DPS = raw; sustained = including reload.
+
+| Stage | Gun | Role | Body dmg | Head | Pierce | Shots walker / brute | DPS / sustained | Ammo start/box/max |
+|---|---|---|---|---|---|---|---|---|
+| 1 | RIFLE | starter | 17 | 30 | 0 | 2 / 4 | 28 / 26 | 30/10/60 |
+| 2 | SHOTGUN | close | 6x10 | - | 0 | 1 / 1 | 71 / 57 | 8/3/16 |
+| 4 | PISTOL | fast precision | 11 | 30 | 0 | 3 / 6 | 37 / 32 | 36/12/96 |
+| 7 | SMG | spray | 4 | 12 | 0 | 8 / 15 | 34 / 28 | 90/24/150 |
+| 9 | SNIPER | one-shot, pierce | 34 | 61 | 3 | 1 / 2 | 27 / 23 | 5/2/10 |
+| **10** | **REVOLVER** | heavy hand cannon | 27 (was 22) | 36 | 1 | 2 (25% 1) / 3 | 68 / 44 (was 52 / 35) | 24/8/48 |
+| 12 | ASSAULT RIFLE | auto | 7 | 15 | 0 | 5 / 9 | 38 / 33 | 60/24/120 |
+| **16** | **DOUBLE BARREL** | 2-shell burst | 8x13 | - | 0 | 1 / 1 | 446 / 133 | 12/4/28 (unchanged) |
+| **18** | **LEVER-ACTION** | one-shot line rifle | 32 (was 26) | 43 | 2 | 1 (75%) / 2 | 64 / 46 (was 52 / 37) | 21/7/42 |
+| 19 | ASSAULT SHOTGUN | auto close | 7x11 | - | 0 | 1 / 1 | 231 / 155 | 16/6/40 |
+| **22** | **CROSSBOW** | silent, always one-shot, pierce, bolts come back | 38-46 (was 30-38) | same | 4 (3) | 1 / 2 | 60 (was 40) | 14/5/28 (12/4/24) |
+| **24** | **FLAMETHROWER** | crowd at close range + burn | 2x4 + burn 7/s | - | 2 | ~4 puffs | 120 + burn | 200/70/360 (160/50/320) |
+
+FLAMETHROWER reach: `bullet_speed` 720 -> 900 and `range` 340 -> 480. The puffs slow down (x(1 - 1.6 dt)), so the real
+reach was only ~270 px (bot at stage 24: 9 kills in 100 s). Now ~350 px (34 kills).
+| **27** | **LMG** | 80-round suppression | 7-8 (was 7) | 15 | 1 | 5 / 9 | 70 / 53 | 160/40/320 |
+| **30** | **DRAGON'S BREATH** | pump shotgun, sets the crowd on fire | 8x13 (was 7x11) | - | 0 | 1 / 1 | 189 / 142 (was 96 / 77) | 14/5/30 (12/4/24) |
+| **36** | **ANTI-MATERIEL** | kills a whole line (pierce 8) | 71 | 126 (60) | 8 | 1 / 1 | 51 / 41 (was 42 / 34) | 10/4/20 (8/3/16) |
+| **37** | **MARKSMAN RIFLE** | fast precision | 23 (was 18) | 31 | 1 | 2 / 3 (was 4) | 92 / 69 (was 67 / 51) | 36/12/72 |
+| **45** | **MINIGUN** | spin up, then 22 rounds/s | 7-8 (was 6) | 15 | 1 (0) | 5 / 9 | 156 / 117 (was 120 / 91) | 400/100/800 (300/80/600) |
+| **50** | **RAILGUN** | crosses the screen (pierce 20) | 91 (was 81) | 162 (60) | 20 | 1 / 1 | 101 / 67 (was 81 / 51) | 12/4/24 (9/3/18) |
+
+Other changes in `weapons/weapon_db.gd`:
+* REVOLVER fire_rate 0.42 -> 0.4, knockback 140 -> 150 (= `HEAVY_KB`: kills always fling the body).
+* LEVER-ACTION knockback 150 -> 170. CROSSBOW fire_rate 0.85 -> 0.7, knockback 90 -> 110.
+* DRAGON'S BREATH: falloff [11, 2.5, 470] -> [13, 3, 520], pellets 7 -> 8, fire_rate 0.8 -> 0.55, reload 1.2 -> 1.1, range 1000.
+  It was weaker than the ASSAULT SHOTGUN it comes 11 stages after.
+* ANTI-MATERIEL fire_rate 1.7 -> 1.4, magazine 4 -> 5. MARKSMAN fire_rate 0.27 -> 0.24.
+* MINIGUN damage 0.42 -> 0.55, fire_rate 0.05 -> 0.045, pierce 1, reload 3.2 -> 3.0, `spin_up` 0.4.
+* RAILGUN damage 4.0 -> 4.5, fire_rate 1.0 -> 0.9, magazine 3 -> 4.
+* LMG damage 0.5 -> 0.55, knockback 55 -> 65.
+* Why none trivializes the game: ammo stays the limit (heavy guns have 10-24 rounds per pickup), bosses are excluded from
+  the head bonus, and the strongest DPS guns (DOUBLE BARREL, DRAGON'S BREATH, FLAMETHROWER) only work at close range.
+
+### MINIGUN spin-up (`player.gd -> _spin_update`)
+* `_spin` 0..1. Holding fire spins up in `spin_up` (0.4 s); releasing spins down in `SPIN_DOWN` (0.7 s).
+* It fires at once: the rate starts at `SPIN_START` (35%) of full and ramps to 100% (`cd / lerp(SPIN_START, 1, _spin)`).
+  So a tap still shoots, and holding feels like a ramp, not a delay.
+* Walk speed x `SPIN_MOVE` (0.8) while it is spinning and firing (not after release).
+* Sounds (`weapons/weapon_sounds.gd`): `minigun_spin` (rising whine on spin start), `minigun_hum` (repeats every 0.26 s at
+  full speed), `minigun_wind` (falling whine on release after firing).
+* Art (`gun_art.gd`, "minigun"): 6 barrels drawn back-to-front around `player._spin_ang` (light ones in front), motion blur
+  above 55% speed, clamp rings, motor with cooling ribs, ammo box with a belt, barrels glow orange after a long burst.
+  `draw_held()` takes 2 new optional arguments: `spin` (angle, -1 = use time) and `spin_k` (0..1).
+
+### Heavy shot sounds (`"sound2"` in weapon_db)
+A second synthesized layer plays with the normal shot (`player._fire`): `boom_heavy` (REVOLVER, DOUBLE BARREL, LEVER-ACTION),
+`boom_50` (ANTI-MATERIEL: deep boom + echo), `thud_auto` (LMG, MINIGUN, MARKSMAN: short low punch), `rail_zap` (RAILGUN:
+falling electric zap + sub boom), `xbow_snap` (CROSSBOW), `fire_whoosh` (DRAGON'S BREATH). Volume = `sound2_db`.
+
+### Muzzle flashes (`player.gd -> _draw_muzzle`)
+* `MUZZLE_PAL`: per-style colours [light, flame star, cone, core]. RAILGUN is electric blue (plus a ring and 3 small arcs),
+  DRAGON'S BREATH is red-orange.
+* `MUZZLE_CONE`: forward cone length per style (longer for heavy guns). `MUZZLE_JETS`: styles with a muzzle brake (side jets):
+  rifle, sniper, MARKSMAN, ANTI-MATERIEL (also a rear pair).
+
+### Held art fixes (`weapons/gun_art.gd`) and the flame stream (`bullet.gd`)
+* CROSSBOW: the bow limbs were a big outlined diamond (+-11 px); now a smaller curved prod (+-8.5) with a stirrup and a small sight.
+* FLAMETHROWER puffs were 3 hard concentric circles (an orange ball). Now each puff is a soft `FlameFx.glow` halo, a
+  `FlameFx.tongue` that always points up in world space (the node is rotated, so it draws with `draw_set_transform(-rotation)`)
+  and sways per puff, a white-hot core for the first 30% of its life and soft dark smoke for the last 25%.
+* Muzzle-brake jets are tapered triangles now (they were 2.2 x size px thick lines, which read as bars on the ANTI-MATERIEL).
+
+### Ragdoll hair (`effects/ragdoll.gd -> draw`)
+Corpses of kinds 0-19 now draw the same hair as the living zombie (`zombie.gd -> _head`): `z.hair` colour, back-hair oval
+(not BRUTE, not bald), RUNNER's long hair (hangs back and down), the hair cap on top (`HAIR_CAP`, same points as the living
+head, not BRUTE / BOSS / CONDUCTOR / COP) and the scalp sore on bald zombies. `HEAD_K` maps the living head size (7.2) to the
+corpse head (6.0). Registry types (20+) are unchanged (they draw their own heads).
+
+### Fire particle fix (`zombie.gd -> ignite`)
+`ignite()` burst 24 particles every call. The FLAMETHROWER / DRAGON'S BREATH call it on every pellet hit (~30 times a
+second per zombie). Now a zombie that is already burning (> 0.5 s left) only gets its timer extended.
+
+### Early-level ammo (`progression/arsenal.gd`)
+* Levels 1-`EARLY_LEVELS` (5) get one more supply point, `EARLY_SUPPLY` = [0.9, "supply"] (an x3 ammo crate in the
+  boss arena): `Arsenal.supply_points_for(lv, base)`, called from `main.gd -> _spawn_supplies`.
+* The ammo drop chance when the gun in hand is nearly empty is `EARLY_DROP` (0.3) instead of 0.2 on those levels.
+* Bot (god = 0, practice loadout) before: level 3 ran dry at x=3417 and then 15 more times at the boss (rifle + shotgun
+  vs the door boss), TIMEOUT with the boss at 553/600. After: 1-2 short dry spells, boss killed, FINISHED (2 seeds).
+  Levels 1, 2, 4, 5 were fine before (level 4: one dry spell at x=6820).
+
+### Test results
+* All 51 levels, 600 frames headless, invulnerable player firing nonstop and switching through all 11 new guns + rifle +
+  shotgun every 46 frames (`t_sweep.gd`): 0 SCRIPT ERROR / Parse Error / polygon errors (run twice, the second time with the final files).
+* Bot (`t_wbot.gd`, god = 0, 100 s, each new gun alone on its own stage): no script errors. FINISHED: DOUBLE BARREL 16
+  (95 kills), LEVER-ACTION 18, LMG 27, MARKSMAN 37 (39 kills in 44 s), MINIGUN 45 (68 kills in 83 s). The rest hit the 100 s
+  cap on long levels (REVOLVER 10, CROSSBOW 22, DRAGON'S BREATH 30, ANTI-MATERIEL 36, RAILGUN 50) - the bot is slow on
+  those layouts with any gun; single runs are noisy (PISTOL vs REVOLVER on stage 10: 42 s vs 62 s, then 100 s).
+* Synth levels (peak / RMS of the new sounds) are in the same range as the shotgun.
+* Screenshots: `/mnt/project-files/polish/shots/weapons_guns_before.png`, `weapons_guns_after.png`,
+  `weapons_guns_after_fixes.png`, `weapons_ragdoll_hair_before_after.png`.
+
+### Testing tools (outside the repo, in the test project)
+* `t_wbot.gd` = `t_bot.gd` + `FORCE_GUN=<id>` (only that gun, infinite ammo) and a `WBOT` line (time, kills, damage).
+* `t_gunshot.gd -- <level> <ids> <prefix> [zoom]` - holds each gun, fires, saves a zoomed crop with the flash. Use `--fixed-fps 60`.
+* `t_corpse.gd -- out.png` - kills a row of zombies next to the player and saves a crop of the corpses (scaled x3).
+* `t_sweep.gd -- <level>` - 600 frames, invulnerable, fires nonstop through all new guns.
+* Render with `--fixed-fps 60`: without it a slow software renderer runs several physics steps per frame and corpses /
+  flashes are gone before the screenshot.
+
+## POWERS bar: abilities + special items in one menu (2026-10-17)
+This replaces the separate ability slots (6-0, reserve swap-in) and the separate special-item box (E) described above.
+- **One list**: `abilities/ability_runner.gd -> powers()` = every unlocked ability (`AbilityDB.unlocked(reached_level)`, unlock order) plus `"item"` when the player carries a special (`player.special`). No slots, no reserve; `Game.ability_slots` is still saved but no longer used.
+- **Controls**: C = use the selected power. E or mouse wheel = next / previous power. 6-0 = powers 1-5. Q wheel, POWERS page = pick any (the page has as many sectors as powers, min 5). Touch: NEXT (E) and USE (C).
+- **Items through C**: `player.use_item()` puts the item in hand, throws / fires it once toward the aim (`_use_special`), and goes back to the gun after `ITEM_SHOW` (0.35 s). `_item_cd` keeps the item's own fire rate. LASER CANNON: C starts an automatic charge (`_laser_auto`), the beam fires by itself, then back to the gun (`laser_cannon.beam_done`). The trigger (LMB) only fires guns now.
+- Picking up an item selects it (`abilities.on_item_taken`); when it runs out the selection returns to the ability that was selected before.
+- HUD: weapon bar has only the 5 gun slots; the POWERS row under it shows abilities and the item (xN uses), the selected name, and "C USE / E NEXT". Item icons: `weapon_wheel.draw_item()`.
+- **Removed abilities**: SHOCK BLAST (dark_pulse), LAST BREATH, MOTION SCANNER (hunters_sight), SMOKE BOMB, MORTAR STRIKE. Their stages now give a WEAPON MOD. Old saves: upgrades bought for them are refunded as scrap (`AbilityDB.REMOVED`, `migrate_upgrades` returns the refund). CHAIN LIGHTNING keeps its own `Zap` class (it used to borrow it from dark_pulse.gd).
+- **Removed the grappling hook** (F): no rope, no swing. Levels never needed it (the playtest bot finishes all 51 without it).
+- Test: `devtools/t_powers.gd` (cycling, C on grenade / launcher / laser / potion, abilities, screenshots of the bar and wheel).
+
+## GRAVITY GRENADE (weapons/gravity_grenade.gd, special "gravity")
+- Special item from stage 6 (`Arsenal.SPECIALS.gravity`: 2 uses, weight 1.5), used with C from the POWERS bar like grenades.
+- Extends `grenade.gd`: thrown, bounces, fuse 0.9 s. Then a `Singularity` opens 26 px above the landing point for `PULL_T` (1.9 s): every zombie within `PULL_R` (340) is staggered and its velocity is set toward the core (`PULL_V` 560, weaker at the edge, bosses x`BOSS_K` 0.3). Zombies at the core are held there and crushed (`CRUSH` 3 every 0.2 s).
+- Then it collapses: `Boom.blast` with `BLAST_R` 170 and `BLAST_DMG` 60 (source "grenade", so armour that ignores bullets still takes it), 1 heart to the player if he stands inside, plus a purple `Flash` ring.
+- Look: particles only (user choice, 2026-10-17). ~170 light dots (blue to white, some purple) spiral inward, speed up and shrink near the centre, with 2-dot trails; ~60 large faint dark dots orbit the centre and form the "hole". Zombies darken as they get close (`modulate`, restored on collapse) and vanish into the dark cloud (z_index 14). In the last `COLLAPSE_T` (0.28 s) everything is sucked to a point, then `Flash` bursts 90 sparks outward with drag. No rings, glows or shapes.
+- Icons: `draw_icon()` (bar, wheel, pickup, in hand). Test: `devtools/t_gravity.gd` (6 zombies around a point: 5/6 pulled in and killed on stages 12 and 46).

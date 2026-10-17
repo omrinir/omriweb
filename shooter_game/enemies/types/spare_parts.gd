@@ -258,6 +258,12 @@ func _draw_standing(sk: Color, shirt: Color, pa: Color, blood: Color, rip_k: flo
 	z._arm(sh + Vector2(-3, 2), back_hand, col(Art.shade(z.skin, 0.25)), shirt)
 	var body := PackedVector2Array([sh + Vector2(-6, -2), sh + Vector2(6, -1), hip + Vector2(6, -1), hip + Vector2(4, 3), hip + Vector2(-5, 3), sh + Vector2(-7, 5)])
 	Art.fill_shaded(z, body, shirt, 0.15, 0.35)
+	# חלוק בית חולים מוכתם: כתמי דם, קרע שמראה תפר בבטן
+	Art.oval(z, sh + Vector2(1.0, 10.0), 3.4, 2.6, Color(0.5, 0.05, 0.06, 0.65), 0.4, Art.NONE)
+	Art.oval(z, hip + Vector2(-2.5, -2.0), 2.2, 1.6, Color(0.45, 0.35, 0.2, 0.45), 0.0, Art.NONE)
+	Art.fill(z, PackedVector2Array([hip + Vector2(1.0, -9.0), hip + Vector2(5.5, -10.0), hip + Vector2(5.0, -4.0), hip + Vector2(2.0, -5.0)]), Art.shade(sk, 0.1), Art.NONE)
+	_stitches(hip + Vector2(2.2, -8.8), hip + Vector2(4.6, -4.8))
+	z.draw_line(sh + Vector2(-6.0, 1.0), hip + Vector2(-5.0, 1.0), Color(0, 0, 0, 0.22), 1.6)
 	_stitches(sh + Vector2(-5, 2), sh + Vector2(5, 3))
 	_head(head, sk)
 	if has_hand:
@@ -322,10 +328,21 @@ func _draw_crawling(sk: Color, shirt: Color, pa: Color, blood: Color, t: float) 
 
 func _head(head: Vector2, sk: Color) -> void:
 	Art.oval_shaded(z, head, 5.6, 6.2, sk, 0.1)
+	# טלאי עור בצבע אחר שנתפר על הגולגולת ("חלקי חילוף")
+	Art.fill(z, PackedVector2Array([head + Vector2(-5.4, -1.0), head + Vector2(-1.0, -5.6), head + Vector2(-3.6, -5.2), head + Vector2(-5.6, -3.0)]), col(Color("b89a86")), Art.NONE)
 	z.draw_line(head + Vector2(-5, -1), head + Vector2(-1, -5), Color(0.15, 0.1, 0.1), 0.8)   # תפר בקרקפת
 	_stitches(head + Vector2(-5, -1), head + Vector2(-1, -5))
+	Art.oval(z, head + Vector2(2.8, -0.8), 2.3, 1.8, Color(0.12, 0.0, 0.04, 0.5), 0.0, Art.NONE)   # ארובה שקועה
+	if not z.dead:
+		Art.glow(z, head + Vector2(3.0, -1.0), 3.2, Color(0.95, 0.85, 0.4, 0.55))
 	z.draw_circle(head + Vector2(3.0, -1.0), 1.1, Color(0.9, 0.85, 0.5) if not z.dead else Color("2a2a2a"))
-	z.draw_line(head + Vector2(1, 3), head + Vector2(5, 3.5), Color(0.2, 0.05, 0.05), 1.2)
+	z.draw_line(head + Vector2(-0.4, -2.2), head + Vector2(1.0, -0.4), Color(0.15, 0.1, 0.1), 0.7)   # עין תפורה (X)
+	z.draw_line(head + Vector2(-0.4, -0.4), head + Vector2(1.0, -2.2), Color(0.15, 0.1, 0.1), 0.7)
+	# לסת עם שיניים + ריר דם
+	z.draw_colored_polygon(PackedVector2Array([head + Vector2(0.8, 2.4), head + Vector2(5.4, 2.4), head + Vector2(4.8, 5.0), head + Vector2(1.2, 4.6)]), Color("2a0a0c"))
+	z.draw_line(head + Vector2(1.4, 2.8), head + Vector2(5.0, 2.8), Color("ddd4b0"), 0.8)
+	z.draw_line(head + Vector2(2.0, 4.8), head + Vector2(1.8, 7.0), Color(0.5, 0.03, 0.05, 0.9), 1.0)
+	Art.disc(z, head + Vector2(-2.6, 0.8), 1.5, Art.shade(sk, 0.15), Art.OUTLINE, 0.7)   # אוזן
 
 
 func _stump(shoulder: Vector2, end: Vector2, sk: Color, blood: Color) -> void:

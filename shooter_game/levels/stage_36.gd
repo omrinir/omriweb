@@ -92,6 +92,8 @@ func build_background(layer: CanvasLayer) -> Node:
 		Decor.mid_ruins(ci, sc, v, 620.0, t))
 	bg.add_layer(0.6, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
 		Decor.near_rocks(ci, sc, v, 642.0, t))
+	bg.overlay = func(ci: CanvasItem, v: Vector2, _t: float):   # ערפל סגלגל מאחורי הדמויות - צלליות כהות נקראות על המדרון הכהה
+		Kit.haze_band(ci, v, 420.0, 612.0, Color(0.62, 0.55, 0.72, 0.24))
 	layer.add_child(bg)
 	return bg
 

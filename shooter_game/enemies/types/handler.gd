@@ -125,6 +125,7 @@ func draw() -> bool:
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(8, 9), hip + Vector2(-8, 9)]), coat, 0.15, 0.4)
 	z.draw_rect(Rect2(hip + Vector2(-7, -3), Vector2(15, 3)), col(Color("2a2018")))
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
+	face(head)
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-5, -6), head + Vector2(4, -7), head + Vector2(7, -3)]), col(Color("3a3226")), Art.OUTLINE, 0.9)   # כובע צמר
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))

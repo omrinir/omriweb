@@ -13,8 +13,16 @@ const TRIGGER := 4          # כמה זומבים מאחור מקפיצים את
 const BEHIND := 220.0       # כמה פיקסלים מאחורי השחקן נחשב "מאחור"
 const RANGE := 1300.0       # רק כאלה שעוד באזור (רחוקים יותר ממילא ישנים)
 const DROP_RANGE := 1700.0  # התרחק מאוד (נפל לבור / נתקע) - כבר לא נחשב
+const LOST_RANGE := 800.0   # רחוק מזה והולך הפוך ממך = לא רודף (משוטט / מחכה) - הקיר לא מחכה לו (בבדיקת הבוט: 40 שניות מול קיר)
 const AHEAD := 230.0        # כמה לפני השחקן הקיר עולה
-const TIMEOUT := 40.0       # רשת ביטחון: אחרי 40 שניות הקיר נעלם בכל מקרה
+const TIMEOUT := 12.0       # רשת ביטחון: אחרי 12 שניות הקיר נעלם בכל מקרה (היה 40: בוט חיכה 66-143 שניות בשלב)
+const STALE := 4.0          # זומבי נעול שלא נראה / רחוק ולא מתקרב כל הזמן הזה - הקיר לא מחכה לו
+const NEAR := 420.0         # קרוב ונראה = "בקרב" (צריך להרוג אותו)
+const LEFT_OK := 1          # נשאר רק אחד (לא המון) -> הקיר נפתח
+const LEFT_LATE := 2        # ...או שניים אחרי LATE_T שניות
+const LATE_T := 7.0
+const PUSH_EVERY := 2.0     # כל כמה שניות הנעולים מקבלים פקודת התקפה (לא מחכים / מאגפים / מתחבאים)
+const Brain := preload("res://ai/zombie_brain.gd")
 const LAYER := 512          # שכבת הקיר (רק השחקן מתנגש בה - player.gd)
 const COL := Color(1.0, 0.18, 0.12)
 
@@ -28,6 +36,8 @@ var _up := 0.0              # 0..1 הקיר עולה / יורד
 var _fade := false
 var _age := 0.0
 var _total := 0
+var _stale := {}            # instance_id -> [שניות "תקוע רחוק", מרחק קודם]
+var _push_t := 0.0
 
 
 func _ready() -> void:
@@ -54,8 +64,12 @@ func _physics_process(delta: float) -> void:
 		_check -= delta
 		if _check <= 0.0:
 			_check = 0.2
-			_locked = _locked.filter(func(z): return _still_counts(z, p))
-			if _locked.is_empty() or _age > TIMEOUT:
+			_locked = _locked.filter(func(z): return _still_counts(z, p) and _not_stale(z, p, 0.2))
+			_push_t -= 0.2
+			if _push_t <= 0.0:
+				_push_t = PUSH_EVERY
+				_send(p)
+			if _locked.size() <= LEFT_OK or (_locked.size() <= LEFT_LATE and _age > LATE_T) or _age > TIMEOUT:
 				_open(p)
 		return
 	_check -= delta
@@ -78,13 +92,52 @@ func _eligible(z: Node, p: Node) -> bool:
 		return false
 	if z.get("type_mod") != null and z.type_mod.get("is_copy") == true:
 		return false
+	if (int(z.collision_layer) & 4) == 0:   # מתחת לאדמה / מתחת למים: אי אפשר לפגוע בו עכשיו (GRAVEBORN) - לא נועלים עליו
+		return false
+	if z.get("type_mod") != null and z.type_mod.get_script().get_script_constant_map().has("LEASH"):   # קשור בכבל (LIVEWIRE): לא יכול לבוא אחריך
+		return false
 	return absf(z.global_position.y - p.global_position.y) < 600.0
 
 
 func _still_counts(z: Variant, p: Node) -> bool:
 	if not is_instance_valid(z) or z.dead or not z.is_in_group("zombies"):
 		return false
+	if (int(z.collision_layer) & 4) == 0:   # ירד מתחת לאדמה: אי אפשר להרוג אותו - הקיר לא מחכה לו
+		return false
+	var dx: float = p.global_position.x - z.global_position.x
+	if absf(dx) > LOST_RANGE and z.velocity.x * dx < 0.0:
+		return false
 	return z.global_position.distance_to(p.global_position) < DROP_RANGE and z.is_physics_processing()
+
+
+# זומבי נעול שלא בקרב (לא נראה או רחוק) ולא מתקרב יותר מ-STALE שניות -> לא מחכים לו
+func _not_stale(z: Node, p: Node, dt: float) -> bool:
+	var id := z.get_instance_id()
+	var d: float = z.global_position.distance_to(p.global_position)
+	var st: Array = _stale.get(id, [0.0, d + 1.0])
+	var near := d < NEAR and _sees(p, z)
+	if near or d < float(st[1]) - 6.0:
+		st[0] = 0.0
+	else:
+		st[0] = float(st[0]) + dt
+	st[1] = d
+	_stale[id] = st
+	return float(st[0]) < STALE
+
+
+func _sees(p: Node, z: Node) -> bool:
+	var q := PhysicsRayQueryParameters2D.create(p.global_position + Vector2(0, -40), z.global_position + Vector2(0, -30.0 * float(z.get("sc") if z.get("sc") != null else 1.0)), 1)
+	return get_world_2d().direct_space_state.intersect_ray(q).is_empty()
+
+
+# הנעולים באים להילחם: התקפה בכפייה (לא HOLD / FLANK / COVER / WAIT) + מתעוררים ושומעים איפה אתה
+func _send(p: Node) -> void:
+	for z in _locked:
+		if not is_instance_valid(z) or z.dead:
+			continue
+		z.hear_noise(p.global_position, 100000.0)
+		if z.get("brain") != null and z.brain.has_method("command"):
+			z.brain.command(Brain.ATTACK, PUSH_EVERY + 0.5)
 
 
 func _close(p: Node, behind: Array) -> void:
@@ -94,6 +147,8 @@ func _close(p: Node, behind: Array) -> void:
 		return
 	_locked = behind
 	_total = behind.size()
+	_stale.clear()
+	_push_t = 0.0
 	_age = 0.0
 	_up = 0.0
 	_fade = false

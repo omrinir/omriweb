@@ -106,8 +106,10 @@ static func armband(ci: CanvasItem, p: Vector2, w := 5.0) -> void:
 
 # ---- קסדה ----
 static func helmet(ci: CanvasItem, head: Vector2, col := STEEL) -> void:
-	ci.draw_colored_polygon(PackedVector2Array([head + Vector2(-6.5, -1.5), head + Vector2(-5.5, -6.0), head + Vector2(0, -8.0), head + Vector2(5.5, -6.0), head + Vector2(7.0, -1.5)]), col)
+	ci.draw_line(head + Vector2(-3.5, -1.0), head + Vector2(1.5, 4.8), Color("2a2418"), 0.9)   # רצועת סנטר
+	Art.fill_shaded(ci, PackedVector2Array([head + Vector2(-6.5, -1.5), head + Vector2(-5.5, -6.0), head + Vector2(0, -8.0), head + Vector2(5.5, -6.0), head + Vector2(7.0, -1.5)]), col, 0.25, 0.25, Art.OUTLINE, 1.0)
 	ci.draw_line(head + Vector2(-7.0, -1.2), head + Vector2(7.5, -1.2), col.darkened(0.3), 1.6)
+	ci.draw_line(head + Vector2(-3.5, -6.0), head + Vector2(0.5, -7.2), Color(1, 1, 1, 0.22), 1.0)   # ברק על הקסדה
 	ci.draw_circle(head + Vector2(-2.5, -4.5), 1.2, RED)
 
 
@@ -218,7 +220,21 @@ static func soldier(t, z: Node, hf_off: Vector2, hat := "helmet", coat := UNIFOR
 	z.draw_rect(Rect2(hip + Vector2(-8, -2), Vector2(16, 2.5)), t.col(Color("2a2018")))   # חגורה
 	z.draw_circle(sh + Vector2(1.5, 4), 0.9, t.col(BRASS))
 	z.draw_circle(sh + Vector2(1.6, 9), 0.9, t.col(BRASS))
+	# פרטי מעיל: צווארון, כיסים, אור על הכתפיים, כתם דם / חור קליע (שונה לכל זומבי)
+	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-4.5, -1.2), sh + Vector2(5.5, -0.8), sh + Vector2(1.2, 4.0)]), cc.darkened(0.35))
+	z.draw_line(sh + Vector2(-7.0, 0.2), sh + Vector2(6.5, 0.6), Color(cc.lightened(0.35), 0.7), 1.0)
+	z.draw_rect(Rect2(sh + Vector2(-6.5, 4.5), Vector2(5.0, 1.5)), cc.darkened(0.3))
+	z.draw_rect(Rect2(hip + Vector2(-7.0, -7.5), Vector2(5.5, 1.6)), cc.darkened(0.3))
+	if not z.dead and z._det[0]:
+		Art.oval(z, sh + Vector2(-3.0 + z._det[3] * 0.5, 10.0 + z._det[4] * 0.5), 2.6, 2.0, Color(0.42, 0.03, 0.03, 0.8), 0.3, Art.NONE)
+		z.draw_circle(sh + Vector2(-3.0 + z._det[3] * 0.5, 10.0 + z._det[4] * 0.5), 0.9, Color(0.12, 0.0, 0.0))
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	# פנים של זומבי: ארובה שקועה, לסת עם שיניים, ריקבון בלחי
+	Art.oval(z, head + Vector2(2.8, -0.6), 2.4, 1.8, Color(0.12, 0.0, 0.04, 0.45), 0.0, Art.NONE)
+	z.draw_colored_polygon(PackedVector2Array([head + Vector2(1.2, 2.4), head + Vector2(5.4, 1.8), head + Vector2(4.8, 4.6), head + Vector2(1.6, 4.4)]), t.col(Color("2a0a0c")))
+	z.draw_line(head + Vector2(2.0, 2.6), head + Vector2(4.8, 2.2), t.col(Color("d8d0a8")), 0.8)
+	if z._det[5]:
+		Art.oval(z, head + Vector2(-1.0, 1.6), 1.6, 1.2, Color(0.4, 0.05, 0.05, 0.85), 0.0, Art.NONE)
 	match hat:
 		"helmet":
 			helmet(z, head, t.col(STEEL))
@@ -233,6 +249,7 @@ static func soldier(t, z: Node, hf_off: Vector2, hat := "helmet", coat := UNIFOR
 			z.draw_circle(head + Vector2(3.6, -0.8), 1.3, Color(0.6, 0.8, 0.5, 0.9))
 			z.draw_rect(Rect2(head + Vector2(4.5, 2.5), Vector2(3, 3)), t.col(Color("3a3a3a")))
 	if hat != "gasmask" and not z.dead:
+		Art.glow(z, head + Vector2(3.0, -0.5), 3.0, Color(1.0, 0.2, 0.15, 0.5))
 		z.draw_circle(head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.25, 0.2))   # עיניים אדומות - "מאורגנים"
 	armband(z, sh + Vector2(-4, 6), 4.5)
 	var hf := sh + hf_off

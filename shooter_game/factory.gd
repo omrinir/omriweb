@@ -51,80 +51,212 @@ class Chunk extends Node2D:
 			draw_rect(Rect2(bx, y - 2, rng.randf_range(2.0, 6.0), 2), Color("6a6660"))
 
 
-# רקע: אזור תעשייה הרוס (פרלקסה), מצויר על המסך
-class FactoryBg extends Node2D:
-	var level_w := 10240.0
-	var _last_x := INF
-	var _t := 0.0
-	var _embers := []
+# רקע: אזור תעשייה הרוס בשקיעה מעושנת - שמיים + 3 שכבות פרלקסה (effects/parallax_backdrop.gd)
+#   רחוק: מגדלי קירור עם אדים, ארובות עם נורות אדומות, לפיד גז
+#   אמצע: בית זיקוק - מיכלים, כדורי גז, עמודי זיקוק עם אורות, תנור עם חלונות זוהרים
+#   קרוב: צינורות ענק עם שסתומים שיורקים קיטור, עגורן עם מטען מתנדנד, פנסי נתרן
+#   overlay: אובך חם מאחורי הדמויות (שהצלליות הכהות ייקראו) + גצים עולים
+class FactoryBg extends "res://effects/parallax_backdrop.gd":
+	const Kit := preload("res://effects/backdrop_kit.gd")
+	const HZ := 607.0                       # קו הכביש על המסך
+	const FAR := Color("6a3c32")            # שכבה רחוקה (באובך)
+	const MID := Color("3c2420")
+	const NEAR := Color("1f1513")
+	const LAMP := Color(1.0, 0.72, 0.38)
 
 	func _ready() -> void:
-		for i in 40:
-			_embers.append([randf() * 1280.0, randf() * 720.0, randf_range(10.0, 30.0), randf() * TAU])
+		sky = func(ci: CanvasItem, v: Vector2, t: float): _sky(ci, v, t)
+		add_layer(0.06, func(ci: CanvasItem, sc: float, v: Vector2, t: float): _far(ci, sc, v, t))
+		add_layer(0.22, func(ci: CanvasItem, sc: float, v: Vector2, t: float): _mid(ci, sc, v, t))
+		add_layer(0.5, func(ci: CanvasItem, sc: float, v: Vector2, t: float): _near(ci, sc, v, t))
+		overlay = func(ci: CanvasItem, v: Vector2, t: float): _over(ci, v, t)
 
-	func _process(d: float) -> void:
-		_t += d
-		var cam := get_viewport().get_camera_2d()
-		if cam != null:
-			_last_x = cam.get_screen_center_position().x
-		for e in _embers:   # גצים עולים
-			e[1] -= e[2] * d
-			e[0] += sin(_t * 1.5 + e[3]) * 8.0 * d
-			if e[1] < 0.0:
-				e[1] = 720.0
-				e[0] = randf() * 1280.0
-		queue_redraw()
+	static func _h(i: int, s: int) -> float:
+		return fposmod(sin(float(i) * 12.9898 + float(s) * 78.233) * 43758.5453, 1.0)
 
-	func _draw() -> void:
-		var vs := get_viewport().get_visible_rect().size
-		var cx := 0.0 if _last_x == INF else _last_x
-		# שמיים: אדום-חום מעושן
-		var bands := [Color("2a1612"), Color("3a1d14"), Color("4e2616"), Color("6a3418"), Color("5a3020")]
-		for i in bands.size():
-			draw_rect(Rect2(0, vs.y * float(i) / bands.size() * 0.8, vs.x, vs.y * 0.8 / bands.size() + 2), bands[i])
-		draw_circle(Vector2(vs.x * 0.7 - fmod(cx * 0.02, 200.0), 230), 90, Color(1.0, 0.45, 0.15, 0.12))   # שמש חולה בעשן
-		# שכבה רחוקה: מבני מפעל וארובות
-		var off := fmod(cx * 0.2, 640.0)
-		for i in 4:
-			var bx := float(i) * 640.0 - off - 100.0
-			draw_rect(Rect2(bx, 380, 260, 260), Color("23140f"))
-			draw_rect(Rect2(bx + 270, 430, 200, 210), Color("1f120d"))
-			for k in 3:   # ארובות + עשן
-				var chx := bx + 40.0 + float(k) * 80.0
-				var chh := 160.0 + float((i * 3 + k) % 3) * 40.0
-				draw_rect(Rect2(chx, 380 - chh, 22, chh), Color("2a1812"))
-				draw_rect(Rect2(chx - 2, 380 - chh, 26, 8), Color("3a2018"))
+	static func _sky(ci: CanvasItem, v: Vector2, t: float) -> void:
+		Kit.gradient_sky(ci, v, [Color("1a1216"), Color("33191a"), Color("5e2c1e"), Color("a24f26"), Color("d8823c")], 0.86)
+		var sp := Vector2(v.x * 0.68, 300.0)
+		Kit.soft_glow(ci, sp, 330.0, Color(1.0, 0.5, 0.2, 0.32))
+		Kit.soft_glow(ci, sp, 120.0, Color(1.0, 0.7, 0.4, 0.4))
+		ci.draw_circle(sp, 54.0, Color(1.0, 0.66, 0.38, 0.92))
+		for i in 4:   # פסי עשן שזזים על השמש
+			var y := sp.y - 34.0 + float(i) * 20.0
+			var x := fposmod(t * (6.0 + float(i) * 2.0) + float(i) * 90.0, 260.0) - 130.0
+			ci.draw_rect(Rect2(sp.x - 180.0 + x, y, 300.0, 4.0 + float(i)), Color(0.35, 0.16, 0.12, 0.35))
+		for i in 7:   # ענני עשן רכים שנסחפים (כתם אחד לכל ענן - זול)
+			var cx := fposmod(float(i) * 260.0 - t * (5.0 + float(i % 3) * 3.0), v.x + 500.0) - 250.0
+			var cy := 60.0 + float(i % 4) * 48.0
+			Kit.soft_ellipse(ci, Vector2(cx, cy), 230.0, 46.0, 0.0, Color(0.12, 0.07, 0.07, 0.55) if i % 2 == 0 else Color(0.32, 0.15, 0.1, 0.4))
+		Kit.birds(ci, v, t, 33, Color(0.08, 0.04, 0.04, 0.8), 6)
+
+	# ---- רחוק: מגדלי קירור, ארובות, לפיד ----
+	static func _far(ci: CanvasItem, sc: float, v: Vector2, t: float) -> void:
+		var base := HZ - 40.0
+		ci.draw_rect(Rect2(0, base - 10.0, v.x, v.y - base + 10.0), FAR)
+		var period := 1150.0
+		var start := int(floor(sc / period)) - 1
+		for k in range(start, start + int(ceil(v.x / period)) + 2):
+			var bx := float(k) * period - sc
+			for c in 2:   # מגדל קירור (היפרבולואיד) + אדים
+				var cx := bx + 140.0 + float(c) * 190.0
+				var hw := 62.0 + 10.0 * _h(k, c)
+				var h := 210.0 + 30.0 * _h(k, c + 7)
+				var pts := PackedVector2Array()
+				for q in 9:
+					var u := float(q) / 8.0
+					pts.append(Vector2(cx - hw * (0.62 + 0.38 * pow(absf(u - 0.62) / 0.62, 1.6)), base - h * u))
+				for q in range(8, -1, -1):
+					var u := float(q) / 8.0
+					pts.append(Vector2(cx + hw * (0.62 + 0.38 * pow(absf(u - 0.62) / 0.62, 1.6)), base - h * u))
+				ci.draw_colored_polygon(pts, FAR.darkened(0.06))
+				ci.draw_line(Vector2(cx - hw * 0.62, base - h * 0.62), Vector2(cx + hw * 0.62, base - h * 0.62), FAR.lightened(0.06), 2.0)
+				for p in 7:   # אדים לבנבנים
+					var a := fmod(t * 0.07 + float(p) / 7.0 + float(c) * 0.37, 1.0)
+					var pp := Vector2(cx + a * 120.0 + sin(a * 5.0 + t * 0.3) * 10.0, base - h - a * 170.0)
+					Kit.soft_glow(ci, pp, 40.0 + a * 70.0, Color(0.88, 0.66, 0.54, 0.4 * (1.0 - a) * clampf(a * 5.0, 0.0, 1.0)))
+			for q in 3:   # ארובות פסים + נורה אדומה מהבהבת
+				var chx := bx + 520.0 + float(q) * 70.0 + 30.0 * _h(k, q + 3)
+				var chh := 250.0 + 70.0 * _h(k, q + 11)
+				ci.draw_rect(Rect2(chx, base - chh, 16.0, chh), FAR.darkened(0.12))
+				for s in 3:
+					ci.draw_rect(Rect2(chx, base - chh + 10.0 + float(s) * 26.0, 16.0, 10.0), Color(0.55, 0.26, 0.22, 0.6))
+				Kit.soft_smoke(ci, Vector2(chx + 8.0, base - chh), t * 0.8 + float(q * 3 + k), 230.0, Color(0.22, 0.13, 0.12, 0.3), 90.0)
+				if fmod(t * 0.9 + float(q) * 0.6, 1.6) < 0.55:
+					Kit.soft_glow(ci, Vector2(chx + 8.0, base - chh - 4.0), 14.0, Color(1.0, 0.15, 0.1, 0.9))
+			# לפיד גז על עמוד דק
+			var fx := bx + 900.0
+			ci.draw_rect(Rect2(fx - 3.0, base - 300.0, 6.0, 300.0), FAR.darkened(0.15))
+			var fl := 0.8 + 0.2 * sin(t * 9.0 + float(k)) + 0.1 * sin(t * 23.0)
+			Kit.soft_glow(ci, Vector2(fx, base - 316.0), 60.0 * fl, Color(1.0, 0.55, 0.2, 0.45))
+			ci.draw_colored_polygon(PackedVector2Array([Vector2(fx - 5, base - 300), Vector2(fx + sin(t * 6.0) * 6.0, base - 300.0 - 34.0 * fl), Vector2(fx + 5, base - 300)]), Color(1.0, 0.8, 0.4, 0.9))
+			# בתים נמוכים עם חלונות
+			var hx := bx + 640.0
+			ci.draw_rect(Rect2(hx, base - 70.0, 220.0, 70.0), FAR.darkened(0.08))
+			for w in 9:
+				if _h(k * 13 + w, 5) < 0.55:
+					ci.draw_rect(Rect2(hx + 12.0 + float(w) * 23.0, base - 52.0, 8.0, 8.0), Color(1.0, 0.7, 0.35, 0.55))
+		Kit.haze_band(ci, v, base - 220.0, base, Color(0.85, 0.45, 0.28, 0.28))
+
+	# ---- אמצע: בית זיקוק ----
+	static func _mid(ci: CanvasItem, sc: float, v: Vector2, t: float) -> void:
+		var base := HZ - 12.0
+		var period := 1400.0
+		var start := int(floor(sc / period)) - 1
+		for k in range(start, start + int(ceil(v.x / period)) + 2):
+			var bx := float(k) * period - sc
+			# מיכלי אחסון גליליים
+			for c in 2:
+				var tx := bx + 60.0 + float(c) * 170.0
+				var tw := 140.0
+				var th := 110.0 + 30.0 * _h(k, c)
+				ci.draw_rect(Rect2(tx, base - th, tw, th), MID)
+				ci.draw_rect(Rect2(tx, base - th, tw, 6.0), MID.lightened(0.12))
+				for s in 4:   # תפרים
+					ci.draw_line(Vector2(tx + 18.0 + float(s) * 34.0, base - th + 6.0), Vector2(tx + 18.0 + float(s) * 34.0, base), MID.darkened(0.2), 1.0)
+				ci.draw_line(Vector2(tx + tw - 14.0, base), Vector2(tx + 14.0, base - th), MID.lightened(0.08), 2.0)   # מדרגות סביב המיכל
+				ci.draw_rect(Rect2(tx + 10.0, base - th * 0.5, 40.0, 14.0), Color(0.5, 0.42, 0.18, 0.5))   # שלט סכנה דהוי
+			# כדורי גז על רגליים
+			var gx := bx + 470.0
+			for l in 4:
+				ci.draw_line(Vector2(gx - 60.0 + float(l) * 40.0, base), Vector2(gx - 50.0 + float(l) * 33.0, base - 90.0), MID.darkened(0.1), 4.0)
+			ci.draw_circle(Vector2(gx, base - 120.0), 72.0, MID)
+			ci.draw_arc(Vector2(gx, base - 120.0), 66.0, -2.4, -1.0, 12, MID.lightened(0.14), 3.0)   # אור שקיעה על הכדור
+			# עמודי זיקוק עם פלטפורמות ונורות
+			for c in 3:
+				var cx := bx + 640.0 + float(c) * 52.0
+				var ch := 260.0 + 60.0 * _h(k, c + 20)
+				ci.draw_rect(Rect2(cx, base - ch, 24.0 - float(c) * 4.0, ch), MID.darkened(0.05))
+				var pl := base - ch + 30.0
+				while pl < base - 20.0:
+					ci.draw_rect(Rect2(cx - 8.0, pl, 40.0, 3.0), MID.lightened(0.05))
+					if _h(int(pl) + k, c) < 0.5:
+						ci.draw_circle(Vector2(cx - 6.0, pl - 3.0), 1.8, LAMP)
+					pl += 48.0
+				if fmod(t + float(c) * 0.5, 2.0) < 0.7:
+					ci.draw_circle(Vector2(cx + 8.0, base - ch - 4.0), 2.5, Color(1.0, 0.2, 0.15))
+			# מתלה צינורות שמחבר הכל
+			ci.draw_rect(Rect2(bx + 20.0, base - 70.0, 760.0, 7.0), MID.darkened(0.15))
+			ci.draw_rect(Rect2(bx + 20.0, base - 60.0, 760.0, 4.0), MID.lightened(0.06))
+			for s in 9:
+				ci.draw_rect(Rect2(bx + 30.0 + float(s) * 92.0, base - 70.0, 5.0, 70.0), MID.darkened(0.15))
+			# תנור / בית יציקה עם חלונות זוהרים מהבהבים
+			var fx := bx + 860.0
+			ci.draw_rect(Rect2(fx, base - 170.0, 300.0, 170.0), MID.darkened(0.1))
+			ci.draw_colored_polygon(PackedVector2Array([Vector2(fx - 10, base - 170), Vector2(fx + 150, base - 215), Vector2(fx + 310, base - 170)]), MID.darkened(0.1))
+			var fl := 0.65 + 0.2 * sin(t * 2.6 + float(k)) + 0.1 * sin(t * 13.0 + float(k))
+			for w in 5:
+				var wx := fx + 22.0 + float(w) * 56.0
+				ci.draw_rect(Rect2(wx, base - 120.0, 34.0, 50.0), Color(1.0, 0.5, 0.15, 0.75 * fl))
+				ci.draw_rect(Rect2(wx + 15.0, base - 120.0, 3.0, 50.0), MID.darkened(0.1))
+			Kit.soft_glow(ci, Vector2(fx + 150.0, base - 95.0), 190.0, Color(1.0, 0.45, 0.15, 0.22 * fl), 0.5)
+			for q in 2:   # ארובות התנור
+				var sx := fx + 60.0 + float(q) * 170.0
+				ci.draw_rect(Rect2(sx, base - 290.0, 20.0, 120.0), MID.darkened(0.15))
+				Kit.soft_smoke(ci, Vector2(sx + 10.0, base - 290.0), t + float(q * 2 + k), 200.0, Color(0.14, 0.09, 0.09, 0.4), 70.0)
+			# מסוע משופע אל המגדל
+			ci.draw_line(Vector2(bx + 1180.0, base), Vector2(bx + 1360.0, base - 230.0), MID.darkened(0.12), 10.0)
+			for s in 8:
+				var u := float(s) / 8.0
+				var a := Vector2(bx + 1180.0, base).lerp(Vector2(bx + 1360.0, base - 230.0), u)
+				ci.draw_line(a, a + Vector2(0.0, 18.0), MID.darkened(0.12), 2.0)
+			ci.draw_rect(Rect2(bx + 1340.0, base - 260.0, 70.0, 260.0), MID.darkened(0.08))
+			ci.draw_rect(Rect2(bx + 1352.0, base - 240.0, 16.0, 12.0), Color(1.0, 0.75, 0.4, 0.6))
+		ci.draw_rect(Rect2(0, base, v.x, v.y - base), MID.darkened(0.2))
+		Kit.haze_band(ci, v, base - 140.0, base, Color(0.8, 0.4, 0.22, 0.2))
+
+	# ---- קרוב: צינורות ענק, עגורן, פנסים ----
+	static func _near(ci: CanvasItem, sc: float, v: Vector2, t: float) -> void:
+		var period := 1000.0
+		var start := int(floor(sc / period)) - 1
+		for k in range(start, start + int(ceil(v.x / period)) + 2):
+			var bx := float(k) * period - sc
+			# צינור עבה עולה מהקרקע ופונה אופקית (גבוה - לא מאחורי הדמויות)
+			var py := 250.0 + 40.0 * _h(k, 1)
+			ci.draw_rect(Rect2(bx + 40.0, py, 26.0, HZ - py), NEAR)
+			ci.draw_rect(Rect2(bx + 40.0, py, 560.0, 26.0), NEAR)
+			ci.draw_rect(Rect2(bx + 40.0, py + 2.0, 560.0, 4.0), Color(0.55, 0.3, 0.2, 0.35))   # אור שקיעה על הצינור
+			for f in 5:   # אוגנים
+				ci.draw_rect(Rect2(bx + 110.0 + float(f) * 110.0, py - 4.0, 8.0, 34.0), NEAR.lightened(0.04))
+			ci.draw_rect(Rect2(bx + 594.0, py - 6.0, 14.0, HZ - py + 6.0), NEAR)
+			# שסתום שיורק קיטור מדי פעם
+			var vx := bx + 330.0
+			ci.draw_circle(Vector2(vx, py - 10.0), 9.0, NEAR)
+			ci.draw_line(Vector2(vx - 12.0, py - 18.0), Vector2(vx + 12.0, py - 18.0), NEAR, 3.0)
+			var ph := fmod(t * 0.35 + _h(k, 4), 1.0)
+			if ph < 0.4:
+				var e := ph / 0.4
 				for p in 6:
-					var age := fmod(_t * 0.25 + float(p) / 6.0 + float(k) * 0.3, 1.0)
-					var sp := Vector2(chx + 11.0 + age * 90.0 + sin(age * 6.0 + float(k)) * 10.0, 380.0 - chh - age * 160.0)
-					draw_circle(sp, 10.0 + age * 34.0, Color(0.22, 0.17, 0.15, 0.35 * (1.0 - age)))
-		# עגורן
-		var coff := fmod(cx * 0.35, 1400.0)
-		for i in 2:
-			var gx := float(i) * 1400.0 - coff + 300.0
-			draw_line(Vector2(gx, 600), Vector2(gx, 230), Color("3a2a20"), 6.0)
-			draw_line(Vector2(gx - 60, 240), Vector2(gx + 320, 240), Color("3a2a20"), 5.0)
-			for k in 8:
-				draw_line(Vector2(gx - 60 + k * 47, 240), Vector2(gx - 37 + k * 47, 256), Color("3a2a20"), 2.0)
-			var hook := gx + 200.0 + sin(_t * 0.4) * 30.0
-			draw_line(Vector2(hook, 240), Vector2(hook, 330), Color("2a1e18"), 1.5)
-			draw_rect(Rect2(hook - 30, 330, 60, 34), Color("4a2a1c"))
-		# שכבה קרובה: מיכלים, צינורות ותנורים זוהרים
-		var noff := fmod(cx * 0.55, 900.0)
-		for i in 3:
-			var nx := float(i) * 900.0 - noff - 50.0
-			draw_rect(Rect2(nx, 440, 120, 170), Color("2e2420"))
-			draw_circle(Vector2(nx + 60, 440), 60, Color("2e2420"))
-			draw_line(Vector2(nx + 120, 480), Vector2(nx + 400, 480), Color("3a2c24"), 10.0)
-			draw_line(Vector2(nx + 400, 480), Vector2(nx + 400, 610), Color("3a2c24"), 10.0)
-			var glow := 0.55 + 0.25 * sin(_t * 3.0 + float(i)) + 0.1 * sin(_t * 11.0)
-			draw_rect(Rect2(nx + 470, 500, 140, 110), Color("2a1c16"))
-			draw_rect(Rect2(nx + 500, 540, 80, 50), Color(1.0, 0.45, 0.1, glow))
-			for k in 5:
-				draw_circle(Vector2(nx + 540, 565), 40.0 + float(k) * 22.0, Color(1.0, 0.4, 0.1, 0.05 * glow))
-		# גצים
-		for e in _embers:
-			draw_circle(Vector2(e[0], e[1]), 1.4, Color(1.0, 0.6, 0.2, 0.7))
-		# צל בתחתית
-		for i in 6:
-			draw_rect(Rect2(0, 560 + float(i) * 12.0, vs.x, 12.0), Color(0, 0, 0, 0.12 + float(i) * 0.08))
+					var pp := Vector2(vx + float(p) * 9.0 * e + 6.0, py - 22.0 - float(p) * 16.0 * e)
+					Kit.soft_glow(ci, pp, 10.0 + float(p) * 6.0 * e, Color(0.92, 0.84, 0.78, 0.4 * (1.0 - e)))
+			# עגורן גשר עם מטען מתנדנד
+			var gx := bx + 700.0
+			ci.draw_rect(Rect2(gx, 170.0, 10.0, HZ - 170.0), NEAR)
+			ci.draw_rect(Rect2(gx - 80.0, 160.0, 330.0, 12.0), NEAR)
+			for s in 11:
+				ci.draw_line(Vector2(gx - 80.0 + float(s) * 30.0, 172.0), Vector2(gx - 65.0 + float(s) * 30.0, 160.0), NEAR.lightened(0.05), 2.0)
+			var sw := sin(t * 0.7 + float(k)) * 0.06
+			var hk := Vector2(gx + 180.0, 172.0)
+			var ld := hk + Vector2(sin(sw) * 150.0, cos(sw) * 150.0)
+			ci.draw_line(hk, ld, NEAR, 2.0)
+			ci.draw_set_transform(ld, -sw, Vector2.ONE)
+			ci.draw_rect(Rect2(-36.0, 0.0, 72.0, 36.0), NEAR.lightened(0.03))
+			ci.draw_rect(Rect2(-36.0, 0.0, 72.0, 4.0), Color(0.75, 0.6, 0.2, 0.5))
+			ci.draw_set_transform_matrix(Transform2D.IDENTITY)
+			# פנס נתרן גבוה
+			var lx := bx + 900.0
+			ci.draw_rect(Rect2(lx, 300.0, 6.0, HZ - 300.0), NEAR)
+			ci.draw_line(Vector2(lx + 3.0, 302.0), Vector2(lx + 40.0, 296.0), NEAR, 4.0)
+			var on := 1.0 if fmod(t * 1.7 + float(k) * 3.1, 9.0) > 0.25 else 0.3
+			Kit.soft_glow(ci, Vector2(lx + 40.0, 304.0), 70.0, Color(LAMP, 0.35 * on))
+			ci.draw_rect(Rect2(lx + 32.0, 298.0, 18.0, 6.0), Color(LAMP, 0.9 * on))
+			ci.draw_colored_polygon(PackedVector2Array([Vector2(lx + 30, 304), Vector2(lx + 52, 304), Vector2(lx + 110, HZ), Vector2(lx - 30, HZ)]), Color(LAMP, 0.05 * on))
+
+	# ---- overlay: אובך מאחורי הדמויות + גצים ----
+	static func _over(ci: CanvasItem, v: Vector2, t: float) -> void:
+		Kit.haze_band(ci, v, HZ - 190.0, HZ + 4.0, Color(0.78, 0.42, 0.26, 0.26))
+		for i in 34:   # גצים עולים
+			var sp := 18.0 + float(i % 5) * 6.0
+			var x := fposmod(float(i) * 97.0 + sin(t * 1.3 + float(i)) * 14.0, v.x)
+			var y := v.y - fposmod(t * sp + float(i) * 61.0, v.y + 40.0)
+			ci.draw_rect(Rect2(x, y, 2.0, 2.0), Color(1.0, 0.62, 0.25, 0.75))

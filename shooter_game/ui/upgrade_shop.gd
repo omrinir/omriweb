@@ -73,12 +73,16 @@ func _items() -> Array:
 	var out := []
 	match _tab:
 		0:
+			var ids := []
 			for id in WeaponDB.count():
-				if WeaponDB.removed(id):
-					continue
+				if not WeaponDB.removed(id):
+					ids.append(id)
+			ids.sort_custom(func(x, y): return int(WeaponDB.val(x, "unlock_level", 1)) < int(WeaponDB.val(y, "unlock_level", 1)))   # סדר ההתקדמות
+			for id in ids:
 				var seen: bool = id in Game.seen_weapons
+				var ul := int(WeaponDB.val(id, "unlock_level", 1))
 				out.append({"kind": "w", "id": id, "name": str(WeaponDB.val(id, "name", "?")) if seen else "???", "locked": not seen,
-					"why": "FIND IT FIRST (STAGE %d+)" % int(WeaponDB.val(id, "unlock_level", 1)), "color": WeaponDB.val(id, "color", Color.WHITE)})
+					"why": ("ARRIVES AT STAGE %d" % ul) if ul > _reached() else "FIND IT FIRST (STAGE %d, OR A WEAPON CACHE)" % ul, "color": WeaponDB.val(id, "color", Color.WHITE)})
 		1:
 			for a in AbilityDB.ABILITIES:
 				var lock: bool = int(a.unlock_level) > _reached()
@@ -172,27 +176,8 @@ func _rebuild() -> void:
 			var b := _btn(label, Vector2(x0 + 880.0, 262.0 + float(j) * 64.0), Vector2(140, 42), Color("d8a033") if ok else Color("4a4a52"), 16)
 			if c >= 0:
 				b.pressed.connect(_buy.bind(t))
-	# יכולת: באיזה מקום (1-5) היא נמצאת. לוחצים = מציידים אותה במקום הזה
-	if _tab == 1 and _sel < items.size() and not items[_sel].locked:
-		var aid: String = items[_sel].id
-		for k in 5:
-			var here: bool = k < Game.ability_slots.size() and Game.ability_slots[k] == aid
-			var b := _btn(str(k + 1), Vector2(x0 + 560.0 + float(k) * 52.0, 500.0), Vector2(46, 40), Color("8a7aff") if here else Color("4a4a52"), 18)
-			b.pressed.connect(_equip.bind(aid, k))
 	_btn("BACK", Vector2(vp.x * 0.5 - 100.0, 580.0), Vector2(200, 56), Color("b3121a"), 26, 0.0, false).pressed.connect(func(): closed.emit())
 	_built = true
-
-
-func _equip(aid: String, k: int) -> void:
-	while Game.ability_slots.size() < 5:
-		Game.ability_slots.append(null)
-	for i in 5:
-		if Game.ability_slots[i] == aid:
-			Game.ability_slots[i] = null
-	Game.ability_slots[k] = aid
-	Game._save()
-	Sfx.play("weapon", null, -4.0)
-	_rebuild()
 
 
 func _set_tab(i: int) -> void:

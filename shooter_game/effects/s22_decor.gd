@@ -15,6 +15,7 @@ extends RefCounted
 # ============================================================
 
 const Art := preload("res://art.gd")
+const Kit := preload("res://effects/backdrop_kit.gd")
 const Sfx := preload("res://sfx.gd")
 
 const CONCRETE := Color("7a7e82")
@@ -32,15 +33,11 @@ static func _rng(s: int) -> RandomNumberGenerator:
 
 # ---- שמיים אפורים ----
 static func overcast_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
-	var bands := [Color("4a5868"), Color("5a6878"), Color("6a7888"), Color("7e8a96"), Color("909aa2")]
-	var h := v.y * 0.75 / float(bands.size())
-	for i in bands.size():
-		ci.draw_rect(Rect2(0, float(i) * h, v.x, h + 1.0), bands[i])
-	ci.draw_rect(Rect2(0, h * bands.size(), v.x, v.y), Color("909aa2"))
-	for i in 4:   # עננים נמוכים
+	Kit.gradient_sky(ci, v, [Color("4a5868"), Color("5a6878"), Color("6a7888"), Color("7e8a96"), Color("909aa2")], 0.75)   # מעבר רך (היו 5 פסים חדים)
+	for i in 4:   # עננים נמוכים (כתמים רכים)
 		var y := v.y * (0.08 + 0.1 * float(i))
 		var x := fposmod(t * (8.0 + float(i) * 4.0) + float(i) * 300.0, v.x + 700.0) - 350.0
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(x, y), Vector2(x + 300, y - 14), Vector2(x + 620, y), Vector2(x + 320, y + 12)]), Color(0.35, 0.4, 0.46, 0.35))
+		Kit.soft_ellipse(ci, Vector2(x + 310.0, y), 360.0, 34.0, 0.0, Color(0.33, 0.38, 0.44, 0.55))
 
 
 # ---- גבעות + קיר הסכר עם מפלים ----
@@ -71,7 +68,10 @@ static func far_dam(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -
 					ci.draw_line(Vector2(gx + 8 + float(q % 2) * 18.0, ly), Vector2(gx + 8 + float(q % 2) * 18.0, minf(ly + 26.0, y)), Color(1, 1, 1, 0.6), 2.0)
 		for s in 6:   # פסי יציקה
 			ci.draw_line(Vector2(dx + 30, top + 40.0 * float(s) + 30), Vector2(dx + dw - 30, top + 40.0 * float(s) + 30), Color(0, 0, 0, 0.06), 2.0)
-		ci.draw_rect(Rect2(dx - 40, y - 50, dw + 80, 50), Color(0.9, 0.94, 0.98, 0.3))   # רסס בתחתית
+		for q in 8:   # כתמי רטיבות שזולגים מהכביש על הסכר
+			var sx := dx + 60.0 + float(q) * 120.0 + 30.0 * sin(float(q * 7 + k))
+			ci.draw_rect(Rect2(sx, top, 10.0, 60.0 + 50.0 * absf(sin(float(q * 3 + k)))), Color(0.25, 0.28, 0.3, 0.14))
+		Kit.soft_ellipse(ci, Vector2(dx + dw * 0.5, y - 14.0), dw * 0.6, 60.0, 0.0, Color(0.9, 0.94, 0.98, 0.5))   # רסס בתחתית (רך)
 		r.randf()
 	ci.draw_rect(Rect2(0, y, v.x, v.y - y), Color("3e4c4a"))
 

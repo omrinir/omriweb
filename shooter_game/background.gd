@@ -6,6 +6,8 @@ extends Node2D
 #  main.gd קובע את level_w לפני שהרקע נוצר.
 # ============================================================
 
+const Kit := preload("res://effects/backdrop_kit.gd")
+
 @export var sky_top := Color("1c1820")
 @export var sky_mid := Color("47302f")
 @export var sky_bottom := Color("b8663a")
@@ -107,8 +109,8 @@ func _draw() -> void:
 	_gradient(s.y * 0.55, s.y, s.x, sky_mid, sky_bottom)
 	# שמש אדומה דרך העשן
 	var sp := Vector2(s.x * sun_pos.x, s.y * sun_pos.y)
-	for i in 6:
-		draw_circle(sp, 50.0 + float(6 - i) * 30.0, Color(0.95, 0.4, 0.2, 0.045))
+	Kit.soft_glow(self, sp, 320.0, Color(0.95, 0.42, 0.2, 0.45))   # הילה רכה (היו טבעות חדות)
+	Kit.soft_glow(self, sp, 110.0, Color(1.0, 0.55, 0.3, 0.35))
 	draw_circle(sp, 46.0, Color(sun_color, 0.85))
 	# פסי עשן על השמש
 	for i in 3:
@@ -120,11 +122,7 @@ func _draw() -> void:
 	for i in 18:
 		var c := Vector2(rng.randf() * s.x, rng.randf_range(10.0, s.y * 0.3))
 		var rx := rng.randf_range(90.0, 220.0)
-		var pts := PackedVector2Array()
-		for k in 20:
-			var a := TAU * float(k) / 20.0
-			pts.append(c + Vector2(cos(a) * rx, sin(a) * rx * 0.28))
-		draw_colored_polygon(pts, Color(0.1, 0.08, 0.09, 0.12))
+		Kit.soft_glow(self, c, rx, Color(0.1, 0.07, 0.08, 0.28), 0.3)   # ענן עשן רך
 
 
 func _gradient(y0: float, y1: float, w: float, c0: Color, c1: Color) -> void:

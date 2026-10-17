@@ -150,6 +150,7 @@ func draw() -> bool:
 		var bp := (sh + Vector2(-5, 0)).lerp(hip + Vector2(4, -1), 0.15 + 0.22 * float(q))
 		z.draw_rect(Rect2(bp + Vector2(-1.5, -3), Vector2(3, 6)), col(Color("c03020")))
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
+	face(head)
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
 	Art.fill(z, PackedVector2Array([head + Vector2(-6.5, -3), head + Vector2(-5, -8), head + Vector2(4, -8.5), head + Vector2(7, -3)]), col(Color("8a8a8e")), Art.OUTLINE, 1.0)   # קסדה

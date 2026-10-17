@@ -221,6 +221,7 @@ func draw() -> bool:
 	z.draw_arc(sh + Vector2(-2, 6), 6.0, 0.0, TAU, 10, col(Color("c03a2a")), 2.0)   # חבל מגולגל
 	z.draw_line(sh + Vector2(-6, -1), hip + Vector2(6, 0), col(Color("c03a2a")), 1.5)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_colored_polygon(Art.ellipse(head + Vector2(0, -2.5), 6.2, 4.6, 0.0, 12), col(Color("e06a1a")))   # קסדה
 	z.draw_rect(Rect2(head + Vector2(-6, -1), Vector2(12, 1.5)), col(Color("2a2a2a")))
 	z.draw_rect(Rect2(head + Vector2(1, -0.5), Vector2(5, 2.5)), col(Color("2a3a4a")))   # משקפיים

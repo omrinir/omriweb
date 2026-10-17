@@ -508,7 +508,8 @@ class Room extends Node2D:
 				var s := r.randf_range(6.0, 14.0)
 				draw_colored_polygon(PackedVector2Array([Vector2(px - s, 0), Vector2(px - s * 0.4, -s * 0.9), Vector2(px + s * 0.6, -s * 0.7), Vector2(px + s, 0)]), Color("4a4644").lerp(Color("2e2c2a"), r.randf()))
 			# אור ירח/ברק שיורד מלמעלה
-			draw_colored_polygon(PackedVector2Array([Vector2(g0 + 6, -146), Vector2(g1 - 6, -146), Vector2(g1 + 20, 0), Vector2(g0 - 20, 0)]), Color(0.7, 0.8, 1.0, 0.04))
+			var tw := maxf((g1 - g0) * 0.5 - 6.0, 2.0)   # חור צר מ-12: הקצוות העליונים התהפכו -> "triangulation failed" (שלב 6)
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - tw, -146), Vector2(cx + tw, -146), Vector2(g1 + 20, 0), Vector2(g0 - 20, 0)]), Color(0.7, 0.8, 1.0, 0.04))
 
 	# ============ רהיטים ברקע (צלליות כהות עם פרטים) ============
 	func _item(n: String, x: float, b: float, r: RandomNumberGenerator) -> void:

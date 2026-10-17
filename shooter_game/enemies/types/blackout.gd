@@ -123,6 +123,7 @@ func draw() -> bool:
 	z.draw_rect(Rect2(hip + Vector2(2, 0), Vector2(3, 4)), col(Color("5a4a30")))
 	z.draw_rect(Rect2(sh + Vector2(-3, 4), Vector2(5, 3)), col(Color("c8b030")))   # תג
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
+	face(head, Vector2(INF, 0))
 	# משקפי ראיית לילה
 	z.draw_rect(Rect2(head + Vector2(-5, -6), Vector2(10, 2)), col(Color("1a1a1a")))   # רצועה
 	z.draw_rect(Rect2(head + Vector2(1, -3.5), Vector2(6, 4)), col(Color("2a2e2a")))

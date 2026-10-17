@@ -1,9 +1,14 @@
 extends RefCounted
 # ============================================================
-#  ARSENAL - מבנה ההתקדמות של הנשקים והתחמושת (במקום רשימות ידניות בכל שלב).
+#  ARSENAL - מבנה ההתקדמות של הנשקים, היכולות והתחמושת (במקום רשימות ידניות בכל שלב).
 #  כמו ברוב משחקי היריות הדו-ממדיים (Metal Slug / Broforce / Blazing Chrome / Doom):
-#   * כל נשק נכנס למשחק בשלב קבוע: weapons/weapon_db.gd -> "unlock_level".
-#     בשלב הזה הוא מחכה לך בהתחלה (NEW WEAPON) - כך כל שלב מביא משהו חדש, בסדר הגיוני.
+#   * כל נשק נכנס למשחק בשלב קבוע: weapons/weapon_db.gd -> "unlock_level" (18 נשקים, פרוסים על שלבים 1-45).
+#     בשלב הזה הוא מחכה לך בהתחלה (NEW WEAPON: קרן אור + באנר, ui/unlock_banner.gd) - כך כל שלב מביא משהו חדש.
+#     מקומות מלאים? הנשק החדש מחליף את הכי ישן (שנשאר על הרצפה).
+#   * כל יכולת נפתחת בשלב קבוע: abilities/ability_db.gd -> "unlock_level" (באנר NEW ABILITY בתחילת השלב).
+#   * שלב בלי נשק / יכולת חדשים (משלב MOD_FROM) = WEAPON MOD: ארגז שנותן שדרוג חינם לנשק שביד (apply_mod).
+#     נלקח פעם אחת בכל שלב (Game.upgrades["m.<שלב>"]), גם אחרי TRY AGAIN.
+#   * rewards(lv) = מה השלב נותן (לבאנר, לבדיקות ולטבלה ב-DEV_GUIDE).
 #   * מטמון נשק (CACHE) באמצע כל שלב: נשק שכבר נפתח אבל אין לך (זרקת / איבדת / פספסת).
 #   * נקודות אספקה (SUPPLY POINTS) במקומות קבועים: 20% / 40% / 60% / 80% מהשלב (עם שלט),
 #     במקום קופסאות מפוזרות באקראי.
@@ -13,11 +18,16 @@ extends RefCounted
 # ============================================================
 
 const WeaponDB := preload("res://weapons/weapon_db.gd")
+const Sfx := preload("res://sfx.gd")
 
 const SUPPLY_POINTS := [[0.2, "ammo"], [0.4, "supply"], [0.6, "ammo"], [0.8, "supply"]]   # [מיקום יחסי, מה יש שם]
 const CACHE_AT := 0.47               # מטמון הנשק באמצע השלב
 const DROP_CHANCE := Vector2(0.03, 0.2)   # סיכוי שזומבי מפיל תחמושת: [כשיש מלא, כשכמעט נגמר]
 const EMPTY_DROP := 0.35             # כשאין תחמושת בכלל בשום נשק
+# שלבים 1-5 (רק רובה + שוטגאן / אקדח, בלי מחסניות גדולות): נקודת אספקה נוספת לפני הבוס, וסיכוי נפילה גבוה יותר כשנגמר
+const EARLY_LEVELS := 5
+const EARLY_SUPPLY := [0.9, "supply"]
+const EARLY_DROP := 0.3              # במקום DROP_CHANCE.y בשלבים האלה
 
 
 # ============================================================
@@ -31,6 +41,9 @@ const SPECIALS := {
 	"molotov": {"name": "MOLOTOVS", "uses": 2, "from": 3, "weight": 2.0, "color": Color("ff8a30"), "weapon": 8},
 	"launcher": {"name": "GRENADE LAUNCHER", "uses": 4, "from": 5, "weight": 1.6, "color": Color("80b060"), "weapon": 9},
 	"rocket": {"name": "ROCKET LAUNCHER", "uses": 2, "from": 8, "weight": 1.0, "color": Color("e05a30"), "weapon": 11},
+	# GRAVITY GRENADE: חור שחור קטן ששואב את כל הזומבים מסביב ואז קורס בפיצוץ (weapons/gravity_grenade.gd)
+	# "intro" = בשלבים האלה הוא מחכה בטוח ליד ההתחלה (הפעמים הראשונות שפוגשים אותו). אחר כך - רק מציאות אקראיות
+	"gravity": {"name": "GRAVITY GRENADE", "uses": 2, "from": 6, "weight": 1.5, "color": Color("7aa8ff"), "weapon": -5, "intro": [6, 7]},
 	# שיקוי GOD MODE: מתחיל מיד כשלוקחים אותו (player.collect). 23 שניות: הגוף בוער, קליעי אש אדומים, נזק פי 4 (+300%)
 	# לא נופל באקראי ("from" 999) - מופיע רק בשלבים של potion_levels()
 	"god": {"name": "GOD MODE", "uses": 1, "from": 999, "weight": 0.0, "color": Color("ff2a2a"), "weapon": -2},
@@ -39,8 +52,8 @@ const SPECIALS := {
 	# LASER CANNON: מחזיקים 1.4 שנ' טעינה -> קרן ירוקה 1.6 שנ' שעוברת דרך כל הזומבים (weapons/laser_cannon.gd). 8 שימושים
 	"laser": {"name": "LASER CANNON", "uses": 8, "from": 14, "weight": 0.5, "color": Color("50ff70"), "weapon": -4},
 }
-const TEST_LASER_LEVEL := 3          # בדיקה: תותח לייזר בתחילת השלב הזה (main.gd). 0 = בלי
-const TEST_MIND_EVERY_LEVEL := true   # בדיקה: מכשיר MIND CONTROL בתחילת כל שלב (main.gd). false = רק המציאות הרגילות (משלב 10)
+const TEST_LASER_LEVEL := 0          # בדיקה: תותח לייזר בתחילת השלב הזה (main.gd). 0 = בלי
+const TEST_MIND_EVERY_LEVEL := false  # בדיקה: מכשיר MIND CONTROL בתחילת כל שלב (main.gd). false = רק המציאות הרגילות (משלב 10)
 const SPECIAL_FINDS := Vector2(0.15, 0.85)   # איפה בשלב (יחסי) הם יכולים להיות
 const POTION_FIRST := 3        # שיקוי GOD MODE: שלב 3, ואז כל 2-3 שלבים
 const POTION_MID := Vector2(0.42, 0.58)   # איפה בשלב (יחסי): באמצע, איפה שיש זומבים
@@ -118,6 +131,79 @@ static func offers(lv: int, owned: Array) -> Dictionary:
 	return {"new": fresh, "cache": cache}
 
 
+# ============================================================
+#  REWARDS - מה כל שלב נותן (נשק חדש / יכולת חדשה / WEAPON MOD)
+# ============================================================
+const AbilityDB := preload("res://abilities/ability_db.gd")
+const Upgrades := preload("res://progression/upgrade_db.gd")
+const MOD_FROM := 11       # משלב זה: שלב בלי נשק / יכולת חדשים נותן WEAPON MOD
+const MOD_SCRAP := 120     # הנשק שביד כבר בשדרוג מלא? גרוטאות במקום
+
+
+static func abilities_at(lv: int) -> Array:
+	var out := []
+	for a in AbilityDB.ABILITIES:
+		if int(a.unlock_level) == lv:
+			out.append(a.id)
+	return out
+
+
+static func has_mod(lv: int) -> bool:
+	return lv >= MOD_FROM and introduced_at(lv).is_empty() and abilities_at(lv).is_empty()
+
+
+static func mod_key(lv: int) -> String:
+	return "m.%d" % lv
+
+
+# [{"kind": "weapon"/"ability"/"mod", "id": ..., "name": ...}]
+static func rewards(lv: int) -> Array:
+	var out := []
+	for id in introduced_at(lv):
+		out.append({"kind": "weapon", "id": id, "name": str(WeaponDB.val(id, "name", "?"))})
+	for id in abilities_at(lv):
+		out.append({"kind": "ability", "id": id, "name": str(AbilityDB.val(id, "name", "?"))})
+	if has_mod(lv):
+		out.append({"kind": "mod", "id": -1, "name": "WEAPON MOD"})
+	return out
+
+
+# WEAPON MOD נאסף: +1 רמה במסלול הכי נמוך של הנשק שביד (או של נשק אחר שלך), אחרת גרוטאות
+static func apply_mod(player: Node, _p: Node) -> bool:
+	var ids := []
+	if player.weapon == 0 and player.gun >= 0:   # GUN
+		ids.append(player.gun)
+	for s in player.slots:
+		if s != null and not s.id in ids:
+			ids.append(s.id)
+	var key := ""
+	var wid := -1
+	var tname := ""
+	for id in ids:
+		var best := ""
+		for t in Upgrades.weapon_tracks(id):
+			var k := Upgrades.weapon_key(id, t)
+			if Upgrades.level_of(k) < Upgrades.MAX_LEVEL and (best == "" or Upgrades.level_of(k) < Upgrades.level_of(best)):
+				best = k
+				tname = str(Upgrades.WEAPON_TRACKS[t].name)
+		if best != "":
+			key = best
+			wid = id
+			break
+	Game.upgrades[mod_key(Game.level)] = 1   # לא יופיע שוב בשלב הזה
+	if key == "":
+		Game.scrap += MOD_SCRAP
+		Game._level_start_scrap += MOD_SCRAP
+		player.get_tree().call_group("unlock_banner", "picked_mod", -1, "+%d SCRAP" % MOD_SCRAP, 0)
+	else:
+		Game.upgrades[key] = Upgrades.level_of(key) + 1
+		player.get_tree().call_group("unlock_banner", "picked_mod", wid, tname, Upgrades.level_of(key))
+	Game._save()
+	Sfx.play("pickup", null)
+	Sfx.play("weapon", null, 2.0)
+	return true
+
+
 # סיכוי שזומבי מת יפיל קופסת תחמושת (לפי כמה נשאר לשחקן)
 static func ammo_drop_chance(player: Node) -> float:
 	if player == null or not "slots" in player:
@@ -133,7 +219,17 @@ static func ammo_drop_chance(player: Node) -> float:
 			cur = float(s.ammo) / mx
 	if total <= 0:
 		return EMPTY_DROP
-	return lerpf(DROP_CHANCE.y, DROP_CHANCE.x, clampf(cur * 2.5, 0.0, 1.0))
+	var low := EARLY_DROP if Game.level <= EARLY_LEVELS else DROP_CHANCE.y
+	return lerpf(low, DROP_CHANCE.x, clampf(cur * 2.5, 0.0, 1.0))
+
+
+# נקודות האספקה של השלב (main.gd -> _spawn_supplies): בשלבים הראשונים עוד ארגז לפני הבוס
+static func supply_points_for(lv: int, base: Array) -> Array:
+	if lv > EARLY_LEVELS:
+		return base
+	var out := base.duplicate()
+	out.append(EARLY_SUPPLY)
+	return out
 
 
 # ציוד לתרגול (כפתורי שלבים בתפריט): הנשקים שהיו לך בערך בשלב הזה, עם תחמושת

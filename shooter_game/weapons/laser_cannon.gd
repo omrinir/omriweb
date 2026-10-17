@@ -33,7 +33,7 @@ static func muzzle(pl: Node) -> Vector2:
 	return pl.global_position + pl._front_shoulder() + pl._aim * 30.0
 
 
-# נקרא מ-player.gd כל פריים כשהפריט ביד. held = הירי לחוץ
+# נקרא מ-player.gd כל פריים כשהפריט ביד. held = טוענים (C הפעיל טעינה אוטומטית: player._laser_auto)
 static func tick(pl: Node, held: bool, delta: float) -> void:
 	var beam: Node = pl.get_meta("laser_beam") if pl.has_meta("laser_beam") else null
 	if beam != null and is_instance_valid(beam):
@@ -76,8 +76,8 @@ static func beam_done(pl: Node) -> void:
 		pl._say("LASER CANNON  -  EMPTY", Color(1, 1, 1, 0.75))
 		pl.special = ""
 		pl.special_uses = 0
-		pl.weapon = pl.GUN
-		pl.weapon_changed.emit(pl.weapon)
+	pl.weapon = pl.GUN   # שימוש דרך C: אחרי הקרן חוזרים לנשק
+	pl.weapon_changed.emit(pl.weapon)
 
 
 # ---- הנשק: גוף כהה עם סלילים ירוקים וליבה זוהרת (charge 0..1 = כמה נטען) ----

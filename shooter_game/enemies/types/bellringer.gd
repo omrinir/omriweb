@@ -138,6 +138,7 @@ func draw() -> bool:
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(9, 16), hip + Vector2(-9, 16)]), robe, 0.12, 0.4)   # גלימה ארוכה
 	z.draw_line(hip + Vector2(-6, -2), hip + Vector2(6, -2), col(Color("c8b890")), 1.6)   # חבל חגורה
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	Art.fill(z, PackedVector2Array([head + Vector2(-7, 4), head + Vector2(-6, -5), head + Vector2(0, -8), head + Vector2(6, -6), head + Vector2(6, -2), head + Vector2(-1, -3), head + Vector2(-2, 5)]), robe, Art.OUTLINE, 1.0)   # ברדס
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))

@@ -117,6 +117,7 @@ func draw() -> bool:
 		for r in 2:
 			z.draw_rect(Rect2(sh + Vector2(-6.0 + float(q) * 4.5, 8.0 + float(r) * 5.0), Vector2(3, 3)), col(Color("e0c060") if (q + r) % 2 == 0 else Color("1a1a1a")))
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_colored_polygon(Art.ellipse(head + Vector2(0, -3), 6.0, 3.6, 0.0, 10), col(Color("c8a860")))   # קסדת קש
 	z.draw_line(head + Vector2(-2, -6), head + Vector2(-6, -14), col(Color("2a8a6a")), 2.0)
 	if not z.dead:

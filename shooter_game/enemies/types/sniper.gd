@@ -169,6 +169,7 @@ func draw() -> bool:
 	for q in 4:   # כתמי הסוואה
 		z.draw_circle(sh + Vector2(-3.0 + float(q % 2) * 5.0, 3.0 + float(q) * 3.0), 1.8, col(Color("3a4028")))
 	Art.oval_shaded(z, head, 5.2, 5.6, sk, 0.0)
+	face(head)
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, -1), head + Vector2(-5, -6), head + Vector2(3, -7), head + Vector2(7, -3), head + Vector2(6, -1)]), col(Color("4a5034")), Art.OUTLINE, 1.0)   # קסדה
 	for q in 3:
 		z.draw_line(head + Vector2(-5.0 + float(q) * 4.0, -6), head + Vector2(-4.0 + float(q) * 4.0, -1), col(Color("2a2e1a")), 0.8)

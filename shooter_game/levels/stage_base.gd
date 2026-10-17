@@ -134,6 +134,16 @@ func zombie_density() -> float:   # מכפיל על כמות הזומבים
 	return 1.0
 
 
+# PACE DIRECTOR (levels/pace_director.gd): מסך ריק -> קבוצה קטנה נכנסת מקדימה. false = לשלב יש מנהל גלים משלו
+func pace_stream() -> bool:
+	return true
+
+
+# הפיזור הרגיל (main.gd) שם חלק מהזומבים הבודדים גם על קומות / גגות. false = רק על הכביש (למשל גגות = המסלול הבטוח)
+func scatter_on_floors() -> bool:
+	return true
+
+
 # ============ עזרים ============
 # קומה (one-way). x, y = פינה שמאלית-עליונה
 func add_floor(x: float, y: float, w: float, style := "concrete", supports := true, railing := false) -> Node:

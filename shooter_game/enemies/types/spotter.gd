@@ -131,6 +131,7 @@ func draw() -> bool:
 	for q in 3:   # תפרי פוך
 		z.draw_line(sh + Vector2(-8, 4.0 + float(q) * 5.0), sh + Vector2(8, 4.0 + float(q) * 5.0), col(Art.shade(z.shirt, 0.3)), 1.0)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_rect(Rect2(head + Vector2(-5.5, -6), Vector2(11, 3.5)), col(Color("2a2a34")))   # כובע צמר
 	z.draw_line(head + Vector2(-5, -2), head + Vector2(5, -2.5), col(Color("1a1a1a")), 1.0)   # רצועת פנס ראש
 	if not z.dead:

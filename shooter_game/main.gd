@@ -41,6 +41,7 @@ const WeaponDB := preload("res://weapons/weapon_db.gd")
 const Arsenal := preload("res://progression/arsenal.gd")
 const CheckpointScript := preload("res://environment/checkpoint.gd")
 const CHECKPOINT_AT := 0.5     # נקודת הביקורת: באמצע השלב
+const CP_RESTART_CLEAR := 440.0   # חזרה מנקודת הביקורת: אין זומבים עד כאן לפני השחקן (היה 260 - זומבי מחכה לך בפנים)
 var _checkpoint: Node2D = null
 const PickupScript := preload("res://pickup.gd")
 const ExitScript := preload("res://exit.gd")
@@ -190,7 +191,7 @@ func _ready() -> void:
 		_stage.build_effects()
 	if Game.is_night():   # לילה: חושך, גשם וברקים
 		var cm := CanvasModulate.new()
-		cm.color = Color(0.5, 0.56, 0.75)
+		cm.color = Color(0.64, 0.68, 0.86)   # היה 0.5,0.56,0.75 - השחקן והזומבים נבלעו ברקע
 		add_child(cm)
 		bg.modulate = Color(0.42, 0.48, 0.66)
 		var rl := CanvasLayer.new()
@@ -208,6 +209,7 @@ func _ready() -> void:
 		sub.ceil_y = CEIL_Y
 		sub.level_w = level_w
 		sub.make_rails(rng, _pits, safe_zone)
+		_spawn_avoid.append_array(sub.rails)   # פסים מחושמלים: זומבי שנולד עליהם מת מיד
 		add_child(sub)
 
 	# מסגרת כהה סביב כל מה שהשחקן מתנגש בו (effects/collision_outlines.gd)
@@ -220,8 +222,7 @@ func _ready() -> void:
 	if Game.is_night() or Game.is_subway() or (_stage != null and _stage.dark_level()):
 		var tip = preload("res://ui/tip_banner.gd").new()
 		tip.seconds = 4.0
-		var fi: int = Game.ability_slots.find("flashlight")
-		tip.sub = ("Press %d to pick it, then C to turn it on" % ((fi + 6) % 10)) if fi >= 0 else "Equip FLASHLIGHT in UPGRADES -> ABILITIES"
+		tip.sub = "Press E until FLASHLIGHT is picked, then C to turn it on"
 		add_child(tip)
 
 	# "המפקד הנסתר": תורות התקפה, תקשורת, פקודות (ai/squad_director.gd)
@@ -239,6 +240,8 @@ func _ready() -> void:
 	_spawn_zombies(rng, floor_y)
 	if _stage != null:
 		_stage.extra_spawns()
+	_settle_scatter()
+	_unstick_spawns(floor_y)   # (אחרי פריים פיזיקה אחד) זומבי רגיל שנולד בתוך מכשול - זז הצידה
 	_spawn_survivors(rng, floor_y)
 	_spawn_supplies(rng, floor_y)
 	_checkpoint = CheckpointScript.new()   # נקודת ביקורת באמצע השלב (שמירה אוטומטית)
@@ -290,7 +293,7 @@ func _ready() -> void:
 	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
-	label.text = "A/D move (x2 run)  W jump/climb  S crouch (SxS drop)  LMB fire  R reload  Q wheel  1-5  C ability (6-0)  G drop  E special  SHIFT roll  F hook  RMB scope  L aim"
+	label.text = "A/D move (x2 run)  W jump/climb  S crouch (SxS drop)  LMB fire  R reload  Q wheel  1-5  C use power  E next power  G drop  SHIFT roll  RMB scope  L aim"
 	label.position = Vector2(12, 8)
 	label.visible = not TouchAPI.on()   # טלפון: אין מקלדת
 	label.add_theme_color_override("font_color", Color.WHITE)
@@ -325,6 +328,13 @@ func _ready() -> void:
 	var barrier = preload("res://environment/pass_barrier.gd").new()
 	barrier.main = self
 	add_child(barrier)
+	# קצב: מסך ריק יותר מ-2 שניות -> קבוצה קטנה נכנסת מקדימה (levels/pace_director.gd)
+	if _stage == null or _stage.pace_stream():
+		var pace = preload("res://levels/pace_director.gd").new()
+		pace.main = self
+		pace.floor_y = floor_y
+		pace.budget = int(round(float(level_screens) * zombies_per_screen * pace.BUDGET_SHARE))
+		add_child(pace)
 	# סצנות סיפור בתוך השלב (story/story_db.gd): דמות עומדת בשלב, מגיעים אליה -> שיחה. פעם אחת בכל משחק של השלב
 	for sc in preload("res://story/story_db.gd").for_level(Game.level):
 		if not Game.story_seen.has(sc.id):
@@ -589,35 +599,314 @@ func _place(rng: RandomNumberGenerator, x: float, floor_y: float, w: float, h: f
 # ============================================================
 #  זומבים אקראיים
 # ============================================================
+# פיזור "בקטעים": המסלול מחולק לקטעים שווים ובכל קטע קבוצה אחת (במקום אקראי בתוכו).
+# כך אין חורים של כמה מסכים בלי אף זומבי, ואין ערימה של 6 במקום אחד. (לפני: x אקראי לגמרי -> חור של עד 3.5 מסכים)
+const SPAWN_FIRST := 900.0      # הזומבי הראשון לא לפני x הזה (השחקן ב-150, קצה המסך ~670)
+const SPAWN_END := 620.0        # לא בזירת הבוס / ליד היציאה (מסוף השלב)
+const SPAWN_GAP := 44.0         # מרחק מינימלי בין שני זומבים בפיזור (לא נדבקים אחד לשני)
+const SPAWN_JITTER := 0.6       # רעש בתוך הקטע (0 = בדיוק באמצע, 1 = בכל הקטע)
+const SPAWN_CP_CLEAR := 200.0   # לא על נקודת הביקורת (חוזרים אליה ב-TRY AGAIN)
+var _spawn_xs: Array = []       # איפה כבר יש זומבי מהפיזור (לבדיקת מרחק)
+var _scatter: Array = []        # הזומבים של הפיזור (זזים הצידה בשביל זומבים שהשלב שם בכוונה)
+const SPAWN_OVERLAP := 22.0     # קרוב מזה לזומבי אחר באותו גובה = "נדבקים" (נראה כמו זומבי אחד)
+
+
 func _spawn_zombies(rng: RandomNumberGenerator, floor_y: float) -> void:
 	var count := int(round(float(level_screens) * zombies_per_screen))
-	var spawned := 0
-	var tries := 0
-	while spawned < count and tries < 600:
-		tries += 1
-		var zx := rng.randf_range(safe_zone + 200.0, level_w - 150.0)
-		if _near_brick(zx):
-			continue
-		var group := 1
+	# 1. בוחרים את הקבוצות מראש: [סוג, גודל]
+	var groups := []
+	var planned := 0
+	while planned < count:
 		var k0 := _pick_kind(rng)
-		if k0 == 10:   # חולדות: להקה
-			group = rng.randi_range(5, 7)
-		elif k0 == 15:   # כלבים: תמיד זוג
-			group = 2
-		elif rng.randf() < zombie_cluster_chance:
-			group = rng.randi_range(2, 3)
-		for g in group:
-			var gx := zx + float(g) * (rng.randf_range(16.0, 26.0) if k0 == 10 else rng.randf_range(34.0, 60.0))
-			if gx < level_w - 80.0 and not _near_brick(gx):
-				var kk := k0 if (g == 0 or k0 == 10 or k0 == 15) else _pick_kind(rng)
-				if kk == 10 and k0 != 10:
-					kk = 0
-				_spawn_zombie(gx, floor_y, kk, rng)
-				spawned += 1
-				if kk == 13:   # זורק: מגיע עם 2 זומבים קטנים
-					for q in 2:
-						_spawn_zombie(gx + 34.0 + float(q) * 24.0, floor_y, 14, rng)
-						spawned += 1
+		var n := _group_size(k0, rng)
+		groups.append([k0, n])
+		planned += (3 if k0 == 10 else n) + (2 if k0 == 13 else 0)   # להקת חולדות (מכה אחת כל אחת) נחשבת כ-3
+	if groups.is_empty():
+		return
+	# 2. כל קבוצה בקטע משלה
+	var x0 := maxf(SPAWN_FIRST, safe_zone + 200.0)
+	var x1 := level_w - SPAWN_END
+	var slot := (x1 - x0) / float(groups.size())
+	var cp_x := _free_spot(level_w * CHECKPOINT_AT)
+	_spawn_xs.clear()
+	var floors_ok: bool = _stage == null or _stage.scatter_on_floors()
+	for i in groups.size():
+		var k0: int = groups[i][0]
+		var n: int = groups[i][1]
+		var c := x0 + slot * (float(i) + 0.5 + rng.randf_range(-0.5, 0.5) * SPAWN_JITTER)
+		if n == 1 and k0 < 20 and not k0 in [2, 5, 7, 8, 10, 11, 12, 13, 15, 18, 19] and floors_ok and rng.randf() < SPAWN_FLOOR_SHARE:
+			var fz := _spawn_on_floor(rng, c, slot * 0.5, k0)
+			if fz != null:
+				_scatter.append(fz)
+				continue
+		var gx := _group_spot(c, n, k0 == 10, slot * 0.6 + 120.0, cp_x)
+		if gx < 0.0:   # הקטע מלא מכשולים (רכבות, תעלות...): המקום הפנוי הכי רחוק מכל השאר
+			gx = _emptiest_spot(x0, x1, n, k0 == 10, cp_x)
+		if gx < 0.0:
+			continue
+		_scatter.append_array(_spawn_group(rng, gx, floor_y, k0, n))
+
+
+# קומות: חלק מהבודדים עומדים על קומה / גג שבקטע (לא רק על הכביש) - מטרות בגבהים שונים.
+# רק סוגים רגילים וקטנים (0-19, לא ענק / רובוט / כלב / בוס). סוגים 20+ - השלב עצמו שם על קומות (extra_spawns)
+const SPAWN_FLOOR_SHARE := 0.22   # איזה חלק מהבודדים עולים לקומה (אם יש קומה בקטע)
+func _spawn_on_floor(rng: RandomNumberGenerator, c: float, half: float, kind: int) -> Node:
+	var fy := get_viewport_rect().size.y - floor_thickness
+	var cands := []
+	for p in get_tree().get_nodes_in_group("platforms"):
+		var r: Rect2 = p.world_rect()
+		if r.size.x >= 150.0 and r.end.x > c - half and r.position.x < c + half and r.position.y < fy - 60.0 and r.position.y > fy - 420.0:
+			cands.append(r)
+	if cands.is_empty():
+		return null
+	var r: Rect2 = cands[rng.randi() % cands.size()]
+	for t in 6:
+		var x := rng.randf_range(maxf(r.position.x + 45.0, c - half), minf(r.end.x - 45.0, c + half))
+		var top := r.position.y
+		var blocked := false
+		for b in _rects:   # קיר / בלוק שעומד על הקומה
+			if x > b.position.x - 30.0 and x < b.end.x + 30.0 and b.position.y < top - 4.0 and b.end.y > top - 60.0:
+				blocked = true
+				break
+		for o in get_tree().get_nodes_in_group("zombies"):
+			if absf(o.position.x - x) < SPAWN_GAP and absf(o.position.y - top) < 40.0:
+				blocked = true
+				break
+		if not blocked:
+			var z := _spawn_zombie(x, fy, kind, rng)
+			z.position.y = top - 2.0   # קצת מעל: מי שמתחיל בתוך קומה חד-כיוונית נופל דרכה
+			return z
+	return null
+
+
+# הפיזור מפנה מקום לזומבים שהשלב שם בכוונה (extra_spawns): מי שנדבק לזומבי אחר זז הצידה למקום פנוי
+func _settle_scatter() -> void:
+	var all := get_tree().get_nodes_in_group("zombies")
+	var fy := get_viewport_rect().size.y - floor_thickness
+	for z in _scatter:
+		if not is_instance_valid(z) or z.kind == 10 or not _overlaps_at(z, z.position.x, all):
+			continue
+		for i in range(1, 8):
+			var done := false
+			for s in [1.0, -1.0]:
+				var x: float = z.position.x + s * 23.0 * float(i)
+				var high: bool = z.position.y < fy - 10.0
+				if high and not _platform_under(x, z.position.y):   # עומד על קומה: נשאר עליה
+					continue
+				if (high or (not _near_brick(x) and not _spawn_blocked(x, x))) and not _overlaps_at(z, x, all):
+					z.position.x = x
+					done = true
+					break
+			if done:
+				break
+	_scatter.clear()
+
+
+# זומבים רגילים (סוגים 0-19) שנולדו בתוך גוף מוצק על הכביש (מכשול של השלב שלא סומן ב-reserve, חוליה במקום קבוע):
+# אחרי פריים פיזיקה אחד (אז אפשר לשאול את מנוע הפיזיקה) מזיזים אותם הצידה לרצפה פנויה. סוגים 20+ לא - חלקם מתחבאים בכוונה
+const UNSTICK_REACH := 260.0
+func _unstick_spawns(floor_y: float) -> void:
+	await get_tree().physics_frame
+	if not is_inside_tree():
+		return
+	var ss := get_world_2d().direct_space_state
+	for z in get_tree().get_nodes_in_group("zombies"):
+		if z.kind in [5, 7, 8, 11, 18, 19] or z.on_ceiling or absf(z.global_position.y - floor_y) > 24.0:
+			continue
+		if z.kind >= 20 and not _in_prop(ss, z.global_position.x, floor_y):   # סוגים 20+: רק בתוך חבית / ארגז / גוש בטון (prop.gd, brick.gd) - אף אחד לא מתחבא שם בכוונה
+			continue
+		if not _solid_at(ss, z.global_position.x, floor_y):
+			continue
+		var d := 20.0
+		while d <= UNSTICK_REACH:
+			var moved := false
+			for sgn in [1.0, -1.0]:
+				var x: float = z.global_position.x + d * sgn
+				if not _solid_at(ss, x, floor_y) and not _in_pit(x - 12.0, x + 12.0, 10.0) and not _spawn_blocked(x, x):
+					z.global_position.x = x
+					moved = true
+					break
+			if moved:
+				break
+			d += 20.0
+	# חפצים (תחמושת / נשקים / שיקויים) שהונחו בתוך מכשול של השלב: הקרן של pickup.gd מתחילה בתוך הגוף ולא פוגעת בו,
+	# אז החפץ נופל לכביש בתוך הגוף ואי אפשר לראות / לאסוף אותו (בוט: שלבים 8, 16, 49) -> הצידה למקום פנוי
+	for p in get_tree().get_nodes_in_group("pickups"):
+		if not _pickup_stuck(ss, p.global_position, floor_y):
+			continue
+		var d := 26.0
+		while d <= UNSTICK_REACH * 1.5:
+			var moved := false
+			for sgn in [1.0, -1.0]:
+				var np: Vector2 = p.global_position + Vector2(d * sgn, 0.0)
+				if not _pickup_stuck(ss, np, floor_y) and not _in_pit(np.x - 10.0, np.x + 10.0, 10.0):
+					p.global_position = np
+					p._resting = false
+					moved = true
+					break
+			if moved:
+				break
+			d += 26.0
+
+
+func _in_prop(ss: PhysicsDirectSpaceState2D, x: float, floor_y: float) -> bool:
+	var q := PhysicsShapeQueryParameters2D.new()
+	var r := RectangleShape2D.new()
+	r.size = Vector2(18.0, 34.0)
+	q.shape = r
+	q.transform = Transform2D(0.0, Vector2(x, floor_y - 24.0))
+	q.collision_mask = 1
+	for h in ss.intersect_shape(q, 4):
+		var scr: Script = h.collider.get_script() if h.collider != null else null
+		if scr != null and (scr == PropScript or scr.resource_path.ends_with("brick.gd")):   # חבית / ארגז / מכונית / גוש בטון
+			return true
+	return false
+
+
+# האם חפץ בנקודה הזו (או במקום שבו ינחת על הכביש) בתוך גוף מוצק
+func _pickup_stuck(ss: PhysicsDirectSpaceState2D, pos: Vector2, floor_y: float) -> bool:
+	var q := PhysicsPointQueryParameters2D.new()
+	q.collision_mask = 1
+	for y in ([pos.y, floor_y - 14.0] if absf(pos.y - floor_y) < 60.0 else [pos.y]):
+		q.position = Vector2(pos.x, y)
+		if not ss.intersect_point(q, 1).is_empty():
+			return true
+	return false
+
+
+func _solid_at(ss: PhysicsDirectSpaceState2D, x: float, floor_y: float) -> bool:
+	var q := PhysicsShapeQueryParameters2D.new()
+	var r := RectangleShape2D.new()
+	r.size = Vector2(18.0, 34.0)
+	q.shape = r
+	q.transform = Transform2D(0.0, Vector2(x, floor_y - 24.0))
+	q.collision_mask = 1
+	return not ss.intersect_shape(q, 1).is_empty()
+
+
+func _platform_under(x: float, y: float) -> bool:
+	for p in get_tree().get_nodes_in_group("platforms"):
+		var r: Rect2 = p.world_rect()
+		if x > r.position.x + 30.0 and x < r.end.x - 30.0 and absf(r.position.y - y) < 8.0:
+			return true
+	return false
+
+
+func _overlaps_at(z: Node, x: float, all: Array) -> bool:
+	for o in all:
+		if o != z and o.kind != 10 and absf(o.position.x - x) < SPAWN_OVERLAP and absf(o.position.y - z.position.y) < 40.0:
+			return true
+	return false
+
+
+# כמה בקבוצה: חולדות = להקה, כלבים = זוג, אחרת לפעמים 2-3
+func _group_size(k0: int, rng: RandomNumberGenerator) -> int:
+	if k0 == 10:
+		return rng.randi_range(5, 7)
+	if k0 == 15:
+		return 2
+	if rng.randf() < zombie_cluster_chance:
+		return rng.randi_range(2, 3)
+	return 1
+
+
+# מרווח בין חברי קבוצה
+func _member_gap(rats: bool) -> float:
+	return 21.0 if rats else 50.0
+
+
+# מקום פנוי לכל הקבוצה, הכי קרוב ל-c (עד reach לכל צד). -1 = אין
+func _group_spot(c: float, n: int, rats: bool, reach: float, cp_x: float) -> float:
+	var w := float(n - 1) * _member_gap(rats)
+	var d := 0.0
+	while d <= reach:
+		for s in ([1.0] if d == 0.0 else [1.0, -1.0]):
+			var gx: float = c + d * s - w * 0.5
+			if _group_fits(gx, w, rats, cp_x):
+				return gx
+		d += 23.0
+	return -1.0
+
+
+func _emptiest_spot(x0: float, x1: float, n: int, rats: bool, cp_x: float) -> float:
+	var w := float(n - 1) * _member_gap(rats)
+	var best := -1.0
+	var best_d := -1.0
+	var x := x0
+	while x < x1 - w:
+		if _group_fits(x, w, rats, cp_x):
+			var d := 1e9
+			for o in _spawn_xs:
+				d = minf(d, absf(float(o) - x))
+			if d > best_d:
+				best_d = d
+				best = x
+		x += 37.0
+	return best
+
+
+func _group_fits(gx: float, w: float, _rats: bool, cp_x: float) -> bool:
+	if gx < safe_zone or gx + w > level_w - 300.0:
+		return false
+	if gx + w > cp_x - SPAWN_CP_CLEAR and gx < cp_x + SPAWN_CP_CLEAR:
+		return false
+	var x := gx
+	while x <= gx + w + 0.5:
+		if _near_brick(x):
+			return false
+		x += 16.0
+	if _near_brick(gx + w):
+		return false
+	for o in _spawn_xs:
+		if float(o) > gx - SPAWN_GAP and float(o) < gx + w + SPAWN_GAP:
+			return false
+	return not _spawn_blocked(gx, gx + w)
+
+
+# לא בתוך אש / חומצה / מלכודת / פס מחושמל (היו נשרפים / מתים ברגע שהם נולדים)
+var _spawn_avoid: Array = []    # [x0, x1] קטעים נוספים בלי זומבים (רכבת תחתית: הפסים המחושמלים)
+func _spawn_blocked(x0: float, x1: float) -> bool:
+	for r in _hazard_rects():
+		if x1 > r.position.x - 30.0 and x0 < r.end.x + 30.0:
+			return true
+	for a in _spawn_avoid:
+		if x1 > float(a[0]) - 40.0 and x0 < float(a[1]) + 40.0:
+			return true
+	return false
+
+
+# אזורי הסכנות שליד הכביש (environment/hazard.gd), פעם אחת לכל בנייה
+var _haz_cache: Array = []
+var _haz_ready := false
+func _hazard_rects() -> Array:
+	if not _haz_ready:
+		_haz_ready = true
+		var fy := get_viewport_rect().size.y - floor_thickness
+		for h in get_tree().get_nodes_in_group("hazards"):
+			var hr = h.get("rect")
+			if hr is Rect2:
+				var r := Rect2(h.global_position + hr.position, hr.size)
+				if r.end.y > fy - 90.0 and r.position.y < fy + 10.0:
+					_haz_cache.append(r)
+	return _haz_cache
+
+
+# קבוצה אחת (גם PACE DIRECTOR משתמש). מחזיר את הזומבים שנוצרו
+func _spawn_group(rng: RandomNumberGenerator, gx: float, floor_y: float, k0: int, n: int, dormant_ok := true) -> Array:
+	var out := []
+	var gap := _member_gap(k0 == 10)
+	for g in n:
+		var x := gx + float(g) * gap + (rng.randf_range(-4.0, 4.0) if g > 0 else 0.0)
+		var kk := k0 if (g == 0 or k0 == 10 or k0 == 15) else _pick_kind(rng)
+		if kk == 10 and k0 != 10:
+			kk = 0
+		var z := _spawn_zombie(x, floor_y, kk, rng if dormant_ok else null)
+		out.append(z)
+		_spawn_xs.append(x)
+		if kk == 13:   # זורק: מגיע עם 2 זומבים קטנים
+			for q in 2:   # אחד מכל צד (לא נדבקים לחבר הבא בקבוצה)
+				out.append(_spawn_zombie(x + (26.0 if q == 0 else -26.0), floor_y, 14, rng if dormant_ok else null))
+	return out
 
 
 # 3 ניצולות לאורך השלב (במקומות פנויים)
@@ -685,14 +974,26 @@ func _start_at_checkpoint(player: Node2D) -> void:
 			player.cur_slot = i
 			break
 	_checkpoint.set_reached()
+	var gx := 0   # מתנות ההתקדמות שעוד לא נלקחו (נשק חדש / MOD) עוברות לנקודת הביקורת
+	for pk in get_tree().get_nodes_in_group("pickups"):
+		if pk.gift and pk.global_position.x < player.position.x:
+			var owned := false
+			for sl in player.slots:
+				owned = owned or (sl != null and pk.kind == PickupScript.WEAPON and sl.id == pk.weapon_id)
+			if owned:
+				pk.queue_free()
+				continue
+			pk.setup(Vector2(player.position.x + 150.0 + float(gx) * 70.0, player.position.y - 30.0), Vector2.ZERO)
+			pk._resting = false
+			gx += 1
 	for z in get_tree().get_nodes_in_group("zombies"):   # זומבים שכבר עברת / ממש ליד - לא מחכים לך שם
-		if not z.is_boss() and z.global_position.x < player.position.x + 260.0:
+		if not z.is_boss() and z.global_position.x < player.position.x + CP_RESTART_CLEAR:
 			z.queue_free()
 
 
 # נקודות אספקה קבועות + נשקים לפי מבנה ההתקדמות (progression/arsenal.gd)
 func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
-	var points: Array = _stage.supply_points() if _stage != null else Arsenal.SUPPLY_POINTS
+	var points: Array = Arsenal.supply_points_for(Game.level, _stage.supply_points() if _stage != null else Arsenal.SUPPLY_POINTS)   # שלבים 1-5: עוד ארגז לפני הבוס
 	for sp in points:
 		var x := _free_spot(level_w * float(sp[0]))
 		var kinds: Array = {"ammo": [PickupScript.AMMO], "supply": [PickupScript.SUPPLY], "health": [PickupScript.HEALTH, PickupScript.AMMO]}.get(sp[1], [PickupScript.AMMO])
@@ -714,6 +1015,15 @@ func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
 		spc.life = 100000.0
 		add_child(spc)
 		spc.setup(Vector2(_free_spot(level_w * _rng.randf_range(lo, hi)), floor_y - 30.0), Vector2.ZERO)
+	# פריט מיוחד חדש ("intro" ב-Arsenal.SPECIALS): בשלב הראשון שלו הוא מחכה קרוב להתחלה
+	for k in Arsenal.SPECIALS:
+		if Game.level in Arsenal.SPECIALS[k].get("intro", []):
+			var it = PickupScript.new()
+			it.kind = PickupScript.SPECIAL
+			it.special = k
+			it.life = 100000.0
+			add_child(it)
+			it.setup(Vector2(_free_spot(get_viewport_rect().size.x * 0.12 + 420.0), floor_y - 30.0), Vector2.ZERO)
 	# בדיקה: מכשיר MIND CONTROL ליד נקודת ההתחלה של כל שלב (Arsenal.TEST_MIND_EVERY_LEVEL)
 	if Arsenal.TEST_MIND_EVERY_LEVEL:
 		var mc = PickupScript.new()
@@ -756,9 +1066,25 @@ func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
 			owned.append(s.id)
 	var off: Dictionary = Arsenal.offers(Game.level, owned)
 	var n := 0
+	var news := []   # באנר NEW WEAPON / NEW ABILITY / WEAPON MOD (ui/unlock_banner.gd)
 	for wid in off.new:
-		_place_weapon(wid, _free_spot(safe_zone * 0.75 + float(n) * 90.0), floor_y)
+		_place_weapon(wid, _free_spot(safe_zone * 0.75 + float(n) * 90.0), floor_y).gift = true
+		news.append({"kind": "weapon", "id": wid})
 		n += 1
+	if Arsenal.has_mod(Game.level) and not Game.practice and not Game.upgrades.has(Arsenal.mod_key(Game.level)):   # WEAPON MOD: שדרוג חינם, פעם אחת בשלב (לא בתרגול)
+		var md = PickupScript.new()
+		md.kind = PickupScript.MOD
+		md.gift = true
+		md.life = 100000.0
+		add_child(md)
+		md.setup(Vector2(_free_spot(safe_zone * 0.75 + float(n) * 90.0), floor_y - 30.0), Vector2.ZERO)
+		news.append({"kind": "mod", "id": -1})
+	if not Game.completed.has(Game.level):   # יכולת שנפתחת בשלב הזה (רק בפעם הראשונה)
+		for aid in Arsenal.abilities_at(Game.level):
+			news.append({"kind": "ability", "id": aid})
+	var ub = preload("res://ui/unlock_banner.gd").new()
+	ub.items = news
+	add_child(ub)
 	if int(off.cache) >= 0:
 		var cx := _free_spot(level_w * Arsenal.CACHE_AT)
 		var mk = Arsenal.SupplyMarker.new()
@@ -784,13 +1110,14 @@ func _place_pickup(kind: int, pos: Vector2) -> void:
 	p.setup(pos, Vector2.ZERO)
 
 
-func _place_weapon(wid: int, x: float, floor_y: float) -> void:
+func _place_weapon(wid: int, x: float, floor_y: float) -> Node:
 	var p = PickupScript.new()
 	p.kind = PickupScript.WEAPON
 	p.weapon_id = wid
 	p.life = 100000.0
 	add_child(p)
 	p.setup(Vector2(x, floor_y - 30.0), Vector2.ZERO)
+	return p
 
 
 # היציאה + הבוס ששומר עליה

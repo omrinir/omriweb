@@ -152,7 +152,7 @@ static func upturned_hull(ci: CanvasItem, p: Vector2, w: float, h: float, c: Col
 #  חושך + ברקים
 # ============================================================
 class StormOverlay extends CanvasLayer:
-	var darkness := 0.52
+	var darkness := 0.45   # היה 0.52 - הדמויות נעלמו
 	var inside_dark := 0.86          # כמה חשוך בתוך המפעל
 	var flash := 0.0                 # 0..1 ברק עכשיו
 	var _rect: ColorRect
@@ -228,7 +228,7 @@ void fragment() {
 				dark = false
 		if player != null:
 			var pp: Vector2 = ct * (player.global_position + Vector2(0.0, -30.0))
-			lights.append(Vector4(pp.x, pp.y, 70.0 * zoom, 0.45))
+			lights.append(Vector4(pp.x, pp.y, 130.0 * zoom, 0.48))   # היה 70 - זומבים ליד השחקן נבלעו בחושך
 		var dyn: Array = preload("res://effects/dyn_lights.gd").gather(get_tree(), ct, zoom, player)   # פנס של השחקן
 		lights = preload("res://effects/dyn_lights.gd").merge(dyn[0], lights, 16)
 		if dyn[1]:

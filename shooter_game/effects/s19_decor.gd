@@ -12,6 +12,7 @@ extends RefCounted
 # ============================================================
 
 const Art := preload("res://art.gd")
+const Kit := preload("res://effects/backdrop_kit.gd")
 
 const LEAF := Color("3f7a32")
 const LEAF_D := Color("24502a")
@@ -46,12 +47,12 @@ static func _leaf(ci: CanvasItem, base: Vector2, dir: Vector2, length: float, co
 
 # ---- שמיים מבעד לצמרת ----
 static func jungle_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
-	var steps := 12
+	var steps := 36   # הרבה פסים דקים - בלי מדרגות צבע נראות
 	for i in steps:
 		var k := float(i) / float(steps - 1)
-		ci.draw_rect(Rect2(0, v.y * k, v.x, v.y / float(steps) + 1.0), Color("1f4a32").lerp(Color("c8e0a0"), pow(k, 0.8)))
+		ci.draw_rect(Rect2(0, v.y * k, v.x, v.y / float(steps - 1) + 1.0), Color("1f4a32").lerp(Color("c8e0a0"), pow(k, 0.8)))
 	var sun := Vector2(v.x * 0.35, 150.0)
-	ci.draw_circle(sun, 150.0, Color(1.0, 0.98, 0.75, 0.12))
+	Kit.soft_glow(ci, sun, 230.0, Color(1.0, 0.98, 0.75, 0.3))   # הילה רכה (היה עיגול עם קצה)
 	ci.draw_circle(sun, 46.0, Color(1.0, 1.0, 0.88, 0.85))
 	for i in 5:   # קרני אור אלכסוניות
 		var x0 := sun.x - 220.0 + float(i) * 90.0

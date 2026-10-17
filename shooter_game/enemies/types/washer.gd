@@ -168,6 +168,7 @@ func draw() -> bool:
 	z.draw_line(sh + Vector2(6, 0), hip + Vector2(-5, 2), col(Color("e0c020")), 2.0)
 	z.draw_rect(Rect2(hip + Vector2(-7, -1), Vector2(14, 3)), col(Color("e0c020")))
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_colored_polygon(Art.ellipse(head + Vector2(0, -3), 6.0, 3.6, 0.0, 10), col(Color("e8e8e8")))   # קסדה
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))

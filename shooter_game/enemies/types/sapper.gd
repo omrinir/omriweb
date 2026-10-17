@@ -120,6 +120,7 @@ func draw() -> bool:
 	for q in 4:   # כיסים
 		z.draw_rect(Rect2(sh + Vector2(-4.0 + float(q % 2) * 5.0, 4.0 + float(q / 2) * 5.0), Vector2(4, 3)), col(Color("4a3e2a")))
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
+	face(head)
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-3, -7), head + Vector2(5, -6), head + Vector2(7, -3), head + Vector2(-5, -1)]), col(Color("7a2a24")), Art.OUTLINE, 0.9)   # כומתה
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))

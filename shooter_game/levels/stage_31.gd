@@ -178,7 +178,7 @@ func extra_spawns() -> void:
 		var isl := _isle_at(zz.position.x)
 		if isl != null:
 			if zz.kind == Registry.DROWNED:   # טובע לא נולד על אי
-				zz.position.x = isl.position.x - 40.0
+				zz.position.x = isl.position.x - 40.0 - rng.randf_range(0.0, 140.0)   # (לא כולם באותה נקודה - היו נערמים)
 			else:
 				zz.position.y = floor_y - Decor.ISL_H - 1.0
 	for k in _gaps.size():

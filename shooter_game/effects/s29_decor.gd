@@ -525,7 +525,7 @@ class Obstacle extends Node2D:
 
 # ---- חושך המכרה ----
 class MineDark extends CanvasLayer:
-	const DARKNESS := 0.55
+	const DARKNESS := 0.48   # היה 0.55 - זומבים כהים נעלמו ברקע החום
 	var _rect: ColorRect
 	const SHADER := """
 shader_type canvas_item;
@@ -570,7 +570,7 @@ void fragment() {
 			lights.append(Vector4(c.x, c.y, 210.0 * zoom, lp.light()))
 		if player != null:
 			var pp: Vector2 = ct * (player.global_position + Vector2(0.0, -30.0))
-			lights.append(Vector4(pp.x, pp.y, 110.0 * zoom, 0.55))
+			lights.append(Vector4(pp.x, pp.y, 130.0 * zoom, 0.55))   # היה 110
 		var dyn: Array = preload("res://effects/dyn_lights.gd").gather(get_tree(), ct, zoom, player)
 		lights = preload("res://effects/dyn_lights.gd").merge(dyn[0], lights, 14)
 		var m := _rect.material as ShaderMaterial

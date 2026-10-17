@@ -187,6 +187,7 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 2.0, 15.0), Art.shade(sk, 0.25), Art.shade(sk, 0.25))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(6, -1), hip + Vector2(-6, -1)]), col(z.shirt), 0.12, 0.4)   # גופייה
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_colored_polygon(Art.ellipse(head + Vector2(0, -3.5), 5.6, 3.0, 0.0, 10), col(Color("e04040")))   # כובע
 	z.draw_rect(Rect2(head + Vector2(-9, -4), Vector2(5, 2)), col(Color("e04040")))   # מצחייה אחורה
 	if not z.dead:

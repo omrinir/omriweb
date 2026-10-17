@@ -151,6 +151,7 @@ func draw() -> bool:
 	z.draw_line(sh + Vector2(-4, 4), hip + Vector2(4, -2), col(Color("8a7a40")), 1.4)   # כתפייה
 	head += Vector2(_tilt * 3.0, absf(_tilt) * 1.5)   # מטה את הראש ומקשיב
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
+	face(head, Vector2(INF, 0))
 	z.draw_rect(Rect2(head + Vector2(-4, -2.5), Vector2(10, 3.2)), col(Color("d8d0b8")))   # תחבושת על העיניים
 	z.draw_line(head + Vector2(0, -1.5), head + Vector2(3, -0.5), col(Color("8a3a2a")), 1.0)
 	z.draw_line(head + Vector2(0, 3), head + Vector2(5, 3.5), col(Color("2a1a14")), 1.2)
