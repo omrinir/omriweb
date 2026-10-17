@@ -11,6 +11,8 @@ var zs := []
 var d0 := []
 var open_frames := 0
 var checked := false
+var shot_a := false
+var shot_c := false
 
 func _initialize() -> void:
 	var a := OS.get_cmdline_user_args()
@@ -50,6 +52,12 @@ func _process(_d: float) -> bool:
 			open_frames += 1
 			if open_frames == 1:
 				print("singularity open at frame ", f)
+			if n._t >= 0.45 and shot != "" and not shot_a:
+				shot_a = true
+				root.get_viewport().get_texture().get_image().save_png(shot + "_open.png")
+			if n._t >= 1.72 and shot != "" and not shot_c:
+				shot_c = true
+				root.get_viewport().get_texture().get_image().save_png(shot + "_collapse.png")
 			if n._t >= 1.2 and d0.size() > 0 and not checked:
 				checked = true
 				if shot != "":

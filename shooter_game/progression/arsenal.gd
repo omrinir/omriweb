@@ -43,7 +43,7 @@ const SPECIALS := {
 	"rocket": {"name": "ROCKET LAUNCHER", "uses": 2, "from": 8, "weight": 1.0, "color": Color("e05a30"), "weapon": 11},
 	# GRAVITY GRENADE: חור שחור קטן ששואב את כל הזומבים מסביב ואז קורס בפיצוץ (weapons/gravity_grenade.gd)
 	# "intro" = בשלבים האלה הוא מחכה בטוח ליד ההתחלה (הפעמים הראשונות שפוגשים אותו). אחר כך - רק מציאות אקראיות
-	"gravity": {"name": "GRAVITY GRENADE", "uses": 2, "from": 6, "weight": 1.5, "color": Color("9a6aff"), "weapon": -5, "intro": [6, 7]},
+	"gravity": {"name": "GRAVITY GRENADE", "uses": 2, "from": 6, "weight": 1.5, "color": Color("7aa8ff"), "weapon": -5, "intro": [6, 7]},
 	# שיקוי GOD MODE: מתחיל מיד כשלוקחים אותו (player.collect). 23 שניות: הגוף בוער, קליעי אש אדומים, נזק פי 4 (+300%)
 	# לא נופל באקראי ("from" 999) - מופיע רק בשלבים של potion_levels()
 	"god": {"name": "GOD MODE", "uses": 1, "from": 999, "weight": 0.0, "color": Color("ff2a2a"), "weapon": -2},
