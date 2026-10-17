@@ -1052,7 +1052,7 @@ SMG 2.4, assault rifle 2.6, rifle 3.2, sniper 3.7, shotgun 7.1. Set SCREEN_KICK_
 
 ## Region 6 - SOUTHERN CONE (levels 46-54): "They learned to plan."
 Each level brings 3 new zombie types; the boss is a giant variant of the level's first type (chase_range > 600, like KRAKEN).
-Game.IMPLEMENTED = 48.
+Game.IMPLEMENTED = 51 (levels 49-51 added later).
 
 ## Stage 46 - "WINE VALLEY" ("THEY LEARNED THE BLADE") - Mendoza vineyards at harvest dusk, region 6 (SOUTHERN CONE) level 1
 - levels/stage_46.gd + effects/s46_decor.gd: dusk sky with long flat sunset clouds, low sun and condors; far layer (0.06) = the snowy Andes
@@ -1155,3 +1155,131 @@ Game.IMPLEMENTED = 48.
   REBUILD once (REBUILD_T, takes x0.5 damage meanwhile, arms come back). With no arms left after the rebuild -> RAGE.
 - To tune: WALKWAYS, TIER, TRAMS, WIRES, TANGOS, STAGE_W, zombie_weights() in stage_48.gd; Tram / SparkWire constants in s48_decor.gd.
 - Game.IMPLEMENTED = 48.
+
+## Stage 49 - "RIVER DELTA" ("THEY LEARNED TO BREATHE WATER") - the Tigre / Parana delta on a foggy morning, region 6 (SOUTHERN CONE) level 4
+- levels/stage_49.gd + effects/s49_decor.gd: pale foggy morning sky with a hazy sun disc, slow fog bands and herons; far layer (0.06) =
+  the wide brown river, low islands with poplars and weeping willows, a ferry crossing slowly; mid layer (0.28) = colourful stilt houses,
+  a Tudor-style rowing club, boats bobbing on the water; near layer (0.6) = reeds swaying, red ceibo flowers, mooring posts and floating
+  debris drifting. World: DeltaGround (plank boardwalk over mud), StiltDeck (STILTS: verandas of stilt houses = upper floor at TIER,
+  2 ladders each, ammo/health on top), Channel (CHANNELS: open water cutting the boardwalk, you wade = slower), RowingClub
+  ("CLUB DE REMO" behind the boss), Obstacle "wreck" (a beached boat) / "crates" / "nets" (custom_gen skips reserved spots with free_x).
+  DeltaFX: fog bands, mosquito swarms, green river tint.
+- Trap SinkingDock (DOCKS): rotten planks. Step on one -> creak + "!" (WARN_T) -> it snaps: DMG to you, SLOW_T stuck in the mud
+  ("STUCK IN THE MUD"), DMG_Z to zombies standing on it. After that it is a water hole (TideDirector treats it as water).
+- Trap TideDirector ("THE RIVER RISES"): every CYCLE seconds (first one after 18 s) - "THE RIVER IS RISING - GET HIGH!" (WARN_T), the water
+  rises H px over the whole boardwalk for HIGH_T, then falls (FALL_T). Owns player.in_water (channels, broken docks, high tide) and sets
+  main meta "tide" (0..1) - FLOATER floats faster, ANGLER swims under water to you. Climb a stilt deck or an obstacle to stay dry.
+- FLOATER (enemies/types/floater.gd): a drowned body bloated with river gas (Last of Us bloater / police-diver "floaters"). Every belly hit
+  swells it (SWELL_PER); full belly or death = pops into a toxic GasCloud (hurts + dazes you "TOXIC GAS", GAS_DMG_Z to other zombies,
+  floaters immune). Next to you (SELF_R) it swells itself (SELF_T, green glow + gurgle) and pops. Faster in the tide (TIDE_SPEED).
+  "THEY LEARN WHERE TO WALK - TOGETHER": popped from far (> FAR_D) counts in main meta "floater_far"; after HIDE_LEARN every floater
+  walks behind another zombie ("THEY HIDE BEHIND THE OTHERS") so you can't pop it early without hitting the crowd.
+- ANGLER (enemies/types/angler.gd): a hunched fisherman with a bone rod growing from his back and a glowing "luz mala" lantern hanging in
+  front of his needle-toothed mouth. Waits submerged in a channel (LURK - only hat and eyes above water; body shots just SPLASH, only the
+  eye band is open). You come within SPRING_R -> the lantern swings (SWING_T) -> he leaps at you (LEAP_V), grabs and drags you (DRAG_T,
+  DRAG_V, shake free A/D) then bites. Shoot the lantern (layer-4 body) -> "BLINDED" for BLIND_T, takes BLIND_MULT damage, no more lurking.
+  "THEY LEARN THE LIGHT GIVES THEM AWAY": after DARK_LEARN lanterns shot (main meta "lures_shot") lanterns stay dark until you are within
+  DARK_R and swing faster (SWING_T_DARK) - "THE LIGHTS GO DARK".
+- SPOREWALKER (enemies/types/sporewalker.gd): a corpse overgrown by the delta's damp - mushroom caps on head and shoulder, shelf fungi on
+  the back, white mycelium, glowing spores (Cordyceps). Close to you (PUFF_R) it swells (PUFF_WIND) and puffs a SporeCloud: slow
+  (slow_t) + blur (daze "SPORES"); shooting it point-blank (HIT_PUFF_D) also bursts a small puff. On death a Stalk grows from the corpse
+  (layer-4 body + "blastable"): shoot it STALK_HP times ("CUT") or blow/burn it ("BURNED") within GROW_T, or it blooms - raises up to
+  RAISE_MAX corpses within RAISE_R ("RISE!") or, with no corpses around, spawns 1-2 hungry runners ("HUNGRY!"). Killed while burning
+  (fire bullets / explosion) = no stalk at all. "THEY CHOOSE WHERE TO DIE": after LEARN_CUT stalks cut (main meta "spore_cut") a hurt
+  sporewalker (< SEEK_HP) walks to the nearest corpse (SEEK_R) to die there, and stalks grow faster (GROW_T_LEARNED) and raise one more.
+- BOSS THE RIVER MOTHER = FLOATER with chase_range > 600: x2 size, doesn't self-pop; belly hits do BELLY_MULT. Spits GasBubbles in an arc
+  (SPIT_CD, a small gas cloud where they land), belches up to BELCH_MAX little floaters (BELCH_CD), below half HP a GAS WAVE around her
+  (WAVE_WARN then a WAVE_R cloud, every WAVE_CD). Dies in a huge gas cloud - step back.
+- Spawns (extra_spawns): SQUADS of FLOATER + walker + 1-2 SPOREWALKERs, an ANGLER in every channel past x 900, a SPOREWALKER on every deck.
+
+## Stage 51 - "THE RANCH" (THEY LEARNED TO HERD)
+
+Zone 6 (Southern Cone), stage 6. An Argentine estancia ("La Patrona") at blazing summer noon: white sun, dust, dead quiet.
+The dead gauchos still work the land - they ride, keep bees and brand cattle. Now they brand *you*.
+
+**Files**
+- `levels/stage_51.gd` - layout, spawns, sounds (`rn_creak`, `rn_pour`, `rn_bellow`).
+- `effects/s51_decor.gd` - sky + 3 parallax layers + all world objects / traps.
+- `enemies/types/rider.gd` - RIDER (also the boss, EL PATRON).
+- `enemies/types/beekeeper.gd` - BEEKEEPER (+ `Swarm`, `HoneyPuddle`).
+- `enemies/types/brander.gd` - BRANDER (+ `Brand`, the mark on the player).
+
+**Background (Backdrop)** - `ranch_sky` (white-blue noon sky, sun with turning rays, circling vultures),
+`far_plain` 0.06 (heat-shimmer horizon, mirage band, eucalyptus line, distant dust of a dead herd),
+`mid_casco` 0.28 (the casco with gallery + green shutters, Australian windmills + round tank, barn, silos, waving flag),
+`near_fence` 0.6 (wire fence, swaying purple thistles, rolling tumbleweeds, cattle skulls). All layers animate on `t`.
+Screen FX: `S17.HeatHaze` shader + dust particles + `RanchFX` (dust motes scaled by `Quality.ambient()`, a dust gust every 12-18 s, warm glare).
+
+**Layout / upper floor**
+- `TOWERS` - wooden water towers. Their deck is an invisible `add_floor` with 2 ladders, and each holds a pickup.
+- `SILOS` - grain silos with a catwalk (floor + ladder + pickup). A `GrainChute` trap sits next to each one.
+- Riders can't climb, so a deck is safe from the horse. The rider circles underneath and waits.
+- `CHUTES` (steer trap), `TROUGHS` (8 + 1 in the arena), `ASADO` (smoke), `BEES`, `COOPS`.
+- `DomaArena` (boss) at `level_w - 1100`.
+- Obstacles `bales` / `drums` / `tractor` come from `custom_gen` and skip reserved spots.
+- `extra_spawns`:
+  - a regular zombie on every deck
+  - a beekeeper by each set of bee boxes
+  - a brander guarding every 2nd trough
+  - 3 riders in the open
+
+**Traps**
+- `GrainChute`: walk under the pipe and it creaks (`WARN_T`), then pours grain (`POUR_T`).
+  - The pour does damage + slow to the player and buries zombies (`DMG_Z`).
+  - It leaves a slowing pile (`PILE_T`).
+  - Shooting the red hatch triggers it on your timing.
+- `Chute`: approach and the gate shakes (`WARN_T`), then a dead steer (`Steer`) runs down the road toward you.
+  - Jump it or roll. It tramples zombies too, and collapses on a wall.
+  - It has HP (`STEER_HP`). Shooting the latch opens the gate early.
+- `Trough` (group `troughs`): stand in it to wash off a brand. `AsadoPit` (group `smoke_src`, `SMOKE_R`): its smoke disperses bee swarms.
+- `Decor.smoky(tree, p)` returns true for asado smoke or any fire hazard (`fire_zone` with `zombie_burn`) within 150 px.
+
+**RIDER** - a dead gaucho on a dead horse.
+- **TROT:** approaches. If you're too close it backs off to build a run-up. The horse leaps bales and drums.
+- **WIND:** a telegraph, with a neigh and the facón raised.
+- **CHARGE** (`CHARGE_V`) through you plus `OVERSHOOT`:
+  - The horse tramples (`TRAMPLE_DMG`).
+  - A jump that's too low gets cut by the facón (`SLASH_DMG`).
+  - Ramming a wall or obstacle makes it **STUMBLE** (damage x`STUMBLE_MULT`).
+- **Two HP pools:**
+  - Hits at horse height (local y > -36) go to `horse_hp`.
+  - Hits on the rider are re-mapped so a head is a head and a torso is a torso.
+  - Explosions and fire hit both.
+  - When the horse dies a `HorseCorpse` stays on the ground and the rider is thrown (`THROWN_T`). He then fights on foot with his own HP, with a smaller hitbox resized at runtime.
+- **Learns:**
+  - Jump a charge once (`JUMP_LEARN`) and the next charge stops right in front of you and **REARS**: the hooves strike high and catch jumpers. Then it keeps charging.
+  - Counter: roll through it or back off.
+
+**EL PATRON** (boss, `chase_range > 600`, `boss_name` "EL PATRON - SHOOT THE HORSE"):
+- **The horse:** armored (`HORSE_ARMOR` on bullets; explosions do full damage). While mounted the rider takes x`RIDER_GUARD`.
+- **LASSO** (`LASSO_WIND`):
+  - The loop flies at you.
+  - If caught you are dragged (`DRAG_V`) straight into a rear-up hoof strike.
+  - Shooting the rope cuts it (the `Rope` body on layer 4 has `hit_by_bullet`).
+- **CALL:** whistles for 2 riders at `CALL_AT` hp fractions, up to 4 riders alive.
+- **STAMPEDE:** under 60% hp, every 2nd charge brings `STAMPEDE_N` dead steers (`s51_decor.Steer`) alongside.
+- **On foot:** faster, still throws the lasso, and always hunts.
+
+**BEEKEEPER** - a ragged beekeeper whose body is a hive, with a big hive box strapped to his back.
+- Keeps distance (`KEEP_R`). **RELEASE** (`RELEASE_T`, loud buzz) lets out a `Swarm`.
+- **The swarm:**
+  - It has HP (`SWARM_HP`); bullets do 6 or the gun's fixed damage. It chases you and stings (`STING_DMG` every `STING_T`).
+  - It is dispersed by: smoke (asado, fire), explosions (it is in group `blastable`), incendiary bullets, or a burning zombie nearby.
+  - Cover stops it: horizontal moves are ray-checked on mask 1.
+- **The hive:**
+  - Shots from behind, or above the head, hit the hive (`HIVE_HP`).
+  - Breaking it splashes a `HoneyPuddle` that slows you and releases one ANGRY swarm (faster, more HP).
+  - After that the beekeeper has no more swarms and goes berserk.
+- **Learns:** once its swarm has been stuck behind your cover for `BLOCK_LEARN` seconds, swarms go wide. They climb over the cover and come down on you from the other side ("THEY LEARN YOUR COVER").
+
+**BRANDER** - a heavy gaucho in a scorched leather apron with a red-hot "P" branding iron.
+- **AIM** (`AIM_T`, sizzle, glowing tip), then **THRUST** (`THRUST_T`), then **RECOVER**.
+- A hit does damage and puts a `Brand` node on the player (`BRAND_T`). Brands stack up to `BRAND_MAX`.
+- **While branded:**
+  - Every `HERD_EVERY` seconds, every zombie within `HERD_R` gets `_alert_t`, `_rush_t` and `brain.seen_t = 0` / `last_seen`, so the whole herd converges ("THE HERD KNOWS YOU").
+  - Standing in a trough washes the brand off and bumps the `brand_washes` meta on main.
+- **Learns:** once you've washed a brand, branders guard the water. When you're branded or near a trough, they stand between you and the nearest trough (`GUARD_R`).
+- Test helper: `apply_brand(player, t)` is static.
+
+**Tunables** - in each file header. Stage: `TOWERS`, `TIER`, `SILOS`, `SILO_TIER`, `CHUTES`, `TROUGHS`, `ASADO`, `BEES`, `zombie_weights()`
+(BRANDER 0.07, BEEKEEPER 0.05, RIDER 0.03, regulars 0.52, runners 0.33).

@@ -50,6 +50,9 @@ enum {
 	EXECUTIONER, HARVESTER, CASK,  # שלב 46 (עמק היין - מנדוסה). EXECUTIONER = גם הבוס (THE HEADSMAN)
 	TORO, BOLEADOR, STORMCALLER,   # שלב 47 (סערה בפמפס). TORO = גם הבוס (EL TORO)
 	IRONARMS, TANGO, CLOCKWORK,    # שלב 48 (הרובע הישן - בואנוס איירס). IRONARMS = גם הבוס (THE MACHINIST)
+	FLOATER, ANGLER, SPOREWALKER,  # שלב 49 (הדלתא - טיגרה). FLOATER = גם הבוס
+	PUPPETEER, LOBIZON, COFFIN_BREAKER,   # שלב 50 (בית הקברות - רקולטה). PUPPETEER = גם הבוס
+	RIDER, BEEKEEPER, BRANDER,     # שלב 51 (החווה). RIDER = גם הבוס
 }
 
 const FIRST := 20
@@ -192,6 +195,15 @@ const TYPES := {
 	IRONARMS: "res://enemies/types/ironarms.gd",
 	TANGO: "res://enemies/types/tango.gd",
 	CLOCKWORK: "res://enemies/types/clockwork.gd",
+	FLOATER: "res://enemies/types/floater.gd",
+	ANGLER: "res://enemies/types/angler.gd",
+	SPOREWALKER: "res://enemies/types/sporewalker.gd",
+	PUPPETEER: "res://enemies/types/puppeteer.gd",
+	LOBIZON: "res://enemies/types/lobizon.gd",
+	COFFIN_BREAKER: "res://enemies/types/coffin_breaker.gd",
+	RIDER: "res://enemies/types/rider.gd",
+	BEEKEEPER: "res://enemies/types/beekeeper.gd",
+	BRANDER: "res://enemies/types/brander.gd",
 }
 
 static var _stats_cache := {}
