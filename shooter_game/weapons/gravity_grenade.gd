@@ -1,8 +1,8 @@
 extends "res://grenade.gd"
 # ============================================================
 #  GRAVITY GRENADE - פריט מיוחד (progression/arsenal.gd -> SPECIALS "gravity").
-#  המראה: כמו רימוני החור השחור ב-THOR: THE DARK WORLD - כדור שחור עם שפה לבנה-כחולה מבהבת,
-#  הילה כהה סביבו, חומר שנמתח ונשאב פנימה, זומבים שמחשיכים ונבלעים, ובסוף קריסה לנקודה והבזק.
+#  המראה: רק חלקיקים. מאות נקודות אור (כחול -> לבן) מסתחררות פנימה ומתכווצות, ענן חלקיקים כהים
+#  יוצר את "החור" במרכז, זומבים מחשיכים ונבלעים. בסוף הכל נשאב לנקודה ומתפרץ החוצה כרסס ניצוצות.
 #  נזרק כמו רימון. אחרי FUSE נפתח חור שחור קטן (Singularity) ל-PULL_T שניות:
 #  כל זומבי בטווח PULL_R נשאב פנימה (מהר יותר ככל שהוא קרוב), מאבד שיווי משקל ונמעך.
 #  בסוף: קריסה - פיצוץ סגול שפוגע בכל מי שנאסף במרכז וזורק אותם החוצה.
@@ -56,25 +56,25 @@ static func draw_icon(ci: CanvasItem, c: Vector2, s: float, t: float) -> void:
 	ci.draw_rect(Rect2(c + Vector2(-2.0, -9.5) * s, Vector2(4.0, 3.0) * s), Color("9a9aa2"))
 
 
-# ---- החור השחור ----
+# ---- החור השחור: רק חלקיקים ----
 class Singularity extends Node2D:
 	const Boom := preload("res://explosion.gd")
 	const Sfx := preload("res://sfx.gd")
-	const Art := preload("res://art.gd")
 	const GG := preload("res://weapons/gravity_grenade.gd")
+	const N_LIGHT := 200   # נקודות אור שנשאבות
+	const N_DARK := 80     # ענן כהה שמסתובב במרכז ("החור")
 	var _t := 0.0
 	var _tick := 0.0
 	var _done := false
-	var _bits := []        # חומר שנשאב: [זווית, מרחק, מהירות, כהה?]
+	var _pts := []         # [זווית, מרחק, מהירות, כהה?, גודל, גיל]
 	var _caught := {}      # זומבים שנתפסו (מחשיכים ככל שהם קרובים; מחזירים צבע בסוף)
-	var _arcs := []        # ברקים קצרים על השפה
-	var _arc_t := 0.0
-	var _seed := randf() * 100.0
 
 	func _ready() -> void:
-		z_index = 14   # מעל הזומבים: מי שמגיע למרכז נבלע בתוך השחור
-		for i in 70:
-			_bits.append([randf() * TAU, randf_range(GG.R_MAX, GG.PULL_R), randf_range(0.6, 1.4), randf() < 0.35])
+		z_index = 14   # מעל הזומבים: מי שמגיע למרכז נבלע בענן הכהה
+		for i in N_LIGHT:
+			_pts.append(_spawn(false, true))
+		for i in N_DARK:
+			_pts.append(_spawn(true, true))
 		Sfx.play("lz_charge", global_position, 2.0, 0.0, 2, 0.4)   # זמזום עמוק שעולה
 		Sfx.play("explosion", global_position, -12.0, 0.05, 4, 0.5)
 		Game.make_noise(global_position, 500.0)
@@ -82,13 +82,29 @@ class Singularity extends Node2D:
 		if cam != null and cam.has_method("shake"):
 			cam.shake(5.0, 0.3)
 
-	# רדיוס הכדור: נפתח מנקודה, נושם, ובסוף קורס לנקודה
-	func radius() -> float:
-		var grow := 1.0 - pow(1.0 - clampf(_t / 0.22, 0.0, 1.0), 3.0)
-		var left := GG.PULL_T - _t
-		var shrink := clampf(left / GG.COLLAPSE_T, 0.0, 1.0)
-		shrink = shrink * shrink
-		return GG.R_MAX * grow * shrink * (1.0 + 0.04 * sin(_t * 23.0))
+	# חלקיק חדש. אור: חצי בטבעת צפופה סביב החור (מסתובבת מהר), חצי נופל פנימה מבחוץ.
+	# בהתחלה הכל נולד קרוב, כדי שהחור "יתפרץ" מהנקודה. כהה: צפוף במרכז
+	func _spawn(dark: bool, first: bool) -> Array:
+		var ring := not dark and randf() < 0.5
+		var dist: float
+		if dark:
+			dist = GG.R_MAX * sqrt(randf())
+		elif first:
+			dist = randf_range(4.0, 60.0)
+		elif ring:
+			dist = randf_range(GG.R_MAX * 1.05, GG.R_MAX * 2.3)
+		else:
+			dist = randf_range(GG.PULL_R * 0.45, GG.PULL_R)
+		var size := randf_range(6.0, 12.0) if dark else (randf_range(1.6, 3.2) if ring else randf_range(1.2, 2.4))
+		return [randf() * TAU, dist, randf_range(0.7, 1.3), dark, size, 0.0, ring]
+
+	# מהירות סיבוב (רדיאנים לשנייה) לפי המרחק מהמרכז
+	func _spin(dist: float, ring: bool) -> float:
+		return (2.6 if ring else 1.0) + 260.0 / maxf(dist, 14.0)
+
+	# 0..1: כמה חזק החור עכשיו (נפתח מהר, ובקריסה נשאב פנימה)
+	func _collapse_k() -> float:
+		return 1.0 - clampf((GG.PULL_T - _t) / GG.COLLAPSE_T, 0.0, 1.0)
 
 	func _physics_process(delta: float) -> void:
 		_t += delta
@@ -110,7 +126,7 @@ class Singularity extends Node2D:
 				continue
 			_caught[z] = true
 			var pull := GG.PULL_V * lerpf(1.0, 0.4, dist / GG.PULL_R) * k * (GG.BOSS_K if z.is_boss() else 1.0)
-			if dist < GG.CORE:   # במרכז: נתקע בתוך השחור
+			if dist < GG.CORE:   # במרכז: נתקע בתוך הענן
 				z.velocity = d * 8.0
 			else:
 				z.velocity = d / dist * pull + Vector2(0.0, -40.0)   # קצת הרמה - נגררים באוויר ולא נתקעים בריצפה
@@ -120,23 +136,29 @@ class Singularity extends Node2D:
 			z.modulate = Color(c, c * 0.95, c + 0.1 * dk, z.modulate.a)
 			if crush and dist < GG.CORE * 2.5:
 				z.take_damage(GG.CRUSH, zc, d.normalized(), false, {"source": "grenade", "fixed": GG.CRUSH})
-		for b in _bits:   # חומר מסתחרר פנימה, מאיץ ונמתח ליד השפה
-			b[0] += delta * (1.5 + 300.0 / maxf(b[1], 20.0)) * b[2]
-			b[1] -= delta * (120.0 + 1400.0 / maxf(b[1], 15.0)) * b[2]
-			if b[1] < radius() * 0.9:
-				b[0] = randf() * TAU
-				b[1] = randf_range(GG.PULL_R * 0.55, GG.PULL_R)
-		_arc_t -= delta
-		if _arc_t <= 0.0:   # ברקים חדשים על השפה
-			_arc_t = 0.05
-			_arcs.clear()
-			for i in randi_range(2, 5):
-				var a0 := randf() * TAU
-				var pts := PackedVector2Array()
-				for j in 6:
-					var aa := a0 + float(j) * 0.09
-					pts.append(Vector2.from_angle(aa) * (1.0 + randf_range(0.0, 0.35)))
-				_arcs.append(pts)
+		# חלקיקים: מסתחררים פנימה, מהר יותר ככל שקרובים. בקריסה - הכל נשאב לנקודה ולא נולד מחדש
+		var ck := _collapse_k()
+		for p in _pts:
+			p[5] += delta
+			var dist: float = p[1]
+			if p[3]:   # ענן כהה: מסלול צפוף סביב המרכז, מתכווץ בקריסה
+				p[0] += delta * (3.0 + 40.0 / maxf(dist, 6.0)) * p[2]
+				p[1] = maxf(dist + randf_range(-30.0, 30.0) * delta - ck * 260.0 * delta, 0.0)
+				if p[1] > GG.R_MAX * 1.1 and ck <= 0.0:
+					p[1] = GG.R_MAX * 0.6
+				continue
+			p[0] += delta * _spin(dist, p[6]) * p[2] * k
+			if p[6]:   # טבעת: מסתובבת מהר ונכנסת לאט
+				p[1] = dist - delta * (22.0 + ck * 900.0) * p[2] * k
+			else:
+				p[1] = dist - delta * (90.0 + 1300.0 / maxf(dist, 12.0) + ck * 900.0) * p[2] * k
+			if p[1] < (GG.R_MAX * 0.8 if _t > 0.35 else 3.0):   # נבלע בחור
+				if ck > 0.0:
+					p[1] = 0.0
+				else:
+					var np := _spawn(false, false)
+					for j in np.size():
+						p[j] = np[j]
 		queue_redraw()
 
 	func _collapse() -> void:
@@ -154,73 +176,48 @@ class Singularity extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
-		var k := clampf(_t / 0.25, 0.0, 1.0)
-		var r := radius()
-		var fade := clampf((GG.PULL_T - _t) / GG.COLLAPSE_T, 0.0, 1.0)
-		# 1. בור כבידה: הילה כהה שמחשיכה את מה שמסביב (עדשת כבידה)
-		for i in 7:
-			var rr := r * (1.25 + 0.32 * float(i)) + 6.0
-			draw_circle(Vector2.ZERO, rr, Color(0.0, 0.0, 0.04, 0.11 * k * fade))
-		# טבעת הטווח: עדינה, מתכווצת לאט (מראה מאיפה נשאבים)
-		var rr2 := GG.PULL_R * (1.0 - 0.3 * _t / GG.PULL_T)
-		draw_arc(Vector2.ZERO, rr2, 0.0, TAU, 72, Color(GG.COL, 0.1 * k * fade), 1.5, true)
-		# 2. חומר שנשאב: פסים שנמתחים (ככל שקרוב - ארוך ודק יותר)
-		for b in _bits:
-			var dist: float = b[1]
-			var ang: float = b[0]
-			var stretch := clampf(900.0 / maxf(dist, 20.0), 4.0, 40.0)
-			var p := Vector2.from_angle(ang) * dist
-			var tail := Vector2.from_angle(ang - stretch / maxf(dist, 1.0) * 0.8) * (dist + stretch * 0.6)
-			var near := clampf(1.0 - dist / GG.PULL_R, 0.0, 1.0)
-			var col := Color(0.05, 0.04, 0.08, 0.8 * k) if b[3] else Color(GG.COL_HOT.lerp(GG.COL, 1.0 - near), (0.25 + 0.6 * near) * k)
-			draw_line(tail, p, col, 1.0 + 1.5 * near, true)
-		if r < 0.5:
-			return
-		# 3. דיסקת ספיחה: קשתות שמסתובבות מהר סביב השפה
-		for i in 9:
-			var rad := r * (1.08 + 0.07 * float(i % 5))
-			var a0 := _t * (7.0 - 0.5 * float(i)) + float(i) * 1.7 + _seed
-			var length := 0.6 + 0.5 * sin(_t * 3.0 + float(i))
-			var cc := GG.COL.lerp(GG.DEEP, float(i % 3) / 3.0)
-			draw_arc(Vector2.ZERO, rad, a0, a0 + length, 12, Color(cc, 0.55 * k), 1.6 + float(i % 2), true)
-		# 4. הכדור השחור עם שפה רועדת
-		var edge := PackedVector2Array()
-		for j in 40:
-			var a := float(j) / 40.0 * TAU
-			var wob := 1.0 + 0.05 * sin(a * 5.0 + _t * 13.0) + 0.03 * sin(a * 9.0 - _t * 21.0)
-			edge.append(Vector2.from_angle(a) * r * wob)
-		Art.glow(self, Vector2.ZERO, r * 1.6, Color(GG.COL, 0.35 * k))
-		draw_colored_polygon(edge, Color(0.0, 0.0, 0.02, 1.0))
-		# מערבולת כהה בפנים (עומק)
-		for i in 3:
-			var a0 := -_t * (4.0 + float(i)) + float(i) * 2.1
-			draw_arc(Vector2.ZERO, r * (0.35 + 0.2 * float(i)), a0, a0 + 2.2, 14, Color(GG.DEEP, 0.35), 2.0, true)
-		# 5. אופק האירועים: שפה לבנה-כחולה מהבהבת (מתבהרת בקריסה)
-		var fl := 0.7 + 0.3 * sin(_t * 40.0) + (1.0 - fade) * 0.6
-		var rim := edge.duplicate()
-		rim.append(edge[0])
-		draw_polyline(rim, Color(GG.COL, 0.6 * fl), 4.0, true)
-		draw_polyline(rim, Color(GG.COL_HOT, minf(fl, 1.0)), 1.6, true)
-		# 6. ברקים קטנים שקופצים מהשפה
-		for pts in _arcs:
-			var sc := PackedVector2Array()
-			for q in pts:
-				sc.append(q * r)
-			draw_polyline(sc, Color(GG.COL_HOT, 0.85 * k), 1.2, true)
+		var ck := _collapse_k()
+		var flat := Vector2(1.0, 0.8)   # מעט פחוס - מערבולת ולא עיגול
+		# קודם הענן הכהה (החור), מעליו נקודות האור
+		for p in _pts:
+			if not p[3] or p[1] <= 0.0:
+				continue
+			var pos: Vector2 = Vector2.from_angle(p[0]) * p[1] * flat
+			var a: float = clampf(p[5] / 0.3, 0.0, 1.0) * (1.0 - ck * 0.5)
+			draw_circle(pos, p[4] * (1.0 - 0.5 * ck), Color(0.02, 0.0, 0.05, 0.55 * a))
+		for p in _pts:
+			if p[3] or p[1] <= 0.0:
+				continue
+			var dist: float = p[1]
+			var near := clampf(1.0 - (dist - GG.R_MAX) / (GG.PULL_R - GG.R_MAX), 0.0, 1.0)
+			var size: float = p[4]
+			var col := GG.COL.lerp(GG.COL_HOT, near * near)
+			if int(p[2] * 10.0) % 4 == 0:
+				col = GG.DEEP.lerp(GG.COL, near)   # חלק סגולים
+			var a: float = clampf(p[5] / 0.25, 0.0, 1.0) * lerpf(0.35, 1.0, near)
+			# שובל לאורך המסלול: נקודות שהולכות וקטנות מאחור, כך רואים את הסיבוב
+			var step: float = _spin(dist, p[6]) * p[2] * 0.022
+			for j in range(5, -1, -1):
+				var q: Vector2 = Vector2.from_angle(p[0] - step * float(j)) * (dist + (4.0 if not p[6] else 0.0) * float(j)) * flat
+				var f := 1.0 - float(j) / 6.0
+				if j == 0:
+					draw_circle(q, size * 2.6, Color(col, 0.16 * a))   # הילה רכה
+				draw_circle(q, size * (0.45 + 0.55 * f), Color(col, a * f * f))
 
 
-# הקריסה: הבזק לבן מנקודה, גל הדף דק, ניצוצות
+# הקריסה: התפרצות חלקיקים החוצה (ניצוצות אור + מעט אבק כהה)
 class Flash extends Node2D:
 	const GG := preload("res://weapons/gravity_grenade.gd")
-	const Art := preload("res://art.gd")
-	const LIFE := 0.55
+	const LIFE := 0.6
 	var _t := 0.0
-	var _sparks := []
+	var _p := []   # [מיקום, מהירות, גודל, כהה?]
 
 	func _ready() -> void:
 		z_index = 14
-		for i in 18:
-			_sparks.append([randf() * TAU, randf_range(250.0, 520.0)])
+		for i in 90:
+			var dark := i % 6 == 0
+			var v := Vector2.from_angle(randf() * TAU) * randf_range(180.0, 720.0) * Vector2(1.0, 0.8)
+			_p.append([Vector2.ZERO, v, randf_range(4.0, 8.0) if dark else randf_range(1.2, 3.0), dark])
 		var cam := get_viewport().get_camera_2d()
 		if cam != null and cam.has_method("shake"):
 			cam.shake(11.0, 0.35)
@@ -229,19 +226,14 @@ class Flash extends Node2D:
 		_t += delta
 		if _t > LIFE:
 			queue_free()
+			return
+		for p in _p:
+			p[0] += p[1] * delta
+			p[1] *= 1.0 - 4.0 * delta   # גרר: מאט מהר
 		queue_redraw()
 
 	func _draw() -> void:
-		var u := _t / LIFE
-		var a := 1.0 - u
-		var pop := clampf(1.0 - _t / 0.12, 0.0, 1.0)   # הבזק קצר וחזק
-		Art.glow(self, Vector2.ZERO, 30.0 + 90.0 * pop + 40.0 * u, Color(GG.COL_HOT, 0.9 * maxf(pop, a * 0.4)))
-		draw_circle(Vector2.ZERO, 10.0 * pop, Color(1, 1, 1, pop))
-		# גל הדף: טבעת כהה עבה + קו בהיר דק (עיוות)
-		var rw := GG.BLAST_R * (0.2 + 1.3 * sqrt(u))
-		draw_arc(Vector2.ZERO, rw, 0.0, TAU, 64, Color(0.0, 0.0, 0.05, 0.35 * a), 10.0 * a + 1.0, true)
-		draw_arc(Vector2.ZERO, rw + 4.0, 0.0, TAU, 64, Color(GG.COL_HOT, 0.8 * a), 1.6, true)
-		for sp in _sparks:
-			var d: float = sp[1] * u * (1.0 - 0.4 * u)
-			var p := Vector2.from_angle(sp[0]) * d
-			draw_line(p, p * 0.85, Color(GG.COL, a), 1.5, true)
+		var a := 1.0 - _t / LIFE
+		for p in _p:
+			var col: Color = Color(0.02, 0.0, 0.06, 0.5 * a) if p[3] else Color(GG.COL_HOT.lerp(GG.COL, _t / LIFE), a)
+			draw_circle(p[0], p[2] * (0.4 + 0.6 * a), col)
