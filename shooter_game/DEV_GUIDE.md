@@ -1052,7 +1052,7 @@ SMG 2.4, assault rifle 2.6, rifle 3.2, sniper 3.7, shotgun 7.1. Set SCREEN_KICK_
 
 ## Region 6 - SOUTHERN CONE (levels 46-54): "They learned to plan."
 Each level brings 3 new zombie types; the boss is a giant variant of the level's first type (chase_range > 600, like KRAKEN).
-Game.IMPLEMENTED = 51 (levels 49-51 added later).
+Game.IMPLEMENTED = 51.
 
 ## Stage 46 - "WINE VALLEY" ("THEY LEARNED THE BLADE") - Mendoza vineyards at harvest dusk, region 6 (SOUTHERN CONE) level 1
 - levels/stage_46.gd + effects/s46_decor.gd: dusk sky with long flat sunset clouds, low sun and condors; far layer (0.06) = the snowy Andes
@@ -1191,6 +1191,22 @@ Game.IMPLEMENTED = 51 (levels 49-51 added later).
   (SPIT_CD, a small gas cloud where they land), belches up to BELCH_MAX little floaters (BELCH_CD), below half HP a GAS WAVE around her
   (WAVE_WARN then a WAVE_R cloud, every WAVE_CD). Dies in a huge gas cloud - step back.
 - Spawns (extra_spawns): SQUADS of FLOATER + walker + 1-2 SPOREWALKERs, an ANGLER in every channel past x 900, a SPOREWALKER on every deck.
+
+## Stage 50 – "TANGO CEMETERY" ("THEY LEARNED TO PULL THE STRINGS")
+
+Recoleta at night. Files: `levels/stage_50.gd`, `effects/s50_decor.gd`, `enemies/types/puppeteer.gd`, `lobizon.gd`, `coffin_breaker.gd`.
+
+**Level** (`stage_50.gd`): `MAUSOLEUMS` (3 roofs at `TIER` 150, 2 ladders each, ammo/health on top) are the upper floor. Traps: `ANGELS` (AngelStatue) and `CRYPTS` (CryptDoor). Obstacles: grave / sarcophagus / urn (`custom_gen`, checked with `free_x`). `COFFINS` are coffin spawns (one sits on a roof). `SQUADS` alternate between a puppeteer with 3 dolls and a lobizon with a walker. Boss: `Registry.PUPPETEER` in front of the RecoletaGate. Music: `level2_suspense.mp3`. The `rc_*` sounds are in `SOUNDS`.
+
+**Moon** (`s50_decor.gd` MoonCycle, group `moon_cycle`): clouds (`CLOUD_T` 14-19 s), then a warning "THE CLOUDS ARE PARTING..." (`WARN_T` 3 s, howl), then "FULL MOON" (`FULL_T` 11 s). Shared through statics `S50.moon_k` (visual 0..1), `moon_warn` and `full_now` (gameplay, flips instantly). Use `S50.moon_full()` / `moon_rising()`. MoonFX draws the darkness, silver light, ground fog and banners. `force(state, t)` is for tests.
+
+**Decor**: `cem_sky` (moon and a cloud bank that slides off), `far_city` 0.06 (skyline, Basilica del Pilar with a swinging bell, bats), `mid_tombs` 0.28 (mausoleum rows, candles, fog), `near_cypress` 0.6 (cypresses, iron fence, cats with glowing eyes). Inner classes reach the statics through `const S50 := preload(self)`.
+
+**PUPPETEER**: strings up to `MAX_STRINGS` 3 zombies (boss 6) within `STRING_R`. Each string is `StringCut` (StaticBody2D, layer 4, mask 0, `hit_by_bullet`) on the middle of the string, so shooting the string cuts it. Puppets get `_speed_mul × PUPPET_SPEED` and meta `puppet`/`pp_mul`. JERK (`JERK_CD`, `JERK_WIND` telegraph: bar pulled back, strings flare) makes all the puppets lunge together. A strung puppet that dies is re-raised once (`REVIVES`, boss 3): "DANCE AGAIN!". A puppet farther than `STRING_MAX` slips off. He moves on his own and holds `HOLD_R` from you. When he dies, all strings snap and puppets stagger for `SNAP_STUN`. Learning: main meta `pp_cuts` ≥ `CUT_LEARN` gives double strings (2 hits each) and a faster re-string. Boss "THE BOKOR": `WHIP` (0.5 s windup, `WHIP_R`) and `SUMMON_CD` (raises 2 strung dolls).
+
+**LOBIZON**: slow human under the clouds. It starts the TURN (howl, `TURN_T`) when the moon is about to be full. As a WOLF it gets leaps, a 2-hit claw combo, `REGEN` and `WOLF_MULT` armour. It REVERTS (×1.5 damage) when the clouds return. Learning: if you sit up high during a full moon for `ABOVE_LEARN` s, it sets main meta `lobizon_climb` and every lobizon leaps onto roofs. Without a MoonCycle it uses its own cycle (`OWN_CYCLE`).
+
+**COFFIN BREAKER**: its own state machine, not `dormant`. The coffin hitbox is small and absorbs bullets. Approaching (`HINT_R`) gives faint scratches. `WAKE_R` triggers SCRATCH (`WARN_T`, lid jumps, fingers), then it bursts and leaves a CoffinBox. If you are close it keeps the lid as a front shield (`LID_HP`). It throws the lid (LidShot) if you are past `THROW_R` / `FLEE_R` or up high. GRAB (mash A/D) bites every `BITE_T`; on release it is stunned. Shooting a closed coffin early opens it early with no shield. Learning: main meta `cb_early` ≥ `EARLY_LEARN` makes later coffins patient: they ignore shots, stay silent, wait until you pass (`PASS_D`), then burst out behind you ("BEHIND YOU").
 
 ## Stage 51 - "THE RANCH" (THEY LEARNED TO HERD)
 
