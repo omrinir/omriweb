@@ -1015,6 +1015,15 @@ func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
 		spc.life = 100000.0
 		add_child(spc)
 		spc.setup(Vector2(_free_spot(level_w * _rng.randf_range(lo, hi)), floor_y - 30.0), Vector2.ZERO)
+	# פריט מיוחד חדש ("intro" ב-Arsenal.SPECIALS): בשלב הראשון שלו הוא מחכה קרוב להתחלה
+	for k in Arsenal.SPECIALS:
+		if int(Arsenal.SPECIALS[k].get("intro", -1)) == Game.level:
+			var it = PickupScript.new()
+			it.kind = PickupScript.SPECIAL
+			it.special = k
+			it.life = 100000.0
+			add_child(it)
+			it.setup(Vector2(_free_spot(get_viewport_rect().size.x * 0.12 + 420.0), floor_y - 30.0), Vector2.ZERO)
 	# בדיקה: מכשיר MIND CONTROL ליד נקודת ההתחלה של כל שלב (Arsenal.TEST_MIND_EVERY_LEVEL)
 	if Arsenal.TEST_MIND_EVERY_LEVEL:
 		var mc = PickupScript.new()
