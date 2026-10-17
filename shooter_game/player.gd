@@ -18,6 +18,7 @@ const GrenadeScript := preload("res://grenade.gd")
 const MolotovScript := preload("res://weapons/molotov.gd")
 const RocketScript := preload("res://weapons/rocket.gd")
 const DebrisScript := preload("res://debris.gd")
+const Particles := preload("res://particles.gd")   # עשן מהקנה (שוטגאן / צלף)
 const PickupScript := preload("res://pickup.gd")
 const MindControl := preload("res://effects/mind_control.gd")
 const LaserCannon := preload("res://weapons/laser_cannon.gd")   # פריט מיוחד: תותח לייזר (טעינה + קרן)
@@ -29,12 +30,12 @@ const SPRITE_SCALE := 0.44                             # גודל הדמות ב�
 enum { GUN, GRENADE }
 
 # ---- תנועה (אפשר לשנות) ----
-var walk_speed := 190.0
+var walk_speed := 205.0   # (gunfeel: 190 -> 205, קצב מהיר יותר)
 var run_speed := 320.0
 var crouch_speed := 90.0
 var jump_velocity := -620.0      # כמה חזק קופצים (שלילי = למעלה)
 var gravity := 1500.0
-var accel := 1800.0
+var accel := 2300.0       # (gunfeel: 1800 -> 2300, עצירה / יציאה חדות יותר)
 
 # ---- נשק ----
 var bullet_speed := 2600.0   # מהיר = פחות זמן לזומבי לזוז לפני הפגיעה
@@ -44,6 +45,7 @@ var grenade_delay := 0.7
 var recoil_push := 70.0          # כמה כל ירייה דוחפת אחורה על הריצפה
 # בעיטת מסך בכל ירייה (shake_camera.gd -> fire_kick): פיקסלים = BASE + PER_RECOIL * רתיעת הנשק (weapon_db "recoil"), עד MAX.
 # נשק כבד (רתיעה מעל HEAVY) מקבל גם רעידה קצרה. 0 = כבוי.
+const PUSH_HEAVY := 0.7          # מרתיעה כזו ומעלה (רובה צלפים / שוטגאן) הירייה "לוקחת" את השליטה בתנועה לרגע
 const SCREEN_KICK_BASE := 2.0
 const SCREEN_KICK_PER_RECOIL := 2.4
 const SCREEN_KICK_MAX := 7.0
@@ -89,6 +91,7 @@ const WeaponDB := preload("res://weapons/weapon_db.gd")
 const Arsenal := preload("res://progression/arsenal.gd")
 const Upgrades := preload("res://progression/upgrade_db.gd")        # שדרוגים שנקנו בחנות (נשקים / יכולות / PERKS)
 const AbilityRunnerScript := preload("res://abilities/ability_runner.gd")
+const GunArt := preload("res://weapons/gun_art.gd")   # ציור נשקי ההתקדמות ביד
 var abilities: Node = null       # היכולות (C = הפעלה, 6-0 = בחירה)
 var jetpack: RefCounted = null   # abilities/types/jetpack.gd כשהוא דולק
 enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, GRENADE_LAUNCHER, ASSAULT_SHOTGUN, ROCKET_LAUNCHER }
@@ -151,8 +154,15 @@ const GOD_TIME := 23.0           # כמה זמן GOD MODE נמשך
 const GOD_RAMP := 2.5            # בהתחלה מעט להבות, ותוך 2.5 שניות עולה לכמות הרגילה
 var _dust := []                  # אבק מהרגליים בריצה: [מיקום בעולם, מהירות, גיל, חיים, גודל]
 var _base_xf := Transform2D.IDENTITY
+var _dark := -1                  # שלב חשוך (לילה / רכבת תחתית / dark_level): -1 = עוד לא נבדק
+const RIM_COL := Color(0.62, 0.74, 1.0, 0.3)   # אור אחורי עדין סביב הדמות בשלב חשוך (שהמעיל השחור לא ייבלע ברקע)
 var _aim := Vector2.RIGHT
 var _muzzle_flash := 0.0
+var _mf_seed := 0                # צורת הבזק הלוע (אקראית בכל ירייה)
+const MUZZLE_T := 0.06           # כמה זמן הבזק הלוע נראה
+# גודל הבזק הלוע לפי סוג הנשק ("style" ב-weapon_db)
+const MUZZLE_SIZE := {"shotgun": 2.1, "ashotgun": 1.9, "sniper": 1.8, "rifle": 1.45, "ar": 1.25, "smg": 1.0, "pistol": 1.0, "launcher": 1.6,
+	"dbarrel": 2.3, "dbreath": 2.1, "revolver": 1.35, "lever": 1.35, "dmr": 1.5, "hsniper": 2.0, "lmg": 1.35, "minigun": 1.15, "rail": 1.5}
 var _recoil := 0.0
 var _dead_t := 0.0
 var _push_t := 0.0
@@ -655,7 +665,7 @@ func _physics_process(delta: float) -> void:
 			_aim = _aim.rotated(sin(_time * 7.0) * 0.16 + sin(_time * 11.3) * 0.07)
 	var trigger: bool = controllable and (TouchAPI.node().fire if TouchAPI.on() else Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) and not get_tree().paused and not wheel_open
 	# צלף: לחצן ימני = כוונת והזמן מאט
-	var scope := controllable and weapon == GUN and gun == SNIPER and not wheel_open and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not get_tree().paused
+	var scope := controllable and weapon == GUN and (gun == SNIPER or bool(WeaponDB.val(gun, "scope", false))) and not wheel_open and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not get_tree().paused
 	if scope != _scoping:
 		_scoping = scope
 		if scope:
@@ -763,6 +773,8 @@ func collect(p: Node) -> bool:
 			Sfx.play("boost", null)
 		PickupScript.WEAPON:
 			return _take_weapon(p)
+		PickupScript.MOD:   # ערכת שדרוג מההתקדמות (progression/arsenal.gd)
+			return Arsenal.apply_mod(self, p)
 		PickupScript.HEALTH:   # +1 לב (מלא = משאירים על הרצפה)
 			if health >= max_health:
 				return false
@@ -831,14 +843,14 @@ func _update_aim_guide(sh: Vector2) -> void:
 
 # ירי ממושך: כמה פיזור נוסף יש עכשיו (רק נשקים אוטומטיים מרגישים את זה באמת)
 func _bloom_spread(w: Dictionary) -> float:
-	if gun == SNIPER or gun == BOW:
+	if gun == SNIPER or gun == BOW or bool(w.get("sniper", false)) or str(w.get("projectile", "")) == "arrow":
 		return 0.0
 	var b: Vector2 = BLOOM_AUTO if str(w.get("category", "")) == "auto" else BLOOM_SEMI
 	return b.y * pow(_bloom, 1.6)
 
 
 func _add_bloom(w: Dictionary) -> void:
-	if gun == SNIPER or gun == BOW:
+	if gun == SNIPER or gun == BOW or bool(w.get("sniper", false)) or str(w.get("projectile", "")) == "arrow":
 		return
 	var b: Vector2 = BLOOM_AUTO if str(w.get("category", "")) == "auto" else BLOOM_SEMI
 	_bloom = minf(1.0, _bloom + b.x)
@@ -939,13 +951,16 @@ func _fire() -> void:
 		if msize > 0:
 			mag -= 1
 		var proj: String = w.get("projectile", "bullet")
-		Sfx.play(w.get("sound", "rifle"), global_position, w.get("sound_db", 0.0))
+		Sfx.play(w.get("sound", "rifle"), global_position, w.get("sound_db", 0.0), 0.08, 5, float(w.get("pitch", 1.0)))   # pitch: נשקי ההתקדמות (weapon_db)
 		Game.on_shot()
 		PlayerMemory.on_shot(gun)
 		Game.make_noise(global_position, 380.0)   # יריות מעירות זומבים מסביב
 		# שדרוג קצב אש (בחנות) משפיע על כל הנשקים
 		_cooldown = float(w.fire_rate) * (0.5 if boosts.has(PickupScript.ADRENALINE) else 1.0)
-		_muzzle_flash = 0.0 if proj == "arrow" or proj == "molotov" else 0.05
+		_muzzle_flash = 0.0 if proj == "arrow" or proj == "molotov" or proj == "flame" else MUZZLE_T
+		_mf_seed = randi()
+		if float(w.get("recoil", 1.0)) >= 0.7 and proj == "bullet":   # שוטגאן / צלף: עשן קטן מהקנה
+			Particles.burst(get_parent(), sh + _aim * 32.0, "smoke", _aim, 2 if float(w.get("recoil", 1.0)) < 1.5 else 3)
 		_recoil = 1.0
 		# רתיעה: הירייה דוחפת את הדמות הפוך לכיוון הקנה
 		var rk: float = w.get("recoil", 1.0)
@@ -956,7 +971,7 @@ func _fire() -> void:
 		elif rk > 0.0:
 			velocity -= _aim * air_recoil_push * minf(rk, 1.2)
 			velocity.y = maxf(velocity.y, -700.0)
-		_push_t = 0.12
+		_push_t = 0.12 if rk >= PUSH_HEAVY else 0.0   # נשק קל (SMG / אקדח / רובה סער) לא מאט את ההליכה בזמן ירי - run & gun
 		get_tree().call_group("zombies", "on_player_fired", sh, _aim)
 		if proj == "bullet":
 			_eject_casing(sh)
@@ -975,7 +990,8 @@ func _fire() -> void:
 			get_parent().add_child(b)
 			var spread := randf_range(-sp, sp)
 			b.pierce = int(w.get("pierce", 0)) + (3 if boosts.has(PickupScript.PIERCING) else 0)
-			b.incendiary = boosts.has(PickupScript.INCENDIARY)
+			b.incendiary = boosts.has(PickupScript.INCENDIARY) or bool(w.get("incendiary", false))   # DRAGON'S BREATH / FLAMETHROWER
+			b.flame = proj == "flame"   # FLAMETHROWER: להבה במקום קליע (bullet.gd)
 			b.god = boosts.has(PickupScript.GOD)
 			b.dmg_mult = w.get("damage", 1.0)
 			b.head_mult = w.get("head_mult", 1.0)
@@ -989,12 +1005,14 @@ func _fire() -> void:
 				spd *= randf_range(0.85, 1.0)
 			if proj == "arrow":   # חץ: עף בקשת
 				b.arrow = true
-				b.gravity = 900.0
+				b.gravity = float(w.get("gravity", 900.0))   # CROSSBOW: חץ מהיר ושטוח יותר
 			if w.has("fixed_damage"):
 				b.fixed_damage = w.fixed_damage
 			b.life_time = float(w.get("range", 1800.0)) / spd
 			b.setup(sh + aim * 30.0, aim.rotated(spread + randf_range(-1.0, 1.0) * _bloom_spread(w)) * spd, sh)
 		_add_bloom(w)
+		if msize > 0 and mag <= 0 and ammo > 0:   # הכדור האחרון: מתחילים לטעון מיד (לא מחכים ללחיצה הבאה)
+			reload()
 	else:
 		_use_special(sh)
 
@@ -1228,6 +1246,31 @@ func _take_weapon(p: Node) -> bool:
 			Sfx.play("weapon", null)
 			select_slot(i)
 			_say(p.label(), p.color())
+			if p.gift:   # נשק חדש מההתקדמות: רגע "NEW WEAPON" (ui/unlock_banner.gd)
+				get_tree().call_group("unlock_banner", "picked_weapon", p.weapon_id, "")
+			return true
+	if p.gift:   # נשק חדש מההתקדמות והמקומות מלאים: מחליף את הנשק הכי ישן (הוא נשאר על הרצפה, אפשר לחזור אליו)
+		var old := -1
+		for i in slots.size():
+			if slots[i] != null and (old < 0 or int(WeaponDB.val(slots[i].id, "unlock_level", 1)) < int(WeaponDB.val(slots[old].id, "unlock_level", 1))):
+				old = i
+		if old >= 0:
+			var gone := str(Game.WEAPON_NAMES[slots[old].id])
+			var dp = PickupScript.new()
+			dp.kind = PickupScript.WEAPON
+			dp.weapon_id = slots[old].id
+			dp.ammo_amount = slots[old].ammo
+			dp.pick_delay = 2.0
+			dp.life = 100000.0
+			get_parent().add_child(dp)
+			dp.setup(global_position + Vector2(-_face() * 40.0, -30.0), Vector2(-_face() * 120.0, -200.0))
+			slots[old] = {"id": p.weapon_id, "ammo": amt}
+			Game.mark_weapon_seen(p.weapon_id)
+			Game.story.emit("new_weapon", {"id": p.weapon_id})
+			Sfx.play("weapon", null)
+			select_slot(old)
+			_say(p.label(), p.color())
+			get_tree().call_group("unlock_banner", "picked_weapon", p.weapon_id, gone)
 			return true
 	if _empty_t <= 0.0:
 		_empty_t = 1.5
@@ -1386,12 +1429,22 @@ func _try_melee() -> bool:
 	return true
 
 
-# תרמיל נחושת שעף מהרובה אחרי כל ירייה
+# תרמיל נחושת שעף מהרובה אחרי כל ירייה (שוטגאן: תרמיל אדום עבה, צלף: תרמיל ארוך)
 func _eject_casing(sh: Vector2) -> void:
 	var c = DebrisScript.new()
 	get_parent().add_child(c)
 	var up := Vector2(-_aim.x, -1.0).normalized()
-	c.setup(sh + _aim * 14.0, Vector2(3.5, 1.6), Color("c8a040"), up * randf_range(140.0, 220.0) + velocity * 0.3)
+	var st: String = WeaponDB.val(gun, "style", "rifle")
+	var sz := Vector2(3.5, 1.6)
+	var col := Color("d8b048")
+	if st in ["shotgun", "ashotgun", "dbarrel", "dbreath"]:
+		sz = Vector2(5.5, 2.6)
+		col = Color("c0382a")
+	elif st in ["sniper", "hsniper", "dmr"]:
+		sz = Vector2(5.2, 1.8)
+	elif st == "pistol" or st == "smg":
+		sz = Vector2(2.8, 1.5)
+	c.setup(sh + _aim * 14.0, sz, col, up * randf_range(150.0, 240.0) + velocity * 0.3)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -1717,6 +1770,14 @@ func _land_squash() -> float:
 	return 0.12 * _land_k * sin(PI * sqrt(t))
 
 
+func _is_dark() -> bool:
+	if _dark < 0:
+		var m := get_parent()
+		var st = m.get("_stage") if m != null else null
+		_dark = 1 if Game.is_night() or Game.is_subway() or (st != null and st.has_method("dark_level") and st.dark_level()) else 0
+	return _dark == 1
+
+
 func _draw_hero(la: Vector2) -> void:
 	var fi := _hero_frame()
 	_anim = fi[0]
@@ -1725,6 +1786,10 @@ func _draw_hero(la: Vector2) -> void:
 	var s := SPRITE_SCALE
 	if HeroAnim.FLIP.has(fi[0]):   # פריים שמצויר בדף לכיוון השני
 		draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(-1.0, 1.0), 0.0, Vector2.ZERO))
+	if _is_dark():   # שלב חשוך: הילה קרה מאחורי הספרייט = קו מתאר בהיר סביב הצללית (זול: 3+2 עיגולים)
+		var hy := -float(fr[5]) * s * 0.5
+		Art.glow(self, Vector2(0.0, hy + 2.0), 30.0, RIM_COL)
+		Art.glow(self, Vector2(0.0, hy - 12.0), 16.0, Color(RIM_COL, RIM_COL.a * 0.8))
 	var sq := _land_squash()
 	if sq > 0.0:   # נחיתה: נמעך מעט סביב כפות הרגליים וחוזר
 		draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(1.0 + sq * 0.5, 1.0 - sq), 0.0, Vector2.ZERO))
@@ -2020,7 +2085,7 @@ func _reload_k() -> float:
 
 func _reload_kind() -> String:
 	match str(WeaponDB.val(gun, "style", "rifle")):
-		"shotgun":
+		"shotgun", "dbarrel", "dbreath", "lever":   # טוענים כדור-כדור (גם הדו-קני / DRAGON'S BREATH / רובה המנוף)
 			return "shell"
 		"launcher":
 			return "launcher"
@@ -2171,6 +2236,35 @@ func _draw_held(at: Vector2, la: Vector2, what: String) -> void:
 			Art.fill(self, PackedVector2Array([b + la * 4.0 - n * 2.4, b + la * 9.0, b + la * 4.0 + n * 2.4]), Color("c03a2a"), Art.OUTLINE, 0.9)
 
 
+# הבזק לוע: כוכב להבה (צורה אחרת בכל ירייה), חרוט לבן-צהוב קדימה, ליבה לבנה ואור רך סביב.
+# הגודל לפי הנשק (MUZZLE_SIZE). רובה / צלף: גם סילונים לצדדים (בולם לוע)
+func _draw_muzzle(m: Vector2, la: Vector2, n: Vector2, style: String) -> void:
+	if _muzzle_flash <= 0.0:
+		return
+	var k := clampf(_muzzle_flash / MUZZLE_T, 0.0, 1.0)   # 1 = רגע הירייה
+	var s: float = float(MUZZLE_SIZE.get(style, 1.0)) * (0.6 + 0.4 * k)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = _mf_seed
+	Art.glow(self, m + la * 6.0 * s, 30.0 * s, Color(1.0, 0.68, 0.28, 0.26 * k))   # אור על הדמות והסביבה
+	Art.glow(self, m + la * 5.0 * s, 12.0 * s, Color(1.0, 0.82, 0.42, 0.85 * k))
+	var c := m + la * 4.0 * s
+	var pts := PackedVector2Array()
+	for i in 14:
+		var ang := float(i) * PI / 7.0 + rng.randf_range(-0.14, 0.14)
+		var d := Vector2.from_angle(ang)
+		var r := 3.0 * s
+		if i % 2 == 0:
+			r = rng.randf_range(6.5, 10.5) * s * (1.9 if i == 0 else 1.0)   # הקרן הקדמית ארוכה
+		pts.append(c + (la * d.x + n * d.y) * r)
+	draw_colored_polygon(pts, Color(1.0, 0.6, 0.16, 0.95 * k))
+	var ln := (24.0 if style == "sniper" else 15.0) * s
+	draw_colored_polygon(PackedVector2Array([m + n * -2.6 * s, m + la * ln, m + n * 2.6 * s]), Color(1.0, 0.94, 0.62, k))
+	draw_circle(m + la * 3.0 * s, 2.8 * s, Color(1.0, 1.0, 0.93, k))
+	if style == "sniper" or style == "rifle":
+		for sd in [-1.0, 1.0]:
+			draw_line(m + la * 2.0 * s, m + la * 5.0 * s + n * sd * 9.0 * s, Color(1.0, 0.8, 0.42, 0.8 * k), 2.2 * s)
+
+
 func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 	var dg: int = _draw_id if _draw_id >= 0 else gun   # SPECIAL ביד = מציירים את הנשק שלו
 	var n := la.rotated(PI / 2.0)
@@ -2213,9 +2307,11 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 	if dg == PISTOL:   # אקדח: קטן, ביד אחת
 		Art.fill(self, PackedVector2Array([g.call(-1.0, -1.8), g.call(13.0, -1.8), g.call(13.0, 1.4), g.call(3.5, 1.4), g.call(2.5, 7.0), g.call(-1.5, 6.5), g.call(-1.0, 1.4)]), Color("1d1d23"), Art.OUTLINE, 1.0)
 		draw_line(g.call(0.0, -1.0), g.call(12.0, -1.0), Color(1, 1, 1, 0.15), 0.8, true)
-		if _muzzle_flash > 0.0:
-			var pm: Vector2 = g.call(15.0, -0.2)
-			Art.glow(self, pm, 7.0, Color(1.0, 0.75, 0.3, 0.9))
+		_draw_muzzle(g.call(14.0, -0.2), la, n, "pistol")
+		return
+	var xs := str(WeaponDB.val(dg, "style", ""))
+	if GunArt.has_style(xs):   # נשקי ההתקדמות (weapons/gun_art.gd)
+		_draw_muzzle(GunArt.draw_held(self, xs, hand, la, _time, _mag_out, _cooldown, float(WeaponDB.val(dg, "barrel", 25.0))), la, n, xs)
 		return
 	Art.fill(self, PackedVector2Array([g.call(-11.0, -0.5), g.call(-2.0, -1.6), g.call(-1.0, 2.2), g.call(-11.0, 4.2)]), wood, Art.OUTLINE, 1.0)
 	Art.fill(self, PackedVector2Array([
@@ -2251,7 +2347,4 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 			Art.disc(self, g.call(6.0, 3.0), 1.4, Color("1a1a1a"), Art.NONE)
 	Art.fill(self, PackedVector2Array([g.call(1.0, -1.6), g.call(9.0, -1.6), g.call(9.0, -3.8), g.call(1.0, -3.8)]), Color("101014"), Art.OUTLINE, 0.9)   # כוונת
 	draw_line(g.call(-1.0, -1.0), g.call(13.0, -1.0), Color(1, 1, 1, 0.12), 0.8, true)
-	if _muzzle_flash > 0.0:
-		var m: Vector2 = g.call(bl + 3.0, -0.4)
-		Art.glow(self, m, 9.0, Color(1.0, 0.75, 0.3, 0.9))
-		Art.fill(self, PackedVector2Array([m + la * -2.0 + n * -2.5, m + la * 8.0, m + la * -2.0 + n * 2.5]), Color(1.0, 0.95, 0.7), Art.NONE)
+	_draw_muzzle(g.call(bl + 1.0, -0.4), la, n, style)

@@ -229,7 +229,7 @@ func _draw() -> void:
 	if _intro_t < 1.0:   # מעבר שלב: נכנסים מתוך שחור
 		draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 1.0 - _intro_t))
 	# BULLET TIME: המסך כחלחל-אפור
-	if Engine.time_scale < 0.99 and not _game_over:
+	if Engine.time_scale < 0.99 and not _game_over and not Engine.has_meta("hitstop"):   # (לא בעצירת פגיעה קצרה - shake_camera.gd)
 		draw_rect(Rect2(Vector2.ZERO, vp), Color(0.55, 0.62, 0.8, 0.13))
 		for i in 4:
 			var w := 60.0 - float(i) * 14.0

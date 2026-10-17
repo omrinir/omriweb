@@ -136,6 +136,7 @@ func draw() -> bool:
 	z.draw_circle(sh + Vector2(1, 5), 1.5, col(Color("c0c4cc")))
 	z.draw_rect(Rect2(sh + Vector2(-6, 4), Vector2(4, 5)), col(Color("e0d020")))   # כיס עם כרטיסים
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_colored_polygon(Art.ellipse(head + Vector2(-1, -4), 4.6, 2.4, 0.0, 10), col(Color("6a6a6a")))   # שיער אפור
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))

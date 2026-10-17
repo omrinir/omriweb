@@ -13,6 +13,7 @@ const TRIGGER := 4          # כמה זומבים מאחור מקפיצים את
 const BEHIND := 220.0       # כמה פיקסלים מאחורי השחקן נחשב "מאחור"
 const RANGE := 1300.0       # רק כאלה שעוד באזור (רחוקים יותר ממילא ישנים)
 const DROP_RANGE := 1700.0  # התרחק מאוד (נפל לבור / נתקע) - כבר לא נחשב
+const LOST_RANGE := 800.0   # רחוק מזה והולך הפוך ממך = לא רודף (משוטט / מחכה) - הקיר לא מחכה לו (בבדיקת הבוט: 40 שניות מול קיר)
 const AHEAD := 230.0        # כמה לפני השחקן הקיר עולה
 const TIMEOUT := 40.0       # רשת ביטחון: אחרי 40 שניות הקיר נעלם בכל מקרה
 const LAYER := 512          # שכבת הקיר (רק השחקן מתנגש בה - player.gd)
@@ -78,11 +79,20 @@ func _eligible(z: Node, p: Node) -> bool:
 		return false
 	if z.get("type_mod") != null and z.type_mod.get("is_copy") == true:
 		return false
+	if (int(z.collision_layer) & 4) == 0:   # מתחת לאדמה / מתחת למים: אי אפשר לפגוע בו עכשיו (GRAVEBORN) - לא נועלים עליו
+		return false
+	if z.get("type_mod") != null and z.type_mod.get_script().get_script_constant_map().has("LEASH"):   # קשור בכבל (LIVEWIRE): לא יכול לבוא אחריך
+		return false
 	return absf(z.global_position.y - p.global_position.y) < 600.0
 
 
 func _still_counts(z: Variant, p: Node) -> bool:
 	if not is_instance_valid(z) or z.dead or not z.is_in_group("zombies"):
+		return false
+	if (int(z.collision_layer) & 4) == 0:   # ירד מתחת לאדמה: אי אפשר להרוג אותו - הקיר לא מחכה לו
+		return false
+	var dx: float = p.global_position.x - z.global_position.x
+	if absf(dx) > LOST_RANGE and z.velocity.x * dx < 0.0:
 		return false
 	return z.global_position.distance_to(p.global_position) < DROP_RANGE and z.is_physics_processing()
 

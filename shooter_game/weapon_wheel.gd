@@ -354,6 +354,8 @@ static func draw_weapon(ci: CanvasItem, p: Vector2, id: int, s: float, alpha := 
 		ci.draw_polyline(arr, Color(0, 0, 0, 0.7 * alpha), 1.0, true)
 	var ln := func(a: Vector2, b: Vector2, col: Color, w: float) -> void:
 		ci.draw_line(p + a * s, p + b * s, col, maxf(w * s, 1.0), true)
+	if preload("res://weapons/gun_art.gd").draw_icon(ci, p, id, s, alpha):   # נשקי ההתקדמות
+		return
 	match id:
 		0:   # רובה סער: קת עץ, מחסנית מעוקלת, קנה עם כוונת
 			poly.call([Vector2(-32, -2), Vector2(-14, -4), Vector2(-14, 3), Vector2(-30, 8)], wood)

@@ -19,11 +19,14 @@ var uses := 0          # לבדיקות
 
 
 func _ready() -> void:
+	cur = -1
 	_fill_slots()
-	for i in 5:
-		if slot(i) != "":
-			cur = i
-			break
+	if cur < 0 or slot(cur) == "":
+		cur = 0
+		for i in 5:
+			if slot(i) != "":
+				cur = i
+				break
 	for id in _equipped():
 		var a := _ability(id)
 		if a != null:
@@ -43,13 +46,19 @@ func _fill_slots() -> void:
 				Game.ability_slots[i] = id
 				placed = true
 				break
-		# המקומות מלאים: יכולת שנפתחה בשלב הזה מחליפה את הכי ישנה (בחנות אפשר לבחור אחרת)
+		# המקומות מלאים: יכולת שנפתחה בשלב הזה מחליפה את הכי ישנה - אבל לא ציוד קבוע ("keep": פנס, ג'טפאק, LAST BREATH).
+		# הישנה עוברת למאגר (גלגל Q -> ABILITIES, או בחנות)
 		if not placed and int(AbilityDB.val(id, "unlock_level", 1)) == Game.reached_level():
-			var oldest := 0
+			var oldest := -1
 			for i in 5:
-				if int(AbilityDB.val(str(Game.ability_slots[i]), "unlock_level", 99)) < int(AbilityDB.val(str(Game.ability_slots[oldest]), "unlock_level", 99)):
+				var sid := str(Game.ability_slots[i])
+				if AbilityDB.val(sid, "keep", false):
+					continue
+				if oldest < 0 or int(AbilityDB.val(sid, "unlock_level", 99)) < int(AbilityDB.val(str(Game.ability_slots[oldest]), "unlock_level", 99)):
 					oldest = i
-			Game.ability_slots[oldest] = id
+			Game.ability_slots[maxi(oldest, 0)] = id
+		if id in Game.ability_slots and int(AbilityDB.val(id, "unlock_level", 1)) == Game.reached_level():
+			cur = Game.ability_slots.find(id)   # היכולת החדשה מוכנה ל-C מיד
 
 
 func slot(i: int) -> String:

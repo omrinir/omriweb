@@ -113,6 +113,7 @@ func draw() -> bool:
 	for q in 3:   # כפור על הבגדים
 		z.draw_line(sh + Vector2(-5.0 + float(q) * 4.0, 2), sh + Vector2(-4.0 + float(q) * 4.0, 7), col(Color(0.9, 0.95, 1.0, 0.6)), 1.0)
 	Art.oval_shaded(z, head, 5.6, 6.0, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.5, -1.0), 1.0, Color(0.6, 0.9, 1.0))
 	z.draw_line(head + Vector2(0, 3), head + Vector2(5, 3), col(Color("2a3a4a")), 1.2)

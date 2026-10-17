@@ -12,6 +12,7 @@ extends RefCounted
 # ============================================================
 
 const Art := preload("res://art.gd")
+const Kit := preload("res://effects/backdrop_kit.gd")
 
 const STONE := Color("e6d6b6")       # אבן גיר בהירה
 const STONE_D := Color("bfa883")
@@ -30,17 +31,16 @@ static func _rng(s: int) -> RandomNumberGenerator:
 
 # ---- שמיים: כחול בהיר, שמש לבנה, עננים ----
 static func quarry_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
-	var steps := 12
+	var steps := 36   # פסים דקים - בלי מדרגות צבע
 	for i in steps:
 		var k := float(i) / float(steps - 1)
-		ci.draw_rect(Rect2(0, v.y * k * 0.85, v.x, v.y * 0.85 / float(steps) + 1.0), Color("6fb4ec").lerp(Color("dcefff"), k))
+		ci.draw_rect(Rect2(0, v.y * k * 0.85, v.x, v.y * 0.85 / float(steps - 1) + 1.0), Color("6fb4ec").lerp(Color("dcefff"), k))
 	ci.draw_rect(Rect2(0, v.y * 0.85, v.x, v.y * 0.15), Color("e8f2fb"))
 	var sun := Vector2(v.x * 0.8, 86.0)
 	for i in 10:   # קרניים
 		var a := float(i) * TAU / 10.0 + t * 0.04
 		ci.draw_colored_polygon(PackedVector2Array([sun, sun + Vector2.from_angle(a - 0.06) * 420.0, sun + Vector2.from_angle(a + 0.06) * 420.0]), Color(1.0, 1.0, 0.92, 0.06))
-	for r in [120.0, 80.0, 52.0]:
-		ci.draw_circle(sun, r, Color(1.0, 0.98, 0.85, 0.12))
+	Kit.soft_glow(ci, sun, 170.0, Color(1.0, 0.98, 0.85, 0.45))   # הילה רכה (היו 3 טבעות)
 	ci.draw_circle(sun, 34.0, Color(1.0, 1.0, 0.96))
 	for i in 5:   # עננים
 		var cx := fposmod(float(i) * 330.0 + t * (6.0 + float(i)), v.x + 400.0) - 200.0
@@ -57,6 +57,7 @@ static func terraces(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) 
 		var x := float(k) * period - sc
 		var r := _rng(k * 61 + 11)
 		var top := y - r.randf_range(230.0, 300.0)
+		ci.draw_rect(Rect2(x - 40.0, y - 2.0, period + 80.0, v.y - y + 2.0), STONE.lerp(Color("cfe3f3"), 0.1))   # קרקעית המחצבה (השמיים נראו בין המדרגות לכביש)
 		var steps := 5
 		for s in steps:   # מדרגות: כל אחת קצת יותר בהירה ורחוקה
 			var sy := top + float(s) * (y - top) / float(steps)

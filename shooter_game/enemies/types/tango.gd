@@ -264,6 +264,7 @@ func _draw_him(sk: Color, f: Array, hip: Vector2, sh: Vector2, head: Vector2, p:
 	z.draw_line(sh + Vector2(4, 1), sh + Vector2(4, 6), col(Color("8a1018")), 1.4)   # עניבה
 	z.draw_circle(sh + Vector2(-3, 4), 1.4, col(Color("b01822")))   # ציפורן בדש
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.2, -0.6))
 	z.draw_line(head + Vector2(1, 3.5), head + Vector2(5.5, 3.0), col(Color("2a1418")), 0.9)   # שפם דק
 	z.draw_circle(head + Vector2(3.5, -1.0), 1.0, Color(0.95, 0.9, 0.7) if not heartbroken else Color(1.0, 0.25, 0.2))
 	# פדורה

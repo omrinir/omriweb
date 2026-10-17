@@ -26,6 +26,9 @@ var dmg_mult := 1.0                        # מכפיל נזק של הנשק (we
 var head_mult := 1.0                       # מכפיל לירייה בראש (נשקים אוטומטיים: פחות מ-1)
 var knockback := 60.0                      # כמה הזומבי נהדף
 var weapon_id := 0
+var flame := false                         # FLAMETHROWER: לשון אש שגדלה ודועכת (לא קליע), נעלמת בקיר
+var _age := 0.0
+var _life0 := 0.0
 var arrow := false                         # חץ: עף בקשת (כבידה), נזק 13-19, ננעץ בריצפה ואפשר לאסוף
 var gravity := 0.0
 var _stuck := -1.0                         # חץ שננעץ: כמה זמן נשאר
@@ -36,6 +39,7 @@ var velocity := Vector2.ZERO
 var _exclude: Array[RID] = []
 var _cast_from := Vector2.ZERO
 var _first := true
+const TRACER_K := 0.019                    # שובל נותב: אורך = מהירות x זה (בערך מה שהקליע עובר בפריים), 24-80 פיקסלים
 
 
 func setup(muzzle_pos: Vector2, vel: Vector2, check_from: Vector2) -> void:
@@ -51,7 +55,7 @@ func _physics_process(delta: float) -> void:
 		_stuck -= delta
 		modulate.a = clampf(_stuck, 0.0, 1.0)
 		var pl := get_tree().get_first_node_in_group("player")
-		if pl != null and not pl.dead and pl.global_position.distance_to(global_position) < 26.0 and pl.add_ammo(2, 1):
+		if pl != null and not pl.dead and pl.global_position.distance_to(global_position) < 26.0 and pl.add_ammo(weapon_id, 1):
 			queue_free()
 		elif _stuck <= 0.0:
 			queue_free()
@@ -61,6 +65,14 @@ func _physics_process(delta: float) -> void:
 		rotation = velocity.angle()
 	if god:
 		_update_embers(delta)
+	if flame:   # להבה: מאטה, עולה קצת ומתנפחת
+		if _life0 <= 0.0:
+			_life0 = life_time
+			velocity *= randf_range(0.7, 1.05)   # להבות במהירויות שונות = לשון אש רציפה
+		_age += delta
+		velocity *= 1.0 - 1.6 * delta
+		velocity.y -= 90.0 * delta
+		queue_redraw()
 	life_time -= delta
 	if life_time <= 0.0:
 		queue_free()
@@ -92,6 +104,8 @@ func _physics_process(delta: float) -> void:
 		if mh.hit_test(from, to):
 			mh.pop(velocity.normalized())
 	_dist += from.distance_to(to)
+	if _dist < 100.0 and not arrow and not flame:   # השובל עוד גדל (לא נמשך אחורה לתוך הדמות בפריים הראשון)
+		queue_redraw()
 	while true:
 		var query := PhysicsRayQueryParameters2D.create(from, to, collision_mask, _exclude)
 		query.hit_from_inside = true   # זומבי צמוד לקנה (הקרן מתחילה בתוכו) - עדיין נפגע
@@ -117,7 +131,10 @@ func _physics_process(delta: float) -> void:
 			elif arrow:
 				src["fixed"] = randi_range(13, 19)
 			# שולחים גם את כיוון הקליע - לפיו הזומבי עף כשהוא מת
+			var fleshy: bool = hit.collider.is_in_group("zombies")
 			hit.collider.take_damage(damage, hit.position, velocity.normalized(), false, src)
+			if fleshy and not flame:
+				_flesh_hit(hit.position)
 			if god:
 				_god_burst(hit.position)
 			if pierce > 0:   # קליע חודר: ממשיך לזומבי הבא
@@ -128,6 +145,9 @@ func _physics_process(delta: float) -> void:
 		else:
 			if hit.collider.has_method("hit_by_bullet"):   # לבנה - נסדקת / נשברת
 				hit.collider.hit_by_bullet(hit.position, hit.normal, velocity.normalized())
+			if flame:   # להבה נכבית בקיר בלי ניצוצות
+				queue_free()
+				return
 			if arrow:   # החץ ננעץ ונשאר (אפשר לאסוף)
 				global_position = hit.position - velocity.normalized() * 4.0
 				_stuck = 8.0
@@ -172,6 +192,16 @@ func _update_embers(delta: float) -> void:
 	queue_redraw()
 
 
+# הבזק פגיעה בבשר: נקודה לבנה-חמה + קרניים + ענן אדום קטן (0.09 שנ'). רואים כל פגיעה גם בתוך המון
+func _flesh_hit(at: Vector2) -> void:
+	if FleshHit.alive >= FleshHit.MAX_ALIVE or arrow:
+		return
+	var fx := FleshHit.new()
+	fx.dir = velocity.normalized()
+	get_parent().add_child(fx)
+	fx.global_position = at
+
+
 func _god_burst(at: Vector2) -> void:
 	var fx := GodBurst.new()
 	get_parent().add_child(fx)
@@ -186,12 +216,33 @@ func _draw() -> void:
 			var c := Color(1.0, 0.85, 0.5).lerp(Color(1.0, 0.12, 0.08), minf(k * 2.0, 1.0))
 			draw_circle(p, e[4] * 2.2 * (1.0 - k), Color(1.0, 0.1, 0.05, 0.18 * (1.0 - k)))
 			draw_circle(p, e[4] * (1.0 - k * 0.6), Color(c, 1.0 - k))
+	if flame:   # FLAMETHROWER: כדור אש שגדל, מצהוב-לבן לכתום לאדום כהה ועשן
+		var k := clampf(_age / maxf(_life0, 0.01), 0.0, 1.0)
+		var r := 5.0 + 21.0 * k
+		var a := 1.0 - k * k
+		draw_circle(Vector2.ZERO, r * 1.7, Color(1.0, 0.3, 0.05, 0.13 * a))
+		draw_circle(Vector2.ZERO, r, Color(1.0, 0.45, 0.08, 0.7 * a).lerp(Color(0.25, 0.2, 0.2, 0.5 * a), maxf(k - 0.55, 0.0) * 2.0))
+		if k < 0.6:
+			draw_circle(Vector2(1.5, 0), r * 0.55, Color(1.0, 0.92, 0.55, 0.85 * (1.0 - k / 0.6)))
+		return
 	if arrow:   # חץ: מוט עץ, ראש מתכת ונוצות
 		draw_line(Vector2(-22.0, 0.0), Vector2(4.0, 0.0), Color("8a6a40"), 1.6, true)
 		draw_colored_polygon(PackedVector2Array([Vector2(4, -2.5), Vector2(10, 0), Vector2(4, 2.5)]), Color("b8b8c0"))
 		draw_colored_polygon(PackedVector2Array([Vector2(-22, 0), Vector2(-17, -3.5), Vector2(-14, -3.5), Vector2(-18, 0)]), Color("d04030"))
 		draw_colored_polygon(PackedVector2Array([Vector2(-22, 0), Vector2(-17, 3.5), Vector2(-14, 3.5), Vector2(-18, 0)]), Color("d04030"))
 		return
+	# שובל נותב (tracer): פס אור דק מאחורי הקליע, באורך מה שהוא עובר בפריים - רואים לאן יורים
+	var tl := minf(clampf(velocity.length() * TRACER_K, 24.0, 80.0), _dist)
+	if tl > 4.0 and not flame:
+		var tc := Color(1.0, 0.86, 0.55)
+		if pierce > 0 or sniper:
+			tc = Color(0.6, 0.85, 1.0)
+		elif god:
+			tc = Color(1.0, 0.3, 0.2)
+		elif incendiary:
+			tc = Color(1.0, 0.6, 0.2)
+		draw_polyline_colors(PackedVector2Array([Vector2(-tl, 0.0), Vector2(-tl * 0.45, 0.0), Vector2.ZERO]),
+			PackedColorArray([Color(tc, 0.0), Color(tc, 0.22), Color(tc, 0.6)]), 1.6)
 	# הציור בלבד קטן יותר (VIS_SCALE) - ההתנגשות נשארת באותו גודל (קל לפגוע)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(VIS_SCALE, VIS_SCALE))
 	# שובל אוויר דק ושקוף (כדי שיהיה אפשר לראות את הקליע זז)
@@ -249,6 +300,39 @@ class Impact extends Node2D:
 		var k := t / duration
 		for d in dirs:
 			draw_circle(d * t, 2.2 * (1.0 - k), Color(1.0, 0.8, 0.3, 1.0 - k))
+
+
+# ---- הבזק פגיעה בזומבי ----
+class FleshHit extends Node2D:
+	const DUR := 0.09
+	const MAX_ALIVE := 14
+	static var alive := 0
+	var t := 0.0
+	var dir := Vector2.RIGHT
+
+	func _ready() -> void:
+		z_index = 11
+		alive += 1
+		rotation = dir.angle()
+
+	func _exit_tree() -> void:
+		alive -= 1
+
+	func _process(delta: float) -> void:
+		t += delta
+		if t >= DUR:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		var k := t / DUR
+		var a := 1.0 - k
+		draw_circle(Vector2(6.0 + 10.0 * k, 0.0), 4.0 + 9.0 * k, Color(0.75, 0.05, 0.04, 0.4 * a))   # ענן דם (יוצא מהצד השני)
+		for r in [[-2.6, 13.0], [2.6, 13.0], [PI, 9.0], [0.0, 16.0]]:   # קרניים: חזרה לכיוון היורה, לצדדים ולפנים
+			var d := Vector2.from_angle(float(r[0]))
+			draw_line(d * 2.0, d * float(r[1]) * (0.6 + 0.6 * k), Color(1.0, 0.92, 0.7, 0.9 * a), 1.6 * a + 0.4)
+		draw_circle(Vector2.ZERO, 4.5 * (1.0 - k * 0.7), Color(1.0, 0.97, 0.85, a))
 
 
 # ---- GOD MODE: פיצוץ קטן של חלקיקים אדומים בנקודת הפגיעה ----

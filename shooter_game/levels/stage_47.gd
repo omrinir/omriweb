@@ -96,6 +96,8 @@ func build_background(layer: CanvasLayer) -> Node:
 		Decor.mid_estancia(ci, sc, v, 616.0, t))
 	bg.add_layer(0.62, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
 		Decor.near_grass(ci, sc, v, 640.0, t))
+	bg.overlay = func(ci: CanvasItem, v: Vector2, _t: float):   # גשם/ערפל בהיר מאחורי הדמויות - צלליות כהות נקראות על הדשא הכהה
+		Kit.haze_band(ci, v, 430.0, 612.0, Color(0.55, 0.62, 0.6, 0.32))
 	layer.add_child(bg)
 	return bg
 

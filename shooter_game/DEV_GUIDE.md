@@ -1308,3 +1308,404 @@ Screen FX: `S17.HeatHaze` shader + dust particles + `RanchFX` (dust motes scaled
 
 **Tunables** - in each file header. Stage: `TOWERS`, `TIER`, `SILOS`, `SILO_TIER`, `CHUTES`, `TROUGHS`, `ASADO`, `BEES`, `zombie_weights()`
 (BRANDER 0.07, BEEKEEPER 0.05, RIDER 0.03, regulars 0.52, runners 0.33).
+
+# Polish pass (2026-10-17)
+
+Six areas were reworked together: gun and kill feel, zombie spawn placement, lighting, zombie art, bot playtest bug fixes, and gun/ability progression. Each section below covers one area.
+
+## Gun feel + kill feel (polish pass "gunfeel")
+
+**Weapon balance** (`weapons/weapon_db.gd`). A regular zombie has 30 HP. Body hits do 12-15 x `damage`. Head hits do 30, and `damage` does not multiply them (only `head_mult` for automatics). Targets after this pass:
+
+| Weapon | damage | fire_rate | knockback | Body shots to kill a walker |
+|---|---|---|---|---|
+| RIFLE | 1.25 (was 1.0) | 0.6 (0.7) | 85 (60) | 2 (was 3) |
+| PISTOL | 0.8 (0.5) | 0.3 (0.38) | 55 (40) | 3 (5) |
+| SMG | 0.33 (0.25), spread 0.1 (0.13) | 0.11 (0.13) | 30 (22) | 7 (9) |
+| ASSAULT RIFLE | 0.55 (0.45) | 0.17 (0.2) | 60 (50) | 4 (5) |
+| SNIPER | 1.7 (1.0) | 1.25 (1.5) | 230 (120) | 1, and it pierces 3 (was 2) |
+| SHOTGUN | falloff [10, 2, 460] (was [9, 1, 420]) | 0.85 (1.0) | 190 (150) | 1 at close range |
+| ASSAULT SHOTGUN | unchanged | unchanged | 200 (170) | 1 at close range |
+
+`knockback` now also sets how far the corpse flies (see below).
+
+**Kill feel** (`zombie.gd`):
+- `_die` scales the corpse fling by the killing weapon's knockback: `KILL_FLING` [0.75 .. 1.75] over knockback 0..220.
+  Bullet and melee only. Explosions keep their own launch.
+- A kill with knockback >= `HEAVY_KB` (150: shotgun, assault shotgun, sniper) sets `heavy_kill`. The ragdoll
+  (`effects/ragdoll.gd`) then never takes its 30% "crumple in place" branch, so the body always flies.
+- `_kill_feel()`: plays `kill_punch` on a body kill (louder on a heavy kill), or `kill_crack` on a headshot kill.
+  Both are synthesized in `weapons/weapon_sounds.gd`. It also asks the camera for a hit-stop:
+  `HITSTOP_HEAD` 45 ms, `HITSTOP_HEAVY` 55 ms, `HITSTOP_BOSS` 280 ms. Only for kills on screen.
+- Survivor knockback is applied once per trigger pull (`_kb_shot` = `Game.shot_id`). Before, all 6-7 shotgun pellets added
+  110+knockback each, so a zombie was thrown ~1800 px/s, out of shotgun range, and the shotgun almost never killed.
+- Damage numbers: pellets of the same trigger pull (`Game.shot_id`) merge into one number. It counts up and grows a little
+  instead of stacking 6 numbers.
+
+**Hit-stop** (`shake_camera.gd` `hit_stop(sec)`):
+- Sets `Engine.time_scale = hitstop_scale` (0.08) for `sec` real seconds, then restores 1.0.
+- The player compensates for time_scale (`_rt`), so the hero keeps moving and rapid fire is never slowed. Only the world freezes.
+- At most one hit-stop per `hitstop_gap` (0.22 s). A boss always gets one.
+- Never runs during BULLET TIME, the sniper scope or the weapon wheel (time_scale already < 1). If one of those changes
+  time_scale during a hit-stop, it is not overwritten.
+- While active, `Engine` has meta `"hitstop"`. `hud.gd` skips the BULLET TIME tint then.
+- To turn it off: set the HITSTOP_* consts in zombie.gd to 0.
+
+**Shots** (`player.gd`, `bullet.gd`):
+- Muzzle flash `_draw_muzzle()`:
+  - a 7-point flame star with a new shape on every shot (`_mf_seed`), a bright forward cone, a white core,
+    and a soft light around the hero;
+  - size per style (`MUZZLE_SIZE`), lasts `MUZZLE_T` = 0.06 s;
+  - rifle and sniper also get side jets (a muzzle brake). The pistol uses the same flash.
+- Shotgun and sniper shots leave 2-3 smoke particles at the barrel.
+- Shell casings per weapon: shotgun = thick red shell, sniper = long brass, pistol/SMG = small.
+- Tracer: every bullet draws a fading streak behind it, about one frame of travel long (`TRACER_K`, 24-80 px).
+  Colors: warm; blue for sniper/pierce; orange for incendiary; red for GOD.
+  The streak grows from 0 on the first frames, so it never draws back into the hero.
+  The bullet node redraws only while the streak grows (first ~2 frames), and is static after that.
+- Flesh hit flash `bullet.gd FleshHit` (zombies only):
+  - a white-hot dot, 4 short rays and a small red mist on the exit side, 0.09 s;
+  - capped at `MAX_ALIVE` (14) at once.
+
+**Movement / responsiveness** (`player.gd`):
+- `walk_speed` 190 -> 205, `accel` 1800 -> 2300: snappier starts and stops. Jump height and run speed are unchanged.
+- The post-shot movement lock (`_push_t`, accel x0.25 for 0.12 s) now applies only to weapons with recoil >= `PUSH_HEAVY` (0.7).
+  SMG / AR / pistol / rifle no longer drag your walk speed while you hold the trigger (true run & gun).
+- Auto-reload: firing the last round in the magazine starts the reload at once. It no longer waits for the next trigger pull.
+- Muzzle-flash sizes also cover the new progression styles (dbarrel, dbreath, revolver, lever, dmr, hsniper, lmg, minigun, rail).
+  Their casings use the matching shell type.
+
+**Dark-level hero rim** (`player.gd` `_is_dark()`, `RIM_COL`):
+- On night, subway and `stage.dark_level()` levels, a faint cold halo is drawn behind the hero sprite (two `Art.glow` calls),
+  so the black coat no longer disappears into dark backgrounds.
+- The check is cached once per level. To change the strength, edit `RIM_COL.a` (0.3).
+
+**Testing** (scripted shooter, kept outside the repo):
+- Kills per weapon, level 3, 8 zombies, 11 s:
+  - rifle 6 -> 8 kills;
+  - pistol 7 -> 8;
+  - SMG 8 in 601 frames -> 8 in 520;
+  - sniper: the same 8 kills in 2 shots instead of 4.
+- All 51 levels ran 600 frames headless with firing (rotating weapons) and no script errors.
+- Hit-stop always restored `time_scale` (3-20 hit-stop frames per run).
+- CPU time with 45 zombies and SMG fire: 31.4 / 30.8 s before vs 32.1 / 30.0 s after, which is within noise.
+
+## Zombie placement and pace (polish pass, "spawns")
+
+**Regular scatter** (`main.gd` -> `_spawn_zombies`). The level is split into equal **slots** (`SPAWN_FIRST` .. `level_w - SPAWN_END`).
+Each group (picked from the stage's `zombie_weights`, group sizes as before: rats pack, dog pair, 2-3 cluster) gets one slot and a
+random spot inside it (`SPAWN_JITTER`). Before, x was fully random: up to 3.5 empty screens on levels 1-4 and piles of 6+ in one spot.
+* `_group_spot` / `_group_fits`: the whole group must fit on free road: not near a reserved rect (`_near_brick`), not within
+  `SPAWN_CP_CLEAR` of the checkpoint, at least `SPAWN_GAP` from other scatter zombies, not on a hazard or a blocked range
+  (`_spawn_blocked`). No room in the slot -> `_emptiest_spot` (the free spot farthest from every other zombie).
+* `_spawn_blocked(x0, x1)`: hazards near the road (group `hazards`, their `rect`) + `_spawn_avoid` ranges
+  (the subway's electrified rails - zombies used to spawn on them and die on frame 1).
+* A rats pack counts as 3 zombies toward the level's count (it used to eat 5-7 of the budget and leave long gaps).
+* Hurler imps stand one on each side of the hurler (they used to overlap the next group member).
+* **Floors**: `SPAWN_FLOOR_SHARE` of single, small built-in zombies (kinds 0-19, not brute/mech/dog/boss) stand on a platform
+  (group `platforms`) inside their slot instead of the road (`_spawn_on_floor`). A stage can turn this off:
+  `scatter_on_floors() -> false` (stage 9: roofs are the safe route). Types 20+ are placed on floors by the stages themselves.
+* `_spawn_group(rng, x, floor_y, kind, n, dormant_ok)` spawns one group; the pace director uses it too.
+
+**After `extra_spawns`**
+* `_settle_scatter()`: a scatter zombie standing on top of another zombie (`SPAWN_OVERLAP`) - usually one the stage placed on
+  purpose - steps aside to a free spot. Stage-placed zombies never move.
+* `_unstick_spawns()` (one physics frame later, when the physics space can be queried): a built-in zombie (kind < 20) whose body
+  is inside a solid on the road (a stage obstacle that was not `reserve()`d, a squad placed at a fixed x) moves sideways to free
+  floor (up to `UNSTICK_REACH`). Types 20+ are left alone - some hide inside things on purpose (BLEND IN trees, coffins, vents).
+
+**Checkpoint restart**: `CP_RESTART_CLEAR` (440, was 260) - no zombie waiting right in your face when TRY AGAIN starts at the checkpoint.
+
+**PACE DIRECTOR** (`levels/pace_director.gd`, created by `main.gd`): when no zombie is on screen for `IDLE_GAP` s and none is coming
+within `COMING` px ahead (and fewer than `MAX_AWAKE` are chasing nearby), a group of 2-3 (stage weights) enters from off-screen
+ahead (`AHEAD_MIN..AHEAD_MAX`) already alerted and running at the player. Checks ground with a ray (no pits / water / channels),
+a shape query (not inside a wall), `_near_brick` and `_spawn_blocked`. Budget per level = `BUDGET_SHARE` x the scatter count.
+Not before `START_X`, not in the last `BOSS_ZONE` px, not during story scenes, not when the player is under the road.
+A stage with its own wave system returns `pace_stream() -> false` (stage 16).
+
+**Measuring**: a headless SceneTree script walks the player through a level (teleport, invulnerable, "kills" the nearest visible
+zombie every 0.6 s, walks when nothing awake is within 420 px) and prints screen-window counts, biggest gap, overlaps,
+zombies inside solids / floating / on hazards / next to start or checkpoint, on-screen time, longest empty stretch and stuck zombies.
+(Kept outside the repo: devtools/t_spawn.gd - copy it into a test project, args `levels seeds dyn_seconds`, e.g. `-- 1,2,3 1,2 150`; run with
+`--fixed-fps 60`.)
+
+**Numbers** (normal difficulty, levels 1-51 x seeds 1-3 = 153 builds; "screen" = a 1024 px camera window slid along the level in 128 px steps):
+
+| | before | after |
+|---|---|---|
+| screens with no zombie (all / levels 1-4) | 7.2% / 40.3% | 0.9% / 4.7% |
+| screens with <= 1 zombie | 19.4% | 9.5% |
+| biggest empty stretch, average (worst) | 1351 px (5037) | 852 px (1801) |
+| most zombies in one screen, average | 9.5 | 7.9 |
+| overlapping pairs (< 16 px apart) per level | 3.2 | 0.4 |
+| built-in zombies spawned inside a solid (153 builds) | 16 | 2 |
+| zombies above the road (floors / roofs) per level | 4.8 | 5.5 |
+
+Walk-through bot (19 sampled levels): longest stretch with nothing on screen 5.2 s avg / 14.2 s worst -> 3.4 s / 6.8 s;
+first zombie on screen 2.8 s -> 1.9 s (levels 1 and 4 used to take 14 s / 7 s); kills per run 28.4 -> 31.4 (pace director); stuck ~0.1.
+
+## Lighting / readability pass (polish: lighting)
+
+Goal: characters (player + zombies) must always read against the background, no flat/placeholder backgrounds,
+no seams or gaps. Contact sheets: `/mnt/project-files/polish/shots/lighting_contact_before.png` / `_after.png`.
+
+### Shared helpers (effects/backdrop_kit.gd)
+* `Kit.glow_tex()` - one shared radial GradientTexture2D (built once, static).
+* `Kit.soft_glow(ci, c, r, col, squash := 1.0)` - soft halo (one textured quad). Use it instead of stacked
+  transparent `draw_circle`s, which show hard rings.
+* `Kit.soft_ellipse(ci, c, rx, ry, angle, col)` - rotated soft blob (nebula, mist, clouds).
+* `Kit.soft_smoke(...)` - smoke column made of soft blobs. `Kit.smoke_column` and `Kit.fire_glow` now draw soft
+  blobs too (all levels that use them changed look: no more "bubble" smoke / ringed fire glows).
+* `Kit.haze_band(ci, vp, y0, y1, col)` - vertical haze gradient (transparent at y0 -> col at y1). Put it in a
+  backdrop `overlay` just above the road (about y 420-612 on screen) to lift the background behind the
+  characters: dark silhouettes read again without brightening the whole level.
+* `Kit.gradient_sky` bands now overlap (height used `steps` instead of `steps - 1` -> 1-2 px gaps could appear).
+* `art.gd -> Art.glow()`: radius >= 24 px now draws the soft texture (3 circles = visible rings on big glows);
+  small glows keep the old 3-circle look.
+
+### Rules of thumb for new levels
+* Keep the band behind the characters (screen y ~430-607) mid-tone, not near-black and not white. If the art there
+  is dark, add `bg.overlay = func(ci, v, t): Kit.haze_band(ci, v, 420.0, 612.0, Color(..., 0.2-0.26))`.
+* Darkness overlays (subway.gd, s11 NightOverlay, s14 StormOverlay, s26 BunkerDark, s29 MineDark): the soft light
+  around the player is 130 px (`subway.gd -> PLAYER_GLOW`), so zombies that come close are visible even in black areas.
+* Sky gradients drawn by hand: band height = span / (steps - 1) + 1, and use 24-36 steps (12 shows posterized stripes).
+* Screen-space fog/whiteout events: keep a full-screen white fill under ~0.15-0.2 alpha (stage 28 cloud was 0.28).
+
+### Old levels rebuilt
+* **Level 3 (factory)** - `factory.gd -> FactoryBg` is now a `parallax_backdrop.gd` subclass: smoggy sunset sky
+  (soft sun, drifting smog bands, birds), far = cooling towers with steam + striped chimneys with red blinking lights +
+  gas flare, mid = refinery (tanks, gas spheres, distillation columns with lights, pipe rack, foundry with flickering
+  furnace windows, conveyor tower), near = big pipe with a steam-spitting valve, gantry crane with swinging load,
+  sodium lamp with light cone; overlay = warm haze behind the characters + rising embers. Tunables: consts at the top
+  of `FactoryBg` (HZ, FAR/MID/NEAR colors, LAMP).
+* **Level 2 (subway)** - `subway.gd -> TunnelBg` rebuilt the same way: tiled station wall with mosaic band, station
+  name signs (`NAMES`), torn posters, graffiti, damp stains; steel pillars with rivets and hazard stripes and sagging
+  cables; hanging fluorescent fixtures (some dead, some flickering) with light pools; overlay = pale haze behind the
+  characters + shadow under the ceiling. `darkness` 0.62 -> 0.52, player glow 70 -> 130 px.
+* **Level 1/4 (street, background.gd)** - sun halo and smoke clouds are soft (no rings). Level 4 night world tint
+  (main.gd CanvasModulate) 0.5/0.56/0.75 -> 0.64/0.68/0.86 so the player and zombies are not swallowed by the dark city.
+
+### Per-level tweaks
+* 7: world_tint 0.82/0.78/0.72 -> 0.92/0.88/0.82.
+* 14: StormOverlay darkness 0.52 -> 0.45, player glow 130.  11/26/29: player glow 130; 29 MineDark 0.55 -> 0.48.
+* 18: sky had dark seams every 52 px (band gap) + the sky showed between the terraces and the road -> fixed
+  (quarry floor fill), 36-step sky, soft sun halo.  19: 36-step sky (was 12 visible stripes), soft sun halo.
+* 25 / 36: haze band overlay behind the characters; 36 slope color lightened (2c2630 -> 3a3242).
+* 28: valley-mist band is a gradient (was a rect with a hard top line); the passing cloud is 0.15 (was 0.28) with soft blobs.
+* 34: Milky Way drawn with soft ellipses (hard-edged ellipses before).
+* 22: sky = smooth gradient (was 5 hard bands), soft low clouds, soft spray at the dam foot, damp streaks on the dam.
+* 44: dam wall got concrete pour lines, water streaks, shadow under the crest and moss at the foot (was flat grey).
+* 47: haze band overlay behind the characters (dark storm grass).
+
+### Performance
+`draw_circle` is the expensive primitive in backdrops (tessellated every redraw). The new backdrops use rects and the
+shared glow texture instead: measured on a heavily loaded machine, subway backdrop ~0.6 ms/frame, factory ~1.5 ms/frame
+(all layers). Kit.smoke_column / fire_glow / Art.glow (r >= 24) are now one textured quad per blob, cheaper than before.
+
+### Testing
+`t_light.gd` (devtools/t_light.gd): renders start + middle of each level with the
+player invulnerable and the 3 nearest zombies pulled next to him; one Godot process does a list of levels.
+
+## Zombie art polish (zombieart)
+
+How zombies look; behaviour, hit boxes and silhouettes are unchanged.
+
+### Per-instance variation (kinds 0-19)
+* `zombie.gd -> _vary(rng)` runs once in `_ready()` for the built-in kinds (`type_mod == null`), using the same
+  per-instance RNG as `_det` (seeded by the instance id), so the look is stable for a zombie's lifetime.
+* Skin: lerped 0..40% toward one of `SKIN_MIX` (grey-blue, jaundiced, pale, green, bruised). Animals (RAT/DOG/HOUND)
+  only get a light/dark fur tint.
+* WALKER and HURLER pick a shirt from `SHIRTS` and pants from `PANTS_MIX`. Kinds in `VARY_SHIRT` keep their base colour
+  with a small hue/saturation shift. COP, CONDUCTOR, DRUNK, etc. keep their uniform colours (only the pants lightness varies).
+* `hair` (from `HAIRS`), `_bald` (22%) and `_gore_arm` (35%) are new per-instance fields. Registry types keep the old
+  defaults (`hair` = 3a3026, not bald, no gore arm), so `z._head()` / `z._arm()` look the same for them.
+
+### Drawing changes in zombie.gd
+* `_head`: the back-hair oval and RUNNER's long hair use `hair`. For kinds < 20 (not BRUTE/BOSS/COP/CONDUCTOR) a hair cap
+  is drawn on top of the skull with no outline, because an outlined cap read as a dark hood at game zoom. Bald zombies get a
+  sore on the scalp instead.
+* `_head_rest`: a dim glint in the second (sunken) eye so faces read with two eyes; for kinds < 20, `_det[0]` adds blood drool.
+* `_arm(..., gore := false)`: torn flesh and exposed bone on the forearm. Only the front arm of kinds 0-19 with `_gore_arm` passes
+  true. It is skipped when `crowded()` is true.
+* `_torso_walker`: an open collar plus two buttons.
+* `_draw_rat`: pink tail, nose and ear, a highlight on the back, a raw sore and a red eye. The colours are `RAT_*` consts. The draw
+  cost matches the old rat (A/B median about +2%).
+* `_draw_hand`: a torn wet sleeve (one polygon), an exposed bone and a shaded palm. The colours are `HAND_*` consts.
+
+### Registry types
+* `enemies/zombie_type.gd -> face(head, eye := Vector2(3.5, -0.5))` is a new shared helper for the plain "oval head + one eye dot"
+  types. It draws a sunken socket, an open jaw with teeth (opens more while biting), cheek rot from `z._det[5]` and a soft glow
+  around the eye (`eye.x = INF` = no glow). Call it right after the head oval and before the hat and eye. These types use it:
+  sapper, sniper, handler, blackout, echo, dynamiter, signaler, boulder, spotter, panel, axeman, quipu, avalancher, guardian,
+  cinder, bellringer, frostbite, office, washer, striker, referee, capoeira, kite, courier, netter, boleador, tango,
+  harvester and stormcaller.
+* `enemies/empire_kit.gd -> soldier()` is shared by 19 empire types. It adds a darker collar, light on the shoulders, pocket flaps,
+  a per-instance blood stain with a bullet hole (`_det[0]`), a zombie face (socket, jaw, teeth, cheek rot) and a red eye glow.
+  `helmet()` is now shaded and outlined, with a chin strap and a highlight.
+* `spare_parts.gd`: a stitched-on skin patch, an X-stitched eye, a glowing eye, a jaw with teeth, an ear, and a stained gown with a
+  stitched belly wound.
+* `goliath.gd`: apron pocket, blood smears, ribs, veins, a sunken eye socket and an eye glow.
+
+### Testing tools (outside the repo)
+* Zoo: `devtools/t_zoo.gd` (`zoo.sh outdir kinds zoom`) spawns every kind 0-19 and every registry kind
+  (boss variants via `chase_range = 650`). Each kind is frozen in walk and attack poses on a neutral and a dark band.
+  Use `REPEAT=n` for a crowd of one kind.
+* Draw cost: `AB=1 [ABSWAP=1] REPEAT=4 prof.sh <proj> "kinds"` (headless) spawns half the zombies with the old `zombie_b0.gd`
+  in the same process and prints the before/after µs per draw from the `zombie.gd` prof hooks. Swap the bands with ABSWAP
+  and take the median: the machine is noisy.
+* Zoomed renders exaggerate outlines because the 2D AA feather is in canvas units. Judge the art at zoom 1.25 (game) and 2.5.
+
+## Playtest bot + bug fixes (polish pass, "playtest")
+
+### Autoplay bot (test tool, kept OUTSIDE the repo)
+`devtools/t_bot.gd` (a SceneTree script, like the other `t_*.gd` tools). It plays one level the way a
+player would and prints one `BOT ...` summary line plus details:
+```
+godot --headless --fixed-fps 60 --path . -s res://t_bot.gd -- <level> <god 1/0> <max_sec> [start_x] [stuck_shot.png]
+BOT_SEED=1234 godot ...      # level layout seed (default 1000 + level*7, so runs are repeatable)
+```
+* Input is real: physical key events (`Input.parse_input_event`) for A/D (double-tap = run), W (jump / double jump /
+  ladder), S (double tap = drop through a floor). Aiming/firing uses `player._aim` + `player._fire_test` (head height of
+  the nearest zombie with line of sight, layer 1). Reloads when idle, switches to a slot with ammo, throws specials
+  (grenade / molotov / launcher / rocket / laser) at crowds of 3+ or at the boss.
+* god = 1: `_invuln` every frame (+ ammo refill when everything is empty, counted as `refills`). god = 0: health is held at
+  100000 and every real hit is counted -> `deaths` = damage / max HP (infinite-lives difficulty measure).
+* Escapes: jumps on walls / gaps / stalls, double jump at the apex, climbs a ladder when stuck, drops through floors,
+  backs off and run-jumps; after 25 s at the same x it teleports 260 px forward and logs `TELEPORT` (= a real stuck spot).
+  With the pass barrier up and nothing visible it walks back to the zombies the wall waits for; at a locked exit with
+  nothing to shoot it walks to the boss; if the boss takes no damage for 8 s it backs off and jumps over its charge.
+* Logged: result (FINISHED / TIMEOUT), time, boss name / time killed / HP left, stuck episodes (x, y, what body blocks at
+  knee and head height), barrier episodes + who the wall waits for after 15 s, story scene time (forced finish after
+  90 s = hang), zombies falling out of the world / inside a solid body for 3 s / floating 4 s, pickups inside solids or
+  under the floor, frames over 25 ms, "PASSED LOCKED GATE". SCRIPT ERROR / ERROR lines come from the Godot log itself.
+* Frame times are wall clock: only meaningful on an idle machine.
+
+### Bugs found and fixed
+* `exit.gd`: the locked gate's invisible wall was 400 px tall - a double jump from a boss's head / a machine went over it,
+  and the player was then stuck between the locked gate and the level end (level 7). Now 1600 px.
+* `environment/pass_barrier.gd` ("THEY'RE BEHIND YOU"): the wall waited the full 40 s (up to 160 s per level) for
+  zombies that can never come: underground / underwater ones (collision layer without 4: GRAVEBORN, DROWNED), leashed
+  ones (types with a `LEASH` const: LIVEWIRE), and wanderers that walk away from the player more than `LOST_RANGE`
+  (800 px). They are no longer locked / are dropped from the list.
+* `enemies/types/driller.gd`: THE EXCAVATOR (level 18 boss) only drove toward a player closer than 900 px. Once the player
+  ran past it to the gate it sat off screen forever (locked gate, no boss in view). A boss that has met the player
+  (`_met`) now keeps coming from any distance.
+* `levels/stage_9.gd`: the tunnel ladders stood in the middle of the 96 px road holes. At the top of the climb there is no
+  floor under the player, so he fell back into the tunnel (bot stuck 25 s, real players must know to jump off sideways).
+  Ladders now stand at the hole edge (`LADDER_EDGE`), so the feet land on the road.
+* `enemies/types/ambusher.gd` (cape) and `zombie.gd _torso_runner` (vest): self-intersecting polygons ->
+  "Invalid polygon data, triangulation failed" (8-69 errors per level in levels 5-7, 15, 20, 25, 27, 32, 37, 48) and the
+  shape was simply not drawn that frame (cape / vest flicker). Cape point moved onto the back line; the runner vest drops
+  its neck notch when the torso leans far forward and the polygon would cross itself.
+
+### Known, not fixed (see the final report for the full list)
+* Test toggles still on: `Arsenal.TEST_MIND_EVERY_LEVEL = true` (a MIND CONTROL pickup at the start of every level) and
+  `TEST_LASER_LEVEL = 3`.
+* CONDUCTOR (level 2 boss) can only be hurt in the back; a player who stays in front never damages it (by design, but there
+  is no hint besides "NO EFFECT").
+* Level 23 (HIGHWAY 7): the player can get pinned against a moving car (AnimatableBody2D): on the road, not on floor,
+  velocity.y growing to 15000+, cannot move for 25 s (bot teleported). Not fixed.
+* Bot limitation: it walks to a ladder's x with a 6 px tolerance; a ladder against a wall (stage 9 tunnel exit) can leave it
+  pressing into the wall instead of climbing (a human just presses W). Bump the tolerance in `t_bot.gd` before trusting
+  long stuck times near ladders.
+
+### Results
+Before/after table of the 51-level god-mode sweep: `devtools/playtest_results_2026-10-17.md`.
+
+## Weapon + ability progression (polish pass "progression")
+
+The player now gets something new at almost every stage of the 51-level campaign: a new gun, a new
+ability, or a free WEAPON MOD. One table drives everything: `"unlock_level"` in `weapons/weapon_db.gd`
+(guns) and in `abilities/ability_db.gd` (abilities). `progression/arsenal.gd -> rewards(lv)` reads both and
+adds a WEAPON MOD to every stage from `MOD_FROM` (11) that has no gun / ability of its own.
+
+### Unlock table (W = weapon, A = ability, M = WEAPON MOD)
+
+| Stage | Reward | | Stage | Reward |
+|---|---|---|---|---|
+| 1 | W RIFLE (start kit) + A FLASHLIGHT | | 27 | W LMG (region 3 finale) |
+| 2 | W SHOTGUN | | 28 | A SENTRY GUN (Andes start) |
+| 3 | A SHOCK BLAST | | 29 | M |
+| 4 | W PISTOL | | 30 | W DRAGON'S BREATH |
+| 5 | A FLARE | | 31-32 | M |
+| 6 | A JETPACK (Highrise) | | 33 | A ADRENALINE SHOT |
+| 7 | W SMG | | 34-35 | M |
+| 8 | A LAST BREATH | | 36 | W ANTI-MATERIEL (Andes finale) |
+| 9 | W SNIPER (region 1 finale) | | 37 | W MARKSMAN RIFLE (Southeast start) |
+| 10 | W REVOLVER (Northeast start) | | 38-39 | M |
+| 11 | A INCENDIARY ROUNDS | | 40 | A MORTAR STRIKE (Harbor of War) |
+| 12 | W ASSAULT RIFLE | | 41-44 | M |
+| 13 | M | | 45 | W MINIGUN (Empire finale) |
+| 14 | W TASER | | 46 | A CHAIN LIGHTNING (Southern Cone start) |
+| 15 | A MOTION SCANNER | | 47-49 | M |
+| 16 | W DOUBLE BARREL (The Flood) | | 50 | W RAILGUN |
+| 17 | M | | 51 | M |
+| 18 | W LEVER-ACTION (region 2 finale) | | 52-63 | M (planned levels) |
+| 19 | W ASSAULT SHOTGUN (Plateau start) | | | |
+| 20 | A SMOKE BOMB | | | |
+| 21, 23, 26 | M | | | |
+| 22 | W CROSSBOW | | | |
+| 24 | W FLAMETHROWER (Burning Fields) | | | |
+| 25 | A FOCUS | | | |
+
+To change it: edit the `unlock_level` numbers. Nothing else needs to change (banner, gifts, shop order,
+practice loadout and mods all follow).
+
+### How a reward reaches the player
+* **New gun**: `main.gd -> _spawn_supplies` places it at the start of its stage (`Arsenal.offers().new`) as a
+  pickup with `gift = true` (`pickup.gd`: light beam + floating "NEW"). If all 5 slots are full, picking it up
+  swaps out the oldest gun (lowest unlock_level); that gun is dropped on the floor so it can be taken back
+  (`player.gd -> _take_weapon`). Older unlocked guns you don't own still come back in the mid-level weapon cache.
+* **New ability**: `abilities/ability_runner.gd -> _fill_slots` equips it in a free slot or replaces the oldest
+  ability that is not gear (`"keep": true` = FLASHLIGHT, JETPACK, LAST BREATH never get pushed out), and selects
+  it so C uses it right away. Replaced abilities stay in the reserve (Q wheel -> ABILITIES, or the shop).
+* **WEAPON MOD** (`pickup.gd MOD`, blue tool box): `Arsenal.apply_mod` gives +1 level on the lowest upgrade track
+  of the gun in your hands (or another of your guns; all maxed = `MOD_SCRAP` scrap). Claimed once per stage:
+  `Game.upgrades["m.<stage>"]` (saved with the upgrades), so TRY AGAIN / CONTINUE never give it twice. Not in PRACTICE.
+* **Banner** (`ui/unlock_banner.gd`, group "unlock_banner"): after the stage title (5 s) one card per reward -
+  icon, NEW WEAPON / NEW ABILITY / WEAPON MOD, name, what to do. Picking up a gift or mod shows an instant card
+  (`picked_weapon`, `picked_mod`). Waits during story scenes. Ability cards only the first time a stage is played.
+* **CONTINUE / checkpoints / TRY AGAIN**: gifts are offered from the level-start loadout (`Game.weapon_slots`), so a
+  retry offers the gun again; starting at a checkpoint moves the gifts you did not take to just ahead of the
+  checkpoint (`main.gd -> _start_at_checkpoint`). PRACTICE uses `Arsenal.loadout_for(lv)` (the 4 newest guns of
+  that stage + rifle), so the stage's own gun is already in hand.
+
+### New guns (weapons/weapon_db.gd ids 12-22; art in `weapons/gun_art.gd`)
+REVOLVER (heavy 6-shot, pierces 1), DOUBLE BARREL (2 shells, 8 pellets, 0.22 s between barrels), LEVER-ACTION
+(pierces 2), CROSSBOW (bolt, flat arc via `"gravity"`, pierces 3, bolts can be picked up again), FLAMETHROWER
+(`"projectile": "flame"` -> `bullet.gd` flame puffs that grow, slow down and ignite; no reload), LMG (80 box mag),
+DRAGON'S BREATH (`"incendiary": true` shotgun), ANTI-MATERIEL (.50, RMB scope via `"scope": true`, pierces 8),
+MARKSMAN RIFLE (fast semi-auto precision), MINIGUN (200 rounds, spinning barrels), RAILGUN (pierces 20, scope).
+New weapon fields: `pitch` (shot sound pitch), `incendiary`, `gravity`, `scope`, `flame`.
+`gun_art.gd`: `draw_held()` (called from `player._draw_rifle` when the style is in `STYLES`) and `draw_icon()`
+(called first in `weapon_wheel.draw_weapon`). New sound: `"flamer"` in `weapons/weapon_sounds.gd`.
+
+### Abilities (abilities/ability_db.gd + abilities/types/<id>.gd)
+| id | Name | What it does |
+|---|---|---|
+| flashlight | FLASHLIGHT | unchanged |
+| dark_pulse | SHOCK BLAST | was DARK PULSE: same knockback/stun/grab break, now electric (blue rings + bolts to each zombie) |
+| flare | FLARE | replaces DECOY ECHO: thrown road flare in group "decoys" (zombies chase it, `zombie._target_for_brain`), ignites zombies that reach it, lights dark levels ("dyn_lights") |
+| jetpack | JETPACK | unchanged, unlock moved 2 -> 6 |
+| last_breath | LAST BREATH | unchanged |
+| fire_rounds | INCENDIARY ROUNDS | replaces BLOOD HOOK: 7 s INCENDIARY boost |
+| hunters_sight | MOTION SCANNER | was HUNTER'S SIGHT: same see-through-walls overlay, green scan ring + beep |
+| smoke | SMOKE BOMB | replaces PHANTOM STEP: cloud; zombies inside stagger and lose you (`brain.sees/last_seen`); while you stand in it nobody within 900 px sees you |
+| focus | FOCUS | replaces SILENCE: BULLET TIME boost (world 0.35x, player full speed) + magazine refill, blue screen tint |
+| sentry | SENTRY GUN | auto-turret 12 s, shoots the nearest zombie in line of sight (`bullet.gd` bullets) |
+| adrenaline | ADRENALINE SHOT | +1 heart + ADRENALINE boost 6 s |
+| mortar | MORTAR STRIKE | marks the aim point, 4-6 shells land (`rocket.gd -> mini_boom`) |
+| chain_shock | CHAIN LIGHTNING | bolt to the zombie you aim at, jumps to 5+ more |
+
+Each has an icon (`draw_icon`), sound, cooldown, POWER/COOLDOWN shop tracks and `power_desc`.
+**Old saves**: `AbilityDB.MIGRATE` maps decoy->flare, phantom_step->smoke, silence->focus, blood_hook->fire_rounds;
+`game_state.gd` runs `migrate_slots` / `migrate_upgrades` on load (bought levels move to the new ability).
+Weapon ids did not change (new guns are appended), so old weapon slots load as before.
+
+### Shop
+WEAPONS tab is sorted by unlock stage; locked guns show "ARRIVES AT STAGE N" (not reached yet) or
+"FIND IT FIRST (STAGE N, OR A WEAPON CACHE)". Abilities stay "???" until their stage. Only unlocked items can be bought.
+
+### Also changed
+`progression/arsenal.gd`: test flags `TEST_MIND_EVERY_LEVEL` (MIND CONTROL at every stage start) and
+`TEST_LASER_LEVEL` (laser cannon at stage 3) were left on - turned off; both still come from normal special finds.

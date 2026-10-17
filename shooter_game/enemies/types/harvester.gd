@@ -384,6 +384,7 @@ func draw() -> bool:
 	z.draw_line(sh + Vector2(-8, 2), sh + Vector2(7, 3), col(Color("2a1a14")), 1.0)
 	# ראש + כובע קש
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.2, -0.6))
 	if not z.dead:
 		z.draw_circle(head + Vector2(2.5, -0.5), 1.0, Color(1.0, 0.75, 0.3))
 	z.draw_line(head + Vector2(1, 3.5), head + Vector2(5, 3), col(Color("3a1a1a")), 1.0)

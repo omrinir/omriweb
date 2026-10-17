@@ -159,7 +159,8 @@ func draw() -> bool:
 	var head := sh + Vector2(lerpf(6.0, 9.0, crouch), lerpf(-7.0, -2.0, crouch))
 	# ברזנט שמתנופף מאחור
 	var flap := sin(t * 6.0) * 3.0 * (1.0 - hk) + sin(t * 1.2) * 1.0
-	var cape := PackedVector2Array([head + Vector2(-6, -6), sh + Vector2(-2, -4), hip + Vector2(-6, -2), hip + Vector2(-16 - flap, 6), hip + Vector2(-10, 10), hip + Vector2(-4, 4)])
+	# הנקודה שליד הכתף יושבת על קו הגב (היתה בצד הפנימי -> המצולע חתך את עצמו: "triangulation failed")
+	var cape := PackedVector2Array([head + Vector2(-6, -6), sh + Vector2(-6, -2), hip + Vector2(-6, -2), hip + Vector2(-16 - flap, 6), hip + Vector2(-10, 10), hip + Vector2(-4, 4)])
 	Art.fill_shaded(z, cape, tarp, 0.1, 0.4)
 	# רגליים (מקופלות כשהוא כורע)
 	var bf: Vector2 = f[1]

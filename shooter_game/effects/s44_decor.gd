@@ -87,6 +87,22 @@ static func far_river(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float)
 static func mid_dam(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> void:
 	var top := y - 300.0
 	ci.draw_rect(Rect2(0, top, v.x, v.y - top), Color("8a8c88"))
+	# מרקם בטון: קווי יציקה אופקיים, כתמי רטיבות שזולגים מהכתר, טחב בתחתית (הקיר היה אפור שטוח)
+	var ly := top + 34.0
+	while ly < y:
+		ci.draw_rect(Rect2(0, ly, v.x, 2.0), Color(0.3, 0.31, 0.3, 0.18))
+		ly += 38.0
+	var sp := 70.0
+	var ss := int(floor(sc / sp)) - 1
+	for k in range(ss, ss + int(ceil(v.x / sp)) + 2):
+		var x := float(k) * sp - sc + _h(k, 4) * 40.0
+		var ln := 60.0 + _h(k, 5) * 200.0
+		ci.draw_rect(Rect2(x, top, 6.0 + _h(k, 6) * 12.0, ln), Color(0.25, 0.27, 0.26, 0.16))
+		ci.draw_rect(Rect2(x + 2.0, top, 3.0, ln * 0.6), Color(0.2, 0.22, 0.2, 0.14))
+	Kit.haze_band(ci, v, y - 110.0, y, Color(0.32, 0.4, 0.3, 0.2))
+	var c0 := Color(0.0, 0.0, 0.0, 0.3)
+	var c1 := Color(0.0, 0.0, 0.0, 0.0)
+	ci.draw_polygon(PackedVector2Array([Vector2(0, top), Vector2(v.x, top), Vector2(v.x, top + 60.0), Vector2(0, top + 60.0)]), PackedColorArray([c0, c0, c1, c1]))   # צל מתחת לכתר
 	var period := 220.0
 	var start := int(floor(sc / period)) - 1
 	for k in range(start, start + int(ceil(v.x / period)) + 2):

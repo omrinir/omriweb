@@ -1,6 +1,7 @@
 extends "res://abilities/ability_base.gd"
 # ============================================================
-#  HUNTER'S SIGHT - לכמה שניות רואים את כל הזומבים דרך קירות, חושך ומחסות
+#  MOTION SCANNER (id "hunters_sight" נשמר בשביל שמירות ישנות) - גל סריקה יוצא ממך,
+#  ולכמה שניות רואים את כל הזומבים דרך קירות, חושך ומחסות
 #  (מסומנים באדום), כולל מארבים וצידים שהתחבאו. POWER: משך.
 #  הציור עצמו: SightOverlay (z_index גבוה, מעל הכל).
 # ============================================================
@@ -13,7 +14,8 @@ func activate() -> bool:
 	if _ov == null or not is_instance_valid(_ov):
 		_ov = SightOverlay.new()
 		player.get_parent().add_child(_ov)
-	Sfx.play("boost", null, -2.0)
+	Sfx.play("beep", null, -2.0)
+	ring(player.global_position + Vector2(0, -26), 900.0, Color("4aff8a"), 0.9)   # גל הסריקה
 	return true
 
 
@@ -49,7 +51,7 @@ class SightOverlay extends Node2D:
 			var h: float = 60.0 * z.sc
 			var c: Vector2 = z.global_position + Vector2(0, -h * 0.5) - global_position
 			var a := (0.55 + 0.25 * sin(_t * 8.0)) * fade
-			draw_rect(Rect2(c - Vector2(14.0 * z.wf, h * 0.5), Vector2(28.0 * z.wf, h)), Color(1.0, 0.2, 0.15, a), false, 2.0)
-			Art.glow(self, c, 22.0, Color(1.0, 0.15, 0.1, 0.25 * fade))
+			draw_rect(Rect2(c - Vector2(14.0 * z.wf, h * 0.5), Vector2(28.0 * z.wf, h)), Color(0.3, 1.0, 0.5, a), false, 2.0)
+			Art.glow(self, c, 22.0, Color(0.2, 1.0, 0.45, 0.22 * fade))
 			if z.brain != null and z.brain.role == z.brain.AMBUSH:
 				draw_string(ThemeDB.fallback_font, c + Vector2(-30, -h * 0.5 - 6), "AMBUSH", HORIZONTAL_ALIGNMENT_CENTER, 60, 11, Color(1, 0.4, 0.3, fade))

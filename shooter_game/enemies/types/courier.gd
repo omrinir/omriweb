@@ -186,6 +186,7 @@ func draw() -> bool:
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(7, 3), hip + Vector2(-7, 3)]), coat, 0.12, 0.4)
 	z.draw_line(sh + Vector2(-7, 8), sh + Vector2(7, 8), col(Color("e0e060")), 1.5)   # פס מחזיר אור
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, 2), head + Vector2(-6, -5), head + Vector2(0, -8), head + Vector2(6, -5), head + Vector2(6, -2), head + Vector2(-2, -2), head + Vector2(-3, 3)]), col(Color("1a1a1a")))   # קסדה פתוחה
 	z.draw_line(head + Vector2(-1, -2), head + Vector2(7, -3), Color(0.6, 0.8, 1.0, 0.6), 1.2)   # משקף
 	if not z.dead:

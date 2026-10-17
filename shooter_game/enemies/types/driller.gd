@@ -50,6 +50,7 @@ void fragment() { if (wy > clip_y) { discard; } }
 
 enum { DRIVE, DIG, UNDER, WARN, ERUPT, STUN }
 var state := DRIVE
+var _met := false          # בוס: כבר ראה את השחקן (מכאן והלאה רודף מכל מרחק)
 var erupts := 0             # לבדיקות
 var hits := 0
 var warned := 0
@@ -273,6 +274,8 @@ func physics(pl: Node, delta: float) -> bool:
 			_pitch = move_toward(_pitch, 0.0, delta * 2.0)
 			var spd := 0.0
 			if has_pl and absf(dx) < 900.0:
+				_met = true
+			if has_pl and (absf(dx) < 900.0 or (_boss() and _met)):   # בוס שכבר פגש אותך: ממשיך לבוא (אחרת נשאר רחוק מאחור והשער נעול בלי בוס על המסך)
 				z._dir = signf(dx) if dx != 0.0 else z._dir
 				spd = DRIVE_SPEED * (0.8 if _boss() else 1.0)
 				var high: bool = pl.global_position.y < z.global_position.y - HIGH

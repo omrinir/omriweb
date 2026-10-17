@@ -113,7 +113,7 @@ static func mid_ruins(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float)
 	var poly := pts.duplicate()
 	poly.append(Vector2(v.x + 30.0, v.y))
 	poly.append(Vector2(-30.0, v.y))
-	ci.draw_colored_polygon(poly, Color("2c2630"))
+	ci.draw_colored_polygon(poly, Color("3a3242"))   # היה 2c2630 - כהה מדי מאחורי הדמויות
 	for q in pts.size():   # שלג על קו הרכס
 		if q % 3 == 0:
 			ci.draw_colored_polygon(Art.ellipse(pts[q] + Vector2(0, 3), 22.0, 4.0, 0.0, 8), Color(0.75, 0.75, 0.82, 0.6))
@@ -133,7 +133,7 @@ static func mid_ruins(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float)
 			ci.draw_rect(Rect2(bx - 16, gy - 60, 32, 60), Color("3e3640"))
 			ci.draw_colored_polygon(Art.ellipse(Vector2(bx, gy - 60), 18.0, 5.0, 0.0, 10), Color("4e4650"))
 			ci.draw_colored_polygon(PackedVector2Array([Vector2(bx - 5, gy - 8), Vector2(bx + 5, gy - 8), Vector2(bx + 3, gy - 26), Vector2(bx - 3, gy - 26)]), Color("14101a"))
-	ci.draw_rect(Rect2(0, y, v.x, v.y - y), Color("2c2630"))
+	ci.draw_rect(Rect2(0, y, v.x, v.y - y), Color("3a3242"))
 
 
 # ---- סלעים, אפצ'טות, עשב איצ'ו ----

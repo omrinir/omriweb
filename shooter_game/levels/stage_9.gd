@@ -19,6 +19,7 @@ const PickupScript := preload("res://pickup.gd")
 const DEPTH := 300.0
 const TUNNELS := [[0.27, 0.37], [0.61, 0.71]]   # מנהרות: [התחלה, סוף] כחלק מאורך השלב
 const HOLE_W := 96.0
+const LADDER_EDGE := 5.0   # מרכז הסולם - כמה פיקסלים מקצה הבור (חצי רוחב השחקן = 11 -> 6 פיקסלים על הכביש)
 
 
 func zombie_weights() -> Dictionary:
@@ -83,6 +84,10 @@ func road_holes() -> Array:
 
 func zombie_density() -> float:
 	return 1.05
+
+
+func scatter_on_floors() -> bool:   # הגגות = המסלול הבטוח (מעט זומבים, extra_spawns)
+	return false
 
 
 # ---- רקע ענק: 4 שכבות ----
@@ -192,8 +197,10 @@ func _tunnels() -> void:
 		main._make_brick(Vector2(x0 - 40.0, by), Vector2(x1 - x0 + 80.0, 60.0), 3, Color("2a2622"), false)   # ריצפת המנהרה
 		main._make_brick(Vector2(x0 - 40.0, vp.y), Vector2(40.0, DEPTH), 3, Color("2a2622"), false)          # קירות קצה
 		main._make_brick(Vector2(x1, vp.y), Vector2(40.0, DEPTH), 3, Color("2a2622"), false)
-		add_ladder(x0 + HOLE_W * 0.5, floor_y, by)
-		add_ladder(x1 - HOLE_W * 0.5, floor_y, by)
+		# סולמות צמודים לשפת הבור: בראש הסולם הרגליים כבר על הכביש
+		# (באמצע הבור = בסוף הטיפוס אין ריצפה מתחת, והשחקן נופל חזרה למנהרה)
+		add_ladder(x0 + LADDER_EDGE, floor_y, by)
+		add_ladder(x1 - LADDER_EDGE, floor_y, by)
 		reserve(Rect2(x0 - 60.0, floor_y - 60.0, x1 - x0 + 120.0, 60.0))
 		# הפרס במסלול המסוכן
 		for k in 3:

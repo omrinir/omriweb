@@ -73,12 +73,16 @@ func _items() -> Array:
 	var out := []
 	match _tab:
 		0:
+			var ids := []
 			for id in WeaponDB.count():
-				if WeaponDB.removed(id):
-					continue
+				if not WeaponDB.removed(id):
+					ids.append(id)
+			ids.sort_custom(func(x, y): return int(WeaponDB.val(x, "unlock_level", 1)) < int(WeaponDB.val(y, "unlock_level", 1)))   # סדר ההתקדמות
+			for id in ids:
 				var seen: bool = id in Game.seen_weapons
+				var ul := int(WeaponDB.val(id, "unlock_level", 1))
 				out.append({"kind": "w", "id": id, "name": str(WeaponDB.val(id, "name", "?")) if seen else "???", "locked": not seen,
-					"why": "FIND IT FIRST (STAGE %d+)" % int(WeaponDB.val(id, "unlock_level", 1)), "color": WeaponDB.val(id, "color", Color.WHITE)})
+					"why": ("ARRIVES AT STAGE %d" % ul) if ul > _reached() else "FIND IT FIRST (STAGE %d, OR A WEAPON CACHE)" % ul, "color": WeaponDB.val(id, "color", Color.WHITE)})
 		1:
 			for a in AbilityDB.ABILITIES:
 				var lock: bool = int(a.unlock_level) > _reached()

@@ -114,6 +114,9 @@ static func limb(ci: CanvasItem, pts: PackedVector2Array, w: float, col: Color, 
 
 # הילה רכה (עיניים זוהרות, להבות)
 static func glow(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
+	if r >= 24.0:   # הילה גדולה: טקסטורה רדיאלית רכה (3 עיגולים נראו כטבעות חדות)
+		ci.draw_texture_rect(preload("res://effects/backdrop_kit.gd").glow_tex(), Rect2(c.x - r, c.y - r, r * 2.0, r * 2.0), false, col)
+		return
 	for i in 3:
 		var k := 1.0 - float(i) / 3.0
 		ci.draw_circle(c, r * k, Color(col, col.a * 0.28))

@@ -88,8 +88,7 @@ static func _fog(ci: CanvasItem, v: Vector2, y0: float, y1: float, col: Color) -
 static func yungas_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
 	Kit.gradient_sky(ci, v, [Color("262c36"), Color("3e4856"), Color("6a6e72"), Color("a88e7a"), Color("caa486")], 0.8)
 	var sun := Vector2(v.x * 0.68, v.y * 0.42)   # שמש שוקעת מאחורי העננים
-	for i in 5:
-		ci.draw_circle(sun, 260.0 - float(i) * 45.0, Color(1.0, 0.72, 0.45, 0.05 + 0.02 * float(i)))
+	Kit.soft_glow(ci, sun, 300.0, Color(1.0, 0.72, 0.45, 0.42))   # הילה רכה (היו 5 טבעות)
 	for i in 5:   # שכבות עננים כבדות
 		var y := v.y * (0.08 + 0.075 * float(i))
 		var x := fposmod(t * (2.0 + float(i)) + float(i) * 390.0, v.x + 900.0) - 450.0
@@ -715,9 +714,9 @@ class RoadFX extends Node2D:
 	func _draw() -> void:
 		for e in _d:
 			draw_line(Vector2(e.x, e.y), Vector2(e.x - 2.0 * e.z, e.y + 9.0 * e.z), Color(0.8, 0.85, 0.9, 0.28), 1.0)
-		draw_rect(Rect2(0, vp.y * 0.78, vp.x, vp.y * 0.22), Color(0.85, 0.86, 0.84, 0.06))   # אד מהעמק בתחתית
-		if _fog > 0.0:
+		Kit.haze_band(self, vp, vp.y * 0.7, vp.y, Color(0.85, 0.86, 0.84, 0.08))   # אד מהעמק בתחתית (מעבר רך - היה מלבן עם קו חד)
+		if _fog > 0.0:   # ענן: חלש יותר מבעבר (0.28) - הזומבים נעלמו בלבן
 			var k := sin(clampf(_fog / 7.0, 0.0, 1.0) * PI)
-			draw_rect(Rect2(Vector2.ZERO, vp), Color(0.86, 0.87, 0.85, 0.28 * k))
+			draw_rect(Rect2(Vector2.ZERO, vp), Color(0.86, 0.87, 0.85, 0.15 * k))
 			for q in 6:
-				draw_colored_polygon(Art.ellipse(Vector2(fposmod(float(q) * 260.0 + _t * 50.0, vp.x + 400.0) - 200.0, vp.y * 0.6 + sin(float(q) * 1.7) * 90.0), 260.0, 70.0, 0.0, 16), Color(1, 1, 1, 0.1 * k))
+				Kit.soft_glow(self, Vector2(fposmod(float(q) * 260.0 + _t * 50.0, vp.x + 400.0) - 200.0, vp.y * 0.6 + sin(float(q) * 1.7) * 90.0), 300.0, Color(1, 1, 1, 0.22 * k), 0.3)

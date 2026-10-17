@@ -274,6 +274,7 @@ func draw() -> bool:
 	for q in 3:   # פסים בפונצ'ו
 		z.draw_line(sh + Vector2(-8, 5.0 + float(q) * 5.0), sh + Vector2(8, 5.0 + float(q) * 5.0), col([Color("e0c030"), Color("2a8a6a"), Color("f0f0f0")][q]), 1.4)
 	Art.oval_shaded(z, head, 5.0, 5.6, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	# צ'ויו: כובע צמר מחודד עם דשים לאוזניים
 	Art.fill(z, PackedVector2Array([head + Vector2(-5.5, 1), head + Vector2(-5, -4), head + Vector2(0, -10), head + Vector2(5, -4), head + Vector2(5.5, 1), head + Vector2(3, -2), head + Vector2(-3, -2)]), col(Color("c02a4a")), Art.OUTLINE, 1.0)
 	z.draw_line(head + Vector2(-4.5, -4), head + Vector2(4.5, -4), col(Color("f0d040")), 1.6)

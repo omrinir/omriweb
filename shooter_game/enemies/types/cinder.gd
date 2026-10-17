@@ -199,6 +199,7 @@ func draw() -> bool:
 		z.draw_polyline(PackedVector2Array([sh + Vector2(4, 3), sh + Vector2(2, 9)]), crack, 1.2)
 		Art.glow(z, sh + Vector2(0, 8), 14.0, Color(1.0, 0.45, 0.1, 0.15))
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.0, -0.5), 1.4, Color(1.0, 0.6, 0.2))
 		z.draw_line(head + Vector2(-2, -4), head + Vector2(1, 0), crack, 1.0)

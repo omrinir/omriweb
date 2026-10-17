@@ -233,6 +233,9 @@ var _mod_boss := false           # סוג חדש שהוא בוס (stats()["boss"
 
 var sc := 1.0      # גודל
 var wf := 1.0      # רוחב
+var hair := Color("3a3026")   # צבע שיער (סוגים 0-19: שונה לכל זומבי - _vary)
+var _bald := false
+var _gore_arm := false        # עצם חשופה באמה הקדמית
 var skin: Color
 var shirt: Color
 var pants: Color
@@ -277,6 +280,15 @@ const SPLAT_CHANCE := 0.5
 static var _splat_last := 0       # זמן הצליל האחרון (לא כמה ביחד במולטי-קיל)
 var _last_hit := Vector2.ZERO    # איפה הפגיעה האחרונה (קובע איך הגופה נופלת)
 var _last_boom := false
+var _last_kb := -1.0             # knockback של הנשק שפגע אחרון (-1 = לא נשק). קובע כמה רחוק הגופה עפה
+var _kb_shot := 0                # הירייה האחרונה שהדפה אותו (Game.shot_id)
+var heavy_kill := false          # נהרג ממכה חזקה (שוטגאן מקרוב / צלף): הגופה עפה ולא מתקפלת במקום (effects/ragdoll.gd)
+# ---- תחושת הריגה (gunfeel) ----
+const KILL_FLING := Vector2(0.75, 1.75)   # מכפיל עיפת הגופה: [נשק חלש, נשק חזק] לפי knockback (SMG ~0.9, רובה ~1.2, שוטגאן/צלף ~1.7)
+const HEAVY_KB := 150.0                   # knockback מזה ומעלה = מכה חזקה
+const HITSTOP_HEAD := 0.045               # עצירת זמן קטנה בהריגה בראש (שניות אמיתיות)
+const HITSTOP_HEAVY := 0.055              # ... בהריגה ממכה חזקה
+const HITSTOP_BOSS := 0.28                # ... במוות של בוס
 var _angle := 0.0
 var _dead_t := 0.0
 var _bled_on: Dictionary = {}
@@ -343,6 +355,8 @@ func _ready() -> void:
 	shirt = Art.shade(k.shirt, randf_range(-0.1, 0.1))
 	pants = k.pants
 	shoe = k.shoe
+	if type_mod == null:
+		_vary(drng)
 	collision_layer = 4   # שכבה 3 (ערך 4) = זומבים. הקליעים פוגעים בה
 	collision_mask = 1 | 16   # מתנגש בעולם (1) ובקומות (16, one-way)
 	_shape = CollisionShape2D.new()
@@ -946,7 +960,7 @@ func stagger(t: float) -> void:
 		_stagger_t = maxf(_stagger_t, t)
 
 
-# DECOY ECHO (abilities/types/decoy.gd): זומבים שהמוח מזיז הולכים אחרי עותק הרפאים אם הוא קרוב.
+# FLARE (abilities/types/flare.gd, group "decoys"): זומבים שהמוח מזיז הולכים אחרי הזיקוק אם הוא קרוב.
 # משלב 8 חלק מהם "מזהים" את הטריק (adaptation_level)
 func _target_for_brain(player: Node) -> Node:
 	if _traitor_near():   # MIND CONTROL: מתנפלים על הזומבי שבשליטת השחקן
@@ -1171,6 +1185,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		Sfx.play("headshot" if zone == "head" else "hit", hit_pos, -4.0, 0.15, 4)
 	_last_hit = hit_pos
 	_last_boom = explosive
+	_last_kb = float(src.get("knockback", -1.0)) if source == "bullet" or source == "melee" else -1.0
 	hp -= dmg
 	Game.story.emit("zhit", {"z": self, "zone": zone, "source": source, "was_lying": was_lying})
 	if hp > 0 and not metal and (source == "bullet" or source == "melee" or source == "taser"):
@@ -1205,7 +1220,10 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 			_start_react(zone, dir, src)
 		if on_ceiling:   # נפגע על התקרה: נופל
 			_drop_down()
-		velocity.x += dir.x * (110.0 + (float(src.get("knockback", 0.0)) if not is_boss() else 0.0))   # הדיפה לפי הנשק
+		var ksid: int = int(src.get("shot", 0))
+		if ksid == 0 or ksid != _kb_shot:   # שוטגאן: רק הכדור הראשון של הירייה הודף (6 כדורים היו זורקים אותו מחוץ לטווח)
+			_kb_shot = ksid
+			velocity.x += dir.x * (110.0 + (float(src.get("knockback", 0.0)) if not is_boss() else 0.0))   # הדיפה לפי הנשק
 		# לפעמים הוא בורח ומתחבא מאחורי מכונית / מחסום (אם יש אחד קרוב)
 		if _cover_state == 0 and not was_lying and not is_boss() and randf() < cover_chance:
 			_try_cover(get_tree().get_first_node_in_group("player"))
@@ -1252,8 +1270,21 @@ func react_hop() -> float:
 
 
 # מספר הנזק שקופץ מעל הזומבי וצף למעלה
+var _dmg_txt: Node2D = null       # מספר הנזק האחרון: כדורי שוטגאן מאותה ירייה מתחברים למספר אחד שגדל
+var _dmg_shot := 0
+var _dmg_val := 0
+
 func _damage_number(dmg: int, zone: String) -> void:
 	if not Quality.damage_numbers(zone):   # המשחק איטי: בלי מספרי נזק (quality.gd)
+		return
+	var sid: int = int(_last_info.get("shot", 0))
+	if sid != 0 and sid == _dmg_shot and _dmg_txt != null and is_instance_valid(_dmg_txt) and _dmg_txt.t < 0.2:
+		_dmg_val += dmg
+		_dmg_txt.text = str(_dmg_val)
+		_dmg_txt.size = mini(_dmg_txt.size + 2, 34)
+		if zone == "head":
+			_dmg_txt.color = Color("ff4a3a")
+		_dmg_txt.t = 0.0
 		return
 	var col := Color.WHITE
 	var size := 18
@@ -1270,6 +1301,9 @@ func _damage_number(dmg: int, zone: String) -> void:
 	p.pop = true
 	get_parent().add_child(p)
 	p.global_position = global_position + Vector2(randf_range(-10.0, 10.0), -66.0 * sc)
+	_dmg_txt = p
+	_dmg_shot = sid
+	_dmg_val = dmg
 
 
 # שוכב על הריצפה כמו גופה עד שמתקרבים (לשלבים: אחרי spawn)
@@ -1370,7 +1404,12 @@ func _die(dir: Vector2) -> void:
 	var r := _shape.shape as RectangleShape2D
 	r.size = Vector2(18, 18) * sc   # גופה = ריבוע קטן שמתגלגל
 	_shape.position = Vector2(0.0, -9.0 * sc)
-	velocity = (Vector2(dir.x, minf(dir.y, 0.0)).normalized() * randf_range(420.0, 620.0) / sqrt(sc * wf) + Vector2(0.0, -260.0)) * DEATH_FLING
+	var fl := 1.0   # נשק חזק = הגופה עפה רחוק יותר (KILL_FLING לפי knockback)
+	if _last_kb >= 0.0 and not _last_boom:
+		fl = lerpf(KILL_FLING.x, KILL_FLING.y, clampf(_last_kb / 220.0, 0.0, 1.0))
+		heavy_kill = _last_kb >= HEAVY_KB
+	velocity = (Vector2(dir.x, minf(dir.y, 0.0)).normalized() * randf_range(420.0, 620.0) * fl / sqrt(sc * wf) + Vector2(0.0, -260.0 * minf(fl, 1.3))) * DEATH_FLING
+	_kill_feel()
 	if kind == JETPACK:   # מתרסק בנקודה אקראית בתוך המסך שרואים
 		var vp := get_viewport()
 		var view := vp.get_canvas_transform().affine_inverse() * vp.get_visible_rect()
@@ -1415,6 +1454,26 @@ func _die(dir: Vector2) -> void:
 		_:   # תחמושת דינמית: יותר כשנגמר לשחקן (progression/arsenal.gd)
 			if randf() < Arsenal.ammo_drop_chance(get_tree().get_first_node_in_group("player")):
 				_drop(PickupScript.AMMO)
+
+
+# תחושת הריגה: צליל "מכה" (ראש = פיצוח), ועצירת זמן קטנה בהריגה בראש / ממכה חזקה / בוס (shake_camera.gd -> hit_stop)
+func _kill_feel() -> void:
+	var boss := is_boss() or _mod_boss
+	var src: String = _last_info.get("source", "")
+	if not boss and src != "bullet" and src != "melee" and src != "stomp":
+		return
+	if not Art.on_screen(self, global_position, 60.0):
+		return
+	var head: bool = _last_info.get("zone", "") == "head"
+	if head:
+		Sfx.play("kill_crack", global_position, -2.0, 0.1, 3)
+	else:
+		Sfx.play("kill_punch", global_position, -4.0 + (3.0 if heavy_kill else 0.0), 0.12, 3)
+	var t := HITSTOP_BOSS if boss else (HITSTOP_HEAVY if heavy_kill else (HITSTOP_HEAD if head else 0.0))
+	if t > 0.0:
+		var cam := get_viewport().get_camera_2d()
+		if cam != null and cam.has_method("hit_stop"):
+			cam.hit_stop(t)
 
 
 func _drop(pk: int) -> void:
@@ -1505,6 +1564,32 @@ func _popup(text: String, col: Color, size := 18, y := -80.0) -> void:
 #  ציור. מציירים זומבי בגובה "רגיל" (56) שפונה ימינה,
 #  ואז מגדילים / מרחיבים / משקפים לפי הסוג והכיוון.
 # ============================================================
+# מראה שונה לכל זומבי (סוגים 0-19, פעם אחת ב-_ready): גוון עור, חולצה / מכנס, שיער - שההמון לא ייראה משוכפל
+const SKIN_MIX := [Color("8a9ea4"), Color("b8b47a"), Color("b0a492"), Color("74945a"), Color("a08a8a")]
+const SHIRTS := [Color("4f6688"), Color("7a4a3a"), Color("6e3036"), Color("5a6448"), Color("8a7646"), Color("3e6a6a"), Color("6a6a74"), Color("9a8c74"), Color("4a3a5a")]
+const PANTS_MIX := [Color("3d3a4c"), Color("34466a"), Color("4e4638"), Color("2e3a2e"), Color("4a4a50"), Color("5a5040")]
+const HAIRS := [Color("5a4630"), Color("3a3026"), Color("6e5638"), Color("8a8880"), Color("94582c"), Color("a8986a")]
+const VARY_SHIRT := [WALKER, BRUTE, BLOATER, HURLER, IMP, CRAWLER, SPITTER, RUNNER]   # (שוטר / מוליך / חליפה - צבע קבוע)
+
+
+func _vary(r: RandomNumberGenerator) -> void:
+	if kind == RAT or kind == DOG or kind == HOUND:   # חיות: רק גוון פרווה
+		skin = Art.shade(skin, r.randf_range(-0.12, 0.1))
+		return
+	skin = skin.lerp(SKIN_MIX[r.randi() % SKIN_MIX.size()], r.randf_range(0.0, 0.4))
+	if kind == WALKER or kind == HURLER:   # חולצה + מכנס מתוך פלטה
+		shirt = Art.shade(SHIRTS[r.randi() % SHIRTS.size()], r.randf_range(-0.08, 0.08))
+		pants = Art.shade(PANTS_MIX[r.randi() % PANTS_MIX.size()], r.randf_range(-0.06, 0.08))
+	elif kind in VARY_SHIRT:   # אותו צבע בערך, גוון קצת אחר
+		shirt = Color.from_hsv(fposmod(shirt.h + r.randf_range(-0.06, 0.06), 1.0), clampf(shirt.s * r.randf_range(0.75, 1.2), 0.0, 1.0), shirt.v)
+		pants = Art.shade(pants, r.randf_range(-0.05, 0.12))
+	else:
+		pants = Art.shade(pants, r.randf_range(-0.03, 0.08))
+	hair = HAIRS[r.randi() % HAIRS.size()]
+	_bald = r.randf() < 0.22
+	_gore_arm = r.randf() < 0.35
+
+
 # אילו זומבים נופלים כגופה רכה (לא: חיות, יד, רובוט, ג'טפאק שמתרסק, נפוח שמתפוצץ, תותחן)
 func _ragdoll_kind() -> bool:
 	if kind in [RAT, HAND, MECH, DOG, HOUND, JETPACK, BLOATER, GUNNER]:
@@ -1758,7 +1843,7 @@ func _draw_body() -> void:
 		return
 	if kind == SCREAMER and _scream_t > 0.0:   # ידיים פתוחות לצדדים בזמן הצרחה
 		front_hand = fs + Vector2(12.0, -10.0)
-	_arm(fs, front_hand, sk, sh_col)
+	_arm(fs, front_hand, sk, sh_col, _gore_arm and not dead)
 	if (kind == DRUNK or kind == JETPACK) and not dead:   # אקדח / תת-מקלע
 		var gl := 7.0 if kind == DRUNK else 11.0
 		draw_rect(Rect2(front_hand + Vector2(-1.0, -2.5), Vector2(gl, 3.2)), Color("1a1a1e"))
@@ -1846,7 +1931,7 @@ func _leg(hip: Vector2, foot: Vector2, pa: Color, sk: Color, shoe_col: Color) ->
 		Art.fill(self, PackedVector2Array([foot + Vector2(-2.5, -4.0), foot + Vector2(2.5, -4.0), foot + Vector2(6.5, -1.2), foot + Vector2(6.5, 0.0), foot + Vector2(-3.0, 0.0)]), sk, Art.OUTLINE, 1.0)
 
 
-func _arm(shoulder: Vector2, hand: Vector2, sk: Color, sleeve: Color) -> void:
+func _arm(shoulder: Vector2, hand: Vector2, sk: Color, sleeve: Color, gore := false) -> void:
 	var w := 7.0 if _big() else (4.2 if kind == RUNNER or kind == SCREAMER else 5.2)
 	var elbow := Art.joint(shoulder, hand, 9.0, 9.5, -1.0)
 	if kind != WALKER:   # בלי שרוולים (גופייה)
@@ -1855,8 +1940,13 @@ func _arm(shoulder: Vector2, hand: Vector2, sk: Color, sleeve: Color) -> void:
 		var cuff := shoulder.lerp(elbow, 0.75)
 		Art.limb(self, PackedVector2Array([cuff, elbow, hand]), w * 0.85, sk, Art.OUTLINE, false, false)
 		Art.limb(self, PackedVector2Array([shoulder, cuff]), w + 1.0, sleeve)
-	# כף יד עם אצבעות שמוטות
 	var d := (hand - elbow).normalized()
+	if gore and not crowded():   # בשר קרוע ועצם חשופה באמה
+		var m := elbow.lerp(hand, 0.5)
+		Art.oval(self, m, 3.4, w * 0.42, Color("6e0c0c"), d.angle(), Art.NONE)
+		draw_line(m - d * 2.4, m + d * 2.6, Color("e8dcc4"), 1.4, true)
+		draw_circle(m + d * 2.8, 0.95, Color("e8dcc4"))
+	# כף יד עם אצבעות שמוטות
 	Art.disc(self, hand, w * 0.5 + 0.6, sk)
 	if crowded():   # הרבה זומבים על המסך: בלי אצבעות (לא רואים אותן בגודל הזה)
 		return
@@ -1874,6 +1964,10 @@ func _torso_walker(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color) -> void
 		hip + Vector2(-8.0, 0.5), sh + Vector2(-9.0, 6.0),
 	])
 	Art.fill_shaded(self, body, shirt_c, 0.15, 0.35, Art.OUTLINE, 1.4)
+	# צווארון פתוח + כפתורים
+	draw_polyline(PackedVector2Array([sh + Vector2(-4.0, -0.6), sh + Vector2(-0.5, 4.0), sh + Vector2(4.5, -0.4)]), Art.shade(shirt_c, 0.5), 1.2, true)
+	draw_circle(sh + Vector2(-0.8, 6.0), 0.7, Art.shade(shirt_c, 0.55))
+	draw_circle(hip + Vector2(-0.3, -6.5), 0.7, Art.shade(shirt_c, 0.55))
 	# קרע בחולצה + צלעות
 	Art.fill(self, PackedVector2Array([sh + Vector2(1.0, 7.0), sh + Vector2(6.0, 5.0), sh + Vector2(5.0, 12.0), sh + Vector2(2.0, 10.0)]), Art.shade(sk, 0.15), Art.NONE)
 	draw_line(sh + Vector2(2.5, 7.5), sh + Vector2(5.3, 6.6), Art.shade(sk, 0.45), 0.8, true)
@@ -1896,6 +1990,8 @@ func _torso_runner(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color) -> void
 		sh + Vector2(6.5, 0.0), hip + Vector2(6.0, -8.0), hip + Vector2(3.0, -5.0), hip + Vector2(0.0, -9.0),
 		hip + Vector2(-3.0, -6.0), hip + Vector2(-6.5, -8.0), sh + Vector2(-7.0, 4.0),
 	])
+	if sh.x - hip.x > 6.0 and Geometry2D.triangulate_polygon(top).is_empty():   # נטוי מאוד קדימה: השסע בצוואר חוצה את הצד -> בלי השסע (אחרת "triangulation failed")
+		top.remove_at(2)
 	Art.fill_shaded(self, top, shirt_c, 0.15, 0.35, Art.OUTLINE, 1.0)
 	for i in 3:   # צלעות בולטות
 		var y := hip.y - 6.5 + float(i) * 2.2
@@ -1935,14 +2031,22 @@ func _head(c: Vector2, sk: Color) -> void:
 			for i in 6:
 				var a := Vector2(-4.0 + float(i) * 1.2, -6.5 + float(i) * 0.4)
 				var flow := Vector2(-12.0 - float(i), 3.0 + float(i) * 1.6 + sin(_time * 8.0 + float(i)) * 1.5)
-				draw_line(c + a, c + a + flow, Color("2b2420"), 2.2, true)
+				draw_line(c + a, c + a + flow, hair, 2.2, true)
 		BRUTE:
 			pass
 		_:
-			Art.oval(self, c + Vector2(-2.5, -2.5), 6.0, 5.5, Color("3a3026"), 0.2)
+			if not _bald or kind >= 20:
+				Art.oval(self, c + Vector2(-2.5, -2.5), 6.0, 5.5, hair, 0.2)
 	var rx := 8.0 if _big() else 7.2
 	var ry := 7.5 if _big() else 8.2
 	Art.oval_shaded(self, c, rx, ry, sk, tilt, Art.OUTLINE, 1.4)
+	if kind < 20 and not _bald and not _big() and kind != COP and kind != CONDUCTOR:   # שיער על הקודקוד (צבע שונה לכל זומבי), פרוע וקרוע
+		draw_colored_polygon(PackedVector2Array([c + Vector2(-6.8, -2.0), c + Vector2(-5.6, -5.6), c + Vector2(-2.0, -7.9), c + Vector2(2.5, -7.8),
+			c + Vector2(5.4, -5.8), c + Vector2(3.0, -6.0), c + Vector2(1.0, -4.9), c + Vector2(-1.0, -6.2), c + Vector2(-3.0, -4.6),
+			c + Vector2(-4.6, -5.4), c + Vector2(-5.8, -1.4)]), hair)
+		draw_line(c + Vector2(-4.2, -6.6), c + Vector2(0.5, -8.0), Color(1, 1, 1, 0.2), 1.0, true)   # ברק בשיער
+	elif kind < 20 and _bald and not _big():   # קרחת: כתם ריקבון / שריטה על הקודקוד
+		Art.oval(self, c + Vector2(-2.0, -5.0), 2.2, 1.4, Color(0.42, 0.06, 0.05, 0.75), 0.3, Art.NONE)
 	Art.oval(self, c + Vector2(2.5, -0.5), 4.5, 3.0, Color(0.1, 0.0, 0.05, 0.22), 0.1, Art.NONE)   # עיניים שקועות
 	var lod := crowded()   # הרבה זומבים על המסך: בלי פרטים זעירים (ורידים, סדקים, שערות, שיניים)
 	if not lod:
@@ -1964,7 +2068,7 @@ func _head_micro(c: Vector2, sk: Color) -> void:
 	if kind in [WALKER, SPITTER, DRUNK, IMP, CRAWLER, BLOATER]:
 		for i in 4:   # שערות דלילות
 			var hs := c + Vector2(-4.0 + float(i) * 1.8, -7.5 + absf(float(i) - 1.5) * 0.6)
-			draw_line(hs, hs + Vector2(-2.0 - float(i) * 0.5, -2.5 + sin(_time * 3.0 + float(i)) * 0.6), Color("2a241e"), 0.8, true)
+			draw_line(hs, hs + Vector2(-2.0 - float(i) * 0.5, -2.5 + sin(_time * 3.0 + float(i)) * 0.6), hair, 0.8, true)
 
 
 func _head_rest(c: Vector2, sk: Color, lod: bool) -> void:
@@ -1998,6 +2102,11 @@ func _head_rest(c: Vector2, sk: Color, lod: bool) -> void:
 		eye_col = Color(0.6, 1.0, 0.2, 0.8)
 	Art.glow(self, eye, 5.0, eye_col)
 	Art.disc(self, eye, 1.2, eye_col.lightened(0.5), Art.NONE)
+	draw_circle(c + Vector2(0.8, -1.4), 0.7, Color(eye_col.lightened(0.2), 0.55))   # העין השנייה: ניצוץ עמום (הפנים נקראות)
+	if _det[0] and kind < 20:   # ריר דם מהפה
+		var lip := c + Vector2(3.0, 6.8 + jaw_open * 0.7)
+		draw_line(lip, lip + Vector2(-0.4, 3.2), Color(0.5, 0.02, 0.02, 0.9), 1.2, true)
+		draw_circle(lip + Vector2(-0.4, 3.4), 0.8, Color(0.55, 0.03, 0.03, 0.9))
 	draw_line(c + Vector2(2.0, -4.0), c + Vector2(7.0, -3.2), Art.shade(sk, 0.45), 1.4, true)   # גבה
 	if not lod:
 		Art.disc(self, c + Vector2(-2.5, 0.5), 1.8, Art.shade(sk, 0.15), Art.OUTLINE, 0.8)            # אוזן
@@ -2013,8 +2122,8 @@ func _head_rest(c: Vector2, sk: Color, lod: bool) -> void:
 			Art.fill(self, PackedVector2Array([c + Vector2(4.0, -5.5), c + Vector2(10.0, -4.5), c + Vector2(9.0, -3.5), c + Vector2(4.0, -4.0)]), Color("0e0e12"), Art.OUTLINE, 0.8)
 			draw_line(c + Vector2(-5.5, -6.5), c + Vector2(6.0, -6.5), Color("c8a030") if kind == CONDUCTOR else Color("8090a0"), 1.2)
 		WALKER:
-			draw_line(c + Vector2(-2.0, -7.5), c + Vector2(-4.0, -10.5), Color("3a3026"), 1.0, true)
-			draw_line(c + Vector2(0.0, -8.0), c + Vector2(0.5, -11.0), Color("3a3026"), 1.0, true)
+			draw_line(c + Vector2(-2.0, -7.5), c + Vector2(-4.0, -10.5), hair, 1.0, true)
+			draw_line(c + Vector2(0.0, -8.0), c + Vector2(0.5, -11.0), hair, 1.0, true)
 			Art.oval(self, c + Vector2(-1.0, -4.5), 2.0, 1.3, Color("7a0a0a"), 0.4, Art.NONE)   # פצע בראש
 
 
@@ -2125,20 +2234,35 @@ func _conductor_logic(player: Node, d: Vector2, delta: float) -> float:
 	return chase_speed if absf(d.x) > 110.0 else 0.0
 
 
+const RAT_PINK := Color("b07a74")
+const RAT_LEG := Color("2a201c")
+const RAT_SORE := Color(0.55, 0.12, 0.12, 0.85)
+const RAT_EYE := Color("ff5030")
+
+
 func _draw_rat() -> void:
 	var f := _dir
 	var ph := _walk_phase * 2.0
 	draw_set_transform(Vector2.ZERO, _angle if dead else 0.0, Vector2(f, 1.0))
 	var c := Color.WHITE if _flash > 0.0 else skin
-	draw_line(Vector2(-7, -3), Vector2(-16, -5 + sin(_time * 8.0) * 2.0), Color("6a5048"), 1.2, true)   # זנב
-	Art.oval(self, Vector2(0, -4), 7.5, 4.0, c, 0.0, Art.OUTLINE, 1.0)
-	Art.oval(self, Vector2(7, -5), 3.6, 2.6, c, 0.2, Art.OUTLINE, 1.0)
-	draw_circle(Vector2(7, -8), 1.4, Art.shade(c, 0.2))   # אוזן
-	draw_circle(Vector2(9, -5.5), 0.8, Color("ff3020"))   # עין
+	var pink := RAT_PINK if _flash <= 0.0 else Color.WHITE
+	var tw := sin(_time * 8.0) * 2.0
+	draw_polyline(PackedVector2Array([Vector2(-7, -3), Vector2(-12, -3.5 + tw * 0.4), Vector2(-17, -5 + tw)]), pink, 1.3)   # זנב ורוד
 	for i in 2:
 		var lx := -3.0 + float(i) * 6.0
-		draw_line(Vector2(lx, -1), Vector2(lx + sin(ph + float(i) * PI) * 2.0, 0.5), Color("2a201c"), 1.2)
+		draw_line(Vector2(lx, -1), Vector2(lx + sin(ph + float(i) * PI) * 2.0, 0.5), RAT_LEG, 1.4)
+	Art.oval(self, Vector2(0, -4), 7.5, 4.0, c, 0.0, Art.OUTLINE, 1.0)   # גוף
+	draw_line(Vector2(-5.0, -6.4), Vector2(3.0, -6.8), Art.shade(c, -0.25), 1.4)   # אור על הגב (נפח)
+	draw_circle(Vector2(-1.5, -3.4), 1.5, RAT_SORE)   # פצע פתוח (עור קרחת)
+	Art.oval(self, Vector2(7, -5), 3.6, 2.6, c, 0.2, Art.OUTLINE, 1.0)
+	draw_circle(Vector2(6.4, -8.0), 1.6, pink)   # אוזן ורודה
+	draw_circle(Vector2(8.8, -5.6), 1.1, RAT_EYE)   # עין אדומה
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+
+
+const HAND_SLEEVE := Color("5a5446")
+const HAND_FLESH := Color("6e0c0c")
+const HAND_BONE := Color("e8dcc4")
 
 
 func _draw_hand() -> void:
@@ -2150,10 +2274,16 @@ func _draw_hand() -> void:
 	var up := -34.0 if _grab_state == 1 else -34.0 * clampf(_grab_t / 3.5, 0.0, 1.0)
 	var c := Color.WHITE if _flash > 0.0 else skin
 	Art.limb(self, PackedVector2Array([Vector2(-3, 2), Vector2(-1, up * 0.5), Vector2(2, up)]), 5.0, c)
-	Art.oval(self, Vector2(3, up - 2), 4.5, 3.5, c, 0.3, Art.OUTLINE, 1.0)   # כף יד
+	# שרוול קרוע ורטוב + עצם / בשר חשוף באמה
+	var cuff := up * 0.2
+	draw_colored_polygon(PackedVector2Array([Vector2(-6.4, 2), Vector2(0.4, 2), Vector2(0.8, cuff), Vector2(-0.6, cuff + 2.0), Vector2(-2.6, cuff - 0.5), Vector2(-4.4, cuff + 1.8), Vector2(-5.8, cuff)]), HAND_SLEEVE if _flash <= 0.0 else c)
+	Art.oval(self, Vector2(-1.0, up * 0.55), 1.8, 3.0, HAND_FLESH, 0.1, Art.NONE)
+	draw_line(Vector2(-1.2, up * 0.45), Vector2(-0.6, up * 0.65), HAND_BONE, 1.2)
+	var fc := Art.shade(c, 0.2)
 	for i in 4:   # אצבעות סביב הקרסול
 		var a := -1.2 + float(i) * 0.5
-		draw_line(Vector2(3, up - 2), Vector2(3, up - 2) + Vector2.from_angle(a) * 6.0, Art.shade(c, 0.15), 1.6, true)
+		draw_line(Vector2(3, up - 2), Vector2(3, up - 2) + Vector2.from_angle(a) * 6.0, fc, 1.9)
+	Art.oval_shaded(self, Vector2(3, up - 2), 4.5, 3.5, c, 0.3, Art.OUTLINE, 1.0)   # כף יד
 	draw_arc(Vector2(-2, -3), 7.0, PI, TAU, 12, Color(0.7, 0.85, 0.8, 0.6), 1.2)   # טבעת מים
 
 

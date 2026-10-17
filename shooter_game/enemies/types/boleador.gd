@@ -312,6 +312,7 @@ func draw() -> bool:
 		z.draw_line(Vector2(sh.x - 9.0, yy), Vector2(sh.x + 10.0, yy), col(Color("c89a40") if q == 1 else Color("2a1a12")), 1.2)
 	z.draw_rect(Rect2(hip + Vector2(-8, -2), Vector2(17, 3)), col(Color("8a1a14")))   # פחה אדומה
 	Art.oval_shaded(z, head, 5.2, 5.6, sk, 0.0)
+	face(head, Vector2(3.2, -0.6))
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.2, -0.5), 0.9, Color(1.0, 0.4, 0.2))
 	z.draw_line(head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a1a14")), 1.4)   # שפם

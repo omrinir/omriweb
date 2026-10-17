@@ -54,10 +54,10 @@ static func atacama_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
 		var u := float(i) / 13.0
 		var c := a.lerp(b, u)
 		var core := exp(-pow((u - 0.55) * 3.0, 2.0))
-		ci.draw_colored_polygon(Art.ellipse(c, 150.0, 46.0 + core * 30.0, dir.angle(), 16), Color(0.75, 0.75, 0.95, 0.06 + core * 0.07))
-		ci.draw_colored_polygon(Art.ellipse(c + nrm * 6.0, 110.0, 18.0 + core * 12.0, dir.angle(), 14), Color(1.0, 0.92, 0.8, 0.05 + core * 0.08))
+		Kit.soft_ellipse(ci, c, 190.0, 80.0 + core * 40.0, dir.angle(), Color(0.75, 0.75, 0.95, 0.14 + core * 0.14))   # רך (היו אליפסות עם קצוות)
+		Kit.soft_ellipse(ci, c + nrm * 6.0, 140.0, 30.0 + core * 18.0, dir.angle(), Color(1.0, 0.92, 0.8, 0.1 + core * 0.18))
 		if i % 2 == 1:   # פסי אבק
-			ci.draw_colored_polygon(Art.ellipse(c + nrm * (sin(float(i)) * 10.0), 90.0, 5.0, dir.angle() + 0.08, 10), Color(0.02, 0.02, 0.06, 0.45))
+			Kit.soft_ellipse(ci, c + nrm * (sin(float(i)) * 10.0), 110.0, 9.0, dir.angle() + 0.08, Color(0.02, 0.02, 0.06, 0.7))
 	for i in 160:   # כוכבים
 		var sx := _h(i, 1) * v.x
 		var sy := _h(i, 2) * v.y * 0.8

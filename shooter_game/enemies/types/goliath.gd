@@ -285,10 +285,19 @@ func draw() -> bool:
 	z.draw_circle(sh + Vector2(3, 12), 3.0, Color(blood, 0.7))
 	z.draw_circle(hip + Vector2(-2, 5), 2.2, Color(blood, 0.6))
 	z.draw_line(sh + Vector2(-9, 0), sh + Vector2(-4, 6), Color(0.3, 0.1, 0.1, 0.6), 1.2)   # תפרים
+	# סינר של קצב: כיס, מריחות דם שנגררו, צלעות בולטות בצד, ורידים
+	z.draw_rect(Rect2(sh + Vector2(-1, 15), Vector2(7, 4)), col(Art.shade(z.shirt, 0.25)))
+	z.draw_line(sh + Vector2(6, 6), hip + Vector2(4, 4), Color(blood, 0.55), 2.2)
+	z.draw_line(sh + Vector2(0, 7), sh + Vector2(-2, 16), Color(blood, 0.45), 1.6)
+	for i in 3:
+		z.draw_line(sh + Vector2(-11.5, 4.0 + float(i) * 3.0), sh + Vector2(-7.0, 3.0 + float(i) * 3.0), col(Art.shade(z.skin, 0.4)), 0.9)
+	z.draw_line(sh + Vector2(10, 1), sh + Vector2(12, 7), Color(0.28, 0.12, 0.28, 0.5), 0.9)
 	# ראש קטן על צוואר עבה
 	Art.oval_shaded(z, head, 5.0, 5.4, sk, 0.0)
+	Art.oval(z, head + Vector2(2.8, -0.6), 2.3, 1.7, Color(0.12, 0.0, 0.04, 0.45), 0.0, Art.NONE)   # ארובה שקועה
 	z.draw_line(head + Vector2(-5, -2), head + Vector2(4, -3), col(Color("2a2420")), 1.4)   # גבה
 	if not z.dead:
+		Art.glow(z, head + Vector2(3.0, -0.5), 3.5, Color(1.0, 0.75, 0.2, 0.5))
 		z.draw_circle(head + Vector2(3.0, -0.5), 1.0, Color(1.0, 0.85, 0.3))
 	Art.fill(z, PackedVector2Array([head + Vector2(0, 2.5), head + Vector2(5.5, 2.0), head + Vector2(5, 4.6 + (1.5 if state == WINDUP else 0.0)), head + Vector2(0.5, 4.6)]), col(Color("2a0a0a")), Art.OUTLINE, 0.7)
 	# יד קדמית ענקית

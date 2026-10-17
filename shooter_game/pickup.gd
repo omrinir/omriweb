@@ -12,7 +12,7 @@ extends Node2D
 
 const Art := preload("res://art.gd")
 
-enum { AMMO, GRENADE, SUPPLY, BOOST, WEAPON, HEALTH, SPECIAL }
+enum { AMMO, GRENADE, SUPPLY, BOOST, WEAPON, HEALTH, SPECIAL, MOD }   # MOD = ערכת שדרוג חינם לנשק שביד (progression/arsenal.gd)
 const Arsenal := preload("res://progression/arsenal.gd")
 enum { ADRENALINE, PIERCING, BULLET_TIME, SHIELD, INCENDIARY, GOD }   # GOD = שיקוי GOD MODE (פריט מיוחד, לא נופל כבוסט)
 
@@ -25,6 +25,7 @@ var special := "grenade"    # SPECIAL: איזה פריט
 var weapon_id := 1          # WEAPON: איזה נשק (1 שוטגאן, 2 קשת, 3 צלף, 4 טייזר)
 var ammo_amount := -1       # WEAPON: כמה תחמושת בפנים (-1 = רגיל)
 var pick_delay := 0.0       # נשק שנזרק: אי אפשר להרים אותו מיד
+var gift := false           # WEAPON / MOD מההתקדמות (progression/arsenal.gd): קרן אור + "NEW", מחליף נשק ישן כשהמקומות מלאים
 var life := 25.0
 var velocity := Vector2.ZERO
 var gravity := 1100.0
@@ -74,6 +75,7 @@ func label() -> String:
 		SPECIAL: return "+" + str(Arsenal.SPECIALS[special].name)
 		WEAPON: return str(Game.WEAPON_NAMES[weapon_id]) + "!"
 		HEALTH: return "+1 HEART"
+		MOD: return "WEAPON MOD"
 		_: return BOOST_NAMES[boost]
 
 
@@ -85,6 +87,7 @@ func color() -> Color:
 		SUPPLY: return Color("a8b870")
 		WEAPON: return Game.WEAPON_COLORS[weapon_id]
 		HEALTH: return Color("ff5a5a")
+		MOD: return Color("5ad0ff")
 		_: return BOOST_COLORS[boost]
 
 
@@ -93,6 +96,8 @@ func _draw() -> void:
 		return
 	var bob := Vector2(0, sin(_t * 3.0) * 2.0 - 3.0)
 	var col := color()
+	if gift:   # מתנה מההתקדמות: קרן אור עולה + תווית NEW (רואים מרחוק)
+		_draw_gift_beam(col)
 	Art.glow(self, bob, 16.0 + 2.0 * sin(_t * 5.0), Color(col, 0.45))
 	match kind:
 		AMMO:
@@ -139,6 +144,13 @@ func _draw() -> void:
 					Art.fill(self, PackedVector2Array([gp + Vector2(-1.6, -6), gp + Vector2(1.6, -6), gp + Vector2(1.6, -9), gp + Vector2(-1.6, -9)]), Color("9a9aa2"), Art.OUTLINE, 0.7)
 			elif wid >= 0:
 				load("res://weapon_wheel.gd").draw_weapon(self, bob, wid, 0.6)
+		MOD:   # ערכת שדרוג: ארגז כלים כחול עם מפתח ברגים וחץ למעלה
+			Art.fill_shaded(self, PackedVector2Array([bob + Vector2(-12, -7), bob + Vector2(12, -7), bob + Vector2(12, 8), bob + Vector2(-12, 8)]), Color("2a5a7a"), 0.25, 0.35, Art.OUTLINE, 1.3)
+			draw_rect(Rect2(bob + Vector2(-12, -7), Vector2(24, 3)), Color("1c3e56"))
+			draw_arc(bob + Vector2(0, -9), 4.0, PI, TAU, 8, Color("8a8e96"), 1.6, true)   # ידית
+			draw_line(bob + Vector2(-6, 4), bob + Vector2(4, -3), Color("d8dce4"), 2.0, true)   # מפתח ברגים
+			draw_arc(bob + Vector2(5.5, -4), 2.6, -2.2, 2.0, 8, Color("d8dce4"), 1.6, true)
+			draw_colored_polygon(PackedVector2Array([bob + Vector2(8, 6), bob + Vector2(8, 0), bob + Vector2(5, 0), bob + Vector2(9.5, -4), bob + Vector2(14, 0), bob + Vector2(11, 0), bob + Vector2(11, 6)]), Color("ffd34a"))
 		WEAPON:   # צללית של הנשק
 			load("res://weapon_wheel.gd").draw_weapon(self, bob, weapon_id, 0.62)   # אותו ציור כמו בגלגל הנשקים
 		BOOST:
@@ -146,6 +158,19 @@ func _draw() -> void:
 			var d := PackedVector2Array([bob + Vector2(0, -11), bob + Vector2(9, 0), bob + Vector2(0, 11), bob + Vector2(-9, 0)])
 			Art.fill_shaded(self, d, col, 0.3, 0.3, Art.OUTLINE, 1.4)
 			_icon(bob, boost, Color(1, 1, 1, 0.95))
+
+
+# קרן אור + "NEW" מעל מתנה מההתקדמות
+func _draw_gift_beam(col: Color) -> void:
+	var p := 0.6 + 0.4 * sin(_t * 4.0)
+	for i in 4:
+		var w := 26.0 - float(i) * 6.0
+		draw_rect(Rect2(Vector2(-w * 0.5, -150.0), Vector2(w, 150.0)), Color(col, 0.035 * p * float(i + 1)))
+	var f := ThemeDB.fallback_font
+	var txt := "NEW" if kind == WEAPON else "MOD"
+	var y := -40.0 + sin(_t * 3.0) * 3.0
+	draw_string_outline(f, Vector2(-30, y), txt, HORIZONTAL_ALIGNMENT_CENTER, 60, 15, 4, Color(0, 0, 0, 0.85))
+	draw_string(f, Vector2(-30, y), txt, HORIZONTAL_ALIGNMENT_CENTER, 60, 15, Color(1.0, 0.95, 0.6).lerp(col, 0.3))
 
 
 # סמל קטן לכל בוסט (משמש גם את ה-HUD)

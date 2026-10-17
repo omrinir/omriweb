@@ -71,7 +71,7 @@ func setup(zz: Node2D, vel: Vector2, dir: Vector2, hit: Vector2, boom: bool) -> 
 	# מהירות התחלתית: כל הגוף + דחיפה חזקה יותר למפרקים שקרובים למכה
 	var dt := 1.0 / 60.0
 	var lh: Vector2 = z.to_local(hit)
-	var collapse := not boom and randf() < 0.3   # מתקפל במקום
+	var collapse: bool = not boom and not z.heavy_kill and randf() < 0.3   # מתקפל במקום (לא ממכה חזקה - שוטגאן / צלף: עף)
 	var base := vel * (0.2 if collapse else 0.8)
 	if not collapse:   # עף מהרצפה (אחרת הרגליים "נדבקות" לקרקע והגוף רק מתקפל במקום)
 		base.y = minf(base.y, -150.0)

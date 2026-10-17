@@ -561,6 +561,7 @@ func draw() -> bool:
 	z.draw_line(sh + Vector2(1, 2), sh + Vector2(4, 4), sc_c, 0.8)
 	z.draw_line(sh + Vector2(-1, 6), sh + Vector2(-4, 8), sc_c, 0.8)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.2, -0.6))
 	# שיער - סומר כשהוא טעון
 	var hair := col(Color("1a1a1e"))
 	for q in 5:

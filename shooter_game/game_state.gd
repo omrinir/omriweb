@@ -334,12 +334,13 @@ func load_dict(d: Dictionary) -> bool:
 	var up = d.get("upgrades", {})
 	for k in up:
 		upgrades[k] = int(up[k])
+	preload("res://abilities/ability_db.gd").migrate_upgrades(upgrades)
 	var sw = d.get("seen_weapons", [])
 	for w in sw:
 		mark_weapon_seen(int(w))
 	var asl = d.get("ability_slots", [])
 	if asl is Array and asl.size() == 5:
-		ability_slots = asl.duplicate()
+		ability_slots = preload("res://abilities/ability_db.gd").migrate_slots(asl)   # יכולות שהוחלפו -> החדשות
 	var tr = d.get("trophies", {})
 	if tr is Dictionary:
 		trophies = tr
@@ -835,11 +836,12 @@ func _load() -> void:
 		scrap = int(d.get("scrap", 0))
 		for k in d.get("upgrades", {}):
 			upgrades[k] = int(d.upgrades[k])
+		preload("res://abilities/ability_db.gd").migrate_upgrades(upgrades)
 		for w in d.get("seen_weapons", []):
 			mark_weapon_seen(int(w))
 		var asl = d.get("ability_slots", [])
 		if asl is Array and asl.size() == 5:
-			ability_slots = asl.duplicate()
+			ability_slots = preload("res://abilities/ability_db.gd").migrate_slots(asl)   # יכולות שהוחלפו -> החדשות
 		var cp = d.get("checkpoint", {})
 		if cp is Dictionary and cp.has("level") and cp.has("slots"):
 			checkpoint = cp
