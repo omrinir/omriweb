@@ -1,6 +1,6 @@
 #!/bin/bash
 cd $1
-for lv in $(seq 1 51); do
+for lv in $(seq ${FROM:-1} ${TO:-54}); do
  out=$(timeout 240 ${GODOT:-godot} --headless --path . -s res://t_run.gd -- $lv 600 2>&1)
  e=$(echo "$out" | grep -cE "SCRIPT ERROR|Parse Error|Cannot infer")
  f=$(echo "$out" | grep -c "frame 600")

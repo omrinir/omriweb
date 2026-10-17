@@ -75,6 +75,7 @@ var slip_t := 0.0      # (שלב 35) על קרח חלק: כמעט בלי אחי�
 var slow_t := 0.0      # (שלב 35) תקוע בשלג: איטי
 var jam_t := 0.0       # (שלב 39) השופט נתן לך כרטיס: הנשק תקוע
 var _daze_t := 0.0     # MIRAGE (שלב 17): העתק נגע בך - מסונוור מהחום: איטי, והכוונת רועדת
+var _sway_t := 0.0     # BABBLER (שלב 53): WORD-SICK - רק הכוונת רועדת, בלי האטה
 var auto_walk := 0.0   # כשלא בשליטה (סצנה): כיוון ומהירות הליכה אוטומטית (-1..1)
 var calm := false      # בסצנת סיפור: נשימה חלשה (בתקריב הנשימה הרגילה נראית כמו "עלייה")
 var unarmed := false   # בסצנת סיפור: בלי נשק וידיים מצוירות - רק הספרייט (הידיים שלו)
@@ -348,6 +349,7 @@ func _physics_process(delta: float) -> void:
 	_roll_cd -= delta
 	_slide_t -= delta
 	_daze_t = maxf(_daze_t - delta, 0.0)
+	_sway_t = maxf(_sway_t - delta, 0.0)
 	slip_t = maxf(slip_t - delta, 0.0)
 	slow_t = maxf(slow_t - delta, 0.0)
 	jam_t = maxf(jam_t - delta, 0.0)
@@ -665,7 +667,7 @@ func _physics_process(delta: float) -> void:
 		_aim = idle_aim
 	elif to_mouse.length() > 4.0 and not _fire_test:
 		_aim = to_mouse.normalized()
-		if _daze_t > 0.0:   # מסונוור: הכוונת רועדת
+		if _daze_t > 0.0 or _sway_t > 0.0:   # מסונוור / WORD-SICK: הכוונת רועדת
 			_aim = _aim.rotated(sin(_time * 7.0) * 0.16 + sin(_time * 11.3) * 0.07)
 	var trigger: bool = controllable and (TouchAPI.node().fire if TouchAPI.on() else Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) and not get_tree().paused and not wheel_open
 	# צלף: לחצן ימני = כוונת והזמן מאט
@@ -836,6 +838,15 @@ func daze(t: float, msg := "DAZED BY THE HEAT") -> void:
 
 func is_dazed() -> bool:
 	return _daze_t > 0.0
+
+
+# BABBLER: WORD-SICK ל-t שניות - הכוונת רועדת, המהירות לא משתנה
+func aim_sway(t: float, msg := "") -> void:
+	if dead:
+		return
+	if _sway_t <= 0.0 and msg != "":
+		_say(msg, Color(1.0, 0.85, 0.5))
+	_sway_t = maxf(_sway_t, t)
 
 
 func _say(text: String, col: Color) -> void:
