@@ -17,3 +17,6 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
   music and a narrator voice (espeak-ng + mbrola us2 run through sox; paths at the top of the script).
 - `robot_voice.py` + `robot_lines.txt` - the deadpan robot narrator (espeak-ng mbrola us2, pitch flattened with pyworld, sox speaker colour).
   `build_short_l1.py` - the level 1 Short (segments and narrator cues at the top). Record with `REC_NOMUSIC=1` so the music can be laid over the cuts.
+- `kokoro_voiceovers.py` - natural voiceovers with Kokoro-82M (Apache-2.0). Needs `pip install kokoro-onnx` (user-approved 2026-10-17),
+  the q8 model from the npm package `kokoro-q8-shards` (6 parts, concatenate; sha256 fbae9257...) and the voice .bin files from the npm
+  package `kokoro-local-runtime` (`voices/*.bin`, float32 reshaped to (510,1,256), saved together as voices.npz).
