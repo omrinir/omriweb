@@ -6,6 +6,8 @@ extends Camera2D
 #  "זום קטן" (למשל בקפיצה):  ...get_camera_2d().punch_zoom(0.03)
 #  "בעיטת ירייה":  ...get_camera_2d().fire_kick(כיוון הירייה, פיקסלים) - המסך נדחף קצת הפוך לכיוון הקנה
 #  וחוזר מהר כמו קפיץ (לא רעידה אקראית - כל ירייה מרגישה כמו מכה). player.gd -> _screen_kick.
+#  "עצירת פגיעה" (hit-stop):  ...get_camera_2d().hit_stop(0.045) - העולם כמעט עוצר לרגע (הריגה בראש / שוטגאן / צלף / בוס).
+#  השחקן ממשיך כרגיל (player.gd מפצה על Engine.time_scale), אז ירי מהיר לא מואט. לא פועל בזמן BULLET TIME / כוונת צלף.
 #  (0.03 = 3% זום פנימה, נכנס בעדינות ודועך חזרה לזום הרגיל)
 #  הזום עובר דרך שני שלבי החלקה ברצף -> עקומת S: מתחיל לאט, מאיץ, ונרגע (בלי "קפיצה" בהתחלה).
 #  שיא אחרי ~0.33 שנ' (כ-80% מהכמות), מחזיק רגע (punch_hold) ודועך חזרה תוך ~שנייה.
@@ -25,6 +27,10 @@ extends Camera2D
 @export var kick_damping := 30.0
 @export var kick_max := 10.0
 
+## עצירת פגיעה: לכמה העולם מאט / מינימום שניות בין שתי עצירות (שלא ירגיש מגמגם במולטי-קיל)
+@export var hitstop_scale := 0.08
+@export var hitstop_gap := 0.22
+
 var _strength := 0.0
 var _time_left := 0.0
 var _duration := 0.0
@@ -40,6 +46,8 @@ var frame_half := 180.0           # חצי הרוחב של המטרה (בעול�
 var _frame_off := 0.0
 var _kick := Vector2.ZERO         # בעיטת ירייה: הזזה נוכחית + מהירות (קפיץ מרוסן)
 var _kick_v := Vector2.ZERO
+var _hs_until := 0                # עצירת פגיעה: עד מתי (ms, זמן אמיתי)
+var _hs_next := 0                 # לא לפני (ms)
 
 
 func _ready() -> void:
@@ -63,6 +71,30 @@ func fire_kick(dir: Vector2, px: float) -> void:
 	_kick_v += (-d + side) * px * 90.0
 
 
+# עצירת פגיעה: sec = כמה שניות אמיתיות. Engine meta "hitstop" = פעיל (hud.gd לא מצייר אז את גוון ה-BULLET TIME)
+func hit_stop(sec: float) -> void:
+	var now := Time.get_ticks_msec()
+	if Engine.time_scale < 0.99 and not Engine.has_meta("hitstop"):   # BULLET TIME / כוונת צלף / גלגל נשקים - לא נוגעים
+		return
+	if now < _hs_next and sec < 0.2:   # (בוס תמיד)
+		return
+	_hs_until = maxi(_hs_until, now + int(sec * 1000.0))
+	_hs_next = now + int((sec + hitstop_gap) * 1000.0)
+	Engine.time_scale = hitstop_scale
+	Engine.set_meta("hitstop", true)
+
+
+func _end_hitstop() -> void:
+	Engine.remove_meta("hitstop")
+	if absf(Engine.time_scale - hitstop_scale) < 0.001:   # מישהו אחר שינה בינתיים (כוונת / BULLET TIME) - לא דורסים
+		Engine.time_scale = 1.0
+
+
+func _exit_tree() -> void:
+	if Engine.has_meta("hitstop"):
+		_end_hitstop()
+
+
 # strength = כמה פיקסלים המסך זז, duration = כמה שניות
 func shake(strength := 8.0, duration := 0.25) -> void:
 	if strength >= _strength * (_time_left / maxf(_duration, 0.001)):
@@ -72,6 +104,8 @@ func shake(strength := 8.0, duration := 0.25) -> void:
 
 
 func _process(delta: float) -> void:
+	if Engine.has_meta("hitstop") and Time.get_ticks_msec() >= _hs_until:
+		_end_hitstop()
 	# זום קטן: היעד מחזיק רגע ואז דועך; הזום עצמו עוקב אחריו דרך שתי החלקות (עקומת S רכה)
 	if _punch_hold_t > 0.0:
 		_punch_hold_t -= delta

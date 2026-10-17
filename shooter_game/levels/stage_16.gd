@@ -35,6 +35,10 @@ func zombie_density() -> float:
 	return 0.75 * float(HARDER[clampi(Settings.difficulty, 0, 2)])
 
 
+func pace_stream() -> bool:   # HordeDirector מנהל את הגלים
+	return false
+
+
 func generators() -> Array:
 	return [["pipes", 1.4], ["jersey", 1.6], ["pallet", 1.0], ["container", 0.5]]
 

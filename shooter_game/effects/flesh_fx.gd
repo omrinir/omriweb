@@ -31,8 +31,11 @@ static func burst(parent: Node, pos: Vector2, dir: Vector2, skin: Color, zone: S
 	var grey := skin.lerp(Color(0.42, 0.41, 0.4), 0.6).darkened(0.3)   # בשר זומבי אפור
 	_spray(parent, pos, d, grey, kill, lite)
 	var n := 1 if lite else randi_range(CHUNKS.x, CHUNKS.y) + (3 if kill else 0) + (4 if explosive else 0) + (1 if zone == "head" else 0)
+	var g := Quality.gore()   # המשחק איטי: 35% פחות חתיכות
+	if not lite:
+		n = maxi(1, Quality.scaled(n, g))
 	for i in n:
-		if Chunk.alive >= MAX_CHUNKS:
+		if Chunk.alive >= int(MAX_CHUNKS * g):
 			break
 		var c := Chunk.new()
 		var bone := zone == "head" and i % 2 == 0
@@ -49,16 +52,17 @@ static func burst(parent: Node, pos: Vector2, dir: Vector2, skin: Color, zone: S
 
 # ריסוס חד-פעמי: טיפות אדומות + אבק אפור (CPUParticles2D)
 static func _spray(parent: Node, pos: Vector2, d: Vector2, grey: Color, kill := false, lite := false) -> void:
-	if sprays >= MAX_SPRAYS:
+	var gm := Quality.gore()   # המשחק איטי: פחות ריסוסים בבת אחת, ו-35% פחות טיפות בכל אחד
+	if sprays >= int(MAX_SPRAYS * gm):
 		return
-	if sprays >= MAX_SPRAYS / 2:
+	if sprays >= int(MAX_SPRAYS * gm) / 2:
 		lite = true
 	# שכבה 0: טיפות דם קטנות (הרבה), 1: ערפל דם אדום כהה, 2: אבק בשר אפור
 	for layer in (1 if lite else 3):
 		var p := CPUParticles2D.new()
 		p.one_shot = true
 		p.explosiveness = 0.9
-		p.amount = [int(SPRAY * (1.5 if kill else 1.0)), 8, 6][layer]
+		p.amount = maxi(1, int(float([int(SPRAY * (1.5 if kill else 1.0)), 8, 6][layer]) * gm))
 		p.lifetime = [0.55, 0.45, 0.7][layer]
 		p.direction = d
 		p.spread = [34.0, 25.0, 55.0][layer]

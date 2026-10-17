@@ -254,6 +254,7 @@ func draw() -> bool:
 	z.draw_arc(sh + Vector2(0, 6), 2.2, 0.0, TAU, 8, col(Color("2a8a3a")), 1.2)   # 9
 	z.draw_line(sh + Vector2(2.2, 6), sh + Vector2(1.5, 12), col(Color("2a8a3a")), 1.2)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_colored_polygon(Art.ellipse(head + Vector2(-1, -3), 5.0, 3.0, 0.0, 10), col(Color("1a1410")))
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))

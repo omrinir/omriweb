@@ -58,7 +58,7 @@ func music() -> String:
 
 
 func world_tint() -> Color:
-	return Color(0.82, 0.78, 0.72)
+	return Color(0.92, 0.88, 0.82)   # היה 0.82,0.78,0.72 - אפור-כהה מדי, הזומבים נבלעו
 
 
 func pits() -> int:

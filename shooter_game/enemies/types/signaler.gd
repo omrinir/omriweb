@@ -167,6 +167,7 @@ func draw() -> bool:
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)]), shirt, 0.12, 0.4)
 	z.draw_line(sh + Vector2(-5, 0), hip + Vector2(3, 0), col(Color("2a2e20")), 1.6)   # רצועה
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
+	face(head, Vector2(3.5, -1.0))
 	z.draw_arc(head + Vector2(0, -1), 6.2, PI * 1.05, TAU * 0.98, 10, col(Color("1e1e20")), 1.8)   # אוזניות
 	z.draw_circle(head + Vector2(-4.5, 0), 2.4, col(Color("2a2a2c")))
 	z.draw_line(head + Vector2(-3, 2), head + Vector2(4, 4), col(Color("2a2a2c")), 1.0)   # מיקרופון

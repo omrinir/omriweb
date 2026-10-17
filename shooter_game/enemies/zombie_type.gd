@@ -150,8 +150,8 @@ func begin_draw(shadow := true) -> void:
 		k = k * k * (3.0 - 2.0 * k)
 		var outer := Transform2D(PI / 2.0 * z._lie_side * k, Vector2(0.0, lerpf(-28.0, -9.0, k) * z.sc))
 		z.draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * z.sc)))
-	else:
-		z.draw_set_transform(Vector2.ZERO, 0.0, s)
+	else:   # (תגובת פגיעה: כל הגוף נוטה / קופץ מסביב לרגליים - zombie.gd react_tilt)
+		z.draw_set_transform_matrix(Transform2D(z.react_tilt(), Vector2(0.0, z.react_hop() * z.sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO))
 
 
 func end_draw() -> void:
@@ -169,6 +169,19 @@ func feet(stride := 5.0, lift := 2.5) -> Array:
 	if not z.is_on_floor() and not z.dead:
 		return [Vector2(5.0, -7.0), Vector2(-4.0, -4.0)]
 	return [Vector2(sin(p) * stride + 1.0, -maxf(0.0, cos(p)) * lift), Vector2(sin(p + PI) * stride - 1.0, -maxf(0.0, cos(p + PI)) * lift)]
+
+
+# פנים של זומבי לראש פשוט (רדיוס ~5.5, פונה ימינה): ארובה שקועה, לסת פתוחה עם שיניים, ריקבון בלחי (לפי z._det),
+# והילה עמומה סביב העין (eye = מיקום העין יחסית לראש; INF = בלי). לקרוא אחרי ציור הראש ולפני הכובע / העין
+func face(head: Vector2, eye := Vector2(3.5, -0.5)) -> void:
+	Art.oval(z, head + Vector2(2.8, -0.6), 2.3, 1.7, Color(0.12, 0.0, 0.04, 0.45), 0.0, Art.NONE)
+	var o: float = 1.6 if z._bite_anim > 0.0 else 0.0
+	z.draw_colored_polygon(PackedVector2Array([head + Vector2(1.2, 2.4), head + Vector2(5.2, 1.9), head + Vector2(4.8, 4.2 + o), head + Vector2(1.6, 4.2 + o * 0.7)]), col(Color("2a0a0c")))
+	z.draw_line(head + Vector2(1.9, 2.6), head + Vector2(4.8, 2.2), col(Color("d8d0a8")), 0.8)
+	if z._det[5]:
+		Art.oval(z, head + Vector2(-1.2, 1.8), 1.5, 1.1, Color(0.42, 0.05, 0.05, 0.85), 0.0, Art.NONE)
+	if eye.x < INF and not z.dead:
+		Art.glow(z, head + eye, 3.0, Color(1.0, 0.45, 0.15, 0.45))
 
 
 func player() -> Node:

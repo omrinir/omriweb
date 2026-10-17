@@ -22,7 +22,7 @@ static func gradient_sky(ci: CanvasItem, vp: Vector2, cols: Array, bottom := 0.8
 		var a := int(floor(f))
 		var b := mini(a + 1, n - 1)
 		var c: Color = (cols[a] as Color).lerp(cols[b], f - float(a))
-		ci.draw_rect(Rect2(0, vp.y * bottom * k, vp.x, vp.y * bottom / float(steps) + 2.0), c)
+		ci.draw_rect(Rect2(0, vp.y * bottom * k, vp.x, vp.y * bottom / float(steps - 1) + 1.0), c)
 	ci.draw_rect(Rect2(0, vp.y * bottom, vp.x, vp.y * (1.0 - bottom)), cols[n - 1])
 
 
@@ -63,17 +63,16 @@ static func skyline(ci: CanvasItem, scroll: float, vp: Vector2, base_y: float, c
 
 # עמוד עשן שעולה (מונפש)
 static func smoke_column(ci: CanvasItem, base: Vector2, t: float, height := 260.0, col := Color(0.12, 0.1, 0.1, 0.4), drift := 60.0) -> void:
-	for i in 10:
+	for i in 10:   # כתמים רכים (היו עיגולים חדים שנראו כמו בועות)
 		var k := fmod(float(i) / 10.0 + t * 0.06, 1.0)
 		var p := base + Vector2(k * drift + sin(k * 6.0 + t * 0.5) * 12.0, -k * height)
-		ci.draw_circle(p, 14.0 + k * 50.0, Color(col, col.a * (1.0 - k)))
+		soft_glow(ci, p, 24.0 + k * 75.0, Color(col, minf(col.a * 1.7 * (1.0 - k) * clampf(k * 8.0 + 0.3, 0.0, 1.0), 1.0)))
 
 
 # זוהר של שריפה רחוקה
 static func fire_glow(ci: CanvasItem, p: Vector2, t: float, r := 70.0, seed_v := 0) -> void:
 	var fl := 0.8 + 0.2 * sin(t * 7.0 + float(seed_v)) + 0.1 * sin(t * 17.0 + float(seed_v) * 2.0)
-	for i in 4:
-		ci.draw_circle(p, r * (1.0 - float(i) * 0.2), Color(1.0, 0.4 + 0.1 * float(i), 0.1, 0.06 * fl))
+	soft_glow(ci, p, r * 1.2, Color(1.0, 0.45, 0.12, 0.3 * fl))   # הילה רכה (היו 4 טבעות)
 	for i in 5:
 		var fx := (float(i) - 2.0) * r * 0.12
 		var h := r * 0.35 * (0.6 + 0.4 * sin(t * 9.0 + float(i) * 1.7 + float(seed_v)))
@@ -164,3 +163,51 @@ static func lightning(ci: CanvasItem, vp: Vector2, t: float, period := 9.0, seed
 static func ground_fade(ci: CanvasItem, vp: Vector2, from_y := 560.0) -> void:
 	for i in 6:
 		ci.draw_rect(Rect2(0, from_y + float(i) * 12.0, vp.x, 12.0), Color(0, 0, 0, 0.12 + float(i) * 0.08))
+
+
+# זוהר רך (טקסטורה רדיאלית אחת משותפת) - בלי טבעות קשות כמו בכמה draw_circle שקופים
+static var _glow_tex: Texture2D
+
+
+static func glow_tex() -> Texture2D:
+	if _glow_tex == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 1))
+		g.set_color(1, Color(1, 1, 1, 0))
+		g.add_point(0.35, Color(1, 1, 1, 0.55))
+		g.add_point(0.7, Color(1, 1, 1, 0.15))
+		var tx := GradientTexture2D.new()
+		tx.gradient = g
+		tx.fill = GradientTexture2D.FILL_RADIAL
+		tx.fill_from = Vector2(0.5, 0.5)
+		tx.fill_to = Vector2(1.0, 0.5)
+		tx.width = 128
+		tx.height = 128
+		_glow_tex = tx
+	return _glow_tex
+
+
+static func soft_glow(ci: CanvasItem, c: Vector2, r: float, col: Color, squash := 1.0) -> void:
+	ci.draw_texture_rect(glow_tex(), Rect2(c.x - r, c.y - r * squash, r * 2.0, r * 2.0 * squash), false, col)
+
+
+# פס אובך אנכי (שקוף למעלה -> col למטה). מאחורי הדמויות: מבהיר את הרקע כדי שצלליות כהות ייקראו
+static func haze_band(ci: CanvasItem, vp: Vector2, y0: float, y1: float, col: Color) -> void:
+	var c0 := Color(col, 0.0)
+	ci.draw_polygon(PackedVector2Array([Vector2(0, y0), Vector2(vp.x, y0), Vector2(vp.x, y1), Vector2(0, y1)]),
+		PackedColorArray([c0, c0, col, col]))
+
+
+# עמוד עשן רך (כתמי זוהר רדיאליים במקום עיגולים חדים)
+static func soft_smoke(ci: CanvasItem, base: Vector2, t: float, height := 260.0, col := Color(0.12, 0.1, 0.1, 0.4), drift := 60.0, n := 9) -> void:
+	for i in n:
+		var k := fmod(float(i) / float(n) + t * 0.06, 1.0)
+		var p := base + Vector2(k * drift + sin(k * 6.0 + t * 0.5) * 12.0, -k * height)
+		soft_glow(ci, p, 22.0 + k * 70.0, Color(col, col.a * 1.6 * (1.0 - k) * clampf(k * 6.0, 0.0, 1.0)))
+
+
+# אליפסה רכה מסובבת (ערפילית, שביל החלב, ענן)
+static func soft_ellipse(ci: CanvasItem, c: Vector2, rx: float, ry: float, angle: float, col: Color) -> void:
+	ci.draw_set_transform(c, angle, Vector2.ONE)
+	ci.draw_texture_rect(glow_tex(), Rect2(-rx, -ry, rx * 2.0, ry * 2.0), false, col)
+	ci.draw_set_transform_matrix(Transform2D.IDENTITY)

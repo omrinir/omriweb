@@ -182,6 +182,7 @@ func draw() -> bool:
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(9, 0), hip + Vector2(10, 14), hip + Vector2(-10, 14)]), robe, 0.15, 0.4)   # גלימה ארוכה
 	z.draw_line(hip + Vector2(-10, 12), hip + Vector2(10, 12), col(Color("e0c060")), 2.0)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-5, -7), head + Vector2(5, -7), head + Vector2(6, -2), head + Vector2(-6, 0)]), col(Color("c03a2a")))   # כיסוי ראש
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.0, -0.5), 1.2, Color(1.0, 0.85, 0.4))

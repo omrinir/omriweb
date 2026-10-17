@@ -106,6 +106,7 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(10, 4), Art.shade(sk, 0.25), Art.shade(suit, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(7, 3), hip + Vector2(-7, 3)]), suit, 0.12, 0.4)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_rect(Rect2(head + Vector2(0, -2.5), Vector2(6, 3)), col(Color("2a3a4a")))   # משקפי מגן
 	z._arm(sh + Vector2(3, 1), sh + Vector2(12, 8), sk, suit)
 	if mirror > 0 and not z.dead:   # מראה משושה (מראה טלסקופ)

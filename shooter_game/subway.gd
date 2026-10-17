@@ -16,7 +16,8 @@ const Particles := preload("res://particles.gd")
 var floor_y := 630.0
 var ceil_y := 250.0                 # התחתית של התקרה
 var level_w := 10240.0
-var darkness := 0.62                # כמה חשוך (0 = בכלל לא)
+var darkness := 0.52                # כמה חשוך (0 = בכלל לא). היה 0.62 - זומבים נעלמו בחושך
+const PLAYER_GLOW := 130.0          # רדיוס האור סביב השחקן (היה 70)
 var train_every := Vector2(70.0, 110.0)   # רכבת רפאים: נדיר
 var train_speed := 1700.0
 var train_len := 1100.0
@@ -125,7 +126,7 @@ func _physics_process(delta: float) -> void:
 			dark = false
 	if player != null:
 		var pp: Vector2 = ct * (player.global_position + Vector2(0.0, -30.0))
-		lights.append(Vector4(pp.x, pp.y, 70.0 * zoom, 0.55))
+		lights.append(Vector4(pp.x, pp.y, PLAYER_GLOW * zoom, 0.5))   # אור חלש סביב השחקן: רואים זומבים שמתקרבים
 	var dyn: Array = DynLights.gather(tree, ct, zoom, player)   # פנס של השחקן
 	lights = DynLights.merge(dyn[0], lights, 10)
 	Game.player_dark = dark and not dyn[1]
@@ -296,52 +297,146 @@ class Chunk extends Node2D:
 			x += 36.0
 
 
-# רקע: קיר מנהרה עם אריחים, עמודים וכרזות (פרלקסה)
-class TunnelBg extends Node2D:
-	var level_w := 10240.0
-	var _last_x := INF
+# רקע: תחנת רכבת תחתית נטושה - 3 שכבות פרלקסה (effects/parallax_backdrop.gd)
+#   רחוק: קיר אריחים של הרציף ממול - פס פסיפס, שלטי תחנה, כרזות קרועות, גרפיטי, כתמי רטיבות, קשתות
+#   אמצע: עמודי פלדה עם מסמרות ופסי אזהרה, כבלים לאורך הקיר
+#   קרוב: נורות פלורסנט תלויות (חלקן מהבהבות) שמאירות כתמים על הקיר
+#   overlay: אובך ירקרק בהיר מאחורי הדמויות - שהצלליות הכהות ייקראו גם בחושך
+class TunnelBg extends "res://effects/parallax_backdrop.gd":
+	const Kit := preload("res://effects/backdrop_kit.gd")
+	const HZ := 607.0          # הריצפה על המסך
+	const TOP := 128.0         # מתחת לתקרה
+	const TILE := Color("3c524a")
+	const TILE2 := Color("4a6258")
+	const STEEL := Color("23262b")
+	const NAMES := ["DEAD END ST.", "CANAL ST.", "14TH AVE", "UNION SQ.", "GRAVE ROW", "NORTH GATE"]
 
-	func _process(_d: float) -> void:
-		var cam := get_viewport().get_camera_2d()
-		if cam == null:
-			return
-		var cx := cam.get_screen_center_position().x
-		if absf(cx - _last_x) > 0.5:
-			_last_x = cx
-			queue_redraw()
+	func _ready() -> void:
+		sky = func(ci: CanvasItem, v: Vector2, t: float): _back(ci, v, t)
+		add_layer(0.35, func(ci: CanvasItem, sc: float, v: Vector2, t: float): _wall(ci, sc, v, t))
+		add_layer(0.6, func(ci: CanvasItem, sc: float, v: Vector2, t: float): _pillars(ci, sc, v, t))
+		add_layer(0.8, func(ci: CanvasItem, sc: float, v: Vector2, t: float): _lights(ci, sc, v, t))
+		overlay = func(ci: CanvasItem, v: Vector2, t: float): _over(ci, v, t)
 
-	func _draw() -> void:
-		var vs := get_viewport().get_visible_rect().size
-		var cx := 0.0 if _last_x == INF else _last_x
-		draw_rect(Rect2(Vector2.ZERO, vs), Color("121316"))
-		# קיר אריחים (זז לאט)
-		var off := fmod(cx * 0.45, 48.0)
-		draw_rect(Rect2(0, 230, vs.x, 330), Color("23302c"))
-		var x := -off
-		while x < vs.x:
-			draw_line(Vector2(x, 230), Vector2(x, 560), Color(0, 0, 0, 0.25), 1.0)
-			x += 48.0
-		var y := 230.0
-		while y < 560.0:
-			draw_line(Vector2(0, y), Vector2(vs.x, y), Color(0, 0, 0, 0.25), 1.0)
-			y += 24.0
-		draw_rect(Rect2(0, 330, vs.x, 14), Color("6a2a24"))   # פס צבע על הקיר
-		# כרזות ושלטים
-		var poff := fmod(cx * 0.45, 900.0)
-		for i in 3:
-			var px := float(i) * 900.0 - poff + 200.0
-			draw_rect(Rect2(px, 380, 120, 80), Color("3a3430"))
-			draw_rect(Rect2(px + 6, 386, 108, 68), Color("5a4a3a"))
-			draw_rect(Rect2(px + 14, 396, 60, 8), Color(0.8, 0.7, 0.5, 0.4))
-			draw_rect(Rect2(px + 300, 250, 160, 36), Color("1a3a6a"))   # שלט תחנה
-			draw_string(ThemeDB.fallback_font, Vector2(px + 314, 276), "DEAD END ST.", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.9, 0.9, 0.95, 0.8))
-		# עמודים (קרובים יותר = זזים מהר יותר)
-		var coff := fmod(cx * 0.8, 380.0)
-		x = -coff
-		while x < vs.x + 40.0:
-			draw_rect(Rect2(x, 200, 34, 400), Color("2b2c30"))
-			draw_rect(Rect2(x, 200, 6, 400), Color("34353a"))
-			x += 380.0
-		# צל בתחתית
-		for i in 6:
-			draw_rect(Rect2(0, 560 + float(i) * 12.0, vs.x, 12.0), Color(0, 0, 0, 0.15 + float(i) * 0.1))
+	static func _h(i: int, s: int) -> float:
+		return fposmod(sin(float(i) * 12.9898 + float(s) * 78.233) * 43758.5453, 1.0)
+
+	static func _back(ci: CanvasItem, v: Vector2, _t: float) -> void:
+		Kit.gradient_sky(ci, v, [Color("0c0e10"), Color("161a1c"), Color("1c2422")], 1.0)
+
+	# ---- קיר האריחים ----
+	static func _wall(ci: CanvasItem, sc: float, v: Vector2, t: float) -> void:
+		var y0 := TOP
+		var y1 := HZ - 40.0
+		ci.draw_rect(Rect2(0, y0, v.x, y1 - y0), TILE)
+		# אריחים: שורות מוסטות, גוון משתנה קצת
+		var tw := 44.0
+		var th := 22.0
+		var off := fposmod(sc, tw * 2.0)
+		var row := 0
+		var y := y0 + 4.0
+		while y < y1:
+			var sh := (tw * 0.5) if row % 2 == 1 else 0.0
+			var x := -off - sh
+			var ix := int(floor((sc - off - sh) / tw))
+			while x < v.x:
+				var hv := float(posmod((ix * 73856093) ^ (row * 19349663), 100)) * 0.01   # hash שלם (זול יותר מ-sin)
+				if hv < 0.3:
+					ci.draw_rect(Rect2(x + 1.0, y + 1.0, tw - 2.0, th - 2.0), TILE2)
+				elif hv > 0.93:   # אריח שנפל
+					ci.draw_rect(Rect2(x + 1.0, y + 1.0, tw - 2.0, th - 2.0), Color("26302c"))
+				x += tw
+				ix += 1
+			ci.draw_line(Vector2(0, y), Vector2(v.x, y), Color(0, 0, 0, 0.25), 1.0)
+			y += th
+			row += 1
+		# פס פסיפס צבעוני + פס בורדו
+		ci.draw_rect(Rect2(0, y0 + 98.0, v.x, 16.0), Color("6a2a24"))
+		ci.draw_rect(Rect2(0, y0 + 98.0, v.x, 3.0), Color("c8a050"))
+		ci.draw_rect(Rect2(0, y0 + 111.0, v.x, 3.0), Color("c8a050"))
+		var period := 900.0
+		var start := int(floor(sc / period)) - 1
+		for k in range(start, start + int(ceil(v.x / period)) + 2):
+			var bx := float(k) * period - sc
+			# שלט תחנה
+			var nm: String = NAMES[posmod(k, NAMES.size())]
+			ci.draw_rect(Rect2(bx + 300.0, y0 + 36.0, 190.0, 40.0), Color("10141a"))
+			ci.draw_rect(Rect2(bx + 303.0, y0 + 39.0, 184.0, 34.0), Color("1c3e78"))
+			ci.draw_string(ThemeDB.fallback_font, Vector2(bx + 316.0, y0 + 64.0), nm, HORIZONTAL_ALIGNMENT_LEFT, 170.0, 19, Color(0.92, 0.92, 0.96, 0.9))
+			# כרזות (חלקן קרועות)
+			for q in 2:
+				var px := bx + 60.0 + float(q) * 560.0
+				var py := y0 + 160.0
+				var pc: Color = [Color("8a5a2a"), Color("2a5a7a"), Color("7a2a3a"), Color("5a6a2a")][posmod(k * 2 + q, 4)]
+				ci.draw_rect(Rect2(px - 4.0, py - 4.0, 128.0, 168.0), Color("1a1c1e"))
+				ci.draw_rect(Rect2(px, py, 120.0, 160.0), pc)
+				ci.draw_rect(Rect2(px + 10.0, py + 12.0, 100.0, 14.0), Color(1, 1, 1, 0.45))
+				ci.draw_circle(Vector2(px + 60.0, py + 80.0), 30.0, Color(0, 0, 0, 0.25))
+				ci.draw_rect(Rect2(px + 10.0, py + 126.0, 70.0, 8.0), Color(1, 1, 1, 0.3))
+				if _h(k, q + 9) < 0.6:   # קרוע: משולש של קיר
+					ci.draw_colored_polygon(PackedVector2Array([Vector2(px + 60, py + 160), Vector2(px + 120, py + 70), Vector2(px + 120, py + 160)]), TILE)
+				if _h(k, q + 4) < 0.5:   # "X" אדום של שורדים
+					ci.draw_line(Vector2(px + 20, py + 40), Vector2(px + 100, py + 130), Color(0.75, 0.08, 0.06, 0.8), 5.0)
+					ci.draw_line(Vector2(px + 100, py + 40), Vector2(px + 20, py + 130), Color(0.75, 0.08, 0.06, 0.8), 5.0)
+			# גרפיטי (קווים צבעוניים)
+			var gx := bx + 520.0
+			var gc := Color(0.3, 0.85, 0.45, 0.55) if k % 2 == 0 else Color(0.95, 0.45, 0.75, 0.5)
+			var gp := PackedVector2Array()
+			for q in 12:
+				gp.append(Vector2(gx + float(q) * 9.0, y0 + 230.0 + sin(float(q) * 1.9 + float(k)) * 16.0))
+			ci.draw_polyline(gp, gc, 4.0)
+			ci.draw_polyline(gp, Color(0, 0, 0, 0.4), 1.0)
+			# כתמי רטיבות שזולגים
+			for q in 3:
+				var dx := bx + 200.0 + float(q) * 230.0 + 60.0 * _h(k, q)
+				ci.draw_rect(Rect2(dx, y0 + 114.0, 18.0, 160.0 + 120.0 * _h(k, q + 2)), Color(0.05, 0.08, 0.06, 0.25))
+		# שוליים תחתונים: קיר כהה מעל המסילה
+		ci.draw_rect(Rect2(0, y1, v.x, v.y - y1), Color("1a201e"))
+		ci.draw_rect(Rect2(0, y1, v.x, 4.0), Color("5a5a50"))
+
+	# ---- עמודי פלדה ----
+	static func _pillars(ci: CanvasItem, sc: float, v: Vector2, _t: float) -> void:
+		var period := 420.0
+		var start := int(floor(sc / period)) - 1
+		for k in range(start, start + int(ceil(v.x / period)) + 2):
+			var x := float(k) * period - sc
+			ci.draw_rect(Rect2(x, TOP - 10.0, 40.0, HZ - TOP + 10.0), STEEL)
+			ci.draw_rect(Rect2(x - 6.0, TOP - 10.0, 52.0, 10.0), STEEL.lightened(0.06))
+			ci.draw_rect(Rect2(x + 4.0, TOP, 5.0, HZ - TOP), STEEL.lightened(0.12))   # אור על הקצה
+			var ry := TOP + 20.0
+			while ry < HZ - 20.0:   # מסמרות
+				ci.draw_rect(Rect2(x + 29.0, ry - 1.0, 3.0, 3.0), STEEL.lightened(0.2))
+				ry += 34.0
+			for s in 4:   # פסי אזהרה בתחתית
+				ci.draw_rect(Rect2(x, HZ - 100.0 + float(s) * 22.0, 40.0, 11.0), Color(0.75, 0.6, 0.15, 0.7))
+			# כבלים שנתלים בין העמודים
+			var cab := PackedVector2Array()
+			for q in 11:
+				var u := float(q) / 10.0
+				cab.append(Vector2(x + 40.0 + u * (period - 40.0), TOP + 30.0 + sin(u * PI) * 26.0))
+			ci.draw_polyline(cab, Color(0.04, 0.04, 0.05, 0.9), 2.0)
+
+	# ---- נורות פלורסנט תלויות ----
+	static func _lights(ci: CanvasItem, sc: float, v: Vector2, t: float) -> void:
+		var period := 640.0
+		var start := int(floor(sc / period)) - 1
+		for k in range(start, start + int(ceil(v.x / period)) + 2):
+			var x := float(k) * period - sc + 200.0
+			var dead := _h(k, 1) < 0.2
+			var on := 0.0 if dead else 1.0
+			if not dead and _h(k, 2) < 0.4:   # מהבהבת
+				on = 1.0 if fmod(t * 3.0 + float(k) * 1.7, 4.0) > 0.35 and sin(t * 37.0 + float(k)) > -0.7 else 0.15
+			ci.draw_line(Vector2(x + 10.0, 0.0), Vector2(x + 10.0, TOP + 8.0), Color(0.05, 0.05, 0.06), 1.5)
+			ci.draw_line(Vector2(x + 90.0, 0.0), Vector2(x + 90.0, TOP + 8.0), Color(0.05, 0.05, 0.06), 1.5)
+			ci.draw_rect(Rect2(x, TOP + 8.0, 100.0, 8.0), Color("1a1c1e"))
+			ci.draw_rect(Rect2(x + 4.0, TOP + 15.0, 92.0, 4.0), Color(0.85, 1.0, 0.92, 0.25 + 0.7 * on))
+			if on > 0.1:
+				Kit.soft_glow(ci, Vector2(x + 50.0, TOP + 20.0), 180.0, Color(0.7, 0.95, 0.85, 0.22 * on), 0.7)
+				ci.draw_colored_polygon(PackedVector2Array([Vector2(x + 4, TOP + 18), Vector2(x + 96, TOP + 18), Vector2(x + 190, HZ), Vector2(x - 90, HZ)]), Color(0.75, 1.0, 0.9, 0.035 * on))
+
+	static func _over(ci: CanvasItem, v: Vector2, _t: float) -> void:
+		Kit.haze_band(ci, v, HZ - 230.0, HZ, Color(0.55, 0.72, 0.66, 0.2))
+		var c0 := Color(0.0, 0.0, 0.0, 0.45)   # צל מתחת לתקרה (אווירה)
+		var c1 := Color(0.0, 0.0, 0.0, 0.0)
+		ci.draw_polygon(PackedVector2Array([Vector2(0, TOP), Vector2(v.x, TOP), Vector2(v.x, TOP + 170.0), Vector2(0, TOP + 170.0)]),
+			PackedColorArray([c0, c0, c1, c1]))

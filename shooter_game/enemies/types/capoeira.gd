@@ -169,6 +169,7 @@ func _body(o: Vector2, au: bool) -> void:
 	for q in 3:   # שרירים / צלעות
 		z.draw_line(sh + Vector2(-4, 4.0 + float(q) * 3.0), sh + Vector2(4, 4.0 + float(q) * 3.0), sk.darkened(0.3), 1.0)
 	Art.oval_shaded(z, head, 5.0, 5.6, sk, 0.0)
+	face(head, Vector2(3.0, -0.5))
 	z.draw_colored_polygon(Art.ellipse(head + Vector2(-1, -3), 5.0, 3.2, 0.0, 10), col(Color("1a1410")))   # שיער
 	if not z.dead:
 		z.draw_circle(head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))

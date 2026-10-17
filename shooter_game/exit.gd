@@ -25,9 +25,9 @@ func _ready() -> void:
 	_wall.collision_mask = 0
 	var cs := CollisionShape2D.new()
 	var r := RectangleShape2D.new()
-	r.size = Vector2(16, 400)
+	r.size = Vector2(16, 1600)   # גבוה מכל קפיצה (היה 400: קפיצה כפולה מראש של בוס / מכשיר עברה מעל השער הנעול)
 	cs.shape = r
-	cs.position = Vector2(0, -200)
+	cs.position = Vector2(0, -800)
 	_wall.add_child(cs)
 	add_child(_wall)
 

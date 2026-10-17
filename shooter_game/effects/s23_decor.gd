@@ -178,6 +178,7 @@ class Car extends Node2D:
 	const ALARM_NOISE := 1400.0      # כמה רחוק שומעים את האזעקה
 	const ALARM_SPAWN := 3           # כמה זומבים רצים לרעש
 	const ALARM_T := 4.0
+	const LIFT := 8.0                # תחתית הגוף מעל הכביש: פינה בגובה הרגליים "תפסה" את השחקן (velocity.y עלה ל-15000, תקוע 25 שניות)
 	var size := Vector2(128, 44)
 	var model := 0                   # 0 = סדאן, 1 = האצ'בק, 2 = טנדר
 	var tint := Color("8a2a24")
@@ -208,9 +209,9 @@ class Car extends Node2D:
 		_body.add_to_group("no_outline")
 		var cs := CollisionShape2D.new()
 		var sh := RectangleShape2D.new()
-		sh.size = Vector2(size.x - 6.0, size.y * 0.82)
+		sh.size = Vector2(size.x - 6.0, size.y * 0.82 - LIFT)
 		cs.shape = sh
-		cs.position = Vector2(size.x * 0.5, -size.y * 0.41)
+		cs.position = Vector2(size.x * 0.5, -size.y * 0.41 - LIFT * 0.5)
 		_body.add_child(cs)
 		add_child(_body)
 		set_physics_process(alarm)
@@ -306,9 +307,15 @@ class Car extends Node2D:
 				Sfx.play("land", front, 4.0)
 				_shake(5.0)
 			_vx = 0.0
+			_unpin(pl)
+			queue_redraw()
+			return
+		if pl != null and not pl.dead and not _carry(pl, step, dir):
+			_vx = 0.0   # השחקן נדחף לקיר: המכונית נעצרת (לא מוחצת / תוקעת אותו)
 			queue_redraw()
 			return
 		position.x += step
+		_unpin(pl)
 		_wheel += step / 9.0
 		if Engine.get_physics_frames() % 5 == 0 and Art.on_screen(self, global_position):
 			preload("res://particles.gd").burst(get_parent(), global_position + Vector2(size.x * (0.0 if dir > 0.0 else 1.0), -3.0), "smoke", Vector2(-dir, -0.4), 1)
@@ -331,6 +338,48 @@ class Car extends Node2D:
 					_hit_zs.append(z)
 					z.take_damage(Z_DMG, z.global_position + Vector2(0, -24), Vector2(dir, -0.5), true, {"source": "hazard"})
 		queue_redraw()
+
+	# הגוף המוצק בעולם (כמו ה-CollisionShape)
+	func solid_rect() -> Rect2:
+		return Rect2(global_position + Vector2(3.0, -size.y * 0.82), Vector2(size.x - 6.0, size.y * 0.82 - LIFT))
+
+	# שחקן שעומד בדרך (לא על הגג): המכונית דוחפת אותו לפניה. false = הוא תקוע בקיר
+	func _carry(pl: Node, step: float, dir: float) -> bool:
+		var sr := solid_rect()
+		var pr: Rect2 = pl.body_rect()
+		if pr.end.y <= sr.position.y + 6.0 or pr.position.y >= sr.end.y:
+			return true
+		var gap: float = (pr.position.x - sr.end.x) if dir > 0.0 else (sr.position.x - pr.end.x)
+		var need: float = absf(step) - gap + 1.0
+		if gap < -sr.size.x * 0.5 or need <= 0.0:
+			return true
+		var col: KinematicCollision2D = pl.move_and_collide(Vector2(dir * need, 0.0))
+		return col == null or absf(col.get_normal().x) < 0.5
+
+	# רשת ביטחון: השחקן בתוך הגוף (מכונית נכנסה בו) -> החוצה לצד הקרוב, או לגג אם הצד חסום.
+	# בלי זה Godot לא מחלץ אותו: velocity.y גדל ל-15000 והשחקן תקוע (בוט, שלב 23)
+	func _unpin(pl: Node) -> void:
+		if pl == null or pl.dead:
+			return
+		var sr := solid_rect()
+		var pr: Rect2 = pl.body_rect()
+		if not pr.grow(-0.5).intersects(sr) or pr.end.y <= sr.position.y + 6.0:
+			return
+		var half: float = pr.size.x * 0.5
+		var right: bool = pr.get_center().x > sr.get_center().x
+		var nx: float = (sr.end.x + half + 1.0) if right else (sr.position.x - half - 1.0)
+		var q := PhysicsShapeQueryParameters2D.new()
+		var box := RectangleShape2D.new()
+		box.size = pr.size - Vector2(2.0, 4.0)
+		q.shape = box
+		q.collision_mask = pl.collision_mask & ~16
+		q.exclude = [_body.get_rid(), pl.get_rid()]
+		q.transform = Transform2D(0.0, Vector2(nx, pr.get_center().y - 2.0))
+		if get_world_2d().direct_space_state.intersect_shape(q, 1).is_empty():
+			pl.global_position.x = nx
+		else:
+			pl.global_position = Vector2(clampf(pr.get_center().x, sr.position.x + half, sr.end.x - half), sr.position.y - 1.0)
+		pl.velocity.y = minf(pl.velocity.y, 0.0)
 
 	func _shake(st: float) -> void:
 		var cam := get_viewport().get_camera_2d()

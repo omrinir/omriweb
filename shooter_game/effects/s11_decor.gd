@@ -365,7 +365,7 @@ void fragment() {
 				dark = false
 		if player != null:
 			var pp: Vector2 = ct * (player.global_position + Vector2(0.0, -30.0))
-			lights.append(Vector4(pp.x, pp.y, 75.0 * zoom, 0.5))
+			lights.append(Vector4(pp.x, pp.y, 130.0 * zoom, 0.5))   # היה 75 - זומבים ליד השחקן נבלעו בחושך
 		var dyn: Array = preload("res://effects/dyn_lights.gd").gather(get_tree(), ct, zoom, player)   # פנס של השחקן
 		lights = preload("res://effects/dyn_lights.gd").merge(dyn[0], lights, 14)
 		Game.player_dark = dark and not dyn[1]
