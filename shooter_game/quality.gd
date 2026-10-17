@@ -3,6 +3,7 @@ extends Node
 #  QUALITY GOVERNOR (Autoload בשם Quality) - מוריד אפקטים לבד כשהמשחק נהיה איטי.
 #  מודד את קצב הפריימים האמיתי. מתחת ל-DROP_FPS (בערך 52) לשנייה -> יורד רמה אחת (עד MAX_LEVEL).
 #  חלק מעל RAISE_FPS במשך RAISE_WAIT שניות -> עולה רמה בחזרה. ירד שוב מהר אחרי עלייה? מחכה כפול לפני הניסיון הבא.
+#  קפיצה: SPIKE_N פריימים איטיים בתוך שנייה (הרבה זומבים מתים בבת אחת) -> יורד רמה מיד.
 #  רמה 0 = הכל מלא. 1 = פחות עשן / ניצוצות, זומבים ורקע מתעדכנים לאט יותר. 2 = מספרי נזק רק לראש, ציור זומבים מפושט תמיד.
 #  3 = מינימום: כמעט בלי עשן / ניצוצות / אבק, בלי מספרי נזק.
 #  דם וגור: רמה 0 = מלא. מרמה 1 (המשחק איטי) -> 35% פחות (GORE): טיפות דם, חתיכות בשר, ריסוסים, חלקיקי "hit".
@@ -20,10 +21,12 @@ const RAISE_WAIT := 8.0         # שניות חלקות לפני שמנסים ל
 const RAISE_WAIT_MAX := 120.0
 const SETTLE := 1.0             # אחרי שינוי רמה - מחכים שהמדידה תתייצב
 const WARMUP := 2.5             # אחרי טעינת סצנה - לא מודדים (קפיצות טעינה)
+const SPIKE_K := 1.7            # פריים ארוך פי זה מפריים רגיל = "איטי" (60Hz: מעל ~28ms)
+const SPIKE_N := 6              # כמה פריימים איטיים בתוך שנייה -> יורדים רמה מיד (הרבה זומבים מתים בבת אחת), בלי לחכות לממוצע
 
 # טבלאות לפי רמה (0..3)
-const PARTICLES := [1.0, 0.6, 0.35, 0.18]       # כמות חלקיקים בכל פרץ (עשן, ניצוצות, אבק - לא דם)
-const PARTICLE_CAP := [1400, 800, 450, 220]     # מקסימום חלקיקים חיים
+const PARTICLES := [1.0, 0.7, 0.5, 0.3]         # כמות חלקיקים בכל פרץ (עשן, ניצוצות, אבק - לא דם). רק כשהמשחק איטי: 30% / 50% / 70% פחות
+const PARTICLE_CAP := [1400, 980, 700, 420]     # מקסימום חלקיקים חיים (אותם אחוזים)
 const REDRAW_EXTRA := [0, 1, 2, 3]              # כמה פריימים נוספים בין ציורים של זומבי
 const CROWDED_AT := [14, 8, 0, 0]               # מעל כמה זומבים על המסך - ציור מפושט
 const BG_EVERY := [1, 2, 3, 4]                  # הרקע מצויר כל N פריימים (בינתיים השכבות רק זזות)
@@ -38,6 +41,8 @@ var show_fps := false
 var _last_us := 0
 var _win_t := 0.0
 var _win_frames := 0
+var _slow_frames := 0           # פריימים איטיים בשנייה הנוכחית (SPIKE_N)
+var spikes := 0                 # כמה פעמים ירדנו בגלל קפיצה (לבדיקות)
 var _good_t := 0.0
 var _settle := WARMUP
 var _raise_wait := RAISE_WAIT
@@ -70,6 +75,7 @@ func set_mode(m: int) -> void:
 func _reset_measure(wait: float) -> void:
 	_win_t = 0.0
 	_win_frames = 0
+	_slow_frames = 0
 	_good_t = 0.0
 	_settle = wait
 
@@ -91,11 +97,20 @@ func _process(_delta: float) -> void:
 		return
 	_win_t += dt
 	_win_frames += 1
+	if dt > SPIKE_K / minf(60.0, _refresh()):
+		_slow_frames += 1
+		if _slow_frames >= SPIKE_N and level < MAX_LEVEL and int(Settings.quality_mode) == Settings.Q_AUTO:   # קפיצה: מורידים עכשיו
+			level += 1
+			drops += 1
+			spikes += 1
+			_reset_measure(SETTLE)
+			return
 	if _win_t < 1.0:
 		return
 	fps = float(_win_frames) / _win_t
 	_win_t = 0.0
 	_win_frames = 0
+	_slow_frames = 0
 	_update_label()
 	if int(Settings.quality_mode) != Settings.Q_AUTO:
 		return

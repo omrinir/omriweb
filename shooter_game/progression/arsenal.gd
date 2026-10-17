@@ -241,7 +241,7 @@ static func loadout_for(lv: int) -> Array:
 		if slots.size() >= 5:
 			break
 		if id != 0:
-			slots.append({"id": id, "ammo": int(round(float(WeaponDB.val(id, "ammo_start", 10)) * 1.5))})
+			slots.append({"id": id, "ammo": mini(int(round(float(WeaponDB.val(id, "ammo_start", 10)) * 1.5)), int(WeaponDB.val(id, "ammo_max", 9999)))})   # לא יותר מהמקסימום (מיניגאן: 140)
 	while slots.size() < 5:
 		slots.append(null)
 	return slots

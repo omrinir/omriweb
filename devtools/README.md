@@ -27,3 +27,5 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
 - `story_voices.py` + `story_voices_master.py` - voices for the level 52 (QUISLING) and 54 (STRANGER) story scenes: Kokoro
   (player am_onyx, stranger bm_lewis pitched down + metallic comb, quisling am_michael + whisper + tremble; whisper = pyworld
   resynthesis with all-noise excitation), then mastered to about -18 dB mean like the level 1 scene.
+
+- `t_masskill.gd` - mass-kill frame-time test: `godot --headless --path . -s res://t_masskill.gd -- <level> <n> all|stream [quality]` (copy into a test project first). Prints a MASSKILL summary (avg / p95 / max frame ms).

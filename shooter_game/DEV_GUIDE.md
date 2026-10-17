@@ -306,7 +306,7 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 
 ## GOD MODE potion
 - Special item `"god"` (progression/arsenal.gd SPECIALS, never random). Placed by main.gd on `Arsenal.potion_levels()` (3, then every 2-3 levels, fixed seed) in the middle of the level (POTION_MID 42-58%), at the spot with the most zombies around. Player cannot be hurt while it lasts (player.hurt).
-- Picking it up starts it at once (player.collect -> `_drink_god`, not stored as a special): `boosts[PickupScript.GOD] = player.GOD_TIME` (23 s, HUD boost row shows it; flames ramp up over the first 2.5 s). Light on particles: body flames ~15 alive, 1 bullet ember per 2 frames (max 8), 14-part hit burst.
+- Picking it up starts it at once (player.collect -> `_drink_god`, not stored as a special): `boosts[PickupScript.GOD] = player.GOD_TIME` (13.8 s, was 23 - cut 40% on 2026-10-17 because it was too easy, HUD boost row shows it; flames ramp up over the first 2.5 s). Light on particles: body flames ~15 alive, 1 bullet ember per 2 frames (max 8), 14-part hit burst.
 - While active: body flames (`player._flames`), bullets get `god = true` (red ember trail + `GodBurst` on hit, bullet.gd), zombie.gd multiplies damage x4 when `src.god`.
 - Potion art: `PickupScript.draw_potion(ci, pos, scale, time)` (ground, HUD slot, hand, boost icon).
 
@@ -1033,10 +1033,13 @@ torn-cheek wounds never change. Non-gore effects scale more:
 | Level | What changes |
 |---|---|
 | 0 | everything full |
-| 1 | smoke / sparks / dust particles x0.6, zombies redraw 1 frame less often, simplified zombie drawing above 8 on screen, background redraws every 2nd frame, rain/ash x0.7 |
-| 2 | smoke / sparks / dust x0.35, damage numbers only for head hits, simplified zombie drawing always, background every 3rd frame, rain/ash x0.45, off-screen zombies think 15x/s instead of 30x/s |
-| 3 | smoke / sparks / dust x0.18, no damage numbers, background every 4th frame, rain/ash x0.3 |
+| 1 | smoke / sparks / dust particles x0.7 (30% less), zombies redraw 1 frame less often, simplified zombie drawing above 8 on screen, background redraws every 2nd frame, rain/ash x0.7 |
+| 2 | smoke / sparks / dust x0.5 (50% less), damage numbers only for head hits, simplified zombie drawing always, background every 3rd frame, rain/ash x0.45, off-screen zombies think 15x/s instead of 30x/s |
+| 3 | smoke / sparks / dust x0.3 (70% less), no damage numbers, background every 4th frame, rain/ash x0.3 |
 
+* **Lag spikes** (user request 2026-10-17: cut particles 30-70% only when the game actually slows): besides the 1 s average,
+  every frame slower than `SPIKE_K` (1.7) x the target frame time counts; `SPIKE_N` (6) such frames inside one window step down
+  a level at once (`Quality.spikes` counts these). Level 0 stays full, so a smooth game never loses particles.
 * Pause menu (ESC): **EFFECTS: AUTO / HIGH / LOW** (saved in settings.cfg). HIGH = always level 0, LOW = always level 3.
 * **F3** shows FPS and the current level in the bottom-left corner.
 * The background (`effects/parallax_backdrop.gd`) draws each layer in its own node. Between redraws a layer just moves with the
@@ -1761,7 +1764,10 @@ Six areas were reworked together: gun and kill feel, zombie spawn placement, lig
 **Hit-stop** (`shake_camera.gd` `hit_stop(sec)`):
 - Sets `Engine.time_scale = hitstop_scale` (0.08) for `sec` real seconds, then restores 1.0.
 - The player compensates for time_scale (`_rt`), so the hero keeps moving and rapid fire is never slowed. Only the world freezes.
-- At most one hit-stop per `hitstop_gap` (0.22 s). A boss always gets one.
+- At most one hit-stop per `hitstop_gap` (0.5 s, was 0.22). A boss always gets one.
+- No hit-stop once 2+ zombies died in the last second (`zombie._kill_feel`, `death_load() >= 2`): chained freezes during
+  multi-kills made the game feel like it was lagging (user report 2026-10-17).
+- `Sfx.prewarm()` loads every sample at startup, so the first kill no longer pays a disk-load hitch.
 - Never runs during BULLET TIME, the sniper scope or the weapon wheel (time_scale already < 1). If one of those changes
   time_scale during a hit-stop, it is not overwritten.
 - While active, `Engine` has meta `"hitstop"`. `hud.gd` skips the BULLET TIME tint then.
@@ -2091,7 +2097,7 @@ REVOLVER (heavy 6-shot, pierces 1), DOUBLE BARREL (2 shells, 8 pellets, 0.22 s b
 (pierces 2), CROSSBOW (bolt, flat arc via `"gravity"`, pierces 3, bolts can be picked up again), FLAMETHROWER
 (`"projectile": "flame"` -> `bullet.gd` flame puffs that grow, slow down and ignite; no reload), LMG (80 box mag),
 DRAGON'S BREATH (`"incendiary": true` shotgun), ANTI-MATERIEL (.50, RMB scope via `"scope": true`, pierces 8),
-MARKSMAN RIFLE (fast semi-auto precision), MINIGUN (200 rounds, spinning barrels), RAILGUN (pierces 20, scope).
+MARKSMAN RIFLE (fast semi-auto precision), MINIGUN (70-round belt, 140 per pickup, spinning barrels), RAILGUN (pierces 20, scope).
 New weapon fields: `pitch` (shot sound pitch), `incendiary`, `gravity`, `scope`, `flame`.
 `gun_art.gd`: `draw_held()` (called from `player._draw_rifle` when the style is in `STYLES`) and `draw_icon()`
 (called first in `weapon_wheel.draw_weapon`). New sound: `"flamer"` in `weapons/weapon_sounds.gd`.
@@ -2233,6 +2239,8 @@ Other changes in `weapons/weapon_db.gd`:
   It was weaker than the ASSAULT SHOTGUN it comes 11 stages after.
 * ANTI-MATERIEL fire_rate 1.7 -> 1.4, magazine 4 -> 5. MARKSMAN fire_rate 0.27 -> 0.24.
 * MINIGUN damage 0.42 -> 0.55, fire_rate 0.05 -> 0.045, pierce 1, reload 3.2 -> 3.0, `spin_up` 0.4.
+  **2026-10-17 (user: "600 bullets is god mode")**: fire_rate 0.065 (~15/s), magazine 70, 140 bullets per pickup and max 140
+  (capacity upgrades still add +20%/level), ammo box 35. Practice loadouts (`arsenal.loadout_for`) never exceed ammo_max.
 * RAILGUN damage 4.0 -> 4.5, fire_rate 1.0 -> 0.9, magazine 3 -> 4.
 * LMG damage 0.5 -> 0.55, knockback 55 -> 65.
 * Why none trivializes the game: ammo stays the limit (heavy guns have 10-24 rounds per pickup), bosses are excluded from

@@ -29,7 +29,7 @@ extends Camera2D
 
 ## עצירת פגיעה: לכמה העולם מאט / מינימום שניות בין שתי עצירות (שלא ירגיש מגמגם במולטי-קיל)
 @export var hitstop_scale := 0.08
-@export var hitstop_gap := 0.22
+@export var hitstop_gap := 0.5
 
 var _strength := 0.0
 var _time_left := 0.0
