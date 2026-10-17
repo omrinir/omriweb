@@ -15,3 +15,5 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
   `xvfb-run ... godot --path . --rendering-driver opengl3 --write-movie out.avi --fixed-fps 60 -s res://t_rec.gd -- <level> 1 <sec> <start_x>`
   (env `REC_SPECIAL=gravity` hands the bot an item). `build_short.py` cuts the clips into a 1080x1920 Short with captions,
   music and a narrator voice (espeak-ng + mbrola us2 run through sox; paths at the top of the script).
+- `robot_voice.py` + `robot_lines.txt` - the deadpan robot narrator (espeak-ng mbrola us2, pitch flattened with pyworld, sox speaker colour).
+  `build_short_l1.py` - the level 1 Short (segments and narrator cues at the top). Record with `REC_NOMUSIC=1` so the music can be laid over the cuts.
