@@ -53,6 +53,9 @@ enum {
 	FLOATER, ANGLER, SPOREWALKER,  # שלב 49 (הדלתא - טיגרה). FLOATER = גם הבוס
 	PUPPETEER, LOBIZON, COFFIN_BREAKER,   # שלב 50 (בית הקברות - רקולטה). PUPPETEER = גם הבוס
 	RIDER, BEEKEEPER, BRANDER,     # שלב 51 (החווה). RIDER = גם הבוס
+	HAULER, QUISLING, STRAGGLER,   # שלב 52 (מגרש הרכבות). HAULER = גם הבוס (THE ENGINE)
+	STACKER, BABBLER, PURSUER,     # שלב 53 (המצור על הבירה - מונטווידאו). STACKER = גם הבוס (THE SIEGE TOWER)
+	SHEPHERD, STINGER, DARKSEEKER, # שלב 54 (הגשר האחרון). SHEPHERD = גם הבוס (THE ARCHITECT)
 }
 
 const FIRST := 20
@@ -204,6 +207,15 @@ const TYPES := {
 	RIDER: "res://enemies/types/rider.gd",
 	BEEKEEPER: "res://enemies/types/beekeeper.gd",
 	BRANDER: "res://enemies/types/brander.gd",
+	HAULER: "res://enemies/types/hauler.gd",
+	QUISLING: "res://enemies/types/quisling.gd",
+	STRAGGLER: "res://enemies/types/straggler.gd",
+	STACKER: "res://enemies/types/stacker.gd",
+	BABBLER: "res://enemies/types/babbler.gd",
+	PURSUER: "res://enemies/types/pursuer.gd",
+	SHEPHERD: "res://enemies/types/shepherd.gd",
+	STINGER: "res://enemies/types/stinger.gd",
+	DARKSEEKER: "res://enemies/types/darkseeker.gd",
 }
 
 static var _stats_cache := {}

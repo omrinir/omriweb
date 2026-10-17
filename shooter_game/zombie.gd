@@ -1486,6 +1486,8 @@ func _kill_feel() -> void:
 	else:
 		Sfx.play("kill_punch", global_position, -4.0 + (3.0 if heavy_kill else 0.0), 0.12, 3)
 	var t := HITSTOP_BOSS if boss else (HITSTOP_HEAVY if heavy_kill else (HITSTOP_HEAD if head else 0.0))
+	if not boss and death_load() >= 2:   # הרבה הריגות ברצף (מיניגאן / רימון): בלי עצירות זמן - הרגיש כמו האטה של המשחק
+		t = 0.0
 	if t > 0.0:
 		var cam := get_viewport().get_camera_2d()
 		if cam != null and cam.has_method("hit_stop"):

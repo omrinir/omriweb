@@ -98,6 +98,7 @@ static func _load_banks() -> void:
 		if ResourceLoader.exists(path):
 			register(load(path).SOUNDS)
 	_check_samples()
+	prewarm()
 	# כל זומבי חדש / שלב יכול להגדיר const SOUNDS := {...} בקובץ שלו - נרשם כאן אוטומטית
 	for list_path in ["res://enemies/zombie_registry.gd", "res://levels/stage_registry.gd"]:
 		if not ResourceLoader.exists(list_path):
@@ -322,6 +323,24 @@ static func _check_samples() -> void:
 		print("[ZOMBIE VOICES] OK - real zombie voice clips found in ", SAMPLE_DIR)
 	else:
 		push_warning("[ZOMBIE VOICES] missing %d clip(s), e.g. %s - copy the sounds/zombies folder into the game folder" % [missing.size(), missing[0]])
+
+
+# טוען מראש את כל קבצי הקול (בתחילת שלב) - אחרת ההריגה הראשונה טוענת MP3 מהדיסק ונתקעת לרגע
+static func prewarm() -> void:
+	for k in SAMPLES:
+		for f in SAMPLES[k]:
+			var file: String = str(f)
+			if _samples.has(file):
+				continue
+			var path := _sample_path(file)
+			var st: AudioStream = null
+			if ResourceLoader.exists(path):
+				st = load(path) as AudioStream
+			if st == null and FileAccess.file_exists(path):
+				var mp3 := AudioStreamMP3.new()
+				mp3.data = FileAccess.get_file_as_bytes(path)
+				st = mp3
+			_samples[file] = st
 
 
 static func _sample_path(file: String) -> String:   # שם קצר = sounds/zombies, או נתיב מלא (res://...)

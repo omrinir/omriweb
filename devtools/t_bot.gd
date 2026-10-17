@@ -435,6 +435,16 @@ func _move() -> void:
 			var o = c.shape_owner_get_owner(h.shape) if c is CollisionObject2D else null
 			var sh2 = c.shape_owner_get_shape(h.shape, 0) if c is CollisionObject2D else null
 			print("   body ", _desc(c), " layer=", c.collision_layer, " shape=", sh2, " size=", sh2.size if sh2 is RectangleShape2D else (sh2.segments if sh2 is ConcavePolygonShape2D else "?"), " at ", o.global_position if o is Node2D else "?", " oneway=", o.one_way_collision if o is CollisionShape2D else "-")
+	if stall > 25.0:   # (before the ladder logic: a ladder it can't reach used to return every frame and block this)
+		var tx := x + 260.0
+		ev.append("TELEPORT from x=%d y=%d (stuck %.0fs, blk=%s / %s)" % [x, pl.global_position.y, stall, cur_stuck.blk if cur_stuck else "?", cur_stuck.blk_hi if cur_stuck else "?"])
+		if cur_stuck != null:
+			cur_stuck.tp = true
+		teleports += 1
+		pl.global_position = Vector2(tx, pl.global_position.y - 260.0)
+		pl.velocity = Vector2.ZERO
+		best_x_f = f
+		return
 	# escape strategies when stuck
 	if stall > 1.5:
 		var lad = _near_ladder(320.0)
@@ -473,16 +483,6 @@ func _move() -> void:
 		var cyc := int(stall * 60.0) % 150
 		if cyc < 40:
 			want = -1.0
-	if stall > 25.0:
-		var tx := x + 260.0
-		ev.append("TELEPORT from x=%d y=%d (stuck %.0fs, blk=%s / %s)" % [x, pl.global_position.y, stall, cur_stuck.blk if cur_stuck else "?", cur_stuck.blk_hi if cur_stuck else "?"])
-		if cur_stuck != null:
-			cur_stuck.tp = true
-		teleports += 1
-		pl.global_position = Vector2(tx, pl.global_position.y - 260.0)
-		pl.velocity = Vector2.ZERO
-		best_x_f = f
-		return
 	if pl.grabbed_by != null:   # mash A/D
 		var m := (f / 3) % 2 == 0
 		_key(KEY_A, m)

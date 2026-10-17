@@ -351,6 +351,13 @@ func _act(a: String) -> void:
 			if tm != null:
 				tm.tilt = 0.0
 				create_tween().tween_property(tm, "smile", 1.0, 0.6)
+		"mask_off":   # הבוגד (QUISLING, שלב 52) מוריד את מסכת העור ומראה פנים של אדם חי
+			if tm != null and "mask_off" in tm:
+				create_tween().tween_property(tm, "mask_off", 1.0, 0.7)
+		_:   # כל פעולה אחרת הולכת לשלב (למשל שלב 54: "herd_roar" / "lamps_out" / "wind" -> stage.on_story_beat)
+			var st = main.get("_stage") if main != null else null
+			if a != "" and st != null and st.has_method("on_story_beat"):
+				st.on_story_beat(a)
 
 
 func _finish() -> void:

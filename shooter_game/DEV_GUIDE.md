@@ -306,7 +306,7 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 
 ## GOD MODE potion
 - Special item `"god"` (progression/arsenal.gd SPECIALS, never random). Placed by main.gd on `Arsenal.potion_levels()` (3, then every 2-3 levels, fixed seed) in the middle of the level (POTION_MID 42-58%), at the spot with the most zombies around. Player cannot be hurt while it lasts (player.hurt).
-- Picking it up starts it at once (player.collect -> `_drink_god`, not stored as a special): `boosts[PickupScript.GOD] = player.GOD_TIME` (23 s, HUD boost row shows it; flames ramp up over the first 2.5 s). Light on particles: body flames ~15 alive, 1 bullet ember per 2 frames (max 8), 14-part hit burst.
+- Picking it up starts it at once (player.collect -> `_drink_god`, not stored as a special): `boosts[PickupScript.GOD] = player.GOD_TIME` (13.8 s, was 23 - cut 40% on 2026-10-17 because it was too easy, HUD boost row shows it; flames ramp up over the first 2.5 s). Light on particles: body flames ~15 alive, 1 bullet ember per 2 frames (max 8), 14-part hit burst.
 - While active: body flames (`player._flames`), bullets get `god = true` (red ember trail + `GodBurst` on hit, bullet.gd), zombie.gd multiplies damage x4 when `src.god`.
 - Potion art: `PickupScript.draw_potion(ci, pos, scale, time)` (ground, HUD slot, hand, boost icon).
 
@@ -1033,10 +1033,13 @@ torn-cheek wounds never change. Non-gore effects scale more:
 | Level | What changes |
 |---|---|
 | 0 | everything full |
-| 1 | smoke / sparks / dust particles x0.6, zombies redraw 1 frame less often, simplified zombie drawing above 8 on screen, background redraws every 2nd frame, rain/ash x0.7 |
-| 2 | smoke / sparks / dust x0.35, damage numbers only for head hits, simplified zombie drawing always, background every 3rd frame, rain/ash x0.45, off-screen zombies think 15x/s instead of 30x/s |
-| 3 | smoke / sparks / dust x0.18, no damage numbers, background every 4th frame, rain/ash x0.3 |
+| 1 | smoke / sparks / dust particles x0.7 (30% less), zombies redraw 1 frame less often, simplified zombie drawing above 8 on screen, background redraws every 2nd frame, rain/ash x0.7 |
+| 2 | smoke / sparks / dust x0.5 (50% less), damage numbers only for head hits, simplified zombie drawing always, background every 3rd frame, rain/ash x0.45, off-screen zombies think 15x/s instead of 30x/s |
+| 3 | smoke / sparks / dust x0.3 (70% less), no damage numbers, background every 4th frame, rain/ash x0.3 |
 
+* **Lag spikes** (user request 2026-10-17: cut particles 30-70% only when the game actually slows): besides the 1 s average,
+  every frame slower than `SPIKE_K` (1.7) x the target frame time counts; `SPIKE_N` (6) such frames inside one window step down
+  a level at once (`Quality.spikes` counts these). Level 0 stays full, so a smooth game never loses particles.
 * Pause menu (ESC): **EFFECTS: AUTO / HIGH / LOW** (saved in settings.cfg). HIGH = always level 0, LOW = always level 3.
 * **F3** shows FPS and the current level in the bottom-left corner.
 * The background (`effects/parallax_backdrop.gd`) draws each layer in its own node. Between redraws a layer just moves with the
@@ -1061,7 +1064,7 @@ tilt / hop through `begin_draw` (`react_tilt()`, `react_hop()`). Runner/screamer
 
 ## Region 6 - SOUTHERN CONE (levels 46-54): "They learned to plan."
 Each level brings 3 new zombie types; the boss is a giant variant of the level's first type (chase_range > 600, like KRAKEN).
-Game.IMPLEMENTED = 51.
+Game.IMPLEMENTED = 54 (levels 52-54 below the Stage 51 section).
 
 ## Stage 46 - "WINE VALLEY" ("THEY LEARNED THE BLADE") - Mendoza vineyards at harvest dusk, region 6 (SOUTHERN CONE) level 1
 - levels/stage_46.gd + effects/s46_decor.gd: dusk sky with long flat sunset clouds, low sun and condors; far layer (0.06) = the snowy Andes
@@ -1309,6 +1312,422 @@ Screen FX: `S17.HeatHaze` shader + dust particles + `RanchFX` (dust motes scaled
 **Tunables** - in each file header. Stage: `TOWERS`, `TIER`, `SILOS`, `SILO_TIER`, `CHUTES`, `TROUGHS`, `ASADO`, `BEES`, `zombie_weights()`
 (BRANDER 0.07, BEEKEEPER 0.05, RIDER 0.03, regulars 0.52, runners 0.33).
 
+## Region 6 story (levels 52-54): THE ARCHITECT
+Inspired by zombie comics and sci-fi books (named in each zombie's section). The dead move SOUTH on purpose, run by one mind, THE ARCHITECT
+(boss of 54, giant SHEPHERD). Living traitors (QUISLING, 52) walk among them in dead skin and serve him. 52: they board the trains south.
+53: they besiege Montevideo and he sends a PURSUER after the hero by name. 54: the hero arms the charges and kills him - his whole herd
+drops, the bridge falls ("THE REST ALREADY CROSSED" -> Patagonia, "They learned to think").
+* Story scenes: `story/scenes/l52_quisling.gd` (x 1300, the quisling pulls his mask off - action `mask_off` - and names the Architect)
+  and `story/scenes/l54_stranger.gd` (x 8250 in the clear stretch 6750-8750 before the gate; the STRANGER's third visit: "you're the
+  only one of us... who forgot"). Any scene action story_scene.gd doesn't know goes to `stage.on_story_beat(id)` (54: wind / herd_roar /
+  lamps_out / charges_beep). Voices: devtools/story_voices.py + story_voices_master.py.
+
+## Stage 52 - "RAIL YARD" (THEY LEARNED THE TIMETABLE)
+
+Zone 6 (Southern Cone), stage 7. The huge freight yard on the edge of Buenos Aires (Remedios de Escalada workshops / Retiro freight yard).
+Orange smog dusk that slowly turns into a sodium-lit evening. The dead are boarding the freight trains south, on schedule.
+Some of the dead are breathing: living QUISLINGS in dead-skin masks walk inside the herds. They serve THE ARCHITECT (boss of 54).
+
+**Files**
+- `levels/stage_52.gd` - layout, spawns, sounds (`sw_bell`, `sw_roll`, `lw_buzz`).
+- `effects/s52_decor.gd` - sky + 3 parallax layers + all world objects / traps.
+- `enemies/types/hauler.gd` - HAULER (also the boss, THE ENGINE) (+ `Wreck`, `Rupture`).
+- `enemies/types/quisling.gd` - QUISLING (living human; also a story-scene actor).
+- `enemies/types/straggler.gd` - STRAGGLER (+ `BehindEye`, the "something moved behind you" icon).
+
+**Background (Backdrop)** - all layers animate on `t`; `dusk(t)` lerps the palette from smog dusk to evening over `DUSK_T` seconds.
+- `yard_sky`: gradient sky, a sinking red sun, smog bands, birds, first stars.
+- `far_city` (0.06): two skyline passes with windows lighting up, chimneys with blinking red lights and smoke, a lit passenger train on a viaduct.
+- `mid_yard` (0.28): the "F.C. SUD" roundhouse, water tower, a row of boxcars with graffiti, catenary poles.
+  Every `TRAIN_EVERY` s a freight train full of the dead rolls south (`_zombie_train`: bodies on the roofs, arms out of the doors).
+- `near_rails` (0.6): rails and sleepers, timetable signal posts (red/amber/green), weeds, scrap, steam vents.
+- `yard_overlay`: an orange sodium `haze_band` at screen y 420-612, behind the characters (readability rule).
+- Screen FX: ash particles + `YardFX` (moving smog, soot and embers scaled by `Quality.ambient()`, orange tint).
+
+**Layout / upper floors** - every high place has ladders and a pickup.
+- `BOXCARS` - roof = invisible steel `add_floor` (`CAR_TIER`), 2 ladders, a regular zombie on top.
+- `GANTRIES` - signal bridges with a walkway (`GANTRY_TIER`).
+- `HOPPERS` - coal towers with a deck (`HOPPER_TIER`).
+- `SodiumLamp` every `LAMPS` of the level, so silhouettes stay readable in the evening.
+- `Turntable` (boss arena) at `level_w - 1100`, with a raised control booth (floor + ladder + ammo). The booth is the hiding place from the charge and the best spot to shoot the valves.
+- Obstacles `buffer` / `sleepers` / `crates` / `wheels` come from `custom_gen` and skip reserved spots (all are group `cover`).
+- `extra_spawns`:
+  - a regular zombie on every deck
+  - `QUISLING_GROUPS`: a herd of regulars with one quisling inside. The herds grow along the level (3 -> 5).
+  - 7 stragglers (`STRAGGLERS`), 3 haulers (`HAULERS`)
+- `zombie_weights()`: STRAGGLER 0.05, HAULER 0.035, QUISLING 0.02, regulars 0.55, runners 0.32.
+
+**Traps**
+- `Switch` (`SWITCHES`): walk past the red-white lever and a bell rings (`WARN_T`). Then a runaway `Flatcar` rolls along the road from the side you are heading to.
+  - Jump it (`H` 40) or roll. It deals `DMG`, crushes zombies once each (`DMG_Z`), smashes on walls, and can be shot apart (`HP`).
+  - Shooting the lever (a layer-4 body with `hit_by_bullet`) releases the car from the switch toward you, on your timing. Use it to mow down a herd.
+- `LiveWire` (`WIRES`): a torn overhead wire. It buzzes (`WARN_T`, sparks), then whips the ground with an arc (`ARC_T`).
+  - The arc hurts you (`DMG`) and fries zombies (`DMG_Z`, 12 on a boss). It fires sooner when you stand under it.
+  - The poles are drawn behind the characters (`Poles`, z -1); only the torn wire and the arc are in front. Wires stay quiet while a story scene plays.
+- Both are in group `hazards` with `danger_at()` / `world_rect()` for the bot.
+
+**HAULER** - Junji Ito "Gyo": a bloated corpse strapped belly-down on a 4-legged walking frame made of rail parts (pistons, little rail-wheel feet).
+A gas tank on its back is hosed into the corpse's back and mouth (it puffs green gas).
+- Fast (`chase` 150). **RAM:** rears back with a steam hiss (`RAM_WIND`), then charges straight (`RAM_V`, `RAM_DMG`). **STOMP** when you are hugging it (`STOMP_R`, jump it).
+- **Hit zones** (in `on_damage`, local coords from the 76x64 hitbox):
+  - Front body = iron frame: x`FRAME_MULT` damage, sparks, `metal` (no blood). After 7 frame hits with no tank hit it pops "SHOOT THE TANK!".
+  - The corpse's hanging head (front, chest height) = full damage.
+  - The tank: from behind, from above, or its top that sticks out over everything (shoot high). `TANK_HP`.
+    Any nearby explosion also hurts the tank (chain reactions).
+- Tank gone -> **VENT** (`VENT_T`, gauge needle on the tank, leak jets; more shots into the tank only hiss, so the blast always comes) -> blast (`BLAST_R`, `BLAST_DMG` to zombies, 1 to the player).
+  Then the frame collapses (`Wreck` stays on the ground and fades) and the corpse crawls on with `CRAWL_HP` and a resized hitbox.
+- Killed with the tank intact (or while venting) -> `Rupture`: the tank hisses for 0.9 s and blows.
+- Turns late (`TURN_T`), so rolling past it exposes the tank.
+- **Learns** (main meta `hauler_pops` >= 1). New haulers spawn with `tank_learned`:
+  - The tank is lowered behind an armor plate, so it can only be hit from behind or above ("get above them": boxcars, gantries).
+  - They turn to you fast (`LEARN_TURN_T`) and after a ram.
+  - With a damaged tank they back up against a `cover` object with their tank (`COVER_R`), wait there (`COVER_HOLD`), then come out to ram (`SORTIE_T`) and go back.
+  - Popup "THEY HIDE THE TANK".
+
+**THE ENGINE** (boss, `chase_range > 600`, `boss_name` "THE ENGINE"):
+- A locomotive boiler walking on 4 legs whose knees are spoked drive wheels.
+- It has a cab with a dead driver, a smokestack and a headlight.
+- A giant stitched corpse face is fused into the smokebox door.
+- Corpses hang in a cage and on chains (the "passengers").
+- **STEAM** (`STEAM_WIND` hiss, then `STEAM_T`): a steam cone aimed at you, up to the booth too (`STEAM_R`). Roll or step out.
+- **DROP** every `DROP_EVERY`: 2 corpses (`lie_down`) that get up when you come near (up to `DROP_MAX`).
+- **WHISTLE -> CHARGE:** the whistle sounds and the headlight beam comes on (`WHISTLE_T`), then it charges down the track (`CHARGE_V`).
+  - The charge crushes zombies and smashes brick cover.
+  - Dodge: climb the booth, or roll through it (PERFECT DODGE).
+- **VALVES** after every charge: 3 pressure valves pop up on the boiler top for `VALVE_T`.
+  - Valve hits x`VALVE_MULT`. Each valve has `VALVE_HP`; a broken valve stays open for good (x2).
+  - The rest of the boiler takes x`OPEN_MULT` while open. Closed, it is armor (x`ARMOR_MULT`, "CLANG").
+  - The face takes x0.8. `BOSS_HEAD_K` cancels the engine's built-in x2 boss-head bonus, because the top of the boiler is not a head.
+- Double charge (there and back) under 50% hp.
+- **Learns:** after 2 roll-dodges it always double-charges ("IT READS YOUR ROLL").
+
+**QUISLING** - WWZ quislings / TWD Whisperers: a living man in a cloak and mask of stitched dead skin, shambling inside a herd.
+- **Tells:**
+  - breath fog
+  - blinking
+  - white human eyes in the mask holes
+  - a silent, lockstep herd
+- **While HIDDEN** he whispers every `WHISPER_T`:
+  - herd zombies within `SILENCE_R` stop groaning and walk in sync (same `_walk_phase`);
+  - half of them FLANK (`brain.command` + `flank_side`), the rest APPROACH (`_alert_t`).
+- **Exposed** when shot, when you come within `EXPOSE_R`, or when his whole herd dies. Then:
+  - Mask pulled down (`mask_off` -> 1), a gasp.
+  - **AIM** (`AIM_T`, red aim line that tracks you, then a revolver `Slug` for `SHOT_DMG`) or **THROW** (a `torch.gd` Bottle -> fire zone, `MOLOTOV_CD`).
+  - After `SHOTS_BEFORE_RUN` he **RUNS** (`RUN_V`) to the next herd (`_find_group`) and **REHIDES**. Cornered with nowhere to go, he backs off and shoots again.
+- Low HP (22), red blood, `qs_scream` death.
+- Killing him confuses every zombie around (`brain.confuse(CONFUSE_T)`, "?" popups, "LEADERLESS").
+- **Learns** (main meta `quisling_exposed` >= `LEARN_EXPOSED`):
+  - He hides at the far side of the herd and picks the biggest herd when he runs.
+  - He only breaks cover at `LEARN_EXPOSE_R`.
+  - He holds his breath while you look at him.
+- **Story actor** (not in group `zombies`): stands still and uses `talking`, `tilt`, `smile`, `look_back`, `t` (like `stranger.gd`).
+  `mask_off` goes from 0 (mask on) to 1 (mask pulled down: a scared, sweating human face). Set it with `actor_props` or tween it from the scene.
+
+**STRAGGLER** - Colson Whitehead's "Zone One" stragglers + Weeping Angels: dead commuters and railwaymen frozen mid-routine, grey as stone.
+- Routines: lantern, pocket watch, suitcase, newspaper, broom. Each one gets its own outfit and hat.
+- They wake up when you come near (`WAKE_R`) or shoot them.
+- **They move only while you are not looking** (`player._face()` points away, `SIGHT_R`).
+  - When unseen they are fast (`chase` 300) and strike hard (`DMG`).
+  - When seen they freeze with dust and a creak, in a new threatening pose each time.
+- Body hits x`BODY_MULT` (stone); headshots are normal.
+- When one starts moving behind you there is a "crack" and an eye icon (`BehindEye`) on that side. The first time: "THEY MOVE WHEN YOU LOOK AWAY".
+- **Learns** (main meta `st_stare` >= `LEARN_STARE` seconds of you staring at them):
+  - They gather behind you (`GATHER_D`) and wait.
+  - They move during your reload, even while you look ("THEY WAIT FOR YOUR RELOAD").
+
+**Story scene** - `story/scenes/l52_quisling.gd` (x 1300): a QUISLING actor pulls his mask off and talks about the trains south and THE ARCHITECT, then vanishes.
+The spot is between the first boxcar (0.09) and the first wire (0.14); the first straggler was moved to 0.2 so nothing stands next to the actor.
+
+**Tunables** - in each file header. Stage: `BOXCARS`, `CAR_TIER`, `GANTRIES`, `GANTRY_TIER`, `HOPPERS`, `HOPPER_TIER`, `SWITCHES`, `WIRES`, `LAMPS`,
+`QUISLING_GROUPS`, `STRAGGLERS`, `HAULERS`, `zombie_weights()`. Hauler: `COVER_R`, `COVER_HOLD`, `SORTIE_T`. Map picture: `map/thumbs/level_52.png`.
+
+- Integration fix: a HAULER drops an ammo box when its frame goes down (or when it dies with the frame whole), and FRAME_MULT is 0.5 (was 0.35) - the playtest bot kept running dry on level 52.
+
+## Stage 53 - "CAPITAL SIEGE" (THEY LEARNED TO BESIEGE)
+
+Zone 6 (Southern Cone), stage 8. Montevideo, the last free capital, on a cold grey morning. The living hold the old city
+behind burned buses and sandbags. The herd outside does not just push: it climbs itself, it spreads a word that rots the mind,
+and THE ARCHITECT has sent one of them after the hero by name.
+
+**Files**
+- `levels/stage_53.gd` - layout, spawns, sounds (`sg_clank`, `sg_pour`, `sg_creak`, `sg_crash`), the PURSUER `Director`.
+- `effects/s53_decor.gd` - sky + 3 parallax layers + all world objects / traps.
+- `enemies/types/stacker.gd` - STACKER (+ `Tower`, `HitPop`). Also the boss, THE SIEGE TOWER.
+- `enemies/types/babbler.gd` - BABBLER (+ `WordRing`, `Scramble`/`Painter` screen overlay, `Letters`).
+- `enemies/types/pursuer.gd` - PURSUER (+ `Rocket`, `Director`, `Banner`/`BannerPaint`).
+
+**Background (Backdrop)**
+- `siege_sky`: 32-step grey-blue gradient, a pale sun, soft cloud bands, 2 sweeping searchlights, 4 soft smoke columns and gulls.
+- `far_river` (0.06): the Rio de la Plata. It has the Cerro hill with its fortress, a lighthouse whose beam turns, port cranes, two burning ships and horizon mist.
+- `mid_oldcity` (0.28):
+  - The old-city skyline with Palacio Salvo (lit windows, rooftop searchlight, flag) and the blue-domed cathedral.
+  - THE HERD: an animated bumpy mass with raised arms outside the walls.
+  - The defenders' wall every 640 px: sandbags, muzzle flashes and a body pyramid that grows.
+- `near_barricade` (0.6): Czech hedgehogs, coiled barbed wire, sandbags, poster columns with flapping posters, and drifting smoke.
+- `haze`: `Kit.haze_band` 420-612. It is the readable mid-tone band behind the characters.
+- Screen FX: ash particles, plus `SiegeFX` (low cold mist and a distant artillery flash every 7-14 s).
+
+**Layout / upper floor**
+- `GATE`: the Puerta de la Ciudadela. Its roof is an invisible `add_floor` with 2 ladders, an ammo pickup, a regular zombie and a BABBLER that shouts down.
+- `FACADES`: 4 colonial fronts with an iron balcony each (floor, ladder and pickup).
+  - Each one has an `OilDrum` above the street and 2 STACKERs waiting underneath. Climb up and they build a tower to you.
+- `BUSES`: 4 burned buses. They are solid cover and you can stand on the roof.
+  - Behind the even-index buses waits a BABBLER. Behind the odd-index buses wait 3 STACKERs.
+- `BREACHES`: junk barricades along the road.
+  - When you come within `TRIGGER_R` the barricade shakes (`WARN_T`) and collapses (`DMG`, `DMG_Z`).
+  - `BURST` zombies pour through, and the last one is a STACKER.
+- The Rambla at the end (`SeaWall`, the MONTEVIDEO letters) is the boss arena. It has 3 `ArenaBarricade`s (`ARENA_BARRICADES`) for the boss to smash.
+- Obstacles `sandbags` / `stalls` / `tram` come from `custom_gen`. Keep them at 62 px tall or less: a 75 px tram (156 wide) stopped the no-god bot for good.
+- `BREACHES` sit at 0.3 / 0.59 / 0.8 of the level. Do not put one past 0.85, where it overlaps the arena barricades.
+- `zombie_weights`: STACKER 0.09, BABBLER 0.04, walkers and runners. The PURSUER is never in the weights; there is only one per level.
+
+**Traps**
+- `OilDrum` (group `s53_drums`): shoot the drum (the `Hit` body on layer 4). It tips over and pours burning oil on the street (`POUR_W`, `BURN_T`).
+  - The oil ignites and damages zombies (`DMG_Z`) and topples any STACKER tower in it.
+  - When a tower stands within 160 px it shows the hint "SHOOT THE OIL DRUM!" once.
+- `BreachWall`: see Layout. It is a hazard (`world_rect` / `danger_at`), so the bot and the brain avoid standing in it.
+
+**STACKER** - a shirtless grey-blue climber with a criss-cross rope harness, a knotted rope trailing behind and hooked fingers. (World War Z zombie pyramids, I Am a Hero.)
+- When you are up high (`d.y < -70`, within 360 px), the free stackers within `STACK_R` gather under you.
+  - They lock into a living `Tower` of 2-4 bodies. `need` is computed from your height.
+  - The base stands braced, the middle body kneels on the shoulders, and the top body reaches up.
+  - The `Tower` node draws fused flesh strands and the rope that links the harnesses.
+- If no more stackers come, a shorter tower is finished after `SHORT_BUILD_T`.
+- **Built:** the top body vaults onto your floor. From then on the tower is a ladder: any zombie that reaches the base is launched up to your floor (`LADDER_CD`).
+- The tower comes apart when you have been away for `IDLE_DISBAND`, or after `LIFE_MAX`.
+- **Counter:**
+  - Shoot the base `TOPPLE_HITS` times (a shotgun hit counts double), or kill the base.
+  - Any explosion on any member, or the burning oil, also brings the tower down.
+  - **TOPPLE:** every member flies outward (the higher the body, the farther) and spins.
+    - On landing it takes fall damage `FALL_DMG.x + FALL_DMG.y * slot` and lies down for 1-1.7 s.
+    - Zombies it lands on take `DOMINO_DMG` and stagger. A body that lands on another tower topples that tower too ("DOMINO!").
+- **Learns** (`main` meta `st_topples`):
+  - After `LEARN_ARMOR` topples the base holds a rusty car door ("THEY BRACE THE BASE").
+    - The door blocks front bullets to the torso and head (CLANG, "SHOOT THE LEGS").
+    - Legs, explosions and fire still work.
+  - After `LEARN_TWIN` topples they build two towers at once, 124 px apart ("TWO TOWERS").
+- Test counters are main metas: `st_built`, `st_topples`, `st_climbs`, `st_blocks`, `st_armored`, `st_twins`.
+
+**THE SIEGE TOWER** (boss, `chase_range > 600`) - a walking mass of about 22 fused bodies on 7 pairs of legs, carrying an iron-capped battering ram.
+- The hitbox is resized at runtime to 124x168.
+- **RAM** (`160 < |dx| < 600`): it leans back for `RAM_WIND` (dust and a roar), then charges at `RAM_V` for up to `RAM_MAX`.
+  - Hitting an `ArenaBarricade` smashes it, sheds 2 bodies and stuns it for `STUN_BARRICADE`.
+  - Hitting a wall stuns it for `STUN_WALL`.
+  - Hitting you deals `RAM_DMG` and throws you. Zombies in its path are flung.
+- **SWAT** at < `SWAT_R`, with a `SWAT_T` telegraph. Touching the mass also hurts.
+- **SHED:** every 1/9 of its HP, and on each explosion, a body falls off.
+  - The body lies on the ground, then gets up and attacks (kind 0 or 1, at most `SHED_CAP` alive).
+  - Every 2 shed bodies an AMMO box drops (`ammo_drops`, at most 4), because the no-god bot ran dry at 700 HP.
+  - The fallen bodies leave red holes in the mass.
+- **Weak point:** the CORE face in the middle of the mass. It grows as bodies are shed (`_exposure`).
+  - Core hits take x`CORE_MULT`, or x`CORE_STUN_MULT` while it is stunned ("CORE EXPOSED").
+  - The rest of the mass takes x`BODY_MULT`, and explosions x`BODY_BLAST_MULT`.
+  - The engine's "head" zone (the top half of the mass) is normalized with x0.22.
+- **The fight:** dodge the ram so it hits a barricade or a wall, then pour shots into the exposed core.
+
+**BABBLER** - a dead radio host (Pontypool Changes Everything, Stephen King's Cell). He wears a dirty white shirt, a loose tie, suspenders and headphones around the neck, and holds a cracked, taped megaphone.
+- He repeats one word (`WORDS`: SOUTH, HUNGRY, HOME, KILL, OBEY...) in a jagged bubble. He keeps range (280) and prefers to stand behind another zombie (`HIDE_R`).
+- **SHOUT:** every `CD` s he inhales for `INHALE_T`. The bubble grows and shakes and the word turns red. Then he shouts a `WordRing`.
+  - The ring is a circle of the word that grows at `RING_V` up to `RING_R`.
+  - It hits you when it reaches you with a clear line from the megaphone (ray on mask 1) and you are not rolling. You are then **WORD-SICK** for `SICK_T`:
+    - `player.daze` adds aim sway and half speed.
+    - The `Scramble` overlay (CanvasLayer 3, above the HUD) shows scrambled copies of the word, some of them over the HUD corners, plus noise bars and red edges.
+    - There is no control inversion.
+  - Zombies the ring passes "hear" the word: `drum_t` gives them x1.3 speed for `HEARD_T`, and they become alert.
+- **Counter:** cover (a bus or sandbags between you), a roll through the ring, distance, or **shoot the megaphone**.
+  - It has its own hit circle (`MEGA_R`, local (19,-48)) and absorbs bullets.
+  - `MEGA_HITS` hits make him **SILENCED**: he screams, rushes at x`CHARGE_MULT` and can bite.
+- **Learns:** after `LEARN_DODGES` dodged rings his timing changes ("IT LEARNED YOUR TIMING").
+  - His pauses become irregular (`LEARNED_CD`).
+  - `FAKE_P` of his inhales are fakes, followed by a fast real shout (`QUICK_INHALE`).
+- **Death:** the letters of his word scatter, with a feedback squeal.
+- Test counters: `rings`, `sick`, `dodges`, `fakes`, `mega_hits`, `silenced`, `learned`, plus main metas `bb_heard`, `bb_sick`, `bb_dodges`, `bb_silenced`.
+
+**PURSUER** - "SENT FOR YOU" (Nemesis, the Terminator). A huge bald tyrant in a long coat with a stitched skull and one red lens eye. He carries a rocket launcher on his back and a tag on his chest.
+- **One per level, never from the pace director.** `Pursuer.Director` (created in `stage_53.build_effects`) drops him from the sky about 520 px ahead of you when you pass `start_x` (11% of the level).
+  - The landing comes with a shake, a roar, debris and the full-screen banner "HE WAS SENT FOR YOU / THE ARCHITECT KNOWS YOUR NAME".
+  - From then on he walks after you at a steady `WALK_V` for the whole level. He leaps up to your floor, drops down, and jumps walls.
+- **Never stuck:** the Director teleports him off-screen behind you (`RESPAWN_D`, onto a free floor spot) when:
+  - he is more than `CATCH_D` behind,
+  - he has barely moved for `STUCK_T` while off-screen,
+  - or he fell below the floor.
+  - Past `end_x` (the boss arena) he is removed if he is far away, so he does not join the boss fight.
+- **Not a boss** (no HUD bar, the exit does not depend on him). He draws his own overhead HP bar and 3 down pips.
+  - His HP is kept above a hidden `BUFFER` until the 3rd phase, so a big hit can never kill him early.
+- **Falls but doesn't die:** at 0 phase HP he drops to one knee for `DOWN_T`. He is invulnerable then, and sparks fly off him.
+  - He gets up with the next `PHASE_HP`. Only the 3rd fall is real death.
+  - His death drops BOOST + SUPPLY + AMMO + HEALTH, gives 3000 points and the line "STAY DOWN."
+- **Learns where you shoot:** each time he rises, armor grows on the zone you hit most (head, body or leg).
+  - The armor is a riveted helmet, a chest plate or iron greaves ("THEY LEARN WHERE YOU SHOOT").
+  - Bullets on an armored zone spark off ("ARMORED - AIM ELSEWHERE"). Explosions and fire bypass the armor.
+  - Head hits are x0.6, so he can't be one-shot.
+- **Attacks:**
+  - **GRAB:** reach (`REACH_T`), then he lifts you overhead (`LIFT_T`) and throws you (`THROW_DMG`, `THROW_V`). A/D mash frees you (`player.grab`).
+  - **PUNCH:** a short jab when the grab is on cooldown.
+  - **ROCKET** at `ROCKET_R` with line of sight: a red laser dot tracks you, lagging behind, for `AIM_T`, then the rocket flies at the dot.
+    - The `Rocket` explodes with `Boom.blast` (radius 90, `ROCKET_DMG` to zombies, 2 to you).
+    - Counter: roll out of the dot, break line of sight, or keep moving.
+- Test counters: `downs`, `armor`, `blocks`, `grabs`, `throws`, `punches`, `rockets`, `escapes`, `Director.teleports`; main metas `pu_spawned`, `pu_killed`, `pu_rocket_booms`, `pu_teleports`.
+
+**Story hooks** - the popups carry the region-6 arc: "THEY CLIMB EACH OTHER", "IT SHEDS ITS DEAD", "HE WAS SENT FOR YOU", "THE ARCHITECT KNOWS YOUR NAME". The BABBLER words include SOUTH and OBEY.
+
+**Shared-file note** - WORD-SICK calls `player.aim_sway(t, msg)` when the player has it, otherwise `player.daze()`, which also halves your speed. `player.gd` does not have `aim_sway` yet; the suggested diff is in `/home/claude/work/player_aim_sway_53.diff`.
+
+## Stage 54 - "LAST BRIDGE" (THEY LEARNED TO FOLLOW)
+
+Zone 6 (Southern Cone), stage 9, the region finale. Night on the old iron truss bridge over the Rio Negro between
+Carmen de Patagones and Viedma, the gate to Patagonia. THE ARCHITECT is leading the dead south. The army mined the
+bridge and ran. The hero arms the charges on the way across, kills the Architect on the far bank and blows the last bridge.
+
+**Files**
+- `levels/stage_54.gd` - layout, spawns, charge/gate logic, the collapse, story hooks. Sounds `b54_creak`, `b54_tick`,
+  `b54_beep`, `b54_arm`, `b54_buzz`, `b54_zap`, `b54_brake`, `b54_crash`, `b54_rumble`, `b54_wind` (all existing files).
+- `effects/s54_decor.gd` - sky + 3 parallax layers, all world objects, traps, the collapse and the screen FX.
+- `enemies/types/shepherd.gd` - SHEPHERD (also the boss, THE ARCHITECT).
+- `enemies/types/stinger.gd` - STINGER (+ `Worm`, `StingBody`).
+- `enemies/types/darkseeker.gd` - DARKSEEKER (+ the thrown bolt).
+
+**Background (Backdrop)** - `bridge_sky` (night gradient, batched stars, a big low moon with maria and a glow, wind-torn
+clouds with a silver rim near the moon, a cold aurora curtain strongest to the south, a shooting star every 11 s),
+`far_steppe` 0.06 (snowy ridges and mesas, the Patagones church tower on its hill with a lit window and red beacon,
+steppe fires, a tiny line of the dead walking south),
+`mid_river` 0.28 (the far shore with poplars and the Viedma lights, water bands, the moon's reflection column, burning
+boats drifting, and THE HERD: 3 rows of dark heads with silver rims wading across, ripples, raised arms),
+`near_truss` 0.6 (the far-side truss diagonals and rivets sweeping past, far lamps, railing, wind-blown debris).
+All layers animate on `t`. `Decor.U.boom_ms` (set by the collapse) makes the herd sink with splashes,
+`Decor.U.roar_ms` (story beat "herd_roar") makes it raise its arms and light its eyes.
+Screen FX: `S11.NightOverlay` (`DARKNESS` 0.34, moved under `screen_layer` so it never darkens the HUD; it reads lamps,
+`s11_lights` and `dyn_lights`), `BridgeFX` (wind streaks + river mist, `gust()` with `b54_wind`), `ChargeHud`.
+
+**Layout / upper floor**
+- North bank town to `TOWN_END` 1650 (shop fronts, a balcony floor `BALCONY` with ladders and a pickup), then the
+  `BridgePortal` ("PUENTE 1931").
+- The bridge `TRUSS_X0..TRUSS_X1` (1760..9280): `BridgeDeck` road with a rail track beside it, `Truss` segments
+  (up to 6 panels, z -2) and `ClimbSpan` nodes (group `s54_truss`, used by the DARKSEEKER) that skip the gantries.
+- `GANTRIES` - service gantries on the top chord (`TIER` 150) with 2 ladders each and a pickup up high (one GRENADE).
+- Lamps every `LAMP_GAP` 460, every 3rd one a `FlickerLamp`. No lamps in the `DARK` stretches (3150..3750, 5600..6150),
+  at the gate, at the town end or next to a charge.
+- `GATE_X` 8800 - the army roadblock into the boss arena, then `SouthBank` ("PUESTO SUR", "RUTA 3 USHUAIA 3000").
+- Obstacles `jersey` / `ammo` / `wreck` / `convoy` come from `custom_gen`. Do not name one `crates`: main.gd handles that
+  name itself, so `reserve()` would not keep it out of the story stretch.
+- `extra_spawns`:
+  - a shepherd + 4 regulars at every charge
+  - 2 darkseekers in each DARK stretch, one on 3 of the gantries
+  - stingers at `STINGERS`
+  - 2 regulars in the arena
+
+**Demolition charges (the exit gate)**
+- `CHARGES` (2560, 4000, 5440, 6560): `ChargePoint` bundles on the truss verticals (groups `s54_charges`, `s11_lights`).
+- Stand within `ARM_R` 100 px for `ARM_T` 1.5 s ("HOLD" ring with a progress arc). The charge then blinks red forever,
+  and the player says "CHARGE ARMED n/4".
+- The `Roadblock` at `GATE_X` is a solid wall (layer 1) until all 4 are armed. Walking into it pops "ARM ALL CHARGES n/4".
+- `ChargeHud` (top right, under STYLE) shows the armed count and, when an unarmed charge is more than 640 px behind
+  the player, an "UNARMED CHARGE" arrow.
+- Walk more than `MISSED_DX` 260 px past an unarmed charge and the hero says "MISSED A CHARGE - GO BACK" (once per
+  charge), so nobody finds out 6000 px later at the gate.
+- Checkpoint restart: on the first frame, every charge left of the player is armed quietly.
+
+**Traps**
+- `BrokenDeck` (`DECKS` 3110, 6330): a cracked deck plate. Stepping on it (or `HEAVY` 3 zombies on it at once) makes it
+  creak (`WARN_T`), then the plates fall to the river (`FALL_T`). A player still on it takes `DMG`, grabs the beam and is
+  thrown up (+ slow). Zombies on it drop into the river with a splash, and the open hole keeps swallowing zombies that
+  walk over it (the player can still cross on the beams).
+- `RollingTruck` (`TRUCK_X` 4300): an abandoned army truck with its brake on. Shoot the red brake (`Brake`, layer 4,
+  `hit_by_bullet`) and it rolls `ROLL_DIST` px, crushing zombies (`CRUSH`) and hurting the player, then crashes into a
+  `Boom.blast` + 2 fires.
+- `LiveCable` (`CABLES` 3240, 6090): a cut cable hanging from the truss. It sparks (`WARN_T`), then arcs (`ARC_R`) and
+  chains through zombies within `CHAIN_R` (`DMG_Z`). It also lights up DARKSEEKERs.
+
+**SHEPHERD** - a tall, pale zombie in a torn red hood with glowing blue-white veins. Inspired by the Twelve and their
+Many in *The Passage* (Justin Cronin) and the Raggedy Man who leads the flock in *Cell* (Stephen King).
+- **LINK:** every `LINK_CD` it shoots a thin thread of light from its forehead to a nearby zombie (`LINK_R`), up to
+  `MAX_MANY`. Its Many walk in step with it, are faster (`MANY_SPEED`) and take x0.6 damage (meta `morale_t`).
+  A thread breaks if one strays past `LINK_MAX`.
+- **LUNGE:** every `LUNGE_CD` it raises its arms (`LUNGE_WIND`, the threads flare) and all its Many leap at you at once.
+- Keeps `HOLD_R` behind its Many.
+- **Kill it and the Many die with it**: a chain, closest first (`CASCADE_STEP`), each one with a burst head and MULTI KILL.
+- **Learns** (main meta `sh_kills`): after `SH_LEARN` dead shepherds the next ones stand further back (`HOLD_R_LEARN`).
+  When you aim at one it swaps places with one of its Many in a flash (`SWAP_CD`) - "THEY HIDE BEHIND THEIR MANY".
+
+**THE ARCHITECT** (boss, `chase_range > 600`, `boss_name` "THE ARCHITECT"):
+- Linked to up to `BOSS_MANY` zombies on the bridge (`BOSS_LINK_R`, `BOSS_LINK_CD`).
+- **Guarded:** while `GUARD_N`+ Many are linked he takes x`GUARD_MULT`. Fewer than that and his chest opens (x`OPEN_MULT`).
+- **MIND BLAST** (`MIND_CD`, telegraph `MIND_WIND`): every linked zombie charges at once, and anyone inside `MIND_R` is
+  knocked back.
+- **PULL** (`PULL_CD`): when few Many are left he drags threads down into the river and `PULL_N` dead climb over the
+  railing past the gate. `PULL_N` is kept below `GUARD_N`, so there is always an open window after a pull.
+- **Death:** every zombie on the level drops dead ("THE REST ALREADY CROSSED"), then `stage.on_architect_dead(pos)`
+  starts the collapse.
+
+**The collapse** (`Decor.BridgeCollapse`)
+- All charges beep fast for `BEEP_T` 2.2 s (`CollapseBanner` pulses a red border).
+- Then booms run leftwards every `STEP` 0.16 s, `GAP` 230 px apart, from `x1` (just behind the player, never past
+  `TRUSS_X1`) to `x0`. Near the player each boom is a real `Boom.blast` with shake; far away it is sound only.
+- Truss pieces, lamps and deck chunks fall and splash in the river. `stage.collapse_at(a, b)` cuts the trusses and hides
+  the lamps, gantries, charges and gate in that range.
+- A wall at `x1` keeps the player on the south bank. The herd in the river sinks.
+- Banner: "THE BRIDGE IS DOWN" / "nothing else crosses into Patagonia... nothing that walks".
+
+**STINGER** - a bald, pale vampire-zombie in a long coat with black veins and a swollen throat. Inspired by the strigoi
+of *The Strain* (Guillermo del Toro & Chuck Hogan, books and comics).
+- **SWELL** (`SWELL_T`, a gurgle, the throat glows red), then **STING**: the jaw splits and a fleshy stinger shoots
+  straight at you up to `STING_R` (`EXT_T`), holds `HOLD_T` and pulls back (`RET_T`).
+- A hit does `DMG`, heals it `HEAL` and slows you. One hit per sting.
+- **The stinger out is a big weak spot** (`StingBody`, layer 4): a shot does `STING_DMG` and makes it recoil.
+- **Death:** `WORMS` white worms crawl from the corpse toward you for `WORM_LIFE` s. A touch is a small poison
+  (`POISON_HITS` touches = 1 heart) + slow. Fire, explosions, the flashlight or a flare kill them, and rolling over them
+  squishes them with no poison.
+- **Learns** (main meta `st_dodges`): after `DODGE_LEARN` dodged stings it feints: swells, lets go (`FAKE_T`) and
+  stings on a second, faster swell (`SWELL2_T`) - "IT FEINTS NOW".
+
+**DARKSEEKER** - a fast, gaunt night hunter with grey skin and huge black eyes. Inspired by *I Am Legend*
+(Richard Matheson): creatures of the night that hate light and make a world for themselves in the dark.
+- **Light:** lit by a bridge lamp, the player's flashlight or a flare it takes x`LIT_MULT` damage. A flashlight or flare
+  on it makes it shriek, recoil (`RECOIL_T`) and flee. A close flare (`FLARE_R`) stuns it (`FLARE_STUN`).
+  It never steps into a lamp's cone and waits at the edge of the dark.
+- **SMASH:** a lamp between you and it (or lighting you) gets a bolt thrown at it (`WIND_T`) and is shattered
+  (`street_lamp.gd shatter`). `SMASH_CD`, up to `SMASH_MAX`.
+- **CLIMB:** in the dark at `CLIMB_MIN..CLIMB_MAX` it leaps up to the truss top chord (group `s54_truss`), crawls upside
+  down under it (`CRAWL_V`) until it is above you, and drops on you (POUNCE: damage + knockback). Light on it up there
+  drops it stunned.
+- **Learns** (main meta `ds_flash` = seconds your flashlight was on in this level): after `FLASH_LEARN` s, when the
+  flashlight points at it, it climbs over you and lands behind you ("THEY COME FROM BEHIND").
+
+**Story hooks** (call on `main._stage`)
+- `story_stretch()` returns `Vector2(6750, 8750)`: a flat, clear road with no obstacles, traps or lamps in the way.
+  Stand the actors around x 8250 (just before the gate).
+- `on_story_beat(id)`:
+  - "lamps_out" - all lamps flicker out for a moment
+  - "herd_roar" - the herd in the river raises its arms, rumble + shake
+  - "charges_beep" - armed charges beep fast
+  - "wind" - a strong gust
+  - "arm_all" - arms every charge
+  - "collapse" - starts the collapse (testing)
+- `arm_all_charges()`, `armed_count()`, `on_architect_dead(pos)`.
+
+**Tunables** - in each file header. Stage: `CHARGES`, `GANTRIES`, `TIER`, `DARK`, `DECKS`, `TRUCK_X`, `CABLES`,
+`STINGERS`, `LAMP_GAP`, `DARKNESS`, `MISSED_DX`, `GATE_X`, `STORY_X`, `zombie_weights()`
+(SHEPHERD 0.02, STINGER 0.05, DARKSEEKER 0.05, regulars 0.55, runners 0.33).
+
+**Tests** (test project, outside the repo)
+- Headless: 1600 frames from the start, plus 900 frames with the player at x 3000 / 6000 / 9300 / 9650 (boss): no script errors.
+- Playtest bot (`t_bot54.gd`, a `t_bot.gd` copy that stands on unarmed charges and walks back to missed ones):
+  FINISHED in 63-102 s, stuck 0-1 (one 4.7 s wait on a gantry, no teleports), all 4 charges armed in 1.6-1.8 s each,
+  boss killed, collapse ran. With the STRANGER scene in place it played for 30 s and the run still finished.
+- Behaviour counters (`t_beh54.gd`):
+  - charges: armed after 40 frames; the gate blocked the player at x 8768 (2 hints), opened after all 4, HUD showed 4
+  - boss: 17 guarded hits, 2 MIND BLASTs, 1 PULL, 8 open hits; every zombie dead after he died; collapse 12 booms, 60 chunks, 60 splashes; the wall held the player at x1
+  - shepherd: 3-4 links, lunges, chain kill 3/3 (4/4), learned after `SH_LEARN`, 2 swaps
+  - stinger: 2 stings, 2 hits, 3 dodges, learned, 2-3 feints, 1 weak-spot hit, 6 worms, 5 touches -> poison, 1 squished by a roll
+  - darkseeker: 1 smash, 1 climb, 1 pounce + hit, 0-1 recoil (varies run to run), 1-2 lit hits, 1 flare stun, learned, 1 landed behind
+  - traps: deck 1 fall, 3 drops, 4 more through the open hole, player hit 1 on deck 2; cable 3-7 arcs, 2 zapped;
+    truck: brake shot -> rolled, crashed and blew up (crushed 0 in that test: no zombies in its path)
+- Fixed during testing: darkseekers fell out of the world after a drop (collision mask restored); 14 "triangulation failed"
+  errors in one bot run (not reproduced since; the likely source, the shepherd/stinger coat polygon that self-intersects
+  when a zombie is flung fast, now has its sway clamped); the boss never opened
+  up because a PULL refilled 3 links (`PULL_N` 2); a generator named `crates` ignored the story stretch (renamed `ammo`).
+- Known: the boss SUPPLY drop can fly past `level_w` and fall under the floor (seen here at x 10283; the drop code is in zombie.gd, so other boss levels may do it too).
+
 # Polish pass (2026-10-17)
 
 Six areas were reworked together: gun and kill feel, zombie spawn placement, lighting, zombie art, bot playtest bug fixes, and gun/ability progression. Each section below covers one area.
@@ -1345,7 +1764,10 @@ Six areas were reworked together: gun and kill feel, zombie spawn placement, lig
 **Hit-stop** (`shake_camera.gd` `hit_stop(sec)`):
 - Sets `Engine.time_scale = hitstop_scale` (0.08) for `sec` real seconds, then restores 1.0.
 - The player compensates for time_scale (`_rt`), so the hero keeps moving and rapid fire is never slowed. Only the world freezes.
-- At most one hit-stop per `hitstop_gap` (0.22 s). A boss always gets one.
+- At most one hit-stop per `hitstop_gap` (0.5 s, was 0.22). A boss always gets one.
+- No hit-stop once 2+ zombies died in the last second (`zombie._kill_feel`, `death_load() >= 2`): chained freezes during
+  multi-kills made the game feel like it was lagging (user report 2026-10-17).
+- `Sfx.prewarm()` loads every sample at startup, so the first kill no longer pays a disk-load hitch.
 - Never runs during BULLET TIME, the sniper scope or the weapon wheel (time_scale already < 1). If one of those changes
   time_scale during a hit-stop, it is not overwritten.
 - While active, `Engine` has meta `"hitstop"`. `hud.gd` skips the BULLET TIME tint then.
@@ -1675,7 +2097,7 @@ REVOLVER (heavy 6-shot, pierces 1), DOUBLE BARREL (2 shells, 8 pellets, 0.22 s b
 (pierces 2), CROSSBOW (bolt, flat arc via `"gravity"`, pierces 3, bolts can be picked up again), FLAMETHROWER
 (`"projectile": "flame"` -> `bullet.gd` flame puffs that grow, slow down and ignite; no reload), LMG (80 box mag),
 DRAGON'S BREATH (`"incendiary": true` shotgun), ANTI-MATERIEL (.50, RMB scope via `"scope": true`, pierces 8),
-MARKSMAN RIFLE (fast semi-auto precision), MINIGUN (200 rounds, spinning barrels), RAILGUN (pierces 20, scope).
+MARKSMAN RIFLE (fast semi-auto precision), MINIGUN (70-round belt, 140 per pickup, spinning barrels), RAILGUN (pierces 20, scope).
 New weapon fields: `pitch` (shot sound pitch), `incendiary`, `gravity`, `scope`, `flame`.
 `gun_art.gd`: `draw_held()` (called from `player._draw_rifle` when the style is in `STYLES`) and `draw_icon()`
 (called first in `weapon_wheel.draw_weapon`). New sound: `"flamer"` in `weapons/weapon_sounds.gd`.
@@ -1817,6 +2239,8 @@ Other changes in `weapons/weapon_db.gd`:
   It was weaker than the ASSAULT SHOTGUN it comes 11 stages after.
 * ANTI-MATERIEL fire_rate 1.7 -> 1.4, magazine 4 -> 5. MARKSMAN fire_rate 0.27 -> 0.24.
 * MINIGUN damage 0.42 -> 0.55, fire_rate 0.05 -> 0.045, pierce 1, reload 3.2 -> 3.0, `spin_up` 0.4.
+  **2026-10-17 (user: "600 bullets is god mode")**: fire_rate 0.065 (~15/s), magazine 70, 140 bullets per pickup and max 140
+  (capacity upgrades still add +20%/level), ammo box 35. Practice loadouts (`arsenal.loadout_for`) never exceed ammo_max.
 * RAILGUN damage 4.0 -> 4.5, fire_rate 1.0 -> 0.9, magazine 3 -> 4.
 * LMG damage 0.5 -> 0.55, knockback 55 -> 65.
 * Why none trivializes the game: ammo stays the limit (heavy guns have 10-24 rounds per pickup), bosses are excluded from
