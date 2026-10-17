@@ -56,6 +56,9 @@ enum {
 	HAULER, QUISLING, STRAGGLER,   # שלב 52 (מגרש הרכבות). HAULER = גם הבוס (THE ENGINE)
 	STACKER, BABBLER, PURSUER,     # שלב 53 (המצור על הבירה - מונטווידאו). STACKER = גם הבוס (THE SIEGE TOWER)
 	SHEPHERD, STINGER, DARKSEEKER, # שלב 54 (הגשר האחרון). SHEPHERD = גם הבוס (THE ARCHITECT)
+	SHEARER, DRIFTER, TUMBLER,     # שלב 55 (ערבת הרוח - פטגוניה). SHEARER = גם הבוס (THE ESTANCIERO)
+	THAWED, BUOY, SEALER,          # שלב 56 (פיורד הקרח). THAWED = גם הבוס (THE GLACIER)
+	WADDLER, MURMUR, BLUBBER,      # שלב 57 (חוף הפינגווינים). WADDLER = גם הבוס (THE BEACHMASTER)
 }
 
 const FIRST := 20
@@ -216,6 +219,15 @@ const TYPES := {
 	SHEPHERD: "res://enemies/types/shepherd.gd",
 	STINGER: "res://enemies/types/stinger.gd",
 	DARKSEEKER: "res://enemies/types/darkseeker.gd",
+	SHEARER: "res://enemies/types/shearer.gd",
+	DRIFTER: "res://enemies/types/drifter.gd",
+	TUMBLER: "res://enemies/types/tumbler.gd",
+	THAWED: "res://enemies/types/thawed.gd",
+	BUOY: "res://enemies/types/buoy.gd",
+	SEALER: "res://enemies/types/sealer.gd",
+	WADDLER: "res://enemies/types/waddler.gd",
+	MURMUR: "res://enemies/types/murmur.gd",
+	BLUBBER: "res://enemies/types/blubber.gd",
 }
 
 static var _stats_cache := {}
