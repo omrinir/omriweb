@@ -318,9 +318,9 @@ class Javelin extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
-		draw_line(Vector2(-30, 0), Vector2(30, 0), Color("101214"), 4.0)
-		draw_line(Vector2(-30, 0), Vector2(30, 0), Color("6a6e74"), 2.4)
-		draw_colored_polygon(PackedVector2Array([Vector2(30, -3), Vector2(40, 0), Vector2(30, 3)]), Color("d88a40"))
+		DrawBatch.line(self, Vector2(-30, 0), Vector2(30, 0), Color("101214"), 4.0)
+		DrawBatch.line(self, Vector2(-30, 0), Vector2(30, 0), Color("6a6e74"), 2.4)
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(30, -3), Vector2(40, 0), Vector2(30, 3)]), Color("d88a40"))
 
 
 # ---- מוט ברזל נעוץ: טוען, נפגע מברק, נשאר חי ומושך עוד ברקים ----
@@ -457,27 +457,27 @@ class PlantedRod extends Node2D:
 		if warning():
 			var k := clampf(1.0 - _wait / (CHARGE_T if phase == 0 else 1.0), 0.0, 1.0)
 			var blink := fmod(_t * 8.0, 1.0) < 0.6
-			draw_colored_polygon(A.ellipse(Vector2.ZERO, R, R * 0.2, 0.0, 22), Color(0.5, 0.75, 1.0, 0.15 + 0.2 * k))
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.2))
-			draw_arc(Vector2.ZERO, R, 0, TAU, 28, Color(0.7, 0.9, 1.0, 0.9 if blink else 0.5), 3.0)
-			draw_arc(Vector2.ZERO, R * (1.0 - k) + 4.0, 0, TAU, 20, Color(1, 1, 1, 0.6), 2.0)
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			DrawBatch.colored_polygon(self, A.ellipse(Vector2.ZERO, R, R * 0.2, 0.0, 22), Color(0.5, 0.75, 1.0, 0.15 + 0.2 * k))
+			DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(1.0, 0.2))
+			DrawBatch.arc(self, Vector2.ZERO, R, 0, TAU, 28, Color(0.7, 0.9, 1.0, 0.9 if blink else 0.5), 3.0)
+			DrawBatch.arc(self, Vector2.ZERO, R * (1.0 - k) + 4.0, 0, TAU, 20, Color(1, 1, 1, 0.6), 2.0)
+			DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
 			for q in 2:   # ניצוצות מטפסים על המוט
 				var sp := tp * fmod(_t * 2.0 + float(q) * 0.5, 1.0)
-				draw_circle(sp, 2.5, Color(0.8, 0.95, 1.0, 0.9))
+				DrawBatch.circle(self, sp, 2.5, Color(0.8, 0.95, 1.0, 0.9))
 			A.glow(self, tp, 12.0 + 10.0 * k, Color(0.6, 0.85, 1.0, 0.6))
-		draw_line(Vector2.ZERO, tp, Color("101214"), 5.0)
-		draw_line(Vector2.ZERO, tp, Color("5a5e64") if phase == 0 else Color("7a7e88"), 3.0)
-		draw_colored_polygon(PackedVector2Array([tp + tp.normalized().orthogonal() * 3.0, tp * 1.1, tp - tp.normalized().orthogonal() * 3.0]), Color("d88a40"))
-		draw_colored_polygon(A.ellipse(Vector2(0, 1), 8.0, 2.0, 0.0, 10), Color(0.1, 0.08, 0.06, 0.8))
+		DrawBatch.line(self, Vector2.ZERO, tp, Color("101214"), 5.0)
+		DrawBatch.line(self, Vector2.ZERO, tp, Color("5a5e64") if phase == 0 else Color("7a7e88"), 3.0)
+		DrawBatch.colored_polygon(self, PackedVector2Array([tp + tp.normalized().orthogonal() * 3.0, tp * 1.1, tp - tp.normalized().orthogonal() * 3.0]), Color("d88a40"))
+		DrawBatch.colored_polygon(self, A.ellipse(Vector2(0, 1), 8.0, 2.0, 0.0, 10), Color(0.1, 0.08, 0.06, 0.8))
 		if phase == 1:   # חם - זוהר כתום אחרי הברק
-			draw_line(tp * 0.6, tp, Color(1.0, 0.55, 0.2, 0.7), 2.0)
+			DrawBatch.line(self, tp * 0.6, tp, Color(1.0, 0.55, 0.2, 0.7), 2.0)
 		if _bolt_t > 0.0:
 			var a := _bolt_t / 0.35
-			draw_polyline(_bolt, Color(0.55, 0.8, 1.0, 0.45 * a), 8.0)
-			draw_polyline(_bolt, Color(1, 1, 1, a), 2.6)
+			DrawBatch.polyline(self, _bolt, Color(0.55, 0.8, 1.0, 0.45 * a), 8.0)
+			DrawBatch.polyline(self, _bolt, Color(1, 1, 1, a), 2.6)
 			A.glow(self, Vector2(0, -8), R * 1.3, Color(0.6, 0.85, 1.0, 0.5 * a))
-			draw_colored_polygon(A.ellipse(Vector2.ZERO, R, R * 0.2, 0.0, 22), Color(0.05, 0.05, 0.06, 0.5 * a))
+			DrawBatch.colored_polygon(self, A.ellipse(Vector2.ZERO, R, R * 0.2, 0.0, 22), Color(0.05, 0.05, 0.06, 0.5 * a))
 
 
 # ---- ברק שפוגע בו עצמו (CALL) ----
@@ -504,8 +504,8 @@ class SelfBolt extends Node2D:
 
 	func _draw() -> void:
 		var a := 1.0 - _t / 0.35
-		draw_polyline(_pts, Color(0.55, 0.8, 1.0, 0.45 * a), 9.0)
-		draw_polyline(_pts, Color(1, 1, 1, a), 3.0)
+		DrawBatch.polyline(self, _pts, Color(0.55, 0.8, 1.0, 0.45 * a), 9.0)
+		DrawBatch.polyline(self, _pts, Color(1, 1, 1, a), 3.0)
 
 
 # ============================================================
@@ -528,9 +528,9 @@ func draw() -> bool:
 	# אשפת מוטות בגב
 	for q in rods:
 		var bx := -7.0 - float(q) * 2.5
-		z.draw_line(sh + Vector2(bx, 14), sh + Vector2(bx - 6.0, -24.0 + float(q) * 3.0), Art.OUTLINE, 3.2)
-		z.draw_line(sh + Vector2(bx, 14), sh + Vector2(bx - 6.0, -24.0 + float(q) * 3.0), col(Color("6a6e74")), 1.8)
-		z.draw_circle(sh + Vector2(bx - 6.0, -24.0 + float(q) * 3.0), 1.6, col(Color("d88a40")))
+		DrawBatch.line(z, sh + Vector2(bx, 14), sh + Vector2(bx - 6.0, -24.0 + float(q) * 3.0), Art.OUTLINE, 3.2)
+		DrawBatch.line(z, sh + Vector2(bx, 14), sh + Vector2(bx - 6.0, -24.0 + float(q) * 3.0), col(Color("6a6e74")), 1.8)
+		DrawBatch.circle(z, sh + Vector2(bx - 6.0, -24.0 + float(q) * 3.0), 1.6, col(Color("d88a40")))
 	z._leg(hip + Vector2(-2, 0), f[1], col(Art.shade(z.pants, 0.25)), sk, col(z.shoe))
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	var hb: Vector2
@@ -554,12 +554,12 @@ func draw() -> bool:
 	Art.fill_shaded(z, pts, pon, 0.12, 0.3)
 	for q in 3:   # טיפות נוטפות
 		var dk := fmod(z._time * 1.5 + float(q) * 0.37, 1.0)
-		z.draw_circle(hip + Vector2(-6.0 + float(q) * 6.0, 8.0 + dk * 10.0), 0.9, Color(0.6, 0.7, 0.8, 0.7 * (1.0 - dk)))
+		DrawBatch.circle(z, hip + Vector2(-6.0 + float(q) * 6.0, 8.0 + dk * 10.0), 0.9, Color(0.6, 0.7, 0.8, 0.7 * (1.0 - dk)))
 	# צלקת ברק (שרך) על הצוואר והחזה
 	var sc_c := Color(0.85, 0.45, 0.4, 0.8) if state != CHARGED else Color(0.75, 0.95, 1.0, 0.95)
-	z.draw_polyline(PackedVector2Array([head + Vector2(-1, 5), sh + Vector2(1, 2), sh + Vector2(-1, 6), sh + Vector2(2, 9)]), sc_c, 1.0)
-	z.draw_line(sh + Vector2(1, 2), sh + Vector2(4, 4), sc_c, 0.8)
-	z.draw_line(sh + Vector2(-1, 6), sh + Vector2(-4, 8), sc_c, 0.8)
+	DrawBatch.polyline(z, PackedVector2Array([head + Vector2(-1, 5), sh + Vector2(1, 2), sh + Vector2(-1, 6), sh + Vector2(2, 9)]), sc_c, 1.0)
+	DrawBatch.line(z, sh + Vector2(1, 2), sh + Vector2(4, 4), sc_c, 0.8)
+	DrawBatch.line(z, sh + Vector2(-1, 6), sh + Vector2(-4, 8), sc_c, 0.8)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.2, -0.6))
 	# שיער - סומר כשהוא טעון
@@ -567,23 +567,23 @@ func draw() -> bool:
 	for q in 5:
 		var hx := -4.0 + float(q) * 2.0
 		var up := -10.0 if state == CHARGED or state == CALL else -6.5
-		z.draw_line(head + Vector2(hx, -4), head + Vector2(hx * 1.4, up - absf(float(q) - 2.0)), hair, 1.4)
+		DrawBatch.line(z, head + Vector2(hx, -4), head + Vector2(hx * 1.4, up - absf(float(q) - 2.0)), hair, 1.4)
 	if not z.dead:
 		var ec := glow_c if state != WALK or fmod(z._time, 3.0) < 2.7 else Color(0.3, 0.4, 0.5)
-		z.draw_circle(head + Vector2(3.2, -0.5), 1.2, ec)
+		DrawBatch.circle(z, head + Vector2(3.2, -0.5), 1.2, ec)
 		Art.glow(z, head + Vector2(3.2, -0.5), 4.0, Color(glow_c, 0.5))
 	# יד קדמית + מוט ביד
 	z._arm(sh + Vector2(3, 1), hf, sk, pon)
 	if state == WIND and rods > 0:
 		var tip := hf + Vector2(34, -6)
-		z.draw_line(hf + Vector2(-12, 2), tip, Art.OUTLINE, 3.6)
-		z.draw_line(hf + Vector2(-12, 2), tip, col(Color("6a6e74")), 2.2)
-		z.draw_colored_polygon(PackedVector2Array([tip + Vector2(0, -2.5), tip + Vector2(7, 0), tip + Vector2(0, 2.5)]), col(Color("d88a40")))
+		DrawBatch.line(z, hf + Vector2(-12, 2), tip, Art.OUTLINE, 3.6)
+		DrawBatch.line(z, hf + Vector2(-12, 2), tip, col(Color("6a6e74")), 2.2)
+		DrawBatch.colored_polygon(z, PackedVector2Array([tip + Vector2(0, -2.5), tip + Vector2(7, 0), tip + Vector2(0, 2.5)]), col(Color("d88a40")))
 	if (state == CALL or state == CHARGED) and not z.dead:
 		for q in 3:
 			var a := randf() * TAU
 			var c := hf if state == CHARGED else (hf + hb) * 0.5
-			z.draw_line(c, c + Vector2.from_angle(a) * randf_range(4.0, 10.0), Color(0.85, 0.95, 1.0, 0.9), 1.0)
+			DrawBatch.line(z, c, c + Vector2.from_angle(a) * randf_range(4.0, 10.0), Color(0.85, 0.95, 1.0, 0.9), 1.0)
 	if _arc_t > 0.0 and not z.dead:   # אזהרה: ניצוץ מתקבץ ביד
 		Art.glow(z, hf, 10.0 + (ARC_WARN - _arc_t) * 20.0, Color(glow_c, 0.7))
 	end_draw()
@@ -594,6 +594,6 @@ func draw() -> bool:
 		for i in range(1, n):
 			pts2.append(from.lerp(_arc_to, float(i) / float(n)) + Vector2(randf_range(-8, 8), randf_range(-8, 8)))
 		pts2.append(_arc_to)
-		z.draw_polyline(pts2, Color(0.55, 0.8, 1.0, 0.5), 6.0)
-		z.draw_polyline(pts2, Color(1, 1, 1, 0.95), 2.0)
+		DrawBatch.polyline(z, pts2, Color(0.55, 0.8, 1.0, 0.5), 6.0)
+		DrawBatch.polyline(z, pts2, Color(1, 1, 1, 0.95), 2.0)
 	return true

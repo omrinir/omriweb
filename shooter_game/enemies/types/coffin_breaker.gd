@@ -398,7 +398,7 @@ class Chips extends Node2D:
 			var d: Vector2 = Vector2.from_angle(q[2]) * q[3]
 			var c: Color = q[4]
 			c.a = a
-			draw_line(q[0] - d, q[0] + d, c, 1.6)
+			DrawBatch.line(self, q[0] - d, q[0] + d, c, 1.6)
 
 
 # ============================================================
@@ -429,18 +429,18 @@ class CoffinBox extends Node2D:
 		var pts := PackedVector2Array([o + Vector2(-32, -2), o + Vector2(-26, -14), o + Vector2(14, -16), o + Vector2(32, -12), o + Vector2(32, -2), o + Vector2(14, 0), o + Vector2(-26, 0)])
 		Art.fill_shaded(ci, pts, wood, 0.12, 0.35)
 		if open:
-			ci.draw_colored_polygon(PackedVector2Array([o + Vector2(-27, -12), o + Vector2(14, -14), o + Vector2(29, -11), o + Vector2(29, -6), o + Vector2(14, -8), o + Vector2(-27, -6)]), Color("5a1418"))
-			ci.draw_colored_polygon(PackedVector2Array([o + Vector2(-27, -6), o + Vector2(14, -8), o + Vector2(29, -6), o + Vector2(14, -5), o + Vector2(-27, -4)]), Color("2a0a0c"))
+			DrawBatch.colored_polygon(ci, PackedVector2Array([o + Vector2(-27, -12), o + Vector2(14, -14), o + Vector2(29, -11), o + Vector2(29, -6), o + Vector2(14, -8), o + Vector2(-27, -6)]), Color("5a1418"))
+			DrawBatch.colored_polygon(ci, PackedVector2Array([o + Vector2(-27, -6), o + Vector2(14, -8), o + Vector2(29, -6), o + Vector2(14, -5), o + Vector2(-27, -4)]), Color("2a0a0c"))
 		for h in [Vector2(-18, -4), Vector2(2, -4), Vector2(22, -4)]:   # ידיות פליז
-			ci.draw_line(o + h + Vector2(-3, 0), o + h + Vector2(3, 0), Color("a08040"), 1.5)
+			DrawBatch.line(ci, o + h + Vector2(-3, 0), o + h + Vector2(3, 0), Color("a08040"), 1.5)
 
 	static func lid_shape(ci: CanvasItem, c: Vector2, a: float) -> void:
 		var wood := Color("5a3a24")
 		wood.a = a
 		var pts := PackedVector2Array([c + Vector2(-30, 0), c + Vector2(-24, -6), c + Vector2(14, -7), c + Vector2(30, -4), c + Vector2(30, 3), c + Vector2(14, 6), c + Vector2(-24, 5), c + Vector2(-30, 2)])
 		Art.fill_shaded(ci, pts, wood, 0.15, 0.3)
-		ci.draw_line(c + Vector2(-14, -0.5), c + Vector2(10, -0.5), Color("c8b070", a), 1.6)   # צלב על המכסה
-		ci.draw_line(c + Vector2(4, -4), c + Vector2(4, 3.5), Color("c8b070", a), 1.6)
+		DrawBatch.line(ci, c + Vector2(-14, -0.5), c + Vector2(10, -0.5), Color("c8b070", a), 1.6)   # צלב על המכסה
+		DrawBatch.line(ci, c + Vector2(4, -4), c + Vector2(4, 3.5), Color("c8b070", a), 1.6)
 
 
 # ============================================================
@@ -477,21 +477,21 @@ func draw() -> bool:
 	# גוף: חליפת קבורה קרועה + תכריכים
 	var torso := PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(8, 2), hip + Vector2(-8, 2)])
 	Art.fill_shaded(z, torso, suit, 0.1, 0.35)
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-1, 0), sh + Vector2(5, 0), hip + Vector2(3, -6), hip + Vector2(0, -6)]), col(Color("b8b0a0")))   # חולצה לבנה
-	z.draw_line(sh + Vector2(2, 1), sh + Vector2(2, 9), col(Color("2a1a1a")), 1.4)   # עניבה
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-1, 0), sh + Vector2(5, 0), hip + Vector2(3, -6), hip + Vector2(0, -6)]), col(Color("b8b0a0")))   # חולצה לבנה
+	DrawBatch.line(z, sh + Vector2(2, 1), sh + Vector2(2, 9), col(Color("2a1a1a")), 1.4)   # עניבה
 	for q in 3:   # תכריכים תלויים
 		var a := sh + Vector2(-7.0 + float(q) * 5.0, 3.0 + float(q) * 4.0)
-		z.draw_line(a, a + Vector2(-3.0 + sin(z._time * 2.0 + float(q)) * 2.0, 12.0), col(Color(0.8, 0.78, 0.7, 0.75)), 2.0)
-	z.draw_colored_polygon(Art.ellipse(sh.lerp(hip, 0.5) + Vector2(-3, 0), 2.5, 3.0, 0.0, 8), col(Color("3a4434")))   # קרע ברקבון
+		DrawBatch.line(z, a, a + Vector2(-3.0 + sin(z._time * 2.0 + float(q)) * 2.0, 12.0), col(Color(0.8, 0.78, 0.7, 0.75)), 2.0)
+	DrawBatch.colored_polygon(z, Art.ellipse(sh.lerp(hip, 0.5) + Vector2(-3, 0), 2.5, 3.0, 0.0, 8), col(Color("3a4434")))   # קרע ברקבון
 	# ראש
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-5, -2), head + Vector2(-3, -6), head + Vector2(3, -6.5), head + Vector2(5, -4), head + Vector2(0, -4)]), col(Color("3a3430")))   # שיער מסורק לקבורה
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-5, -2), head + Vector2(-3, -6), head + Vector2(3, -6.5), head + Vector2(5, -4), head + Vector2(0, -4)]), col(Color("3a3430")))   # שיער מסורק לקבורה
 	if not z.dead:
-		z.draw_circle(head + Vector2(2.4, -0.6), 1.7, col(Color("b89040")))   # מטבע על העין
-		z.draw_circle(head + Vector2(2.4, -0.6), 0.9, col(Color("806020")))
-		z.draw_line(head + Vector2(1.0, 3.2), head + Vector2(4.6, 2.6), col(Color("2a1414")), 1.0)
+		DrawBatch.circle(z, head + Vector2(2.4, -0.6), 1.7, col(Color("b89040")))   # מטבע על העין
+		DrawBatch.circle(z, head + Vector2(2.4, -0.6), 0.9, col(Color("806020")))
+		DrawBatch.line(z, head + Vector2(1.0, 3.2), head + Vector2(4.6, 2.6), col(Color("2a1414")), 1.0)
 		if state == HOLD:
-			z.draw_colored_polygon(Art.ellipse(head + Vector2(3.5, 3.0), 2.0, 2.4, 0.0, 8), col(Color("200808")))
+			DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(3.5, 3.0), 2.0, 2.4, 0.0, 8), col(Color("200808")))
 	# יד קדמית: מגן (מכסה) / זריקה / תפיסה
 	var hf := sh + Vector2(12, 8)
 	if state == THROW:
@@ -508,7 +508,7 @@ func draw() -> bool:
 	else:
 		_nails(hf, false)
 	if _splinter > 0.0 and lid > 0:
-		z.draw_circle(hf + Vector2(8, -6), 6.0, Color(1, 0.9, 0.7, 0.35))
+		DrawBatch.circle(z, hf + Vector2(8, -6), 6.0, Color(1, 0.9, 0.7, 0.35))
 	end_draw()
 	return true
 
@@ -521,24 +521,24 @@ func _lid_held(c: Vector2, rot: float) -> void:
 		pts.append(c + (v * Vector2(1.0, 0.85)).rotated(rot))
 	Art.fill_shaded(z, pts, a, 0.15, 0.3)
 	var cr := col(Color("c8b070"))
-	z.draw_line(c + Vector2(0, -16).rotated(rot), c + Vector2(0, 8).rotated(rot), cr, 1.4)
-	z.draw_line(c + Vector2(-3, -9).rotated(rot), c + Vector2(3, -9).rotated(rot), cr, 1.4)
+	DrawBatch.line(z, c + Vector2(0, -16).rotated(rot), c + Vector2(0, 8).rotated(rot), cr, 1.4)
+	DrawBatch.line(z, c + Vector2(-3, -9).rotated(rot), c + Vector2(3, -9).rotated(rot), cr, 1.4)
 	if w < 0.9:   # סדקים במגן
-		z.draw_line(c + Vector2(-3, -4), c + Vector2(2, 4), col(Color("1a0e08")), 1.0)
+		DrawBatch.line(z, c + Vector2(-3, -4), c + Vector2(2, 4), col(Color("1a0e08")), 1.0)
 	if w < 0.7:
-		z.draw_line(c + Vector2(2, -18), c + Vector2(-2, -10), col(Color("1a0e08")), 1.0)
+		DrawBatch.line(z, c + Vector2(2, -18), c + Vector2(-2, -10), col(Color("1a0e08")), 1.0)
 
 
 func _nails(h: Vector2, back: bool) -> void:
 	var c := col(Color("d8d0b0") if not back else Color("a8a088"))
 	for q in 3:
-		z.draw_line(h, h + Vector2(3.0, -2.0 + float(q) * 2.0), c, 0.9)
+		DrawBatch.line(z, h, h + Vector2(3.0, -2.0 + float(q) * 2.0), c, 0.9)
 
 
 func _draw_coffin() -> void:
 	# בלי היפוך לפי כיוון - הארון לא מסתובב
 	var s: float = z.sc
-	z.draw_set_transform(Vector2(randf_range(-1, 1) * (1.5 if _shake > 0.0 else 0.0), 0), 0.0, Vector2(s, s))
+	DrawBatch.set_transform(z, Vector2(randf_range(-1, 1) * (1.5 if _shake > 0.0 else 0.0), 0), 0.0, Vector2(s, s))
 	Art.ground_shadow(z, Vector2.ZERO, 34.0)
 	CoffinBox.box_shape(z, Vector2.ZERO, false)
 	# המכסה: קופץ בזמן הגירוד
@@ -549,13 +549,13 @@ func _draw_coffin() -> void:
 		lift = absf(sin(z._time * 30.0)) * 1.5
 	CoffinBox.lid_shape(z, Vector2(0, -17.0 - lift), 1.0)
 	if _splinter > 0.0:
-		z.draw_circle(Vector2(0, -14), 10.0, Color(1, 0.9, 0.7, 0.3))
+		DrawBatch.circle(z, Vector2(0, -14), 10.0, Color(1, 0.9, 0.7, 0.3))
 	if state == SCRATCH:   # אצבעות יוצאות מהסדק
 		var k := 1.0 - clampf(_st / WARN_T, 0.0, 1.0)
 		for q in 4:
 			var x := -6.0 + float(q) * 4.0
 			var ln := 3.0 + 5.0 * k + sin(z._time * 18.0 + float(q)) * 1.5
-			z.draw_line(Vector2(x, -15.0 - lift * 0.5), Vector2(x + 1.0, -15.0 - lift * 0.5 - ln), col(z.skin), 2.0)
-			z.draw_line(Vector2(x + 1.0, -15.0 - lift * 0.5 - ln), Vector2(x + 1.5, -15.0 - lift * 0.5 - ln - 1.5), Color("d8d0b0"), 1.0)
-		z.draw_line(Vector2(-28, -11 - lift), Vector2(30, -9 - lift), Color(0.1, 0.05, 0.03, 0.8), 1.5)
-	z.draw_set_transform_matrix(Transform2D.IDENTITY)
+			DrawBatch.line(z, Vector2(x, -15.0 - lift * 0.5), Vector2(x + 1.0, -15.0 - lift * 0.5 - ln), col(z.skin), 2.0)
+			DrawBatch.line(z, Vector2(x + 1.0, -15.0 - lift * 0.5 - ln), Vector2(x + 1.5, -15.0 - lift * 0.5 - ln - 1.5), Color("d8d0b0"), 1.0)
+		DrawBatch.line(z, Vector2(-28, -11 - lift), Vector2(30, -9 - lift), Color(0.1, 0.05, 0.03, 0.8), 1.5)
+	DrawBatch.set_transform_matrix(z, Transform2D.IDENTITY)

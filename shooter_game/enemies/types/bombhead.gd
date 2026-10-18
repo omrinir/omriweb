@@ -189,15 +189,15 @@ func draw() -> bool:
 	Art.fill_shaded(z, body, shirt, 0.15, 0.4)
 	for i in 3:
 		var y := -1.0 + float(i) * 5.5
-		z.draw_line(sh.lerp(hip, 0.0) + Vector2(-6.5, y + 2.0), sh + Vector2(6.5, y + 3.0), col(Color("f8d040")), 1.6)
+		DrawBatch.line(z, sh.lerp(hip, 0.0) + Vector2(-6.5, y + 2.0), sh + Vector2(6.5, y + 3.0), col(Color("f8d040")), 1.6)
 	# חגורת זיקוקים (פתיל בוער בריצה)
 	for i in 5:
 		var bx := -6.0 + float(i) * 3.0
-		z.draw_rect(Rect2(hip + Vector2(bx, -4), Vector2(2.2, 6)), col(Color("c0201c")))
-		z.draw_line(hip + Vector2(bx + 1.1, -4), hip + Vector2(bx + 1.1, -6), Color("2a2a2a"), 0.8)
+		DrawBatch.rect(z, Rect2(hip + Vector2(bx, -4), Vector2(2.2, 6)), col(Color("c0201c")))
+		DrawBatch.line(z, hip + Vector2(bx + 1.1, -4), hip + Vector2(bx + 1.1, -6), Color("2a2a2a"), 0.8)
 	if state == RUN:
 		var spark := hip + Vector2(6, -6)
-		z.draw_circle(spark, 1.8 + sin(z._time * 40.0), Color(1.0, 0.85, 0.3))
+		DrawBatch.circle(z, spark, 1.8 + sin(z._time * 40.0), Color(1.0, 0.85, 0.3))
 		Art.glow(z, spark, 7.0, Color(1.0, 0.6, 0.2, 0.7))
 	# ראש: על הכתפיים / בידיים (תולש) / אין (זרק)
 	if state == WALK or state == PULL:
@@ -205,12 +205,12 @@ func draw() -> bool:
 		if state == PULL:
 			var k := 1.0 - clampf(_st / PULL_T, 0.0, 1.0)
 			hp = head + Vector2(-2.0 * k, -6.0 * k + sin(z._time * 40.0) * 1.2 * k)   # נקרע למעלה
-			z.draw_line(sh + Vector2(2, -1), hp + Vector2(0, 5), col(Color("8a1010")), 2.0)   # גידים נמתחים
+			DrawBatch.line(z, sh + Vector2(2, -1), hp + Vector2(0, 5), col(Color("8a1010")), 2.0)   # גידים נמתחים
 		_draw_head(hp, sk)
 	else:
-		z.draw_circle(sh + Vector2(2, -2), 3.2, col(Color("6a0c0c")))   # צוואר קרוע
+		DrawBatch.circle(z, sh + Vector2(2, -2), 3.2, col(Color("6a0c0c")))   # צוואר קרוע
 		if randf() < 0.4:
-			z.draw_circle(sh + Vector2(2 + randf_range(-2, 2), -5 - randf() * 4.0), 1.2, Color(0.6, 0.05, 0.05))
+			DrawBatch.circle(z, sh + Vector2(2 + randf_range(-2, 2), -5 - randf() * 4.0), 1.2, Color(0.6, 0.05, 0.05))
 	# ידיים
 	var ha := sh + Vector2(12, 6)
 	var hb := sh + Vector2(10, 9)
@@ -231,11 +231,11 @@ func draw() -> bool:
 
 func _draw_head(c: Vector2, sk: Color) -> void:
 	Art.oval_shaded(z, c, 6.5, 7.0, sk, 0.0)
-	z.draw_circle(c + Vector2(3.0, -1.0), 1.3, Color(1.0, 0.85, 0.3))
+	DrawBatch.circle(z, c + Vector2(3.0, -1.0), 1.3, Color(1.0, 0.85, 0.3))
 	Art.fill(z, PackedVector2Array([c + Vector2(1, 3), c + Vector2(7, 2.5), c + Vector2(6, 6), c + Vector2(1.5, 6)]), col(Color("2a0a0a")), Art.OUTLINE, 0.8)
 	# כובע ליצן קטן
 	Art.fill(z, PackedVector2Array([c + Vector2(-5, -5), c + Vector2(4, -6), c + Vector2(-2, -15)]), col(Color("3a8ae0")), Art.OUTLINE, 0.9)
-	z.draw_circle(c + Vector2(-2, -15), 1.8, col(Color("f8d040")))
+	DrawBatch.circle(z, c + Vector2(-2, -15), 1.8, col(Color("f8d040")))
 
 
 # ============================================================
@@ -292,14 +292,14 @@ class HeadShot extends Node2D:
 	func _draw() -> void:
 		var a := clampf(life / 0.5, 0.0, 1.0)
 		var jaw := absf(sin(_t * 18.0)) * 2.0 if _ground else 1.0
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(face, 1.0))
-		draw_circle(Vector2(0, 0), 7.5, Color(Art.OUTLINE, a))
-		draw_circle(Vector2(0, 0), 6.5, Color(skin, a))
-		draw_circle(Vector2(3, -1), 1.3, Color(1.0, 0.85, 0.3, a))
-		draw_rect(Rect2(Vector2(1, 2.5), Vector2(6, 1.5 + jaw)), Color(0.16, 0.04, 0.04, a))
-		draw_colored_polygon(PackedVector2Array([Vector2(-5, -5), Vector2(4, -6), Vector2(-2, -15)]), Color(0.23, 0.54, 0.88, a))
-		draw_circle(Vector2(0, 7), 2.5, Color(0.42, 0.04, 0.04, a))   # צוואר קרוע
-		draw_set_transform_matrix(Transform2D.IDENTITY)
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(face, 1.0))
+		DrawBatch.circle(self, Vector2(0, 0), 7.5, Color(Art.OUTLINE, a))
+		DrawBatch.circle(self, Vector2(0, 0), 6.5, Color(skin, a))
+		DrawBatch.circle(self, Vector2(3, -1), 1.3, Color(1.0, 0.85, 0.3, a))
+		DrawBatch.rect(self, Rect2(Vector2(1, 2.5), Vector2(6, 1.5 + jaw)), Color(0.16, 0.04, 0.04, a))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-5, -5), Vector2(4, -6), Vector2(-2, -15)]), Color(0.23, 0.54, 0.88, a))
+		DrawBatch.circle(self, Vector2(0, 7), 2.5, Color(0.42, 0.04, 0.04, a))   # צוואר קרוע
+		DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 
 	const Art := preload("res://art.gd")
 	const Sfx := preload("res://sfx.gd")

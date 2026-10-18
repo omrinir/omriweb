@@ -852,27 +852,27 @@ func draw() -> bool:
 	# השלד: קורת מסילה חלודה עם ברגים
 	var beam := PackedVector2Array([_L(Vector2(-35, -29)), _L(Vector2(31, -29)), _L(Vector2(31, -21)), _L(Vector2(-35, -21))])
 	Art.fill_shaded(z, beam, rust, 0.15, 0.4)
-	z.draw_line(_L(Vector2(-34, -25)), _L(Vector2(30, -25)), col(Art.shade(RUST, 0.45)), 1.0)
+	DrawBatch.line(z, _L(Vector2(-34, -25)), _L(Vector2(30, -25)), col(Art.shade(RUST, 0.45)), 1.0)
 	for q in 7:
-		z.draw_circle(_L(Vector2(-31.0 + float(q) * 10.0, -27.0)), 0.9, col(Color("c0a080")))
+		DrawBatch.circle(z, _L(Vector2(-31.0 + float(q) * 10.0, -27.0)), 0.9, col(Color("c0a080")))
 	# הגופה: שוכבת על הבטן לאורך השלד, רגליים מקופלות מאחור, קשורה ברצועות
 	var pa := col(Art.shade(z.pants, 0.1))
 	Art.limb(z, PackedVector2Array([_L(Vector2(-12, -34)), _L(Vector2(-22, -41)), _L(Vector2(-30, -36))]), 4.2, pa)
 	Art.limb(z, PackedVector2Array([_L(Vector2(-10, -32)), _L(Vector2(-24, -36)), _L(Vector2(-33, -30))]), 4.4, col(z.pants))
-	z.draw_circle(_L(Vector2(-31, -37)), 2.0, col(Color("1a1a1a")))   # כף רגל יחפה/נעל
+	DrawBatch.circle(z, _L(Vector2(-31, -37)), 2.0, col(Color("1a1a1a")))   # כף רגל יחפה/נעל
 	var belly := Art.ellipse(_L(Vector2(5, -30)), 12.0, 6.0, 0.0, 14)
 	Art.fill_shaded(z, belly, sk_d, 0.1, 0.3)
 	var torso := PackedVector2Array([_L(Vector2(-14, -40)), _L(Vector2(4, -44)), _L(Vector2(20, -42)), _L(Vector2(25, -37)), _L(Vector2(20, -31)),
 		_L(Vector2(2, -29)), _L(Vector2(-14, -31))])
 	Art.fill_shaded(z, torso, sk, 0.16, 0.34)
 	# בגדים קרועים, כתמים, נקבים תפורים
-	z.draw_colored_polygon(PackedVector2Array([_L(Vector2(-12, -40)), _L(Vector2(0, -43)), _L(Vector2(2, -38)), _L(Vector2(-6, -35)), _L(Vector2(-12, -36))]), col(Art.shade(z.shirt, 0.05)))
+	DrawBatch.colored_polygon(z, PackedVector2Array([_L(Vector2(-12, -40)), _L(Vector2(0, -43)), _L(Vector2(2, -38)), _L(Vector2(-6, -35)), _L(Vector2(-12, -36))]), col(Art.shade(z.shirt, 0.05)))
 	Art.oval(z, _L(Vector2(10, -35)), 2.4, 1.4, col(Color("4a2a3a")), 0.2, Art.NONE)
 	Art.oval(z, _L(Vector2(-4, -32)), 1.8, 1.1, col(Color("5a3a2a")), 0.0, Art.NONE)
 	for q in 3:
 		var bx := -6.0 + float(q) * 9.0
-		z.draw_line(_L(Vector2(bx, -44)), _L(Vector2(bx + 2.0, -22)), col(Color("3a2a1a")), 1.8)   # רצועות לשלד
-		z.draw_rect(Rect2(_L(Vector2(bx + 0.2, -38)), Vector2(1.8, 1.8)), col(Color("8a8070")))
+		DrawBatch.line(z, _L(Vector2(bx, -44)), _L(Vector2(bx + 2.0, -22)), col(Color("3a2a1a")), 1.8)   # רצועות לשלד
+		DrawBatch.rect(z, Rect2(_L(Vector2(bx + 0.2, -38)), Vector2(1.8, 1.8)), col(Color("8a8070")))
 	# יד אחורית משתלשלת
 	_dangle(_L(Vector2(17, -33)), _L(Vector2(19 + sin(z._time * 3.0) * 2.0, -15)), sk_d)
 	# הבלון על הגב + צינורות שננעצים בגוף ובפה
@@ -881,22 +881,22 @@ func draw() -> bool:
 		_draw_tank(tc)
 		Art.fill_shaded(z, PackedVector2Array([_L(Vector2(-6, -54)), _L(Vector2(-2, -54)), _L(Vector2(-2, -30)), _L(Vector2(-6, -30))]), st, 0.2, 0.4)
 		for q in 3:
-			z.draw_circle(_L(Vector2(-4, -50.0 + float(q) * 8.0)), 0.8, col(Color("c0c0b8")))
+			DrawBatch.circle(z, _L(Vector2(-4, -50.0 + float(q) * 8.0)), 0.8, col(Color("c0c0b8")))
 	else:
 		_draw_tank(tc)
 	var head := _L(Vector2(30, -34)) + Vector2(0, sin(z._time * 2.0) * 0.6)
 	var hose := col(HOSE)
-	z.draw_polyline(PackedVector2Array([tc + Vector2(12, -3), _L(Vector2(12, -48)), _L(Vector2(24, -45)), head + Vector2(5, -1), head + Vector2(4, 3)]), hose, 2.2)
-	z.draw_polyline(PackedVector2Array([tc + Vector2(10, 2), _L(Vector2(4, -46)), _L(Vector2(6, -42))]), hose, 2.0)
-	z.draw_polyline(PackedVector2Array([tc + Vector2(-2, 7), _L(Vector2(-6, -43)), _L(Vector2(-6, -40))]), hose, 1.8)
+	DrawBatch.polyline(z, PackedVector2Array([tc + Vector2(12, -3), _L(Vector2(12, -48)), _L(Vector2(24, -45)), head + Vector2(5, -1), head + Vector2(4, 3)]), hose, 2.2)
+	DrawBatch.polyline(z, PackedVector2Array([tc + Vector2(10, 2), _L(Vector2(4, -46)), _L(Vector2(6, -42))]), hose, 2.0)
+	DrawBatch.polyline(z, PackedVector2Array([tc + Vector2(-2, 7), _L(Vector2(-6, -43)), _L(Vector2(-6, -40))]), hose, 1.8)
 	for c0 in [_L(Vector2(6, -42)), _L(Vector2(-6, -40))]:
-		z.draw_rect(Rect2(c0 - Vector2(1.5, 1.0), Vector2(3.0, 2.0)), col(Color("9a9a90")))   # חבק מתכת
+		DrawBatch.rect(z, Rect2(c0 - Vector2(1.5, 1.0), Vector2(3.0, 2.0)), col(Color("9a9a90")))   # חבק מתכת
 	# צוואר וראש: תלוי קדימה, פה פעור עם הצינור, עין מתה
-	z.draw_line(_L(Vector2(22, -38)), head + Vector2(-3, -1), sk, 4.0)
+	DrawBatch.line(z, _L(Vector2(22, -38)), head + Vector2(-3, -1), sk, 4.0)
 	z._head(head, sk)
 	face(head, Vector2(3.5, -0.5))
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(1.5, 2), head + Vector2(5.5, 1.5), head + Vector2(5, 6.5), head + Vector2(2, 6.5)]), col(Color("1e0a0c")))
-	z.draw_line(head + Vector2(3, 6), head + Vector2(3.5, 2.5), hose, 1.8)
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(1.5, 2), head + Vector2(5.5, 1.5), head + Vector2(5, 6.5), head + Vector2(2, 6.5)]), col(Color("1e0a0c")))
+	DrawBatch.line(z, head + Vector2(3, 6), head + Vector2(3.5, 2.5), hose, 1.8)
 	# גז ירקרק נושף מהפה
 	var gp := fmod(_gas, 1.6)
 	if gp < 0.9 and not z.dead:
@@ -914,7 +914,7 @@ func draw() -> bool:
 			Art.oval(z, tc + Vector2(-6.0 - float(q) * 6.0 * k2, -12.0 - float(q) * 5.0), 3.0 + float(q) * 2.0, 2.0 + float(q), Color(0.95, 0.95, 0.95, 0.45 * (1.0 - float(q) / 3.0)), 0.0, Art.NONE)
 	if state == RAM and not z.dead:
 		for q in 3:
-			z.draw_line(Vector2(-40.0 - float(q) * 5.0, -50.0 + float(q) * 14.0), Vector2(-56.0 - float(q) * 8.0, -50.0 + float(q) * 14.0), Color(1, 0.9, 0.8, 0.35), 1.4)
+			DrawBatch.line(z, Vector2(-40.0 - float(q) * 5.0, -50.0 + float(q) * 14.0), Vector2(-56.0 - float(q) * 8.0, -50.0 + float(q) * 14.0), Color(1, 0.9, 0.8, 0.35), 1.4)
 	end_draw()
 	return true
 
@@ -926,8 +926,8 @@ var _shk := Vector2.ZERO
 func _dangle(a: Vector2, b: Vector2, c: Color) -> void:   # יד רזה ומשתלשלת של הגופה
 	var m := a.lerp(b, 0.5) + Vector2(1.5, 0.0)
 	Art.limb(z, PackedVector2Array([a, m, b]), 2.6, c)
-	z.draw_line(b, b + Vector2(1.5, 3.0), c, 1.2)
-	z.draw_line(b, b + Vector2(-1.0, 3.2), c, 1.0)
+	DrawBatch.line(z, b, b + Vector2(1.5, 3.0), c, 1.2)
+	DrawBatch.line(z, b, b + Vector2(-1.0, 3.2), c, 1.0)
 
 
 func _L(v: Vector2) -> Vector2:   # נקודה על הגוף: רועד ב-VENT, החזית מתרוממת ב-RAM_WIND / STOMP
@@ -936,16 +936,16 @@ func _L(v: Vector2) -> Vector2:   # נקודה על הגוף: רועד ב-VENT, 
 
 func _rail_leg(hip: Vector2, knee: Vector2, foot: Vector2, c: Color, far: bool) -> void:
 	Art.limb(z, PackedVector2Array([hip, knee, foot]), 3.4 if not far else 3.0, c)
-	z.draw_circle(knee, 2.4, col(Color("2a2a2e")))
-	z.draw_circle(knee, 1.0, col(Color("9a9a90")))
+	DrawBatch.circle(z, knee, 2.4, col(Color("2a2a2e")))
+	DrawBatch.circle(z, knee, 1.0, col(Color("9a9a90")))
 	# בוכנה: מהשלד אל הברך
 	var a := hip + Vector2(5, -2)
-	z.draw_line(a, a.lerp(knee, 0.55), col(Color("1e1e22")), 2.6)
-	z.draw_line(a.lerp(knee, 0.5), knee, col(Color("b0b4b8")), 1.0)
+	DrawBatch.line(z, a, a.lerp(knee, 0.55), col(Color("1e1e22")), 2.6)
+	DrawBatch.line(z, a.lerp(knee, 0.5), knee, col(Color("b0b4b8")), 1.0)
 	# כף: גלגל רכבת קטן עם אוגן
 	Art.disc(z, foot + Vector2(0, -3), 3.4, col(Color("3a3a3e")), Art.OUTLINE, 1.0)
-	z.draw_circle(foot + Vector2(0, -3), 1.2, col(Color("8a8a80")))
-	z.draw_line(foot + Vector2(-4, -0.5), foot + Vector2(4, -0.5), col(Color("1a1a1a")), 1.2)
+	DrawBatch.circle(z, foot + Vector2(0, -3), 1.2, col(Color("8a8a80")))
+	DrawBatch.line(z, foot + Vector2(-4, -0.5), foot + Vector2(4, -0.5), col(Color("1a1a1a")), 1.2)
 
 
 func _draw_tank(c: Vector2) -> void:
@@ -958,23 +958,23 @@ func _draw_tank(c: Vector2) -> void:
 		var a := PI / 2.0 + PI * float(i) / 8.0
 		cap.append(c + Vector2(-12.0 + cos(a) * 7.0, sin(a) * 8.5))
 	Art.fill_shaded(z, cap, tk, 0.22, 0.34)
-	z.draw_line(c + Vector2(-8, -8), c + Vector2(-8, 8), col(Art.shade(TANK, 0.35)), 1.0)
-	z.draw_line(c + Vector2(6, -8), c + Vector2(6, 8), col(Art.shade(TANK, 0.35)), 1.0)
-	z.draw_rect(Rect2(c + Vector2(-5, -2.5), Vector2(9, 4)), col(Color("8a2a20")))   # פס אדום
-	z.draw_line(c + Vector2(-12, -6), c + Vector2(10, -6), Color(1, 1, 0.8, 0.25), 1.2)   # ברק
+	DrawBatch.line(z, c + Vector2(-8, -8), c + Vector2(-8, 8), col(Art.shade(TANK, 0.35)), 1.0)
+	DrawBatch.line(z, c + Vector2(6, -8), c + Vector2(6, 8), col(Art.shade(TANK, 0.35)), 1.0)
+	DrawBatch.rect(z, Rect2(c + Vector2(-5, -2.5), Vector2(9, 4)), col(Color("8a2a20")))   # פס אדום
+	DrawBatch.line(z, c + Vector2(-12, -6), c + Vector2(10, -6), Color(1, 1, 0.8, 0.25), 1.2)   # ברק
 	# שסתום + מד לחץ (המחוג יורד כשפוגעים)
-	z.draw_line(c + Vector2(2, -8), c + Vector2(2, -12), col(Color("2a2a2a")), 1.6)
-	z.draw_arc(c + Vector2(2, -13), 2.8, 0.0, TAU, 10, col(Color("aa3a2a")), 1.2)
+	DrawBatch.line(z, c + Vector2(2, -8), c + Vector2(2, -12), col(Color("2a2a2a")), 1.6)
+	DrawBatch.arc(z, c + Vector2(2, -13), 2.8, 0.0, TAU, 10, col(Color("aa3a2a")), 1.2)
 	Art.disc(z, c + Vector2(-9, -9), 3.0, col(Color("e0dcc8")), Art.OUTLINE, 0.8)
 	var r := clampf(float(_tank) / float(TANK_HP), 0.0, 1.0)
 	var na := lerpf(PI * 0.9, PI * 0.1, r) + PI
-	z.draw_line(c + Vector2(-9, -9), c + Vector2(-9, -9) + Vector2.from_angle(na) * 2.4, col(Color("aa1a10")), 0.8)
+	DrawBatch.line(z, c + Vector2(-9, -9), c + Vector2(-9, -9) + Vector2.from_angle(na) * 2.4, col(Color("aa1a10")), 0.8)
 	# חורים שפולטים גז
 	for lp in _leaks:
-		z.draw_circle(lp, 1.1, col(Color("1a1a10")))
+		DrawBatch.circle(z, lp, 1.1, col(Color("1a1a10")))
 		if not z.dead:
 			var k := fmod(_gas * 2.0 + lp.x, 1.0)
-			z.draw_circle(lp + Vector2(-k * 6.0, -k * 5.0), 1.2 + k * 2.6, Color(0.9, 0.95, 0.85, 0.45 * (1.0 - k)))   # (עיגול: אליפסה זעירה נכשלת בטריאנגולציה)
+			DrawBatch.circle(z, lp + Vector2(-k * 6.0, -k * 5.0), 1.2 + k * 2.6, Color(0.9, 0.95, 0.85, 0.45 * (1.0 - k)))   # (עיגול: אליפסה זעירה נכשלת בטריאנגולציה)
 	if state == VENT and not z.dead:
 		var k := clampf(1.0 - _st / VENT_T, 0.0, 1.0)
 		Art.glow(z, c, 12.0 + k * 8.0, Color(1.0, 0.35, 0.15, 0.25 + 0.4 * k))
@@ -990,13 +990,13 @@ func _draw_crawler() -> bool:
 	var sk_d := col(Art.shade(z.skin, 0.25))
 	var p: float = z._walk_phase
 	var head := Vector2(14, -10)
-	z.draw_polyline(PackedVector2Array([Vector2(-6, -8), Vector2(-16, -5), Vector2(-26, -2), Vector2(-34, -1)]), col(HOSE), 2.0)
-	z.draw_polyline(PackedVector2Array([Vector2(-2, -10), Vector2(-14, -9), Vector2(-24, -6)]), col(HOSE), 1.6)
+	DrawBatch.polyline(z, PackedVector2Array([Vector2(-6, -8), Vector2(-16, -5), Vector2(-26, -2), Vector2(-34, -1)]), col(HOSE), 2.0)
+	DrawBatch.polyline(z, PackedVector2Array([Vector2(-2, -10), Vector2(-14, -9), Vector2(-24, -6)]), col(HOSE), 1.6)
 	z._leg(Vector2(-6, -7), Vector2(-24, -2 + sin(p) * 1.0), col(z.pants), sk_d, col(z.shoe))
 	z._arm(Vector2(8, -11), Vector2(20 + sin(p) * 6.0, -1), sk_d, sk_d)
 	var body := Art.ellipse(Vector2(1, -9), 12.0, 6.0, 0.05, 14)
 	Art.fill_shaded(z, body, sk, 0.14, 0.32)
-	z.draw_line(Vector2(-4, -14), Vector2(4, -4), col(Color("3a2a1a")), 1.6)   # רצועה קרועה
+	DrawBatch.line(z, Vector2(-4, -14), Vector2(4, -4), col(Color("3a2a1a")), 1.6)   # רצועה קרועה
 	z._head(head, sk)
 	face(head, Vector2(3.5, -0.5))
 	z._arm(Vector2(9, -10), Vector2(22 + sin(p + PI) * 6.0, -1), sk, sk)
@@ -1031,19 +1031,19 @@ func _draw_engine() -> bool:
 	for q in mini(_passengers, 3):
 		var hx := -62.0 + float(q) * 5.0
 		Art.oval(z, Vector2(hx, -44.0 + float(q % 2) * 6.0), 3.0, 6.0, col(Color("8a8494")), 0.2, Art.OUTLINE)
-		z.draw_circle(Vector2(hx + 1.0, -54.0 + float(q % 2) * 6.0), 2.4, col(Color("9a94a0")))
-		z.draw_line(Vector2(hx + 2.0, -46.0), Vector2(hx - 6.0, -36.0 + float(q) * 2.0), col(Color("7a7484")), 1.4)   # יד מחוץ לסורגים
+		DrawBatch.circle(z, Vector2(hx + 1.0, -54.0 + float(q % 2) * 6.0), 2.4, col(Color("9a94a0")))
+		DrawBatch.line(z, Vector2(hx + 2.0, -46.0), Vector2(hx - 6.0, -36.0 + float(q) * 2.0), col(Color("7a7484")), 1.4)   # יד מחוץ לסורגים
 	for q in 5:
-		z.draw_line(cage.position + Vector2(float(q) * 4.0, 0), cage.position + Vector2(float(q) * 4.0, cage.size.y), col(Color("1a1a1e")), 1.0)
-	z.draw_rect(cage, col(Color("1a1a1e")), false, 1.2)
+		DrawBatch.line(z, cage.position + Vector2(float(q) * 4.0, 0), cage.position + Vector2(float(q) * 4.0, cage.size.y), col(Color("1a1a1e")), 1.0)
+	DrawBatch.rect(z, cage, col(Color("1a1a1e")), false, 1.2)
 	# קבינה
 	var cab := PackedVector2Array([Vector2(-50, -30), Vector2(-50, -74), Vector2(-46, -78), Vector2(-30, -78), Vector2(-30, -30)])
 	Art.fill_shaded(z, cab, col(Color("5a2018")), 0.14, 0.36)
-	z.draw_rect(Rect2(Vector2(-46, -70), Vector2(12, 12)), Color(1.0, 0.6, 0.25, 0.9))
-	z.draw_circle(Vector2(-40, -63), 3.0, Color(0.12, 0.08, 0.08))   # נהג מת בחלון
-	z.draw_rect(Rect2(Vector2(-42, -59), Vector2(5, 3)), Color(0.12, 0.08, 0.08))
+	DrawBatch.rect(z, Rect2(Vector2(-46, -70), Vector2(12, 12)), Color(1.0, 0.6, 0.25, 0.9))
+	DrawBatch.circle(z, Vector2(-40, -63), 3.0, Color(0.12, 0.08, 0.08))   # נהג מת בחלון
+	DrawBatch.rect(z, Rect2(Vector2(-42, -59), Vector2(5, 3)), Color(0.12, 0.08, 0.08))
 	Art.glow(z, Vector2(-40, -64), 12.0, Color(1.0, 0.5, 0.2, 0.25))
-	z.draw_line(Vector2(-38, -78), Vector2(-38, -84), brass, 2.0)   # משרוקית
+	DrawBatch.line(z, Vector2(-38, -78), Vector2(-38, -84), brass, 2.0)   # משרוקית
 	if state == WHISTLE:
 		for q in 3:
 			Art.oval(z, Vector2(-38.0 - float(q) * 3.0, -88.0 - float(q) * 5.0), 2.5 + float(q) * 2.0, 2.0 + float(q) * 1.5, Color(1, 1, 1, 0.5 - float(q) * 0.12), 0.0, Art.NONE)
@@ -1057,24 +1057,24 @@ func _draw_engine() -> bool:
 		boiler.append(Vector2(-32.0 + cos(a) * 3.0, -46.0 + sin(a) * 16.0))
 	Art.fill_shaded(z, boiler, iron, 0.16, 0.4)
 	for bx in [-22.0, -4.0, 16.0]:
-		z.draw_line(Vector2(bx, -61.5), Vector2(bx, -30.5), brass, 2.0)
+		DrawBatch.line(z, Vector2(bx, -61.5), Vector2(bx, -30.5), brass, 2.0)
 	for q in 12:
-		z.draw_circle(Vector2(-30.0 + float(q) * 5.8, -59.0), 0.7, col(Color("6a6a70")))
-	z.draw_line(Vector2(-30, -55), Vector2(36, -55), Color(1, 1, 1, 0.12), 2.0)   # ברק
+		DrawBatch.circle(z, Vector2(-30.0 + float(q) * 5.8, -59.0), 0.7, col(Color("6a6a70")))
+	DrawBatch.line(z, Vector2(-30, -55), Vector2(36, -55), Color(1, 1, 1, 0.12), 2.0)   # ברק
 	if state == VALVES or valves_broken >= 3:   # הדוד חם: סדקים זוהרים
 		var a := 0.4 + 0.3 * sin(z._time * 12.0)
-		z.draw_polyline(PackedVector2Array([Vector2(-10, -40), Vector2(-6, -36), Vector2(-8, -32)]), Color(1.0, 0.4, 0.1, a), 1.2)
-		z.draw_polyline(PackedVector2Array([Vector2(8, -50), Vector2(12, -44), Vector2(10, -38)]), Color(1.0, 0.4, 0.1, a), 1.2)
+		DrawBatch.polyline(z, PackedVector2Array([Vector2(-10, -40), Vector2(-6, -36), Vector2(-8, -32)]), Color(1.0, 0.4, 0.1, a), 1.2)
+		DrawBatch.polyline(z, PackedVector2Array([Vector2(8, -50), Vector2(12, -44), Vector2(10, -38)]), Color(1.0, 0.4, 0.1, a), 1.2)
 	# גופות קשורות בשרשראות לצד הדוד
 	for q in mini(_passengers, 3):
 		var bx := -18.0 + float(q) * 17.0
-		z.draw_line(Vector2(bx, -46), Vector2(bx + 2.0, -40), col(Color("4a4a4e")), 1.0)
+		DrawBatch.line(z, Vector2(bx, -46), Vector2(bx + 2.0, -40), col(Color("4a4a4e")), 1.0)
 		Art.fill_shaded(z, PackedVector2Array([Vector2(bx - 5, -40), Vector2(bx + 7, -40), Vector2(bx + 6, -33), Vector2(bx - 4, -33)]), col(Color("7a7484")), 0.1, 0.3)
-		z.draw_circle(Vector2(bx + 9.0, -38.0), 2.6, col(Color("8a8494")))
-		z.draw_line(Vector2(bx + 4, -34), Vector2(bx + 6, -25 + sin(z._time * 2.0 + float(q)) * 1.5), col(Color("7a7484")), 1.3)
+		DrawBatch.circle(z, Vector2(bx + 9.0, -38.0), 2.6, col(Color("8a8494")))
+		DrawBatch.line(z, Vector2(bx + 4, -34), Vector2(bx + 6, -25 + sin(z._time * 2.0 + float(q)) * 1.5), col(Color("7a7484")), 1.3)
 	# ארובה
 	Art.fill_shaded(z, PackedVector2Array([Vector2(22, -61), Vector2(30, -61), Vector2(32, -74), Vector2(35, -80), Vector2(17, -80), Vector2(20, -74)]), iron, 0.12, 0.4)
-	z.draw_line(Vector2(17, -80), Vector2(35, -80), brass, 1.6)
+	DrawBatch.line(z, Vector2(17, -80), Vector2(35, -80), brass, 1.6)
 	for q in 3:   # עשן
 		var k := fmod(z._time * 0.7 + float(q) / 3.0, 1.0)
 		Art.oval(z, Vector2(26.0 - k * 14.0, -84.0 - k * 30.0), 4.0 + k * 9.0, 3.0 + k * 6.0, Color(0.25, 0.24, 0.26, 0.5 * (1.0 - k)), 0.0, Art.NONE)
@@ -1083,14 +1083,14 @@ func _draw_engine() -> bool:
 		var vx: float = VALVE_X[i]
 		var up := _valve_open * 6.0
 		if _valves[i] <= 0:   # שבור: גדם שפולט קיטור
-			z.draw_polyline(PackedVector2Array([Vector2(vx - 3, -61), Vector2(vx - 1, -66), Vector2(vx + 1, -63), Vector2(vx + 3, -67), Vector2(vx + 4, -61)]), col(Color("3a3a3a")), 1.6)
+			DrawBatch.polyline(z, PackedVector2Array([Vector2(vx - 3, -61), Vector2(vx - 1, -66), Vector2(vx + 1, -63), Vector2(vx + 3, -67), Vector2(vx + 4, -61)]), col(Color("3a3a3a")), 1.6)
 			Art.glow(z, Vector2(vx, -64), 5.0, Color(1.0, 0.4, 0.1, 0.5))
 			Art.oval(z, Vector2(vx, -71.0 - fmod(z._time * 3.0, 1.0) * 6.0), 2.5, 3.5, Color(1, 1, 1, 0.35), 0.0, Art.NONE)
 			continue
-		z.draw_line(Vector2(vx, -61), Vector2(vx, -63.0 - up), col(Color("3a3a3a")), 2.0)
+		DrawBatch.line(z, Vector2(vx, -61), Vector2(vx, -63.0 - up), col(Color("3a3a3a")), 2.0)
 		var wc := col(Color("c03020") if _valve_open > 0.1 else Color("8a6a3a"))
-		z.draw_arc(Vector2(vx, -64.0 - up), 3.6, 0.0, TAU, 12, wc, 1.6)
-		z.draw_line(Vector2(vx - 3.6, -64.0 - up), Vector2(vx + 3.6, -64.0 - up), wc, 1.0)
+		DrawBatch.arc(z, Vector2(vx, -64.0 - up), 3.6, 0.0, TAU, 12, wc, 1.6)
+		DrawBatch.line(z, Vector2(vx - 3.6, -64.0 - up), Vector2(vx + 3.6, -64.0 - up), wc, 1.0)
 		if _valve_open > 0.1:
 			Art.glow(z, Vector2(vx, -64.0 - up), 9.0 * _valve_open, Color(1.0, 0.3, 0.15, 0.45))
 			for q in 2:
@@ -1102,28 +1102,28 @@ func _draw_engine() -> bool:
 	Art.oval(z, fc, 8.0, 10.0, col(z.skin), 0.0, Art.OUTLINE)
 	Art.oval(z, fc + Vector2(-3.0, -3.0), 2.4, 1.8, col(Color("1a0a0a")), 0.0, Art.NONE)
 	Art.oval(z, fc + Vector2(3.0, -3.0), 2.4, 1.8, col(Color("1a0a0a")), 0.0, Art.NONE)
-	z.draw_circle(fc + Vector2(-3.0, -3.0), 0.9, Color(0.95, 0.9, 0.8))
-	z.draw_circle(fc + Vector2(3.0, -3.0), 0.9, Color(0.95, 0.9, 0.8))
+	DrawBatch.circle(z, fc + Vector2(-3.0, -3.0), 0.9, Color(0.95, 0.9, 0.8))
+	DrawBatch.circle(z, fc + Vector2(3.0, -3.0), 0.9, Color(0.95, 0.9, 0.8))
 	var jaw := 3.0 + (2.0 if state == STEAM or state == STEAM_WIND_S or state == WHISTLE else 0.0)
-	z.draw_colored_polygon(PackedVector2Array([fc + Vector2(-3.5, 2), fc + Vector2(3.5, 2), fc + Vector2(3, 3.0 + jaw), fc + Vector2(-3, 3.0 + jaw)]), col(Color("1e0808")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([fc + Vector2(-3.5, 2), fc + Vector2(3.5, 2), fc + Vector2(3, 3.0 + jaw), fc + Vector2(-3, 3.0 + jaw)]), col(Color("1e0808")))
 	for q in 4:
-		z.draw_line(fc + Vector2(-2.6 + float(q) * 1.7, 2.2), fc + Vector2(-2.6 + float(q) * 1.7, 3.2), col(Color("d8d0a8")), 0.7)
-	z.draw_polyline(PackedVector2Array([fc + Vector2(-7, -6), fc + Vector2(-9, 0), fc + Vector2(-7, 6)]), col(Color("3a1a1a")), 0.8)   # תפרים
+		DrawBatch.line(z, fc + Vector2(-2.6 + float(q) * 1.7, 2.2), fc + Vector2(-2.6 + float(q) * 1.7, 3.2), col(Color("d8d0a8")), 0.7)
+	DrawBatch.polyline(z, PackedVector2Array([fc + Vector2(-7, -6), fc + Vector2(-9, 0), fc + Vector2(-7, 6)]), col(Color("3a1a1a")), 0.8)   # תפרים
 	# פנס
 	Art.disc(z, Vector2(40, -64), 4.0, col(Color("3a3a3a")), Art.OUTLINE, 1.0)
-	z.draw_circle(Vector2(41, -64), 2.6, Color(1.0, 0.95, 0.7).lerp(Color(0.5, 0.48, 0.4), 1.0 - _glare))
+	DrawBatch.circle(z, Vector2(41, -64), 2.6, Color(1.0, 0.95, 0.7).lerp(Color(0.5, 0.48, 0.4), 1.0 - _glare))
 	if _glare > 0.02:
 		Art.glow(z, Vector2(42, -64), 14.0 + 10.0 * _glare, Color(1.0, 0.95, 0.6, 0.55 * _glare))
-		z.draw_colored_polygon(PackedVector2Array([Vector2(43, -66), Vector2(200, -84), Vector2(200, -36), Vector2(43, -62)]), Color(1.0, 0.95, 0.65, 0.12 * _glare))
+		DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(43, -66), Vector2(200, -84), Vector2(200, -36), Vector2(43, -62)]), Color(1.0, 0.95, 0.65, 0.12 * _glare))
 	# פגוש פרות
 	var cw := PackedVector2Array([Vector2(36, -30), Vector2(48, -30), Vector2(58, -3), Vector2(36, -3)])
 	Art.fill_shaded(z, cw, col(Color("8a2018")), 0.15, 0.4)
 	for q in 4:
-		z.draw_line(Vector2(38.0 + float(q) * 4.0, -29), Vector2(40.0 + float(q) * 5.0, -4), col(Color("3a0a08")), 1.0)
+		DrawBatch.line(z, Vector2(38.0 + float(q) * 4.0, -29), Vector2(40.0 + float(q) * 5.0, -4), col(Color("3a0a08")), 1.0)
 	# רגליים קרובות
 	for i in [0, 2]:
 		_engine_leg(Vector2(hips[i], -30.0), knees[i], feet[i], st, p)
-	z.draw_line(knees[0] + Vector2(cos(p) * 4.0, sin(p) * 4.0), knees[2] + Vector2(cos(p) * 4.0, sin(p) * 4.0), col(Color("b0b4b8")), 2.0)   # מוט חיבור
+	DrawBatch.line(z, knees[0] + Vector2(cos(p) * 4.0, sin(p) * 4.0), knees[2] + Vector2(cos(p) * 4.0, sin(p) * 4.0), col(Color("b0b4b8")), 2.0)   # מוט חיבור
 	# קיטור מלפנים
 	if (state == STEAM or state == STEAM_WIND_S) and not z.dead:
 		var ld := Vector2(_steam_dir.x * z._dir, _steam_dir.y)
@@ -1136,7 +1136,7 @@ func _draw_engine() -> bool:
 			Art.oval(z, n0 + ld * rng * f * k + Vector2(0, wob), 3.0 + f * 10.0 * k, 2.5 + f * 8.0 * k, Color(0.96, 0.97, 1.0, (0.55 - f * 0.3) * k + 0.1), ld.angle(), Art.NONE)
 	if state == CHARGE and not z.dead:
 		for q in 4:
-			z.draw_line(Vector2(-58.0 - float(q) * 4.0, -70.0 + float(q) * 18.0), Vector2(-80.0 - float(q) * 8.0, -70.0 + float(q) * 18.0), Color(1, 0.9, 0.7, 0.35), 2.0)
+			DrawBatch.line(z, Vector2(-58.0 - float(q) * 4.0, -70.0 + float(q) * 18.0), Vector2(-80.0 - float(q) * 8.0, -70.0 + float(q) * 18.0), Color(1, 0.9, 0.7, 0.35), 2.0)
 	end_draw()
 	return true
 
@@ -1145,11 +1145,11 @@ func _engine_leg(hip: Vector2, knee: Vector2, foot: Vector2, c: Color, p: float)
 	Art.limb(z, PackedVector2Array([hip, knee, foot]), 5.0, c)
 	# גלגל הנעה עם חישורים (מסתובב)
 	Art.disc(z, knee, 7.0, col(Color("2a2a2e")), Art.OUTLINE, 1.2)
-	z.draw_arc(knee, 6.0, 0.0, TAU, 14, col(Color("8a2018")), 1.4)
+	DrawBatch.arc(z, knee, 6.0, 0.0, TAU, 14, col(Color("8a2018")), 1.4)
 	for q in 4:
 		var a := p + float(q) * PI / 4.0
-		z.draw_line(knee - Vector2.from_angle(a) * 5.5, knee + Vector2.from_angle(a) * 5.5, col(Color("6a6a70")), 0.9)
-	z.draw_circle(knee, 1.6, col(Color("b0a080")))
+		DrawBatch.line(z, knee - Vector2.from_angle(a) * 5.5, knee + Vector2.from_angle(a) * 5.5, col(Color("6a6a70")), 0.9)
+	DrawBatch.circle(z, knee, 1.6, col(Color("b0a080")))
 	Art.fill(z, PackedVector2Array([foot + Vector2(-7, 0), foot + Vector2(7, 0), foot + Vector2(5, -3), foot + Vector2(-5, -3)]), col(Color("3a3a3e")), Art.OUTLINE, 1.0)
 
 
@@ -1175,25 +1175,25 @@ class Wreck extends Node2D:
 
 	func _draw() -> void:
 		var a := clampf((14.0 - _t) / 2.0, 0.0, 1.0)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(side * k, k))
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(side * k, k))
 		var rust := Color(0.42, 0.26, 0.15, a)
 		var st := Color(0.25, 0.27, 0.3, a)
 		# קורות שבורות על הרצפה
-		draw_colored_polygon(PackedVector2Array([Vector2(-38, -10), Vector2(10, -16), Vector2(12, -9), Vector2(-36, -4)]), rust)
-		draw_colored_polygon(PackedVector2Array([Vector2(8, -8), Vector2(34, -2), Vector2(33, 0), Vector2(7, -3)]), rust.darkened(0.2))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-38, -10), Vector2(10, -16), Vector2(12, -9), Vector2(-36, -4)]), rust)
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(8, -8), Vector2(34, -2), Vector2(33, 0), Vector2(7, -3)]), rust.darkened(0.2))
 		# רגליים מפוזרות
-		draw_line(Vector2(-30, -6), Vector2(-44, -1), st, 3.0)
-		draw_line(Vector2(-12, -10), Vector2(-6, -24), st, 3.0)
-		draw_line(Vector2(-6, -24), Vector2(4, -20), st, 3.0)
-		draw_line(Vector2(20, -6), Vector2(36, -12), st, 3.0)
+		DrawBatch.line(self, Vector2(-30, -6), Vector2(-44, -1), st, 3.0)
+		DrawBatch.line(self, Vector2(-12, -10), Vector2(-6, -24), st, 3.0)
+		DrawBatch.line(self, Vector2(-6, -24), Vector2(4, -20), st, 3.0)
+		DrawBatch.line(self, Vector2(20, -6), Vector2(36, -12), st, 3.0)
 		# בלון קרוע
-		draw_colored_polygon(PackedVector2Array([Vector2(-26, -12), Vector2(-14, -22), Vector2(-6, -18), Vector2(-10, -14), Vector2(-4, -10), Vector2(-20, -6)]), Color(0.4, 0.4, 0.18, a))
-		draw_polyline(PackedVector2Array([Vector2(-14, -22), Vector2(-12, -16), Vector2(-6, -18)]), Color(0.1, 0.08, 0.06, a), 1.0)
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-26, -12), Vector2(-14, -22), Vector2(-6, -18), Vector2(-10, -14), Vector2(-4, -10), Vector2(-20, -6)]), Color(0.4, 0.4, 0.18, a))
+		DrawBatch.polyline(self, PackedVector2Array([Vector2(-14, -22), Vector2(-12, -16), Vector2(-6, -18)]), Color(0.1, 0.08, 0.06, a), 1.0)
 		if _t < 6.0:   # עשן עולה מההריסה
 			for q in 3:
 				var f := fmod(_t * 0.6 + float(q) / 3.0, 1.0)
 				var c := Vector2(-14.0 + float(q) * 6.0, -20.0 - f * 40.0)
-				draw_circle(c, 4.0 + f * 8.0, Color(0.2, 0.2, 0.2, 0.35 * (1.0 - f) * (1.0 - _t / 6.0)))
+				DrawBatch.circle(self, c, 4.0 + f * 8.0, Color(0.2, 0.2, 0.2, 0.35 * (1.0 - f) * (1.0 - _t / 6.0)))
 
 
 # ============================================================
@@ -1220,8 +1220,8 @@ class Rupture extends Node2D:
 
 	func _draw() -> void:
 		var k := _t / FUSE
-		draw_circle(Vector2.ZERO, 6.0 + k * 6.0, Color(1.0, 0.35, 0.1, 0.25 + 0.45 * k * (0.5 + 0.5 * sin(_t * 40.0))))
+		DrawBatch.circle(self, Vector2.ZERO, 6.0 + k * 6.0, Color(1.0, 0.35, 0.1, 0.25 + 0.45 * k * (0.5 + 0.5 * sin(_t * 40.0))))
 		for q in 5:
 			var a := -PI / 2.0 + (float(q) - 2.0) * 0.45
 			var r := 8.0 + k * 18.0
-			draw_circle(Vector2.from_angle(a) * r, 3.0 + k * 4.0, Color(0.95, 0.97, 0.9, 0.5))
+			DrawBatch.circle(self, Vector2.from_angle(a) * r, 3.0 + k * 4.0, Color(0.95, 0.97, 0.9, 0.5))

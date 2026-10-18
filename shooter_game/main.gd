@@ -258,6 +258,8 @@ func _ready() -> void:
 	player.world_w = level_w
 	if Game.use_checkpoint and int(Game.checkpoint.get("level", -1)) == Game.level:   # TRY AGAIN / CONTINUE מנקודת הביקורת
 		_start_at_checkpoint(player)
+	# חימום shader של ריסוס הדם עכשיו, ולא בהריגה הראשונה (effects/flesh_fx.gd -> prewarm)
+	preload("res://effects/flesh_fx.gd").prewarm(self, player.position + Vector2(160.0, -60.0))
 
 	# מצלמה שעוקבת אחרי השחקן ונעצרת בקצוות הרמה
 	if TouchAPI.on():

@@ -256,9 +256,9 @@ class Crack extends Node2D:
 			var p := Vector2.ZERO
 			for k in 3:
 				var np := p + Vector2.from_angle(ang + sin(float(q * 3 + k)) * 0.4) * Vector2(16.0, 3.0) * s
-				draw_line(p, np, c, 2.0 - float(k) * 0.5)
+				DrawBatch.line(self, p, np, c, 2.0 - float(k) * 0.5)
 				p = np
-		draw_colored_polygon(Art.ellipse(Vector2(0, 1), 12.0 * s, 2.5, 0.0, 10), c)
+		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, 1), 12.0 * s, 2.5, 0.0, 10), c)
 
 
 # ============================================================
@@ -295,8 +295,8 @@ class Shockwave extends Node2D:
 		for q in 4:
 			var x := -dir * float(q) * 9.0
 			var h := (26.0 - float(q) * 6.0) * a
-			draw_colored_polygon(PackedVector2Array([Vector2(x - 7, 0), Vector2(x + dir * 4.0, -h), Vector2(x + 7, 0)]), Color(0.45, 0.32, 0.22, 0.9 - float(q) * 0.18))
-		draw_line(Vector2(-dir * 30.0, 0), Vector2(dir * 6.0, 0), Color(1.0, 0.8, 0.5, 0.6 * a), 2.0)
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(x - 7, 0), Vector2(x + dir * 4.0, -h), Vector2(x + 7, 0)]), Color(0.45, 0.32, 0.22, 0.9 - float(q) * 0.18))
+		DrawBatch.line(self, Vector2(-dir * 30.0, 0), Vector2(dir * 6.0, 0), Color(1.0, 0.8, 0.5, 0.6 * a), 2.0)
 
 
 # ============================================================
@@ -367,30 +367,30 @@ func draw() -> bool:
 	var torso := PackedVector2Array([sh + Vector2(-10, -1), sh + Vector2(9, 0), sh + Vector2(10, 9), hip + Vector2(8, 2), hip + Vector2(-8, 2), sh + Vector2(-11, 9)])
 	Art.fill_shaded(z, torso, sk, 0.15, 0.35)
 	for q in 3:
-		z.draw_line(sh + Vector2(-5, 6.0 + float(q) * 3.5), sh + Vector2(4, 7.0 + float(q) * 3.5), col(Color(0.2, 0.25, 0.2, 0.5)), 1.0)
-	z.draw_line(sh + Vector2(2, 2), hip + Vector2(1, -3), col(Color("4a2a2a")), 1.2)   # תפר
+		DrawBatch.line(z, sh + Vector2(-5, 6.0 + float(q) * 3.5), sh + Vector2(4, 7.0 + float(q) * 3.5), col(Color(0.2, 0.25, 0.2, 0.5)), 1.0)
+	DrawBatch.line(z, sh + Vector2(2, 2), hip + Vector2(1, -3), col(Color("4a2a2a")), 1.2)   # תפר
 	for q in 4:
-		z.draw_line(sh + Vector2(0.5, 4.0 + float(q) * 4.0), sh + Vector2(3.5, 4.5 + float(q) * 4.0), col(Color("4a2a2a")), 0.9)
+		DrawBatch.line(z, sh + Vector2(0.5, 4.0 + float(q) * 4.0), sh + Vector2(3.5, 4.5 + float(q) * 4.0), col(Color("4a2a2a")), 0.9)
 	Art.fill_shaded(z, PackedVector2Array([hip + Vector2(-7, -7), hip + Vector2(9, -7), hip + Vector2(12, 16), hip + Vector2(4, 18), hip + Vector2(-6, 16)]), apron, 0.12, 0.35)
-	z.draw_line(hip + Vector2(2, -5), hip + Vector2(4, 16), col(Color("3a2414")), 0.9)   # קפל
-	z.draw_line(hip + Vector2(-7, -7), sh + Vector2(-7, 1), col(Color("3a2414")), 1.6)   # רצועות
-	z.draw_line(hip + Vector2(8, -7), sh + Vector2(6, 1), col(Color("3a2414")), 1.6)
-	z.draw_rect(Rect2(hip + Vector2(-9, -9), Vector2(20, 3)), col(Color("2a1a10")))
-	z.draw_rect(Rect2(hip + Vector2(0, -9.5), Vector2(4, 4)), col(Color("8a7040")))   # אבזם
+	DrawBatch.line(z, hip + Vector2(2, -5), hip + Vector2(4, 16), col(Color("3a2414")), 0.9)   # קפל
+	DrawBatch.line(z, hip + Vector2(-7, -7), sh + Vector2(-7, 1), col(Color("3a2414")), 1.6)   # רצועות
+	DrawBatch.line(z, hip + Vector2(8, -7), sh + Vector2(6, 1), col(Color("3a2414")), 1.6)
+	DrawBatch.rect(z, Rect2(hip + Vector2(-9, -9), Vector2(20, 3)), col(Color("2a1a10")))
+	DrawBatch.rect(z, Rect2(hip + Vector2(0, -9.5), Vector2(4, 4)), col(Color("8a7040")))   # אבזם
 	for q in 3:   # נזילות דם ויין על הסינר
 		var sx := -3.0 + float(q) * 5.0
-		z.draw_line(hip + Vector2(sx, -3.0 + float(q) * 2.0), hip + Vector2(sx + 0.8, 6.0 + float(q % 2) * 6.0), col(Color(0.38, 0.03, 0.1, 0.85)), 1.4)
-		z.draw_circle(hip + Vector2(sx + 0.8, 6.5 + float(q % 2) * 6.0), 1.2, col(Color(0.38, 0.03, 0.1, 0.85)))
+		DrawBatch.line(z, hip + Vector2(sx, -3.0 + float(q) * 2.0), hip + Vector2(sx + 0.8, 6.0 + float(q % 2) * 6.0), col(Color(0.38, 0.03, 0.1, 0.85)), 1.4)
+		DrawBatch.circle(z, hip + Vector2(sx + 0.8, 6.5 + float(q % 2) * 6.0), 1.2, col(Color(0.38, 0.03, 0.1, 0.85)))
 	# ברדס מחודד עם חורי עיניים, נופל על הכתפיים
 	Art.fill(z, PackedVector2Array([head + Vector2(-8, 9), head + Vector2(-7, -2), head + Vector2(-3, -10), head + Vector2(-6, -17), head + Vector2(3, -9), head + Vector2(7, -2), head + Vector2(9, 9)]), hood, Art.OUTLINE, 1.1)
-	z.draw_line(head + Vector2(-3, -9), head + Vector2(6, -2), col(Color(1, 1, 1, 0.08)), 1.5)
+	DrawBatch.line(z, head + Vector2(-3, -9), head + Vector2(6, -2), col(Color(1, 1, 1, 0.08)), 1.5)
 	if not z.dead:
 		for e in [Vector2(1.5, -2.5), Vector2(5.5, -2.5)]:
-			z.draw_colored_polygon(Art.ellipse(head + e, 1.6, 1.1, 0.0, 8), Color(0, 0, 0))
-			z.draw_circle(head + e + Vector2(0.4, 0), 0.8, Color(1.0, 0.3, 0.15) if state != WIND else Color(1.0, 0.85, 0.3))
+			DrawBatch.colored_polygon(z, Art.ellipse(head + e, 1.6, 1.1, 0.0, 8), Color(0, 0, 0))
+			DrawBatch.circle(z, head + e + Vector2(0.4, 0), 0.8, Color(1.0, 0.3, 0.15) if state != WIND else Color(1.0, 0.85, 0.3))
 	else:
-		z.draw_line(head + Vector2(0, -3), head + Vector2(7, -2), Color(0, 0, 0), 1.5)
-	z.draw_line(head + Vector2(1, 3), head + Vector2(6, 3.5), col(Color("2a2024")), 1.2)   # פה מתחת לבד
+		DrawBatch.line(z, head + Vector2(0, -3), head + Vector2(7, -2), Color(0, 0, 0), 1.5)
+	DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(6, 3.5), col(Color("2a2024")), 1.2)   # פה מתחת לבד
 	# החרב
 	_sword(grip_c, bd)
 	z._arm(sh + Vector2(5, 1), h2, sk, sk)
@@ -406,10 +406,10 @@ func _sword(grip: Vector2, bd: Vector2) -> void:
 	var steel := col(Color("a8adb4"))
 	var edge := col(Color("dfe3e8"))
 	# ניצב + פומל
-	z.draw_line(grip - bd * 9.0, grip + bd * 6.0, col(Color("3a2216")), 3.2)
+	DrawBatch.line(z, grip - bd * 9.0, grip + bd * 6.0, col(Color("3a2216")), 3.2)
 	for q in 3:
-		z.draw_line(grip - bd * (7.0 - float(q) * 4.5) - nrm * 1.6, grip - bd * (6.0 - float(q) * 4.5) + nrm * 1.6, col(Color("6a4a30")), 0.9)
-	z.draw_circle(grip - bd * 10.5, 2.6, col(Color("8a7040")))
+		DrawBatch.line(z, grip - bd * (7.0 - float(q) * 4.5) - nrm * 1.6, grip - bd * (6.0 - float(q) * 4.5) + nrm * 1.6, col(Color("6a4a30")), 0.9)
+	DrawBatch.circle(z, grip - bd * 10.5, 2.6, col(Color("8a7040")))
 	# מגן
 	var g := grip + bd * 7.0
 	Art.fill(z, PackedVector2Array([g - nrm * 9.0 - bd * 1.5, g - nrm * 10.0 + bd * 1.5, g + nrm * 10.0 + bd * 1.5, g + nrm * 9.0 - bd * 1.5]), col(Color("7a6038")), Art.OUTLINE, 0.9)
@@ -418,21 +418,21 @@ func _sword(grip: Vector2, bd: Vector2) -> void:
 	var tip := b0 + bd * L
 	var pts := PackedVector2Array([b0 - nrm * 5.0, b0 + bd * (L - 6.0) - nrm * 6.5, tip - nrm * 2.0, tip + nrm * 5.0, b0 + bd * (L - 4.0) + nrm * 6.5, b0 + nrm * 5.0])
 	Art.fill(z, pts, steel, Art.OUTLINE, 1.2)
-	z.draw_line(b0 + bd * 3.0, b0 + bd * (L - 8.0), col(Color("7a8088")), 1.6)   # חריץ
-	z.draw_line(b0 + nrm * 4.5, b0 + bd * (L - 4.0) + nrm * 6.0, edge, 1.1)   # הלהב החד
+	DrawBatch.line(z, b0 + bd * 3.0, b0 + bd * (L - 8.0), col(Color("7a8088")), 1.6)   # חריץ
+	DrawBatch.line(z, b0 + nrm * 4.5, b0 + bd * (L - 4.0) + nrm * 6.0, edge, 1.1)   # הלהב החד
 	for q in 3:   # פגימות בלהב
 		var nq := b0 + bd * (18.0 + float(q) * 19.0) + nrm * 6.0
-		z.draw_colored_polygon(PackedVector2Array([nq, nq + bd * 3.0 - nrm * 1.8, nq + bd * 5.0]), col(Color("2a2a2e")))
+		DrawBatch.colored_polygon(z, PackedVector2Array([nq, nq + bd * 3.0 - nrm * 1.8, nq + bd * 5.0]), col(Color("2a2a2e")))
 	for q in 4:   # דם על הלהב
-		z.draw_circle(b0 + bd * (L - 14.0 + float(q) * 3.0) + nrm * (2.0 - float(q)), 1.6 - float(q) * 0.2, col(Color(0.45, 0.04, 0.06, 0.85)))
-	z.draw_line(b0 + bd * (L - 18.0) - nrm * 1.0, b0 + bd * (L - 4.0) + nrm * 3.0, col(Color(0.45, 0.04, 0.06, 0.7)), 1.6)
+		DrawBatch.circle(z, b0 + bd * (L - 14.0 + float(q) * 3.0) + nrm * (2.0 - float(q)), 1.6 - float(q) * 0.2, col(Color(0.45, 0.04, 0.06, 0.85)))
+	DrawBatch.line(z, b0 + bd * (L - 18.0) - nrm * 1.0, b0 + bd * (L - 4.0) + nrm * 3.0, col(Color(0.45, 0.04, 0.06, 0.7)), 1.6)
 	if state == STRIKE and not z.dead:   # עקבת תנועה
 		if attack == SLAM:
-			z.draw_arc(g, L * 0.85, bd.angle() - 0.9, bd.angle(), 10, Color(1, 1, 1, 0.25), 5.0)
+			DrawBatch.arc(z, g, L * 0.85, bd.angle() - 0.9, bd.angle(), 10, Color(1, 1, 1, 0.25), 5.0)
 		else:   # חצי עיגול שטוח לאורך הרצפה, מאחור ועד הקצה
 			var arc := PackedVector2Array()
 			for i in 13:
 				var u := float(i) / 12.0
 				arc.append(Vector2(lerpf(-40.0, g.x + L, u), -6.0 - sin(u * PI) * 7.0))
-			z.draw_polyline(arc, Color(1, 1, 1, 0.3), 6.0)
-			z.draw_polyline(arc, Color(1, 1, 1, 0.5), 2.0)
+			DrawBatch.polyline(z, arc, Color(1, 1, 1, 0.3), 6.0)
+			DrawBatch.polyline(z, arc, Color(1, 1, 1, 0.5), 2.0)

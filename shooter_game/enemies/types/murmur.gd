@@ -680,7 +680,7 @@ func wants_redraw() -> bool:
 func draw() -> bool:
 	if z.dead or n_alive <= 0:
 		return true
-	z.draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform_matrix(z, Transform2D.IDENTITY)
 	var o := Vector2(0.0, -OFF)
 	var pts := PackedVector2Array()
 	var cols := PackedColorArray()

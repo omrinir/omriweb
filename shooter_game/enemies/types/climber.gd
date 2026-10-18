@@ -108,7 +108,7 @@ func draw() -> bool:
 	var p: float = z._walk_phase
 	if on_wall:
 		# על הקיר: גוף אנכי, ידיים ורגליים נאחזות לסירוגין (מצויר "פונה למעלה")
-		z.draw_set_transform(Vector2(0, -20.0 * z.sc), 0.0, Vector2(z._dir * z.sc, z.sc))
+		DrawBatch.set_transform(z, Vector2(0, -20.0 * z.sc), 0.0, Vector2(z._dir * z.sc, z.sc))
 		var a := sin(p) * 6.0
 		for side in [-1.0, 1.0]:
 			var sh := Vector2(side * 5.0, -14.0)
@@ -120,10 +120,10 @@ func draw() -> bool:
 			Art.limb(z, PackedVector2Array([hip, hip + Vector2(side * 9.0, 2.0), foot]), 3.4, sk if side > 0.0 else dark)
 		Art.fill_shaded(z, PackedVector2Array([Vector2(-5, -16), Vector2(5, -16), Vector2(4, 8), Vector2(-4, 8)]), sk, 0.2, 0.4)
 		for i in 6:   # עמוד שדרה
-			z.draw_circle(Vector2(0, -13 + i * 4), 1.2, col(Color("d8d0c0")))
+			DrawBatch.circle(z, Vector2(0, -13 + i * 4), 1.2, col(Color("d8d0c0")))
 		Art.oval_shaded(z, Vector2(0, -22), 5.0, 6.0, sk, 0.0)
-		z.draw_circle(Vector2(-2, -24), 1.0, Color(1.0, 0.2, 0.1))
-		z.draw_circle(Vector2(2, -24), 1.0, Color(1.0, 0.2, 0.1))
+		DrawBatch.circle(z, Vector2(-2, -24), 1.0, Color(1.0, 0.2, 0.1))
+		DrawBatch.circle(z, Vector2(2, -24), 1.0, Color(1.0, 0.2, 0.1))
 		end_draw()
 		return true
 	begin_draw()
@@ -146,13 +146,13 @@ func draw() -> bool:
 	Art.fill_shaded(z, PackedVector2Array([hip + Vector2(-4, 2), hip + Vector2(4, 1), sh + Vector2(4, 3), sh + Vector2(-3, -2)]), sk, 0.2, 0.4)
 	for i in 4:
 		var rp: Vector2 = hip.lerp(sh, 0.35 + float(i) * 0.15)
-		z.draw_line(rp + Vector2(-2, 0), rp + Vector2(4, 1), col(Color(0.3, 0.32, 0.36, 0.7)), 0.8)
+		DrawBatch.line(z, rp + Vector2(-2, 0), rp + Vector2(4, 1), col(Color(0.3, 0.32, 0.36, 0.7)), 0.8)
 	for i in 6:   # חוליות בולטות על הגב
-		z.draw_circle(hip.lerp(sh, float(i) / 5.0) + Vector2(-3.5, -1.0), 1.3, col(Color("d8d0c0")))
+		DrawBatch.circle(z, hip.lerp(sh, float(i) / 5.0) + Vector2(-3.5, -1.0), 1.3, col(Color("d8d0c0")))
 	# ראש קטן ומוארך
 	Art.oval_shaded(z, head, 5.5, 6.5, sk, 0.4)
-	z.draw_line(head + Vector2(2, 2), head + Vector2(6, 3), Color(0.2, 0.0, 0.0), 1.2)
-	z.draw_circle(head + Vector2(3.0, -1.5), 1.2, Color(1.0, 0.2, 0.1))
+	DrawBatch.line(z, head + Vector2(2, 2), head + Vector2(6, 3), Color(0.2, 0.0, 0.0), 1.2)
+	DrawBatch.circle(z, head + Vector2(3.0, -1.5), 1.2, Color(1.0, 0.2, 0.1))
 	Art.glow(z, head + Vector2(3.0, -1.5), 3.0, Color(1.0, 0.1, 0.05, 0.6))
 	# יד קדמית ארוכה עם טפרים
 	var fh := sh + Vector2(reach, 10.0 - sin(p) * 4.0)
@@ -165,4 +165,4 @@ func draw() -> bool:
 func _claws(at: Vector2, dir: Vector2, c: Color) -> void:
 	for i in 3:
 		var a := dir.rotated(-0.5 + float(i) * 0.5)
-		z.draw_line(at, at + a * 5.0, c, 1.2, true)
+		DrawBatch.line(z, at, at + a * 5.0, c, 1.2, true)

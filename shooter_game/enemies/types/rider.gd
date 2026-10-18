@@ -713,10 +713,10 @@ class Lasso extends Node2D:
 		for i in 9:
 			var k := float(i) / 8.0
 			pts.append(h.lerp(mid, k).lerp(mid.lerp(Vector2.ZERO, k), k))
-		draw_polyline(pts, Color("3a2a18"), 3.0)
-		draw_polyline(pts, Color("b89a6a"), 1.6)
-		draw_arc(Vector2.ZERO, 14.0 if not caught else 18.0, 0, TAU, 16, Color("3a2a18"), 3.0)
-		draw_arc(Vector2.ZERO, 14.0 if not caught else 18.0, 0, TAU, 16, Color("b89a6a"), 1.6)
+		DrawBatch.polyline(self, pts, Color("3a2a18"), 3.0)
+		DrawBatch.polyline(self, pts, Color("b89a6a"), 1.6)
+		DrawBatch.arc(self, Vector2.ZERO, 14.0 if not caught else 18.0, 0, TAU, 16, Color("3a2a18"), 3.0)
+		DrawBatch.arc(self, Vector2.ZERO, 14.0 if not caught else 18.0, 0, TAU, 16, Color("b89a6a"), 1.6)
 
 
 # ============================================================
@@ -744,7 +744,7 @@ class HorseCorpse extends Node2D:
 		Art.ground_shadow(self, Vector2.ZERO, 34.0 * s)
 		# קורס: הרגליים מתקפלות, הגוף שוקע לקרקע והראש נשמט
 		var base := Transform2D(0.0, Vector2(dir * s, s), 0.0, Vector2.ZERO)
-		draw_set_transform_matrix(base * Transform2D(0.1 * k, Vector2(0, 18.0 * k)))
+		DrawBatch.set_transform_matrix(self, base * Transform2D(0.1 * k, Vector2(0, 18.0 * k)))
 		if k < 0.6:
 			draw_horse(self, 0.0, 0.0, armored, false, true, 3)
 		else:   # רגליים נוקשות שבולטות הצידה
@@ -754,9 +754,9 @@ class HorseCorpse extends Node2D:
 				var a := Vector2(-16.0 + float(q) * 10.0, -22.0)
 				var b := a + Vector2(10.0 + float(q % 2) * 4.0, 4.0 + float(q) * 0.5)
 				Art.limb(self, PackedVector2Array([a, a.lerp(b, 0.5) + Vector2(0, 1), b]), 3.4, hide.darkened(0.15 * float(q % 2)))
-				draw_rect(Rect2(b + Vector2(0, -2), Vector2(3, 4)), hoof)
+				DrawBatch.rect(self, Rect2(b + Vector2(0, -2), Vector2(3, 4)), hoof)
 			draw_horse(self, 0.0, 0.0, armored, false, true, 0)
-		draw_set_transform_matrix(Transform2D.IDENTITY)
+		DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 
 	# הסוס המת. ph = שלב דהירה, gal = 0..1 כמה דוהר, dead = עיניים כבויות, flash = לבן
 	static func draw_horse(ci: CanvasItem, ph: float, gal: float, armored: bool, flash: bool, dead: bool, legs := 3) -> void:
@@ -778,62 +778,62 @@ class HorseCorpse extends Node2D:
 			var knee := top.lerp(foot, 0.5) + Vector2((3.0 if q >= 2 else -3.0) * (0.4 + gal * 0.6), 0.0)
 			var c := dark if q % 2 == 0 else hide
 			Art.limb(ci, PackedVector2Array([top, knee, foot]), 3.6, c)
-			ci.draw_rect(Rect2(foot + Vector2(-2.2, -2.5), Vector2(4.4, 2.5)), hoof)
+			DrawBatch.rect(ci, Rect2(foot + Vector2(-2.2, -2.5), Vector2(4.4, 2.5)), hoof)
 			if q == 1 and not flash:   # עצם חשופה ברגל
-				ci.draw_line(knee + Vector2(-1, -1), knee.lerp(foot, 0.5), bone, 1.0)
+				DrawBatch.line(ci, knee + Vector2(-1, -1), knee.lerp(foot, 0.5), bone, 1.0)
 		# זנב קרוע
 		var tw := sin(ph * 0.5) * 3.0 * (0.4 + gal)
-		ci.draw_polyline(PackedVector2Array([Vector2(-23, -33), Vector2(-30, -30 + tw * 0.4), Vector2(-34 - gal * 6.0, -24 + tw), Vector2(-35 - gal * 8.0, -16 + tw)]), mane, 3.0)
-		ci.draw_line(Vector2(-31, -28 + tw * 0.4), Vector2(-37 - gal * 6.0, -20 + tw), mane, 1.4)
+		DrawBatch.polyline(ci, PackedVector2Array([Vector2(-23, -33), Vector2(-30, -30 + tw * 0.4), Vector2(-34 - gal * 6.0, -24 + tw), Vector2(-35 - gal * 8.0, -16 + tw)]), mane, 3.0)
+		DrawBatch.line(ci, Vector2(-31, -28 + tw * 0.4), Vector2(-37 - gal * 6.0, -20 + tw), mane, 1.4)
 		# גוף
 		var body := Art.ellipse(Vector2(0, -29), 25.0, 9.5, 0.0, 18)
 		Art.fill_shaded(ci, body, hide, 0.12, 0.38)
 		if not flash:
-			ci.draw_colored_polygon(Art.ellipse(Vector2(6, -26), 8.0, 4.5, 0.0, 12), Color(0.22, 0.03, 0.04, 0.9))   # בטן פתוחה
+			DrawBatch.colored_polygon(ci, Art.ellipse(Vector2(6, -26), 8.0, 4.5, 0.0, 12), Color(0.22, 0.03, 0.04, 0.9))   # בטן פתוחה
 			for q in 4:   # צלעות מעוקלות
 				var rx := 0.5 + float(q) * 3.4
-				ci.draw_polyline(PackedVector2Array([Vector2(rx - 1.0, -33.5), Vector2(rx + 1.2, -28.0), Vector2(rx + 0.4, -22.5)]), bone.darkened(0.1), 1.0)
+				DrawBatch.polyline(ci, PackedVector2Array([Vector2(rx - 1.0, -33.5), Vector2(rx + 1.2, -28.0), Vector2(rx + 0.4, -22.5)]), bone.darkened(0.1), 1.0)
 			brand_on(ci, Vector2(-15, -29), 3.2, Color("2a1a10"))
 		# אוכף (רקאדו) עם עור כבש ושמיכה
-		ci.draw_rect(Rect2(-10, -40, 18, 6), Color.WHITE if flash else Color("7a2a20"))   # שמיכה
-		ci.draw_rect(Rect2(-10, -40, 18, 1.5), Color.WHITE if flash else Color("d8b060"))
+		DrawBatch.rect(ci, Rect2(-10, -40, 18, 6), Color.WHITE if flash else Color("7a2a20"))   # שמיכה
+		DrawBatch.rect(ci, Rect2(-10, -40, 18, 1.5), Color.WHITE if flash else Color("d8b060"))
 		Art.fill(ci, PackedVector2Array([Vector2(-9, -40), Vector2(-7, -44), Vector2(5, -44), Vector2(8, -40)]), Color.WHITE if flash else Color("d8ccb0"))   # עור כבש
-		ci.draw_line(Vector2(-1, -36), Vector2(-1, -26), Color("3a2a1a"), 1.0)   # רצועת האוכף
+		DrawBatch.line(ci, Vector2(-1, -36), Vector2(-1, -26), Color("3a2a1a"), 1.0)   # רצועת האוכף
 		# צוואר וראש-גולגולת
 		var neck := PackedVector2Array([Vector2(14, -36), Vector2(20, -46), Vector2(27, -51), Vector2(31, -46), Vector2(25, -38), Vector2(22, -26)])
 		Art.fill_shaded(ci, neck, hide, 0.12, 0.32)
 		for q in 6:   # רעמה קרועה
 			var mp := Vector2(15, -38).lerp(Vector2(27, -52), float(q) / 5.0)
-			ci.draw_line(mp, mp + Vector2(-5.0 - gal * 4.0, -2.0 + sin(ph + float(q)) * 2.0), mane, 2.0)
+			DrawBatch.line(ci, mp, mp + Vector2(-5.0 - gal * 4.0, -2.0 + sin(ph + float(q)) * 2.0), mane, 2.0)
 		var hd := Vector2(34, -45)
 		Art.fill(ci, Art.ellipse(hd, 9.5, 4.6, 0.55, 14), bone)   # גולגולת
 		Art.fill(ci, PackedVector2Array([hd + Vector2(-5, -3), hd + Vector2(1, -5), hd + Vector2(3, -2), hd + Vector2(-3, 1)]), hide, Art.NONE)   # שאריות עור
-		ci.draw_line(hd + Vector2(2, 3), hd + Vector2(8, 7), Color("2a0a0a"), 1.6)   # לסת פתוחה
+		DrawBatch.line(ci, hd + Vector2(2, 3), hd + Vector2(8, 7), Color("2a0a0a"), 1.6)   # לסת פתוחה
 		for q in 3:
-			ci.draw_line(hd + Vector2(3.0 + float(q) * 2.0, 3.5 + float(q)), hd + Vector2(3.5 + float(q) * 2.0, 5.5 + float(q)), bone, 0.8)
-		ci.draw_line(hd + Vector2(-6, -4), hd + Vector2(-8, -9), dark, 2.0)   # אוזן
+			DrawBatch.line(ci, hd + Vector2(3.0 + float(q) * 2.0, 3.5 + float(q)), hd + Vector2(3.5 + float(q) * 2.0, 5.5 + float(q)), bone, 0.8)
+		DrawBatch.line(ci, hd + Vector2(-6, -4), hd + Vector2(-8, -9), dark, 2.0)   # אוזן
 		if not dead:
-			ci.draw_circle(hd + Vector2(-1, -1.5), 1.6, Color(1.0, 0.45, 0.1))
+			DrawBatch.circle(ci, hd + Vector2(-1, -1.5), 1.6, Color(1.0, 0.45, 0.1))
 			Art.glow(ci, hd + Vector2(-1, -1.5), 5.0, Color(1.0, 0.35, 0.1, 0.45))
 		else:
-			ci.draw_circle(hd + Vector2(-1, -1.5), 1.4, Color(0.1, 0.05, 0.05))
-		ci.draw_line(hd + Vector2(5, 0), Vector2(8, -40), Color("3a2a1a"), 0.8)   # רסן
+			DrawBatch.circle(ci, hd + Vector2(-1, -1.5), 1.4, Color(0.1, 0.05, 0.05))
+		DrawBatch.line(ci, hd + Vector2(5, 0), Vector2(8, -40), Color("3a2a1a"), 0.8)   # רסן
 		if armored:   # שריון: מסכת ברזל לראש, לוחות על הצוואר והגוף, מסמרות
 			var steel := Color.WHITE if flash else Color("8a9094")
 			Art.fill(ci, PackedVector2Array([hd + Vector2(-7, -5), hd + Vector2(6, -6), hd + Vector2(9, -1), hd + Vector2(-2, 1)]), steel, Art.OUTLINE, 1.0)
-			ci.draw_line(hd + Vector2(-3, -6), hd + Vector2(-5, -12), steel, 2.0)   # קוץ
+			DrawBatch.line(ci, hd + Vector2(-3, -6), hd + Vector2(-5, -12), steel, 2.0)   # קוץ
 			Art.fill(ci, PackedVector2Array([Vector2(16, -38), Vector2(22, -47), Vector2(27, -50), Vector2(28, -44), Vector2(22, -34)]), steel.darkened(0.1), Art.OUTLINE, 1.0)
 			Art.fill(ci, PackedVector2Array([Vector2(-24, -34), Vector2(-12, -39), Vector2(12, -39), Vector2(24, -32), Vector2(20, -22), Vector2(-20, -22)]), steel.darkened(0.15), Art.OUTLINE, 1.2)
 			if not flash:
 				for q in 7:
-					ci.draw_circle(Vector2(-18.0 + float(q) * 6.0, -24.0), 0.9, Color("d0d4d8"))
+					DrawBatch.circle(ci, Vector2(-18.0 + float(q) * 6.0, -24.0), 0.9, Color("d0d4d8"))
 				brand_on(ci, Vector2(-12, -30), 3.6, Color("4a1a10"))
-				ci.draw_line(Vector2(-22, -36), Vector2(20, -36), Color(1, 1, 1, 0.25), 1.0)
+				DrawBatch.line(ci, Vector2(-22, -36), Vector2(20, -36), Color(1, 1, 1, 0.25), 1.0)
 
 	static func brand_on(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
-		ci.draw_line(c + Vector2(-r * 0.35, r * 0.7), c + Vector2(-r * 0.35, -r * 0.7), col, 1.0)
-		ci.draw_arc(c + Vector2(-r * 0.35, -r * 0.3), r * 0.4, -PI * 0.5, PI * 0.5, 6, col, 1.0)
-		ci.draw_line(c + Vector2(-r * 0.7, r * 0.9), c + Vector2(r * 0.6, r * 0.9), col, 1.0)
+		DrawBatch.line(ci, c + Vector2(-r * 0.35, r * 0.7), c + Vector2(-r * 0.35, -r * 0.7), col, 1.0)
+		DrawBatch.arc(ci, c + Vector2(-r * 0.35, -r * 0.3), r * 0.4, -PI * 0.5, PI * 0.5, 6, col, 1.0)
+		DrawBatch.line(ci, c + Vector2(-r * 0.7, r * 0.9), c + Vector2(r * 0.6, r * 0.9), col, 1.0)
 
 
 # ============================================================
@@ -884,18 +884,18 @@ func _draw_mounted() -> void:
 			rear = -0.18
 	var flash: bool = z._flash > 0.0
 	if rear != 0.0:   # רגליים אחוריות על הקרקע, השאר מסתובב סביב הירכיים
-		z.draw_set_transform_matrix(base)
+		DrawBatch.set_transform_matrix(z, base)
 		HorseCorpse.draw_horse(z, ph, gal, _boss(), flash, false, 1)
 		var piv := Vector2(-15, -24)
-		z.draw_set_transform_matrix(base * Transform2D(-rear, piv) * Transform2D(0.0, -piv))
+		DrawBatch.set_transform_matrix(z, base * Transform2D(-rear, piv) * Transform2D(0.0, -piv))
 		HorseCorpse.draw_horse(z, ph + (z._time * 14.0 if state == REAR else 0.0), gal, _boss(), flash, false, 2)
 		_rider(gal)
 	else:
 		var bob := -absf(sin(ph)) * (1.0 + gal * 2.5)
-		z.draw_set_transform_matrix(base * Transform2D(0.0, Vector2(0, bob)))
+		DrawBatch.set_transform_matrix(z, base * Transform2D(0.0, Vector2(0, bob)))
 		HorseCorpse.draw_horse(z, ph, gal, _boss(), flash, false, 3)
 		_rider(gal)
-	z.draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform_matrix(z, Transform2D.IDENTITY)
 
 
 # הגאוצ'ו על האוכף (קואורדינטות של הסוס)
@@ -905,11 +905,11 @@ func _rider(gal: float) -> void:
 	var sh := Vector2(1.0 + lean, -58)
 	# רגל במדרס (תלויה על הצד)
 	z._leg(hip + Vector2(1, 0), Vector2(5, -27), col(z.pants), col(z.skin), col(z.shoe))
-	z.draw_line(Vector2(3, -30), Vector2(3, -36), Color("3a2a1a"), 1.0)   # רצועת המדרס
-	z.draw_rect(Rect2(Vector2(1, -28), Vector2(7, 2)), Color("8a8e90"))
+	DrawBatch.line(z, Vector2(3, -30), Vector2(3, -36), Color("3a2a1a"), 1.0)   # רצועת המדרס
+	DrawBatch.rect(z, Rect2(Vector2(1, -28), Vector2(7, 2)), Color("8a8e90"))
 	var rein: Vector2 = sh + Vector2(10, 10)
 	z._arm(sh + Vector2(-2, 2), rein, col(Art.shade(z.skin, 0.25)), col(Art.shade(z.shirt, 0.3)))
-	z.draw_line(rein, Vector2(30, -48), Color("3a2a1a"), 0.9)   # מושכות
+	DrawBatch.line(z, rein, Vector2(30, -48), Color("3a2a1a"), 0.9)   # מושכות
 	_gaucho_body(hip, sh)
 	_head_hat(sh + Vector2(2.0, -9.0))
 	var hand: Vector2
@@ -919,8 +919,8 @@ func _rider(gal: float) -> void:
 		hand = sh + Vector2(4, -16)
 		ang = -1.2
 		var c := hand + Vector2(0, -8)
-		z.draw_arc(c, 16.0, 0, TAU, 18, Color("3a2a18"), 2.2)
-		z.draw_arc(c, 16.0, a, a + 4.5, 12, Color("b89a6a"), 1.4)
+		DrawBatch.arc(z, c, 16.0, 0, TAU, 18, Color("3a2a18"), 2.2)
+		DrawBatch.arc(z, c, 16.0, a, a + 4.5, 12, Color("b89a6a"), 1.4)
 	elif state == WIND or (state == CHARGE and not _hit):   # פאקון מורם
 		hand = sh + Vector2(10, -12)
 		ang = -1.0
@@ -938,8 +938,8 @@ func _rider(gal: float) -> void:
 	else:
 		_facon(hand, ang)
 	if _boss():   # לאסו מגולגל על האוכף
-		z.draw_arc(Vector2(-12, -38), 5.0, 0, TAU, 12, Color("b89a6a"), 1.6)
-		z.draw_arc(Vector2(-12, -38), 3.5, 0, TAU, 12, Color("8a6a40"), 1.2)
+		DrawBatch.arc(z, Vector2(-12, -38), 5.0, 0, TAU, 12, Color("b89a6a"), 1.6)
+		DrawBatch.arc(z, Vector2(-12, -38), 3.5, 0, TAU, 12, Color("8a6a40"), 1.2)
 
 
 # גוף הגאוצ'ו: פונצ'ו מאובק עם פסים, חגורת מטבעות (רסטרה), מטפחת אדומה. בוס: מעיל ארוך שחור עם כפתורי כסף
@@ -953,15 +953,15 @@ func _gaucho_body(hip: Vector2, sh: Vector2) -> void:
 	Art.fill_shaded(z, pts, poncho, 0.14, 0.36)
 	if _boss():
 		for q in 4:
-			z.draw_circle(sh.lerp(hip, 0.15 + float(q) * 0.22) + Vector2(4, 0), 1.0, col(Color("d8dce0")))
-		z.draw_line(sh + Vector2(-2, 2), hip + Vector2(-3, 8), col(Color("4a4a54")), 1.0)
+			DrawBatch.circle(z, sh.lerp(hip, 0.15 + float(q) * 0.22) + Vector2(4, 0), 1.0, col(Color("d8dce0")))
+		DrawBatch.line(z, sh + Vector2(-2, 2), hip + Vector2(-3, 8), col(Color("4a4a54")), 1.0)
 	else:
-		z.draw_polyline(PackedVector2Array([sh + Vector2(-11, 9), sh + Vector2(0, 11), sh + Vector2(12, 9)]), col(Color("d8b060")), 1.4)   # פסים
-		z.draw_polyline(PackedVector2Array([sh + Vector2(-11, 12), sh + Vector2(0, 14), sh + Vector2(12, 12)]), col(Color("2a1410")), 1.2)
-		z.draw_line(sh + Vector2(4, 5), sh + Vector2(7, 9), Color(0.15, 0.08, 0.05, 0.6), 1.0)   # קרע
-	z.draw_rect(Rect2(hip + Vector2(-9, -6), Vector2(18, 5)), col(Color("3a2418")))   # רסטרה
+		DrawBatch.polyline(z, PackedVector2Array([sh + Vector2(-11, 9), sh + Vector2(0, 11), sh + Vector2(12, 9)]), col(Color("d8b060")), 1.4)   # פסים
+		DrawBatch.polyline(z, PackedVector2Array([sh + Vector2(-11, 12), sh + Vector2(0, 14), sh + Vector2(12, 12)]), col(Color("2a1410")), 1.2)
+		DrawBatch.line(z, sh + Vector2(4, 5), sh + Vector2(7, 9), Color(0.15, 0.08, 0.05, 0.6), 1.0)   # קרע
+	DrawBatch.rect(z, Rect2(hip + Vector2(-9, -6), Vector2(18, 5)), col(Color("3a2418")))   # רסטרה
 	for q in 4:
-		z.draw_circle(hip + Vector2(-6.0 + float(q) * 4.0, -3.5), 1.4, col(Color("cfd0c8")))
+		DrawBatch.circle(z, hip + Vector2(-6.0 + float(q) * 4.0, -3.5), 1.4, col(Color("cfd0c8")))
 	Art.fill(z, PackedVector2Array([sh + Vector2(-4, -1), sh + Vector2(6, -1), sh + Vector2(2, 5)]), col(Color("a82a20")), Art.OUTLINE, 0.8)   # מטפחת
 
 
@@ -973,17 +973,17 @@ func _head_hat(c: Vector2) -> void:
 	Art.fill(z, PackedVector2Array([c + Vector2(-brim_w, -4), c + Vector2(brim_w, -5), c + Vector2(brim_w - 2.0, -7), c + Vector2(-brim_w + 1.0, -6.5)]), hat, Art.OUTLINE, 1.0)
 	var crown_h := 7.0 if not _boss() else 10.0
 	Art.fill(z, PackedVector2Array([c + Vector2(-6, -6.5), c + Vector2(6, -7), c + Vector2(5, -6.5 - crown_h), c + Vector2(-5, -6 - crown_h)]), hat, Art.OUTLINE, 1.0)
-	z.draw_line(c + Vector2(-6, -8.5), c + Vector2(6, -9), col(Color("c8ccd0") if _boss() else Color("7a2a20")), 1.6)   # סרט
+	DrawBatch.line(z, c + Vector2(-6, -8.5), c + Vector2(6, -9), col(Color("c8ccd0") if _boss() else Color("7a2a20")), 1.6)   # סרט
 	if not z.dead:   # עיניים בוערות מתחת לשוליים
-		z.draw_circle(c + Vector2(4.0, -1.5), 1.1, Color(1.0, 0.5, 0.15))
+		DrawBatch.circle(z, c + Vector2(4.0, -1.5), 1.1, Color(1.0, 0.5, 0.15))
 
 
 # פאקון: סכין גאוצ'ו ארוכה עם ידית כסף
 func _facon(hand: Vector2, ang: float) -> void:
 	var d := Vector2.from_angle(ang)
 	var tip := hand + d * (17.0 if not _boss() else 20.0)
-	z.draw_line(hand - d * 3.0, hand + d * 2.0, Color("c8ccd0"), 2.6)
-	z.draw_colored_polygon(PackedVector2Array([hand + d * 2.0 + d.orthogonal() * 1.6, tip, hand + d * 2.0 - d.orthogonal() * 1.2]), Color("d8dce0"))
-	z.draw_line(hand + d * 3.0, tip - d * 2.0, Color(1, 1, 1, 0.6), 0.6)
+	DrawBatch.line(z, hand - d * 3.0, hand + d * 2.0, Color("c8ccd0"), 2.6)
+	DrawBatch.colored_polygon(z, PackedVector2Array([hand + d * 2.0 + d.orthogonal() * 1.6, tip, hand + d * 2.0 - d.orthogonal() * 1.2]), Color("d8dce0"))
+	DrawBatch.line(z, hand + d * 3.0, tip - d * 2.0, Color(1, 1, 1, 0.6), 0.6)
 	if _swing > 0.0:   # קשת החיתוך
-		z.draw_arc(hand, 18.0, ang - 1.4, ang, 10, Color(1, 1, 1, 0.5 * _swing / 0.3), 2.0)
+		DrawBatch.arc(z, hand, 18.0, ang - 1.4, ang, 10, Color(1, 1, 1, 0.5 * _swing / 0.3), 2.0)

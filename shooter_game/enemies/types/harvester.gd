@@ -330,15 +330,15 @@ class Sickle extends Node2D:
 			for i in range(1, n + 1):   # שרשרת: חוליות
 				var u := float(i) / float(n)
 				var pt := hand_l.lerp(Vector2.ZERO, u) + Vector2(0, sin(u * PI) * sag)
-				draw_line(prev, pt, Color("2a2a2e"), 2.6)
-				draw_line(prev, pt, Color("8a8a90"), 1.2)
+				DrawBatch.line(self, prev, pt, Color("2a2a2e"), 2.6)
+				DrawBatch.line(self, prev, pt, Color("8a8a90"), 1.2)
 				prev = pt
 		var a := (_t * 22.0) if (not back and hooked_pl == null and not _drop) else 0.6
 		if _drop:
 			a = 0.2
 		var hd := Vector2.from_angle(a)
 		var hn := hd.orthogonal()
-		draw_line(-hd * 6.0, hd * 2.0, Color("5a3a22"), 3.0)   # ידית
+		DrawBatch.line(self, -hd * 6.0, hd * 2.0, Color("5a3a22"), 3.0)   # ידית
 		var pts := PackedVector2Array()   # להב מעוקל (חצי סהר)
 		for i in 9:
 			var u := float(i) / 8.0
@@ -348,10 +348,10 @@ class Sickle extends Node2D:
 			var u := float(i) / 8.0
 			var ang := a - 0.2 + u * 2.6
 			pts.append(hd * 2.0 + Vector2.from_angle(ang) * (8.0 + u * 2.5) - hd * 9.0)
-		draw_colored_polygon(pts, Color("b8bec4"))
-		draw_polyline(pts, Color("1a1a1e"), 1.0)
+		DrawBatch.colored_polygon(self, pts, Color("b8bec4"))
+		DrawBatch.polyline(self, pts, Color("1a1a1e"), 1.0)
 		if hooked_pl != null:
-			draw_circle(Vector2.ZERO, 3.0, Color(0.6, 0.05, 0.05, 0.8))
+			DrawBatch.circle(self, Vector2.ZERO, 3.0, Color(0.6, 0.05, 0.05, 0.8))
 
 
 # ============================================================
@@ -372,26 +372,26 @@ func draw() -> bool:
 	var bk := sh + Vector2(-12, 2)
 	Art.fill(z, PackedVector2Array([bk + Vector2(-5, -6), bk + Vector2(6, -6), bk + Vector2(5, 16), bk + Vector2(-4, 16)]), col(Color("9a7a4a")), Art.OUTLINE, 1.0)
 	for q in 4:
-		z.draw_line(bk + Vector2(-5, -2.0 + float(q) * 5.0), bk + Vector2(6, -2.0 + float(q) * 5.0), col(Color("6a502a")), 0.9)
+		DrawBatch.line(z, bk + Vector2(-5, -2.0 + float(q) * 5.0), bk + Vector2(6, -2.0 + float(q) * 5.0), col(Color("6a502a")), 0.9)
 	for q in 6:
-		z.draw_circle(bk + Vector2(-3.0 + float(q % 3) * 3.0, -7.0 - float(q / 3) * 2.5), 2.0, col(Color("4a1a4a") if q % 2 == 0 else Color("6a2a6a")))
+		DrawBatch.circle(z, bk + Vector2(-3.0 + float(q % 3) * 3.0, -7.0 - float(q / 3) * 2.5), 2.0, col(Color("4a1a4a") if q % 2 == 0 else Color("6a2a6a")))
 	var hb := sh + Vector2(-5.0 - sin(p) * 2.0, 15.0)
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(poncho, 0.3))
 	# פונצ'ו
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-9, -2), sh + Vector2(8, -2), hip + Vector2(11, -1), hip + Vector2(-11, -1)]), poncho, 0.15, 0.35)
 	for q in 2:
-		z.draw_line(sh + Vector2(-8.0 - float(q) * 1.5, 6.0 + float(q) * 6.0), sh + Vector2(9.0 + float(q) * 1.5, 6.0 + float(q) * 6.0), col(Color("e0b040")), 1.4)
-	z.draw_line(sh + Vector2(-8, 2), sh + Vector2(7, 3), col(Color("2a1a14")), 1.0)
+		DrawBatch.line(z, sh + Vector2(-8.0 - float(q) * 1.5, 6.0 + float(q) * 6.0), sh + Vector2(9.0 + float(q) * 1.5, 6.0 + float(q) * 6.0), col(Color("e0b040")), 1.4)
+	DrawBatch.line(z, sh + Vector2(-8, 2), sh + Vector2(7, 3), col(Color("2a1a14")), 1.0)
 	# ראש + כובע קש
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.2, -0.6))
 	if not z.dead:
-		z.draw_circle(head + Vector2(2.5, -0.5), 1.0, Color(1.0, 0.75, 0.3))
-	z.draw_line(head + Vector2(1, 3.5), head + Vector2(5, 3), col(Color("3a1a1a")), 1.0)
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(0, -4), 12.0, 2.4, 0.08, 14), col(Color("d8b870")))   # שוליים
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-5, -4.5), head + Vector2(-4, -10), head + Vector2(4, -10), head + Vector2(5, -4.5)]), col(Color("c8a860")))
-	z.draw_line(head + Vector2(-5, -5.5), head + Vector2(5, -5.5), col(Color("8a2a20")), 1.4)
-	z.draw_line(head + Vector2(9, -3), head + Vector2(12, -1), col(Color("2a2010")), 1.0)   # קרע בשוליים
+		DrawBatch.circle(z, head + Vector2(2.5, -0.5), 1.0, Color(1.0, 0.75, 0.3))
+	DrawBatch.line(z, head + Vector2(1, 3.5), head + Vector2(5, 3), col(Color("3a1a1a")), 1.0)
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(0, -4), 12.0, 2.4, 0.08, 14), col(Color("d8b870")))   # שוליים
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-5, -4.5), head + Vector2(-4, -10), head + Vector2(4, -10), head + Vector2(5, -4.5)]), col(Color("c8a860")))
+	DrawBatch.line(z, head + Vector2(-5, -5.5), head + Vector2(5, -5.5), col(Color("8a2a20")), 1.4)
+	DrawBatch.line(z, head + Vector2(9, -3), head + Vector2(12, -1), col(Color("2a2010")), 1.0)   # קרע בשוליים
 	# יד קדמית: שרשרת + מגל
 	var hf: Vector2
 	if state == WIND:
@@ -399,15 +399,15 @@ func draw() -> bool:
 		var c := hf + Vector2(0, -6)
 		var a := _spin
 		var tip := c + Vector2(cos(a) * 18.0, sin(a) * 6.0)   # המגל מסתובב מעל הראש
-		z.draw_line(hf, tip, col(Color("6a6a70")), 1.3)
+		DrawBatch.line(z, hf, tip, col(Color("6a6a70")), 1.3)
 		_draw_sickle(tip, a)
-		z.draw_arc(c, 18.0, 0.0, TAU, 16, Color(1, 1, 1, 0.15), 1.0)
+		DrawBatch.arc(z, c, 18.0, 0.0, TAU, 16, Color(1, 1, 1, 0.15), 1.0)
 	elif state == THROWN or state == PULL:
 		hf = sh + Vector2(13, 2)
 	else:
 		hf = sh + Vector2(9.0 + sin(p) * 2.0, 14.0)
 		if state != UNARMED:
-			z.draw_line(hf, hf + Vector2(1, 10), col(Color("6a6a70")), 1.2)
+			DrawBatch.line(z, hf, hf + Vector2(1, 10), col(Color("6a6a70")), 1.2)
 			_draw_sickle(hf + Vector2(1, 12), 0.6)
 	z._arm(sh + Vector2(3, 1), hf, sk, poncho)
 	end_draw()
@@ -416,8 +416,8 @@ func draw() -> bool:
 
 func _draw_sickle(c: Vector2, a: float) -> void:
 	var hd := Vector2.from_angle(a)
-	z.draw_line(c - hd * 4.0, c + hd * 1.0, col(Color("5a3a22")), 2.0)
-	z.draw_arc(c + hd * 1.0 + hd.orthogonal() * 4.0, 5.0, a - 1.6, a + 1.4, 8, col(Color("c0c6cc")), 1.6)
+	DrawBatch.line(z, c - hd * 4.0, c + hd * 1.0, col(Color("5a3a22")), 2.0)
+	DrawBatch.arc(z, c + hd * 1.0 + hd.orthogonal() * 4.0, 5.0, a - 1.6, a + 1.4, 8, col(Color("c0c6cc")), 1.6)
 
 
 # קו ראייה פשוט (בלי קירות באמצע) - המוח לא רץ כשהסוג שולט בתנועה בעצמו

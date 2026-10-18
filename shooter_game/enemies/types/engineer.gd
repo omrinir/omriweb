@@ -187,12 +187,12 @@ func draw() -> bool:
 	# סליל כבל + אנטנה על הגב
 	var pack := sh + Vector2(-9.0, 5.0)
 	Art.fill_shaded(z, PackedVector2Array([pack + Vector2(-5, -7), pack + Vector2(4, -7), pack + Vector2(4, 9), pack + Vector2(-5, 9)]), col(Color("3a3e44")), 0.2, 0.4)
-	z.draw_circle(pack + Vector2(-0.5, 1.0), 4.0, col(Color("6a3a1a")))
-	z.draw_circle(pack + Vector2(-0.5, 1.0), 1.5, col(Color("2a1a0a")))
+	DrawBatch.circle(z, pack + Vector2(-0.5, 1.0), 4.0, col(Color("6a3a1a")))
+	DrawBatch.circle(z, pack + Vector2(-0.5, 1.0), 1.5, col(Color("2a1a0a")))
 	var ant := pack + Vector2(-3.0, -22.0 + sin(t * 3.0) * 0.8)
-	z.draw_line(pack + Vector2(-3, -7), ant, col(Color("2a2a2a")), 1.0)
+	DrawBatch.line(z, pack + Vector2(-3, -7), ant, col(Color("2a2a2a")), 1.0)
 	var led_on := fmod(_blink * (5.0 if state != KEEP else 1.2), 1.0) < 0.5
-	z.draw_circle(ant, 1.4, Color(0.3, 1.0, 0.4) if led_on else Color(0.1, 0.3, 0.12))
+	DrawBatch.circle(z, ant, 1.4, Color(0.3, 1.0, 0.4) if led_on else Color(0.1, 0.3, 0.12))
 	if led_on:
 		Art.glow(z, ant, 5.0, Color(0.3, 1.0, 0.4, 0.6))
 	# רגליים קצרות וחזקות
@@ -209,20 +209,20 @@ func draw() -> bool:
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(6, -2), hip + Vector2(-6, -2)]), vest, 0.2, 0.35)
 	for yy in [0.35, 0.65]:   # פסים מחזירי אור
 		var a: Vector2 = sh.lerp(hip, yy)
-		z.draw_line(a + Vector2(-6, 0), a + Vector2(6, 0), col(Color(0.9, 0.92, 0.95)), 1.6)
+		DrawBatch.line(z, a + Vector2(-6, 0), a + Vector2(6, 0), col(Color(0.9, 0.92, 0.95)), 1.6)
 	# חגורת כלים
-	z.draw_line(hip + Vector2(-7, -1), hip + Vector2(7, -1), col(Color("3a2a1a")), 2.4)
-	z.draw_rect(Rect2(hip + Vector2(-4, -1), Vector2(3, 4)), col(Color("4a3a24")))
-	z.draw_line(hip + Vector2(3, 0), hip + Vector2(4, 6), col(Color("9a9ea0")), 1.2)   # מברג
+	DrawBatch.line(z, hip + Vector2(-7, -1), hip + Vector2(7, -1), col(Color("3a2a1a")), 2.4)
+	DrawBatch.rect(z, Rect2(hip + Vector2(-4, -1), Vector2(3, 4)), col(Color("4a3a24")))
+	DrawBatch.line(z, hip + Vector2(3, 0), hip + Vector2(4, 6), col(Color("9a9ea0")), 1.2)   # מברג
 	# ראש + מסכת ריתוך מורמת + פנס
 	Art.oval_shaded(z, head, 6.0, 6.2, sk, 0.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(1, 2.5), head + Vector2(6, 2.0), head + Vector2(5.5, 4.5), head + Vector2(1.5, 4.5)]), Color("2a0a0c"), Art.OUTLINE, 0.8)
-	z.draw_circle(head + Vector2(3.5, -1.2), 1.1, Color(1.0, 0.85, 0.3))
+	DrawBatch.circle(z, head + Vector2(3.5, -1.2), 1.1, Color(1.0, 0.85, 0.3))
 	var mask := PackedVector2Array([head + Vector2(-6, -3), head + Vector2(-4, -9), head + Vector2(4, -10), head + Vector2(8, -6), head + Vector2(7, -4), head + Vector2(0, -5)])
 	Art.fill_shaded(z, mask, col(Color("2c3034")), 0.2, 0.4)
-	z.draw_line(head + Vector2(1, -8), head + Vector2(6, -7), Color(0.3, 0.5, 0.55, 0.6), 1.4)   # זכוכית המסכה
+	DrawBatch.line(z, head + Vector2(1, -8), head + Vector2(6, -7), Color(0.3, 0.5, 0.55, 0.6), 1.4)   # זכוכית המסכה
 	var lamp := head + Vector2(7.5, -5.5)
-	z.draw_circle(lamp, 1.5, Color(1.0, 0.95, 0.7))
+	DrawBatch.circle(z, lamp, 1.5, Color(1.0, 0.95, 0.7))
 	Art.glow(z, lamp, 4.0, Color(1.0, 0.9, 0.5, 0.5))
 	# יד קדמית: מפתח ברגים / שלט רחוק / מושכת ידית
 	var fh := sh + Vector2(10.0, 9.0 - sin(p) * 2.0)
@@ -233,15 +233,15 @@ func draw() -> bool:
 	Art.limb(z, PackedVector2Array([sh + Vector2(3, 1), sh.lerp(fh, 0.5) + Vector2(1, 3), fh]), 4.4, vest)
 	Art.disc(z, fh, 2.4, sk)
 	if remote:   # שלט עם נורה מהבהבת
-		z.draw_rect(Rect2(fh + Vector2(-1.5, -7), Vector2(4, 7)), Color("1a1a1a"))
+		DrawBatch.rect(z, Rect2(fh + Vector2(-1.5, -7), Vector2(4, 7)), Color("1a1a1a"))
 		var bl := fmod(_st * 8.0, 1.0) < 0.5
-		z.draw_circle(fh + Vector2(0.5, -8.0), 1.3, Color(1.0, 0.2, 0.1) if bl else Color(0.4, 0.05, 0.05))
+		DrawBatch.circle(z, fh + Vector2(0.5, -8.0), 1.3, Color(1.0, 0.2, 0.1) if bl else Color(0.4, 0.05, 0.05))
 		if bl:
 			Art.glow(z, fh + Vector2(0.5, -8.0), 6.0, Color(1.0, 0.2, 0.1, 0.6))
 	elif not operating:   # מפתח ברגים ענק
 		var w0 := fh + Vector2(1, 1)
 		var w1 := fh + Vector2(6, 12)
-		z.draw_line(w0, w1, col(Color("a8acb0")), 2.4)
-		z.draw_arc(w1 + Vector2(1, 2), 3.0, -0.6, PI + 0.6, 8, col(Color("a8acb0")), 2.0)
+		DrawBatch.line(z, w0, w1, col(Color("a8acb0")), 2.4)
+		DrawBatch.arc(z, w1 + Vector2(1, 2), 3.0, -0.6, PI + 0.6, 8, col(Color("a8acb0")), 2.0)
 	end_draw()
 	return true

@@ -239,24 +239,24 @@ func draw() -> bool:
 		Art.oval(z, q, 3.5, 2.5, col(Color(0.6, 0.62, 0.25, 0.6)), 0.4, Art.NONE)
 	Art.fill(z, PackedVector2Array([bc + Vector2(-6, -12) * swell, bc + Vector2(12, -10) * swell, bc + Vector2(14, 12) * swell, bc + Vector2(-4, 15) * swell]), col(Color(0.25, 0.3, 0.32, 0.55)), Art.NONE)
 	if state == HEAVE:   # הבטן פועמת - ורידים
-		z.draw_polyline(PackedVector2Array([bc + Vector2(-4, 6), bc + Vector2(2, 2), bc + Vector2(8, 5)]), Color(0.45, 0.6, 0.2, 0.8), 1.2)
+		DrawBatch.polyline(z, PackedVector2Array([bc + Vector2(-4, 6), bc + Vector2(2, 2), bc + Vector2(8, 5)]), Color(0.45, 0.6, 0.2, 0.8), 1.2)
 	# כתפיים וצוואר עבה
 	Art.oval_shaded(z, sh + Vector2(0, 2), 10.0, 6.0, sk, 0.0)
 	# ראש קטן
 	Art.oval_shaded(z, head, 6.5, 6.5, sk, 0.0)
-	z.draw_circle(head + Vector2(3.0, -2.0), 1.3, Color(0.9, 0.85, 0.3))
-	z.draw_circle(head + Vector2(-1.0, -2.0), 1.1, Color(0.9, 0.85, 0.3))
+	DrawBatch.circle(z, head + Vector2(3.0, -2.0), 1.3, Color(0.9, 0.85, 0.3))
+	DrawBatch.circle(z, head + Vector2(-1.0, -2.0), 1.1, Color(0.9, 0.85, 0.3))
 	if state == PUKE:   # פה פעור + הזרם יוצא
 		Art.oval(z, head + Vector2(4, 4), 3.5, 3.0, col(Color("2a1a08")), 0.0, Art.OUTLINE, 1.0)
 		var w := sin(z._time * 30.0) * 1.5
-		z.draw_colored_polygon(PackedVector2Array([head + Vector2(5, 2), head + Vector2(22, 3 + w), head + Vector2(22, 9 + w), head + Vector2(5, 6)]), Color(0.78, 0.8, 0.28, 0.9))
+		DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(5, 2), head + Vector2(22, 3 + w), head + Vector2(22, 9 + w), head + Vector2(5, 6)]), Color(0.78, 0.8, 0.28, 0.9))
 	elif state == HEAVE:
 		Art.oval(z, head + Vector2(4, 4), 2.2, 1.6, col(Color("2a1a08")), 0.0, Art.NONE)
 		if fmod(z._time, 0.3) < 0.15:
-			z.draw_circle(head + Vector2(6, 6), 1.2, Color(0.8, 0.85, 0.3))   # טיפות
+			DrawBatch.circle(z, head + Vector2(6, 6), 1.2, Color(0.8, 0.85, 0.3))   # טיפות
 	else:
-		z.draw_line(head + Vector2(1, 4), head + Vector2(6, 4.5), col(Color("2a0a0a")), 1.2)
-		z.draw_line(head + Vector2(5, 5), head + Vector2(5.5, 9 + sin(z._time * 3.0)), Color(0.8, 0.85, 0.3, 0.8), 1.0)   # ריר
+		DrawBatch.line(z, head + Vector2(1, 4), head + Vector2(6, 4.5), col(Color("2a0a0a")), 1.2)
+		DrawBatch.line(z, head + Vector2(5, 5), head + Vector2(5.5, 9 + sin(z._time * 3.0)), Color(0.8, 0.85, 0.3, 0.8), 1.0)   # ריר
 	# כובע טבח מלוכלך
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, -4), head + Vector2(6, -5), head + Vector2(5, -10), head + Vector2(-5, -9)]), col(Color("c8c0a8")), Art.OUTLINE, 0.9)
 	# יד קדמית: על הבטן בזמן ההקאה, אחרת מושטת
@@ -305,6 +305,6 @@ class Bile extends Node2D:
 	func _draw() -> void:
 		var r := 3.6 if big else 2.8
 		var tail := -velocity.normalized() * 7.0
-		draw_line(Vector2.ZERO, tail, Color(0.72, 0.76, 0.24, 0.6), r * 1.3, true)
-		draw_circle(Vector2.ZERO, r, Color(0.8, 0.84, 0.28))
-		draw_circle(Vector2(-0.8, -0.8), r * 0.4, Color(0.95, 0.95, 0.6))
+		DrawBatch.line(self, Vector2.ZERO, tail, Color(0.72, 0.76, 0.24, 0.6), r * 1.3, true)
+		DrawBatch.circle(self, Vector2.ZERO, r, Color(0.8, 0.84, 0.28))
+		DrawBatch.circle(self, Vector2(-0.8, -0.8), r * 0.4, Color(0.95, 0.95, 0.6))

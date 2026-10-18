@@ -164,7 +164,7 @@ func draw() -> bool:
 	var s := Vector2(z._dir * z.wf * z.sc, z.sc)
 	if lying:   # שוכב כמו גופה
 		_base = Transform2D(PI / 2.0 * _side, Vector2(0.0, -9.0 * z.sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * z.sc))
-		z.draw_set_transform_matrix(_base)
+		DrawBatch.set_transform_matrix(z, _base)
 	else:
 		begin_draw()
 		_base = Transform2D(0.0, s, 0.0, Vector2.ZERO)
@@ -185,7 +185,7 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-3, 2), back_hand, col(Art.shade(z.skin, 0.25)), col(Art.shade(z.shirt, 0.3)))
 	var body := PackedVector2Array([sh + Vector2(-6, -2), sh + Vector2(6, -1), hip + Vector2(6, -1), hip + Vector2(4, 3), hip + Vector2(-5, 3), sh + Vector2(-7, 5)])
 	Art.fill_shaded(z, body, shirt, 0.15, 0.35)
-	z.draw_line(sh + Vector2(1, 2), hip + Vector2(0, -3), col(Art.shade(z.shirt, 0.3)), 1.0)   # כפתורים / קרע
+	DrawBatch.line(z, sh + Vector2(1, 2), hip + Vector2(0, -3), col(Art.shade(z.shirt, 0.3)), 1.0)   # כפתורים / קרע
 	_head(neck, sk)
 	var hand := sh + Vector2(11.0, 8.0 + sin(p) * 2.0)
 	if state == SPRING or state == LEAP:   # טפרים קדימה
@@ -193,7 +193,7 @@ func draw() -> bool:
 	z._arm(sh + Vector2(2, 2), hand, sk, shirt)
 	if state == SPRING or state == LEAP:
 		for i in 3:
-			z.draw_line(hand, hand + Vector2(4.0, -2.0 + float(i) * 2.0), col(Color("e8e0c0")), 1.0)
+			DrawBatch.line(z, hand, hand + Vector2(4.0, -2.0 + float(i) * 2.0), col(Color("e8e0c0")), 1.0)
 	end_draw()
 	return true
 
@@ -203,7 +203,7 @@ func _head(neck: Vector2, sk: Color) -> void:
 	var o := _open
 	var hinge := neck + Vector2(-3.0, -6.0)
 	var hs := 1.3   # הראש גדול מהרגיל (רואים את השיניים)
-	z.draw_set_transform_matrix(_base * Transform2D(0.0, Vector2(hs, hs), 0.0, hinge - hinge * hs))
+	DrawBatch.set_transform_matrix(z, _base * Transform2D(0.0, Vector2(hs, hs), 0.0, hinge - hinge * hs))
 	var a_top := -o * 1.05
 	var a_bot := o * 0.75
 	if o > 0.05:   # פנים הפה: אדום כהה, שורות שיניים, לשון
@@ -213,13 +213,13 @@ func _head(neck: Vector2, sk: Color) -> void:
 			var u := 0.25 + float(i) * 0.17
 			var tt := hinge + Vector2(13.0 * u, -1.0).rotated(a_top)
 			var tb := hinge + Vector2(13.0 * u, 4.0).rotated(a_bot)
-			z.draw_colored_polygon(PackedVector2Array([tt + Vector2(-1.2, 0), tt + Vector2(1.2, 0), tt + Vector2(0, 3.5).rotated(a_top)]), col(Color("f0e8d0")))
-			z.draw_colored_polygon(PackedVector2Array([tb + Vector2(-1.2, 0), tb + Vector2(1.2, 0), tb + Vector2(0, -3.5).rotated(a_bot)]), col(Color("f0e8d0")))
+			DrawBatch.colored_polygon(z, PackedVector2Array([tt + Vector2(-1.2, 0), tt + Vector2(1.2, 0), tt + Vector2(0, 3.5).rotated(a_top)]), col(Color("f0e8d0")))
+			DrawBatch.colored_polygon(z, PackedVector2Array([tb + Vector2(-1.2, 0), tb + Vector2(1.2, 0), tb + Vector2(0, -3.5).rotated(a_bot)]), col(Color("f0e8d0")))
 		var tongue := PackedVector2Array()
 		for i in 6:
 			var u := float(i) / 5.0
 			tongue.append(hinge + Vector2(4.0 + u * (8.0 + 8.0 * o), 2.0 + sin(z._time * 14.0 + u * 4.0) * 2.0 * u))
-		z.draw_polyline(tongue, col(Color("c0405a")), 2.2)
+		DrawBatch.polyline(z, tongue, col(Color("c0405a")), 2.2)
 	# חצי עליון (גולגולת)
 	var top := PackedVector2Array()
 	for i in 9:
@@ -229,13 +229,13 @@ func _head(neck: Vector2, sk: Color) -> void:
 	top.append(hinge + Vector2(0.0, 1.0).rotated(a_top))
 	Art.fill_shaded(z, top, sk, 0.15, 0.3)
 	var eye := hinge + Vector2(9.0, -2.5).rotated(a_top)
-	z.draw_circle(eye, 1.4, Color(1.0, 0.85, 0.3) if not z.dead and state != FEIGN else col(Color("2a2020")))
+	DrawBatch.circle(z, eye, 1.4, Color(1.0, 0.85, 0.3) if not z.dead and state != FEIGN else col(Color("2a2020")))
 	# חצי תחתון (לסת)
 	var bot := PackedVector2Array([hinge + Vector2(0.0, 1.5).rotated(a_bot), hinge + Vector2(12.5, 1.5).rotated(a_bot), hinge + Vector2(10.0, 7.0).rotated(a_bot), hinge + Vector2(1.0, 6.5).rotated(a_bot)])
 	Art.fill_shaded(z, bot, Art.shade(sk, 0.1), 0.1, 0.3)
 	if o < 0.05:   # התפר האדום באמצע הראש - הרמז שהוא נפתח
-		z.draw_line(hinge + Vector2(0.5, 1.2), hinge + Vector2(13.0, 1.2), Color(0.55, 0.05, 0.08), 1.0)
+		DrawBatch.line(z, hinge + Vector2(0.5, 1.2), hinge + Vector2(13.0, 1.2), Color(0.55, 0.05, 0.08), 1.0)
 		for i in 4:
 			var sx := hinge + Vector2(2.0 + float(i) * 3.0, 1.2)
-			z.draw_line(sx + Vector2(0, -1.2), sx + Vector2(0, 1.2), Color(0.3, 0.05, 0.05), 0.8)
-	z.draw_set_transform_matrix(_base)
+			DrawBatch.line(z, sx + Vector2(0, -1.2), sx + Vector2(0, 1.2), Color(0.3, 0.05, 0.05), 0.8)
+	DrawBatch.set_transform_matrix(z, _base)

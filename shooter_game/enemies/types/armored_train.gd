@@ -84,7 +84,7 @@ class Flare extends Node2D:   # זיקוק תאורה: עף בקשת, נוחת �
 		var fl := 0.85 + 0.15 * sin(_t * 40.0)
 		A.glow(self, Vector2(0, -4), FLARE_R * 0.7 * fl, Color(1.0, 0.25, 0.2, 0.12 * k))
 		A.glow(self, Vector2(0, -4), 14.0 * fl, Color(1.0, 0.6, 0.5, 0.9 * k))
-		draw_rect(Rect2(-2, -6, 4, 6), Color("8a2a1a"))
+		DrawBatch.rect(self, Rect2(-2, -6, 4, 6), Color("8a2a1a"))
 
 
 func stats() -> Dictionary:
@@ -251,54 +251,54 @@ func draw() -> bool:
 	# גלגלים + מוט מקשר
 	for q in 4:
 		var wx := -30.0 + float(q) * 17.0
-		z.draw_circle(Vector2(wx, -6), 6.0, col(Color("1a1a18")))
-		z.draw_circle(Vector2(wx, -6), 2.0, col(Color("6a6a60")))
+		DrawBatch.circle(z, Vector2(wx, -6), 6.0, col(Color("1a1a18")))
+		DrawBatch.circle(z, Vector2(wx, -6), 2.0, col(Color("6a6a60")))
 	var rod := Vector2(cos(tt * 2.0), sin(tt * 2.0)) * 3.0 if winding != "" else Vector2(3, 0)
-	z.draw_line(Vector2(-30, -6) + rod, Vector2(21, -6) + rod, col(Color("8a8a80")), 1.6)
+	DrawBatch.line(z, Vector2(-30, -6) + rod, Vector2(21, -6) + rod, col(Color("8a8a80")), 1.6)
 	# מגן-פרות
-	z.draw_colored_polygon(PackedVector2Array([Vector2(36, -12), Vector2(44, -1), Vector2(36, -1)]), dark)
+	DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(36, -12), Vector2(44, -1), Vector2(36, -1)]), dark)
 	for q in 3:
-		z.draw_line(Vector2(37.0 + float(q) * 2.0, -11.0 + float(q) * 3.0), Vector2(37.0 + float(q) * 2.0, -1.0), col(Color("5a5a50")), 0.8)
+		DrawBatch.line(z, Vector2(37.0 + float(q) * 2.0, -11.0 + float(q) * 3.0), Vector2(37.0 + float(q) * 2.0, -1.0), col(Color("5a5a50")), 0.8)
 	# הגוף
 	Art.fill_shaded(z, PackedVector2Array([Vector2(-40, -11), Vector2(37, -11), Vector2(38, -30), Vector2(30, -36), Vector2(-40, -36)]), armor, 0.14, 0.4)
 	for q in 9:   # מסמרות
-		z.draw_circle(Vector2(-36.0 + float(q) * 8.5, -13.0), 0.7, col(Color("7a7e70")))
-		z.draw_circle(Vector2(-36.0 + float(q) * 8.5, -34.0), 0.7, col(Color("7a7e70")))
+		DrawBatch.circle(z, Vector2(-36.0 + float(q) * 8.5, -13.0), 0.7, col(Color("7a7e70")))
+		DrawBatch.circle(z, Vector2(-36.0 + float(q) * 8.5, -34.0), 0.7, col(Color("7a7e70")))
 	E.emblem(z, Vector2(-14, -23), 6.5, col(Color(0.9, 0.88, 0.82)))
-	z.draw_rect(Rect2(Vector2(22, -18), Vector2(8, 3)), col(Color("0a0a0a")))   # חרך מקלע
+	DrawBatch.rect(z, Rect2(Vector2(22, -18), Vector2(8, 3)), col(Color("0a0a0a")))   # חרך מקלע
 	if _left > 0 and not z.dead:
 		Art.glow(z, Vector2(31, -16.5), 4.0, Color(1.0, 0.8, 0.3, 0.8))
 	# הדלת (נפתחת)
-	z.draw_rect(Rect2(Vector2(-34, -30), Vector2(10, 18)), dark if _door <= 0.0 else col(Color("0a0a0a")))
+	DrawBatch.rect(z, Rect2(Vector2(-34, -30), Vector2(10, 18)), dark if _door <= 0.0 else col(Color("0a0a0a")))
 	# חלון הנהג + נהג
-	z.draw_rect(Rect2(Vector2(14, -37), Vector2(13, 10)), col(Color("0e1012")))
+	DrawBatch.rect(z, Rect2(Vector2(14, -37), Vector2(13, 10)), col(Color("0e1012")))
 	if not z.dead:
 		Art.oval_shaded(z, Vector2(20, -31), 3.6, 4.0, col(z.skin), 0.0)
-		z.draw_circle(Vector2(22, -32), 0.9, Color(1.0, 0.25, 0.2))
-		z.draw_rect(Rect2(Vector2(16, -36.5), Vector2(8, 2)), col(E.UNIFORM_D))   # כובע
-	z.draw_rect(Rect2(Vector2(13, -38), Vector2(15, 1.5)), dark)
+		DrawBatch.circle(z, Vector2(22, -32), 0.9, Color(1.0, 0.25, 0.2))
+		DrawBatch.rect(z, Rect2(Vector2(16, -36.5), Vector2(8, 2)), col(E.UNIFORM_D))   # כובע
+	DrawBatch.rect(z, Rect2(Vector2(13, -38), Vector2(15, 1.5)), dark)
 	# צריח + תותח
 	var rc := 3.0 * _recoil
-	z.draw_rect(Rect2(Vector2(-2.0 - rc, -46), Vector2(28, 3.5)), dark)
+	DrawBatch.rect(z, Rect2(Vector2(-2.0 - rc, -46), Vector2(28, 3.5)), dark)
 	Art.fill_shaded(z, PackedVector2Array([Vector2(-18, -36), Vector2(4, -36), Vector2(6, -43), Vector2(-2, -49), Vector2(-14, -49), Vector2(-20, -43)]), armor.lightened(0.05), 0.15, 0.4)
 	if winding == "shell" and not z.dead:
 		Art.glow(z, Vector2(26.0 - rc, -44.5), 3.0 + 5.0 * k, Color(1.0, 0.6, 0.2, 0.25 + 0.4 * k))
 	# ארובה
-	z.draw_rect(Rect2(Vector2(-34, -44), Vector2(6, 8)), dark)
+	DrawBatch.rect(z, Rect2(Vector2(-34, -44), Vector2(6, 8)), dark)
 	if Engine.get_physics_frames() % 20 == 0 and not z.dead:
 		Particles.burst(z.get_parent(), z.global_position + Vector2(z._dir * -31.0 * z.wf, -46.0) * z.sc, "smoke", Vector2(0, -1), 1)
 	# הפנס
-	z.draw_circle(Vector2(35, -27), 3.4, dark)
+	DrawBatch.circle(z, Vector2(35, -27), 3.4, dark)
 	if light_on() and not z.dead:
-		z.draw_circle(Vector2(35, -27), 2.6, col(Color(1.0, 0.97, 0.8)))
+		DrawBatch.circle(z, Vector2(35, -27), 2.6, col(Color(1.0, 0.97, 0.8)))
 	else:
-		z.draw_circle(Vector2(35, -27), 2.6, col(Color("1a1a1a")))
-		z.draw_line(Vector2(33.5, -28.5), Vector2(36.5, -25.5), col(Color("6a6a6a")), 0.6)
+		DrawBatch.circle(z, Vector2(35, -27), 2.6, col(Color("1a1a1a")))
+		DrawBatch.line(z, Vector2(33.5, -28.5), Vector2(36.5, -25.5), col(Color("6a6a6a")), 0.6)
 	end_draw()
 	# קונוס האור (בעולם)
 	if light_on() and not z.dead:
 		var lp: Vector2 = light_pos() - z.global_position
 		var far := Vector2(z._dir * 900.0, 40.0)
-		z.draw_colored_polygon(PackedVector2Array([lp + Vector2(0, -4), lp + far + Vector2(0, -160), lp + far + Vector2(0, 60), lp + Vector2(0, 4)]), Color(1.0, 0.97, 0.8, 0.07))
+		DrawBatch.colored_polygon(z, PackedVector2Array([lp + Vector2(0, -4), lp + far + Vector2(0, -160), lp + far + Vector2(0, 60), lp + Vector2(0, 4)]), Color(1.0, 0.97, 0.8, 0.07))
 		Art.glow(z, lp, 30.0, Color(1.0, 0.97, 0.8, 0.35))
 	return true

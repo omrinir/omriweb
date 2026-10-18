@@ -136,11 +136,11 @@ class Soap extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
-		draw_colored_polygon(Art.ellipse(Vector2(0, -1), w * 0.5, 4.0, 0.0, 16), Color(0.85, 0.92, 1.0, 0.55))
+		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -1), w * 0.5, 4.0, 0.0, 16), Color(0.85, 0.92, 1.0, 0.55))
 		for q in 7:   # בועות
 			var bx := (fposmod(float(q) * 37.0, w) - w * 0.5)
 			var bs := 1.5 + fposmod(float(q) * 1.7 + _t, 2.0)
-			draw_arc(Vector2(bx, -3.0 - fposmod(float(q) * 3.0, 4.0)), bs, 0.0, TAU, 8, Color(1, 1, 1, 0.7), 1.0)
+			DrawBatch.arc(self, Vector2(bx, -3.0 - fposmod(float(q) * 3.0, 4.0)), bs, 0.0, TAU, 8, Color(1, 1, 1, 0.7), 1.0)
 
 
 # ============================================================
@@ -148,7 +148,7 @@ class Soap extends Node2D:
 # ============================================================
 func draw() -> bool:
 	if state == HANG and not z.dead:   # החבל
-		z.draw_line(Vector2(0, -40), Vector2(_anchor.x - z.global_position.x, -900.0), Color(0.85, 0.85, 0.8), 1.4)
+		DrawBatch.line(z, Vector2(0, -40), Vector2(_anchor.x - z.global_position.x, -900.0), Color(0.85, 0.85, 0.8), 1.4)
 	begin_draw()
 	var sk := col(z.skin)
 	var suit := col(z.shirt)
@@ -164,19 +164,19 @@ func draw() -> bool:
 	var hb := sh + Vector2(-2, -12) if state == HANG else sh + Vector2(-5.0 - sin(p) * 2.0, 15.0)
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(suit, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(7, 3), hip + Vector2(-7, 3)]), suit, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-6, 0), hip + Vector2(5, 2), col(Color("e0c020")), 2.0)   # רתמה
-	z.draw_line(sh + Vector2(6, 0), hip + Vector2(-5, 2), col(Color("e0c020")), 2.0)
-	z.draw_rect(Rect2(hip + Vector2(-7, -1), Vector2(14, 3)), col(Color("e0c020")))
+	DrawBatch.line(z, sh + Vector2(-6, 0), hip + Vector2(5, 2), col(Color("e0c020")), 2.0)   # רתמה
+	DrawBatch.line(z, sh + Vector2(6, 0), hip + Vector2(-5, 2), col(Color("e0c020")), 2.0)
+	DrawBatch.rect(z, Rect2(hip + Vector2(-7, -1), Vector2(14, 3)), col(Color("e0c020")))
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(0, -3), 6.0, 3.6, 0.0, 10), col(Color("e8e8e8")))   # קסדה
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(0, -3), 6.0, 3.6, 0.0, 10), col(Color("e8e8e8")))   # קסדה
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))
 	var hf := sh + Vector2(12, 4)
 	z._arm(sh + Vector2(3, 1), hf, sk, suit)
-	z.draw_line(hf, hf + Vector2(4, -10), col(Color("6a6a6a")), 1.6)   # מגב
-	z.draw_line(hf + Vector2(0, -12), hf + Vector2(8, -8), col(Color("2a2a2a")), 2.5)
+	DrawBatch.line(z, hf, hf + Vector2(4, -10), col(Color("6a6a6a")), 1.6)   # מגב
+	DrawBatch.line(z, hf + Vector2(0, -12), hf + Vector2(8, -8), col(Color("2a2a2a")), 2.5)
 	if state == HANG:   # דלי תלוי
-		z.draw_rect(Rect2(hip + Vector2(-9, 6), Vector2(7, 7)), col(Color("e0c020")))
+		DrawBatch.rect(z, Rect2(hip + Vector2(-9, 6), Vector2(7, 7)), col(Color("e0c020")))
 	end_draw()
 	return true

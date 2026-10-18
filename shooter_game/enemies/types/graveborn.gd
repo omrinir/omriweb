@@ -182,24 +182,24 @@ func draw() -> bool:
 		for i in 11:
 			var u := float(i) / 10.0
 			pts.append(Vector2((u - 0.5) * 40.0 * s, -sin(u * PI) * mound))
-		z.draw_colored_polygon(pts, Color("c8b48e"))
-		z.draw_polyline(pts, Color(0.45, 0.35, 0.22, 0.8), 1.2)
-		z.draw_set_transform(Vector2(0, -1), 0.0, Vector2(1.0, 0.18))   # אדוות שטוחות על הקרקע
+		DrawBatch.colored_polygon(z, pts, Color("c8b48e"))
+		DrawBatch.polyline(z, pts, Color(0.45, 0.35, 0.22, 0.8), 1.2)
+		DrawBatch.set_transform(z, Vector2(0, -1), 0.0, Vector2(1.0, 0.18))   # אדוות שטוחות על הקרקע
 		for k in 2:
 			var rr: float = fposmod(_rip * 30.0 + float(k) * 16.0, 32.0) * s
-			z.draw_arc(Vector2.ZERO, rr + 14.0, PI, TAU, 14, Color(0.45, 0.35, 0.22, 0.5 * (1.0 - rr / (32.0 * s))), 4.0)
-		z.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			DrawBatch.arc(z, Vector2.ZERO, rr + 14.0, PI, TAU, 14, Color(0.45, 0.35, 0.22, 0.5 * (1.0 - rr / (32.0 * s))), 4.0)
+		DrawBatch.set_transform(z, Vector2.ZERO, 0.0, Vector2.ONE)
 		if state == WARN:
 			var k2 := 1.0 - clampf(_st / ERUPT_WARN, 0.0, 1.0)
 			var rad := _radius()
 			for i in 7:   # סדקים מתרחבים
 				var a := -PI + float(i) * PI / 6.0
 				var len := rad * (0.3 + 0.7 * k2)
-				z.draw_line(Vector2(0, -1), Vector2(cos(a) * len, -1.0 + absf(sin(a)) * -3.0), Color(0.25, 0.15, 0.08, 0.9), 1.6)
-			z.draw_rect(Rect2(-rad, -3.0, rad * 2.0, 3.0), Color(0.3, 0.2, 0.1, 0.25 + 0.3 * k2))
+				DrawBatch.line(z, Vector2(0, -1), Vector2(cos(a) * len, -1.0 + absf(sin(a)) * -3.0), Color(0.25, 0.15, 0.08, 0.9), 1.6)
+			DrawBatch.rect(z, Rect2(-rad, -3.0, rad * 2.0, 3.0), Color(0.3, 0.2, 0.1, 0.25 + 0.3 * k2))
 			if k2 > 0.5:   # קצות אצבעות עצם מבצבצות
 				for i in 3:
-					z.draw_line(Vector2(-6.0 + float(i) * 6.0, 0), Vector2(-6.0 + float(i) * 6.0 + 1.0, -6.0 * (k2 - 0.5) * 2.0), Color("efe8d6"), 1.6)
+					DrawBatch.line(z, Vector2(-6.0 + float(i) * 6.0, 0), Vector2(-6.0 + float(i) * 6.0 + 1.0, -6.0 * (k2 - 0.5) * 2.0), Color("efe8d6"), 1.6)
 		return true
 	var k := 1.0
 	if state == ERUPT:
@@ -208,7 +208,7 @@ func draw() -> bool:
 		k = clampf(_st / (RISE_T * 1.5), 0.0, 1.0)
 	begin_draw(k > 0.9)
 	if k < 1.0:   # עולה מתוך החול: צומח מהרגליים למעלה
-		z.draw_set_transform(Vector2.ZERO, 0.0, Vector2(z._dir * z.wf * z.sc, z.sc * maxf(k, 0.08)))
+		DrawBatch.set_transform(z, Vector2.ZERO, 0.0, Vector2(z._dir * z.wf * z.sc, z.sc * maxf(k, 0.08)))
 	var bone := col(z.skin)
 	var cloth := col(z.shirt)
 	var p: float = z._walk_phase
@@ -222,37 +222,37 @@ func draw() -> bool:
 		var foot: Vector2 = f[1 - i]
 		var knee := Art.joint(hp, foot + Vector2(0, -3), 11.5, 11.5, 1.0)
 		var c := bone if i == 1 else Art.shade(bone, 0.25)
-		z.draw_line(hp, knee, Art.OUTLINE, 4.6, true)
-		z.draw_line(knee, foot, Art.OUTLINE, 4.2, true)
-		z.draw_line(hp, knee, c, 2.6, true)
-		z.draw_line(knee, foot, c, 2.2, true)
+		DrawBatch.line(z, hp, knee, Art.OUTLINE, 4.6, true)
+		DrawBatch.line(z, knee, foot, Art.OUTLINE, 4.2, true)
+		DrawBatch.line(z, hp, knee, c, 2.6, true)
+		DrawBatch.line(z, knee, foot, c, 2.2, true)
 		Art.disc(z, knee, 2.2, c)
-		z.draw_line(foot + Vector2(-2, 0), foot + Vector2(5, 0), c, 2.0)
+		DrawBatch.line(z, foot + Vector2(-2, 0), foot + Vector2(5, 0), c, 2.0)
 	z._arm(sh + Vector2(-3, 2), sh + Vector2(-3.0 - sin(p) * 3.0, 16.0), Art.shade(bone, 0.25), Art.shade(cloth, 0.3))
 	# כלוב צלעות + שאריות בד
 	Art.fill(z, PackedVector2Array([sh + Vector2(-6, 0), sh + Vector2(6, 0), hip + Vector2(4, -4), hip + Vector2(-5, -4)]), Color(0.15, 0.1, 0.08, 0.9), Art.OUTLINE, 1.2)
 	for i in 4:
 		var y := sh.y + 3.0 + float(i) * 3.5
-		z.draw_arc(Vector2(sh.x - 0.5, y), 5.5 - float(i) * 0.3, -2.6, 0.4, 8, bone, 1.6)
-	z.draw_line(sh + Vector2(-1, 0), hip + Vector2(-1, -2), bone, 2.0)   # עמוד שדרה
+		DrawBatch.arc(z, Vector2(sh.x - 0.5, y), 5.5 - float(i) * 0.3, -2.6, 0.4, 8, bone, 1.6)
+	DrawBatch.line(z, sh + Vector2(-1, 0), hip + Vector2(-1, -2), bone, 2.0)   # עמוד שדרה
 	Art.fill(z, PackedVector2Array([hip + Vector2(-6, -5), hip + Vector2(6, -5), hip + Vector2(5, 3), hip + Vector2(-1, 1), hip + Vector2(-6, 3)]), cloth, Art.OUTLINE, 1.0)   # סחבה
 	# גולגולת
 	Art.oval_shaded(z, head, 5.6, 6.0, bone, 0.1)
-	z.draw_circle(head + Vector2(2.6, -1.0), 1.8, Color(0.08, 0.05, 0.04))
-	z.draw_circle(head + Vector2(-1.4, -1.0), 1.5, Color(0.08, 0.05, 0.04))
+	DrawBatch.circle(z, head + Vector2(2.6, -1.0), 1.8, Color(0.08, 0.05, 0.04))
+	DrawBatch.circle(z, head + Vector2(-1.4, -1.0), 1.5, Color(0.08, 0.05, 0.04))
 	if not z.dead:
-		z.draw_circle(head + Vector2(2.6, -1.0), 0.6, Color(1.0, 0.85, 0.4))
+		DrawBatch.circle(z, head + Vector2(2.6, -1.0), 0.6, Color(1.0, 0.85, 0.4))
 	var jaw := head + Vector2(2.0, 5.5 + sin(z._time * 3.0) * 0.8)
 	Art.fill(z, PackedVector2Array([head + Vector2(-2, 3.5), head + Vector2(5, 3.0), jaw + Vector2(3, 1), jaw + Vector2(-3, 1)]), bone, Art.OUTLINE, 0.8)
 	for i in 4:
-		z.draw_line(head + Vector2(-1.0 + float(i) * 1.6, 3.5), head + Vector2(-1.0 + float(i) * 1.6, 5.0), Color(0.15, 0.1, 0.08), 0.6)
+		DrawBatch.line(z, head + Vector2(-1.0 + float(i) * 1.6, 3.5), head + Vector2(-1.0 + float(i) * 1.6, 5.0), Color(0.15, 0.1, 0.08), 0.6)
 	var hand := sh + Vector2(12.0, 7.0 + sin(p) * 2.0)
 	if state == ERUPT:   # ידיים למעלה בהתפרצות
 		hand = sh + Vector2(8.0, -14.0)
 	z._arm(sh + Vector2(2, 2), hand, bone, cloth)
 	for i in 3:   # אצבעות עצם
-		z.draw_line(hand, hand + Vector2(4.0, -2.0 + float(i) * 2.0), bone, 1.0)
+		DrawBatch.line(z, hand, hand + Vector2(4.0, -2.0 + float(i) * 2.0), bone, 1.0)
 	for q in _sand:
-		z.draw_circle(q[0], 1.2, Color(0.85, 0.72, 0.5, 1.0 - q[2] / 0.8))
+		DrawBatch.circle(z, q[0], 1.2, Color(0.85, 0.72, 0.5, 1.0 - q[2] / 0.8))
 	end_draw()
 	return true

@@ -229,6 +229,10 @@ func _process(delta: float) -> void:
 #  ציור
 # ============================================================
 func _draw_ui() -> void:
+	if _warm < 2:   # שני הפריימים הראשונים: חימום הגופן
+		_warm += 1
+		_prewarm(_ui, font())
+		_ui.queue_redraw()
 	var ci := _ui
 	var f := font()
 	if _alpha > 0.01 and tier >= 0:
@@ -325,18 +329,43 @@ func _draw_burst(ci: CanvasItem, c: Vector2, r: float, col: Color, a: float) -> 
 
 
 # טקסט עם קו מתאר עבה, צל וזוהר, מסובב סביב נקודת ההתחלה
+# ביצועים: גודל גופן משתנה בכל פריים (אנימציית "טריקה") = Godot מרנדר מחדש את כל האותיות בכל גודל חדש
+# (ועוד פעם לקו המתאר) - זה מה שגרם לתקיעה ב-HEADSHOT / בהריגות ברצף. עכשיו: רק כמה גדלים קבועים (FONT_SIZES),
+# והגודל המדויק בא מהגדלה (scale) של הציור. הגדלים מחוממים מראש (_prewarm).
+const FONT_SIZES := [16, 24, 32, 48, 64, 96]
+
+
+static func _bucket(size: float) -> int:
+	for b in FONT_SIZES:
+		if size <= b:
+			return b
+	return FONT_SIZES[-1]
+
+
 func _text(ci: CanvasItem, f: Font, txt: String, pos: Vector2, size: float, rot: float, col: Color, a: float, ow: int, center: bool) -> void:
-	var fs := int(size)
+	var fs := _bucket(size)
+	var k := size / float(fs)
 	var w := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var org := Vector2(-w * 0.5, 0.0) if center else Vector2.ZERO
-	ci.draw_set_transform(pos, rot, Vector2.ONE)
-	Art.glow(ci, org + Vector2(w * 0.5, -size * 0.35), maxf(w * 0.55, size * 0.6), Color(col, 0.16 * a))
-	ci.draw_string_outline(f, org + Vector2(2.0, 3.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ow, Color(0, 0, 0, 0.45 * a))
-	ci.draw_string_outline(f, org, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ow, Color(OUTLINE, a))
+	var ow2 := ow   # (קבוע - גם עובי קו המתאר הוא חלק מהמטמון של הגופן)
+	ci.draw_set_transform(pos, rot, Vector2(k, k))
+	Art.glow(ci, org + Vector2(w * 0.5, -fs * 0.35), maxf(w * 0.55, fs * 0.6), Color(col, 0.16 * a))
+	ci.draw_string_outline(f, org + Vector2(2.0, 3.0) / k, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ow2, Color(0, 0, 0, 0.45 * a))
+	ci.draw_string_outline(f, org, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ow2, Color(OUTLINE, a))
 	ci.draw_string(f, org, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(col, a))
 	# הברקה עליונה
-	ci.draw_string(f, org + Vector2(0.0, -size * 0.06), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.18 * a))
+	ci.draw_string(f, org + Vector2(0.0, -fs * 0.06), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.18 * a))
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+# מחמם את הגדלים הקבועים פעם אחת (אותיות שקופות כמעט, מחוץ למסך) - שלא תהיה תקיעה בהריגה הראשונה
+var _warm := 0
+func _prewarm(ci: CanvasItem, f: Font) -> void:
+	const CHARS := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!+x-'?."
+	for fs in FONT_SIZES:
+		for ow in [6, 7, 8, 9]:
+			ci.draw_string_outline(f, Vector2(-4000, -4000), CHARS, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ow, Color(0, 0, 0, 0.01))
+		ci.draw_string(f, Vector2(-4000, -4000), CHARS, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.01))
 
 
 func _skull(ci: CanvasItem, c: Vector2, s: float, col: Color, a: float, cross := false) -> void:

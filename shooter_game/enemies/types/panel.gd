@@ -85,8 +85,8 @@ class Reflect extends Node2D:   # הכדור שחוזר
 
 	func _draw() -> void:
 		var d := velocity.normalized()
-		draw_line(-d * 14.0, Vector2.ZERO, Color(0.7, 0.9, 1.0, 0.5), 3.0)
-		draw_line(-d * 8.0, Vector2.ZERO, Color(1, 1, 1), 1.5)
+		DrawBatch.line(self, -d * 14.0, Vector2.ZERO, Color(0.7, 0.9, 1.0, 0.5), 3.0)
+		DrawBatch.line(self, -d * 8.0, Vector2.ZERO, Color(1, 1, 1), 1.5)
 
 
 # ============================================================
@@ -107,7 +107,7 @@ func draw() -> bool:
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(7, 3), hip + Vector2(-7, 3)]), suit, 0.12, 0.4)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_rect(Rect2(head + Vector2(0, -2.5), Vector2(6, 3)), col(Color("2a3a4a")))   # משקפי מגן
+	DrawBatch.rect(z, Rect2(head + Vector2(0, -2.5), Vector2(6, 3)), col(Color("2a3a4a")))   # משקפי מגן
 	z._arm(sh + Vector2(3, 1), sh + Vector2(12, 8), sk, suit)
 	if mirror > 0 and not z.dead:   # מראה משושה (מראה טלסקופ)
 		var c := sh + Vector2(15, 4)
@@ -115,12 +115,12 @@ func draw() -> bool:
 		for q in 6:
 			pts.append(c + Vector2.from_angle(float(q) * TAU / 6.0 + PI / 6.0) * Vector2(7.0, 22.0))
 		var k := clampf(float(mirror) / float(MIRROR_HP), 0.0, 1.0)
-		z.draw_colored_polygon(pts, Color(0.55, 0.62, 0.75) if _flash <= 0.0 else Color(1, 1, 1))
-		z.draw_colored_polygon(PackedVector2Array([c + Vector2(-5, -18), c + Vector2(-1, -18), c + Vector2(3, 12), c + Vector2(-1, 12)]), Color(0.9, 0.95, 1.0, 0.45))   # ברק
-		z.draw_polyline(pts + PackedVector2Array([pts[0]]), Color("1a1e28"), 1.4)
+		DrawBatch.colored_polygon(z, pts, Color(0.55, 0.62, 0.75) if _flash <= 0.0 else Color(1, 1, 1))
+		DrawBatch.colored_polygon(z, PackedVector2Array([c + Vector2(-5, -18), c + Vector2(-1, -18), c + Vector2(3, 12), c + Vector2(-1, 12)]), Color(0.9, 0.95, 1.0, 0.45))   # ברק
+		DrawBatch.polyline(z, pts + PackedVector2Array([pts[0]]), Color("1a1e28"), 1.4)
 		if k < 0.66:   # סדקים
-			z.draw_polyline(PackedVector2Array([c + Vector2(-4, -10), c + Vector2(0, -2), c + Vector2(-3, 6)]), Color(0.1, 0.1, 0.15), 1.0)
+			DrawBatch.polyline(z, PackedVector2Array([c + Vector2(-4, -10), c + Vector2(0, -2), c + Vector2(-3, 6)]), Color(0.1, 0.1, 0.15), 1.0)
 		if k < 0.33:
-			z.draw_polyline(PackedVector2Array([c + Vector2(4, -14), c + Vector2(1, -4), c + Vector2(5, 10)]), Color(0.1, 0.1, 0.15), 1.0)
+			DrawBatch.polyline(z, PackedVector2Array([c + Vector2(4, -14), c + Vector2(1, -4), c + Vector2(5, 10)]), Color(0.1, 0.1, 0.15), 1.0)
 	end_draw()
 	return true

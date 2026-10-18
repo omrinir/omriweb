@@ -648,7 +648,7 @@ func draw() -> bool:
 	if rot != 0.0 or lift != 0.0:
 		var s := Vector2(z._dir * z.wf * z.sc, z.sc)
 		var base := Transform2D(z.react_tilt(), Vector2(0.0, z.react_hop() * z.sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO)
-		z.draw_set_transform_matrix(base * Transform2D(rot, Vector2(0.0, lift)) * Transform2D(0.0, Vector2(0.0, -lift)))
+		DrawBatch.set_transform_matrix(z, base * Transform2D(rot, Vector2(0.0, lift)) * Transform2D(0.0, Vector2(0.0, -lift)))
 	var parka: Color = _var[0]
 	var patch: Color = _var[1]
 	var stripe: int = _var[2]
@@ -686,32 +686,32 @@ func draw() -> bool:
 	# חזית לבנה (בטן פינגווין) מגואלת בדם
 	Art.oval(z, body + Vector2(3.5, 1.0), rx * 0.62, ry * 0.8, white, 0.0, Art.NONE)
 	if stripe == 0:   # פס שחור על החזה (מגלני)
-		z.draw_arc(body + Vector2(1.5, -3.0), rx * 0.62, -0.9, 0.9, 10, pk, 2.0)
+		DrawBatch.arc(z, body + Vector2(1.5, -3.0), rx * 0.62, -0.9, 0.9, 10, pk, 2.0)
 	if not z.dead or true:
 		Art.oval(z, body + Vector2(4.0, 3.0), 3.0 * blood + 1.0, 5.0 * blood + 1.0, Color(0.5, 0.04, 0.04, 0.85), 0.2, Art.NONE)
 		Art.oval(z, body + Vector2(1.5, -4.0), 2.0, 1.6 * blood + 0.6, Color(0.42, 0.03, 0.03, 0.8), 0.0, Art.NONE)
-		z.draw_line(body + Vector2(4.5, 6.0), body + Vector2(5.0, 9.0 + 3.0 * blood), Color(0.45, 0.03, 0.03, 0.8), 1.0)
+		DrawBatch.line(z, body + Vector2(4.5, 6.0), body + Vector2(5.0, 9.0 + 3.0 * blood), Color(0.45, 0.03, 0.03, 0.8), 1.0)
 	for q in 3:   # רוכסן / קרעים
-		z.draw_line(body + Vector2(-rx * 0.6 + float(q) * 3.0, ry * 0.3), body + Vector2(-rx * 0.5 + float(q) * 3.5, ry * 0.6), col(Art.shade(parka, -0.2)), 0.8)
+		DrawBatch.line(z, body + Vector2(-rx * 0.6 + float(q) * 3.0, ry * 0.3), body + Vector2(-rx * 0.5 + float(q) * 3.5, ry * 0.6), col(Art.shade(parka, -0.2)), 0.8)
 	if boss:   # הבוס: נוצות פינגווינים תקועות בפרקה, צלקות, צלצל תקוע בגב
 		for q in 6:
 			var fp := body + Vector2(-rx * 0.8 + float(q) * 3.4, -ry * 0.5 + float(q % 3) * 5.0)
-			z.draw_line(fp, fp + Vector2(-2.0, -3.0), col(Color("e8e4dc")), 1.0)
-		z.draw_line(body + Vector2(-rx * 0.6, -ry * 0.4), body + Vector2(-rx * 1.6, -ry * 1.3), col(Color("5a4a3a")), 1.6)
-		z.draw_colored_polygon(PackedVector2Array([body + Vector2(-rx * 0.55, -ry * 0.35), body + Vector2(-rx * 0.75, -ry * 0.25), body + Vector2(-rx * 0.66, -ry * 0.5)]), col(Color("9a9a98")))
-		z.draw_line(body + Vector2(-rx * 1.6, -ry * 1.3), body + Vector2(-rx * 2.6, -ry * 0.6), Color(0.3, 0.26, 0.2, 0.8), 0.6)   # חבל
+			DrawBatch.line(z, fp, fp + Vector2(-2.0, -3.0), col(Color("e8e4dc")), 1.0)
+		DrawBatch.line(z, body + Vector2(-rx * 0.6, -ry * 0.4), body + Vector2(-rx * 1.6, -ry * 1.3), col(Color("5a4a3a")), 1.6)
+		DrawBatch.colored_polygon(z, PackedVector2Array([body + Vector2(-rx * 0.55, -ry * 0.35), body + Vector2(-rx * 0.75, -ry * 0.25), body + Vector2(-rx * 0.66, -ry * 0.5)]), col(Color("9a9a98")))
+		DrawBatch.line(z, body + Vector2(-rx * 1.6, -ry * 1.3), body + Vector2(-rx * 2.6, -ry * 0.6), Color(0.3, 0.26, 0.2, 0.8), 0.6)   # חבל
 	_hood(head, skin, pk, white, patch, stripe, tt, boss)
 	# יד קדמית (סנפיר עם ציפורניים)
 	_flipper(sh + Vector2(4, 2), false, tt, crouch, boss)
 	if not z.dead and (state == REVEAL or (state == B_ROAR)):
 		var k2 := clampf(_st / (REVEAL_T if state == REVEAL else ROAR_T), 0.0, 1.0)
-		z.draw_string(ThemeDB.fallback_font, head + Vector2(-2, -14), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 0.3, 0.2, k2))
+		DrawBatch.string(z, ThemeDB.fallback_font, head + Vector2(-2, -14), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 0.3, 0.2, k2))
 	end_draw()
 	if _ring >= 0.0 and boss:   # גל ההדף של הנחיתה
 		var k := _ring / 0.6
 		var c: Vector2 = _ring_pos - z.global_position
 		var pts := Art.ellipse(c, SLAM_R * k, SLAM_R * k * 0.12, 0.0, 28)
-		z.draw_polyline(pts, Color(0.9, 0.85, 0.7, 0.6 * (1.0 - k)), 4.0)
+		DrawBatch.polyline(z, pts, Color(0.9, 0.85, 0.7, 0.6 * (1.0 - k)), 4.0)
 	return true
 
 
@@ -738,9 +738,9 @@ func _flipper(s: Vector2, back: bool, tt: float, crouch: float, boss: bool) -> v
 	var dir := (h - mid).normalized()
 	var claw := col(Color("d8cca0"))
 	var hand := col(Art.shade(z.skin, 0.15 if back else 0.0))
-	z.draw_circle(h, 1.8, hand)
+	DrawBatch.circle(z, h, 1.8, hand)
 	for q in 3:
-		z.draw_line(h, h + dir.rotated((float(q) - 1.0) * 0.45) * 4.6, claw, 1.0)
+		DrawBatch.line(z, h, h + dir.rotated((float(q) - 1.0) * 0.45) * 4.6, claw, 1.0)
 
 
 func _hood(c: Vector2, skin: Color, pk: Color, white: Color, patch: Color, stripe: int, tt: float, boss: bool) -> void:
@@ -750,7 +750,7 @@ func _hood(c: Vector2, skin: Color, pk: Color, white: Color, patch: Color, strip
 	# כתם כתום (מלך) / פס לבן (מגלני) / כתם לבן מעל העין (ג'נטו)
 	match stripe:
 		0:
-			z.draw_arc(c + Vector2(1.5, 0.5), 6.2, -2.4, 1.2, 12, white, 1.6)
+			DrawBatch.arc(z, c + Vector2(1.5, 0.5), 6.2, -2.4, 1.2, 12, white, 1.6)
 		1:
 			if patch.a > 0.0:
 				Art.oval(z, c + Vector2(-3.5, 1.0), 1.8, 3.4, col(patch), 0.2, Art.NONE)
@@ -767,11 +767,11 @@ func _hood(c: Vector2, skin: Color, pk: Color, white: Color, patch: Color, strip
 		Art.oval(z, fo + Vector2(1.7, -1.2), 1.5, 1.2, col(Color("1a0a0c")), 0.0, Art.NONE)
 		Art.oval(z, fo + Vector2(-0.9, -1.2), 1.2, 1.1, col(Color("1a0a0c")), 0.0, Art.NONE)
 	# מצחייה כמו מקור
-	z.draw_colored_polygon(PackedVector2Array([c + Vector2(3.0, -3.6), c + Vector2(9.5, -2.0), c + Vector2(3.5, -2.0)]), col(Color("20222a")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([c + Vector2(3.0, -3.6), c + Vector2(9.5, -2.0), c + Vector2(3.5, -2.0)]), col(Color("20222a")))
 	if patch.a > 0.0:
-		z.draw_line(c + Vector2(4.0, -2.4), c + Vector2(8.5, -2.1), col(patch), 0.9)
+		DrawBatch.line(z, c + Vector2(4.0, -2.4), c + Vector2(8.5, -2.1), col(patch), 0.9)
 	if z.dead:
-		z.draw_line(fo + Vector2(-0.5, -1.6), fo + Vector2(2.5, -0.4), Color(0.2, 0.05, 0.05), 0.8)
+		DrawBatch.line(z, fo + Vector2(-0.5, -1.6), fo + Vector2(2.5, -0.4), Color(0.2, 0.05, 0.05), 0.8)
 		return
 	# עיניים אדומות (עמומות כשמתחבא, בוערות כשנחשף / מדבר)
 	var glow := 0.35 if hidden else 1.0
@@ -781,8 +781,8 @@ func _hood(c: Vector2, skin: Color, pk: Color, white: Color, patch: Color, strip
 	if z.has_meta("s57_learned_t"):
 		learned_flash = clampf(1.0 - float(Time.get_ticks_msec() - int(z.get_meta("s57_learned_t"))) / 600.0, 0.0, 1.0)
 	var ec := Color(1.0, 0.22, 0.15).lerp(Color(0.6, 1.0, 0.75), learned_flash)
-	z.draw_circle(fo + Vector2(1.7, -1.2), 1.1, Color(ec, 0.6 + 0.4 * minf(glow, 1.0)))
-	z.draw_circle(fo + Vector2(-0.9, -1.2), 0.85, Color(ec, 0.4 + 0.4 * minf(glow, 1.0)))
+	DrawBatch.circle(z, fo + Vector2(1.7, -1.2), 1.1, Color(ec, 0.6 + 0.4 * minf(glow, 1.0)))
+	DrawBatch.circle(z, fo + Vector2(-0.9, -1.2), 0.85, Color(ec, 0.4 + 0.4 * minf(glow, 1.0)))
 	Art.glow(z, fo + Vector2(1.2, -1.2), 3.0 + 2.5 * glow + (6.0 if boss else 0.0), Color(ec, 0.3 * glow + 0.3 * learned_flash))
 	# פה: שיניים, נפתח בחשיפה / בזינוק / כשמדבר
 	var open := 0.4
@@ -791,7 +791,7 @@ func _hood(c: Vector2, skin: Color, pk: Color, white: Color, patch: Color, strip
 	if talking:
 		open = 0.6 + absf(sin(t * 13.0)) * 1.8
 	open += smile * 0.6
-	z.draw_colored_polygon(PackedVector2Array([fo + Vector2(-1.0, 1.4), fo + Vector2(2.6, 1.2), fo + Vector2(2.2, 1.8 + open), fo + Vector2(-0.6, 1.8 + open * 0.8)]), col(Color("2a0608")))
-	z.draw_line(fo + Vector2(-0.6, 1.6), fo + Vector2(2.4, 1.4), col(Color("d8d0a8")), 0.6)
+	DrawBatch.colored_polygon(z, PackedVector2Array([fo + Vector2(-1.0, 1.4), fo + Vector2(2.6, 1.2), fo + Vector2(2.2, 1.8 + open), fo + Vector2(-0.6, 1.8 + open * 0.8)]), col(Color("2a0608")))
+	DrawBatch.line(z, fo + Vector2(-0.6, 1.6), fo + Vector2(2.4, 1.4), col(Color("d8d0a8")), 0.6)
 	if open > 1.0:
-		z.draw_line(fo + Vector2(0.0, 2.0 + open * 0.8), fo + Vector2(1.0, 3.0 + open), Color(0.5, 0.04, 0.04, 0.8), 0.7)   # ריר דם
+		DrawBatch.line(z, fo + Vector2(0.0, 2.0 + open * 0.8), fo + Vector2(1.0, 3.0 + open), Color(0.5, 0.04, 0.04, 0.8), 0.7)   # ריר דם

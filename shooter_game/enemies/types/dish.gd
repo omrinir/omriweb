@@ -124,42 +124,42 @@ func draw() -> bool:
 		var t := float(q) / 10.0 - 1.0
 		bowl.append(dc + pp * 42.0 * t + ax * 15.0 * t * t)
 	Art.fill_shaded(z, bowl, col(Color("c8ccd6")), 0.25, 0.4, Art.OUTLINE, 1.4)   # גב הצלחת
-	z.draw_colored_polygon(Art.ellipse(dc + ax * 15.0, 42.0, 5.5, pp.angle(), 18), col(Color("eef2f8")))   # פנים הקערה
+	DrawBatch.colored_polygon(z, Art.ellipse(dc + ax * 15.0, 42.0, 5.5, pp.angle(), 18), col(Color("eef2f8")))   # פנים הקערה
 	for q in 5:   # לוחות
 		var t := float(q) / 2.0 - 1.0
-		z.draw_line(dc + ax * 15.0 + pp * 42.0 * t, dc + pp * 40.0 * t * 0.92 + ax * 14.0 * t * t, Color(0.45, 0.5, 0.6, 0.5), 1.0)
-	z.draw_line(dc + ax * 15.0 + pp * 42.0, dc + ax * 15.0 - pp * 42.0, col(Color("8a8e9a")), 1.6)   # שפה
-	z.draw_line(dc + ax * 4.0, dc + Vector2(-8, 34), col(Color("5a5e6a")), 3.5)   # תמוכה לגב
-	z.draw_line(dc + ax * 4.0, dc + Vector2(4, 30), col(Color("5a5e6a")), 2.5)
+		DrawBatch.line(z, dc + ax * 15.0 + pp * 42.0 * t, dc + pp * 40.0 * t * 0.92 + ax * 14.0 * t * t, Color(0.45, 0.5, 0.6, 0.5), 1.0)
+	DrawBatch.line(z, dc + ax * 15.0 + pp * 42.0, dc + ax * 15.0 - pp * 42.0, col(Color("8a8e9a")), 1.6)   # שפה
+	DrawBatch.line(z, dc + ax * 4.0, dc + Vector2(-8, 34), col(Color("5a5e6a")), 3.5)   # תמוכה לגב
+	DrawBatch.line(z, dc + ax * 4.0, dc + Vector2(4, 30), col(Color("5a5e6a")), 2.5)
 	# כבלים תלויים מהצלחת
 	for q in 3:
 		var c0 := dc + pp * (14.0 - float(q) * 12.0) + ax * 6.0
-		z.draw_polyline(PackedVector2Array([c0, c0 + Vector2(-3, 14), c0 + Vector2(1.0 + sin(z._time * 2.0 + float(q)) * 2.0, 26)]), Color("2a2a34"), 1.3)
+		DrawBatch.polyline(z, PackedVector2Array([c0, c0 + Vector2(-3, 14), c0 + Vector2(1.0 + sin(z._time * 2.0 + float(q)) * 2.0, 26)]), Color("2a2a34"), 1.3)
 	# רגליים עבות (נטועות בקרקע + כבלים)
 	z._leg(hip + Vector2(-5, 0), Vector2(-9, 0), col(Art.shade(z.pants, 0.25)), sk, col(z.shoe))
 	z._leg(hip + Vector2(5, 0), Vector2(8, 0), col(z.pants), sk, col(z.shoe))
 	for q in 3:
-		z.draw_line(Vector2(-14.0 + float(q) * 6.0, 0), hip + Vector2(-8.0 + float(q) * 4.0, 4), Color("2a2a34"), 1.6)
+		DrawBatch.line(z, Vector2(-14.0 + float(q) * 6.0, 0), hip + Vector2(-8.0 + float(q) * 4.0, 4), Color("2a2a34"), 1.6)
 	z._arm(sh + Vector2(-5, 2), sh + Vector2(-10, 22), Art.shade(sk, 0.25), Art.shade(coat, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-11, -3), sh + Vector2(-4, -5), sh + Vector2(9, -2), sh + Vector2(12, 3), hip + Vector2(14, 6), hip + Vector2(10, 12), hip + Vector2(6, 8), hip + Vector2(1, 13), hip + Vector2(-4, 8), hip + Vector2(-9, 12), hip + Vector2(-14, 6)]), coat, 0.12, 0.4)   # חלוק מעבדה קרוע
-	z.draw_line(sh + Vector2(-4, -4), sh + Vector2(2, 6), col(Color("9aa0aa")), 1.0)   # צווארון
-	z.draw_rect(Rect2(sh + Vector2(4, 6), Vector2(5, 4)), col(Color("9aa0aa")))   # כיס
+	DrawBatch.line(z, sh + Vector2(-4, -4), sh + Vector2(2, 6), col(Color("9aa0aa")), 1.0)   # צווארון
+	DrawBatch.rect(z, Rect2(sh + Vector2(4, 6), Vector2(5, 4)), col(Color("9aa0aa")))   # כיס
 	for q in 3:   # כתמי דם / חלודה
-		z.draw_circle(sh + Vector2(-6.0 + float(q) * 6.0, 14.0 + float(q % 2) * 6.0), 1.8, col(Color("5a2a24")))
-	z.draw_line(sh + Vector2(2, 0), hip + Vector2(3, 3), col(Color("b0b4bc")), 1.2)
+		DrawBatch.circle(z, sh + Vector2(-6.0 + float(q) * 6.0, 14.0 + float(q % 2) * 6.0), 1.8, col(Color("5a2a24")))
+	DrawBatch.line(z, sh + Vector2(2, 0), hip + Vector2(3, 3), col(Color("b0b4bc")), 1.2)
 	Art.oval_shaded(z, head, 7.0, 7.5, sk, 0.0)
 	if not z.dead:
-		z.draw_circle(head + Vector2(4.0, -1.0), 1.6, Color(0.5, 0.85, 1.0))
-		z.draw_line(head + Vector2(1, 4), head + Vector2(6, 4.5), col(Color("1a1a1a")), 1.4)
+		DrawBatch.circle(z, head + Vector2(4.0, -1.0), 1.6, Color(0.5, 0.85, 1.0))
+		DrawBatch.line(z, head + Vector2(1, 4), head + Vector2(6, 4.5), col(Color("1a1a1a")), 1.4)
 	# זרוע המקלט: מהצלחת מעל הראש קדימה
 	for q in 3:   # שלוש זרועות המוקד מהשפה אל המקלט
 		var e := dc + ax * 15.0 + pp * 38.0 * (float(q) - 1.0)
-		z.draw_line(e, rc + Vector2(-4, 0), col(Color("8a8e9a")), 2.2)
+		DrawBatch.line(z, e, rc + Vector2(-4, 0), col(Color("8a8e9a")), 2.2)
 	Art.fill(z, PackedVector2Array([rc + Vector2(-6, -5), rc + Vector2(4, -5), rc + Vector2(6, 5), rc + Vector2(-6, 5)]), col(Color("5a5e6a")), Art.OUTLINE, 1.0)
 	if not z.dead:   # גביש המקלט (נקודת תורפה)
 		var g := 0.6 + 0.4 * sin(z._time * 4.0) + k * 1.2
 		Art.glow(z, rc + Vector2(5, 0), 10.0 + 8.0 * k, Color(0.4, 0.85, 1.0, 0.25 * g))
-		z.draw_colored_polygon(PackedVector2Array([rc + Vector2(2, -6), rc + Vector2(9, 0), rc + Vector2(2, 6), rc + Vector2(-1, 0)]), Color(0.5, 0.9, 1.0).lightened(0.3 * k))
+		DrawBatch.colored_polygon(z, PackedVector2Array([rc + Vector2(2, -6), rc + Vector2(9, 0), rc + Vector2(2, 6), rc + Vector2(-1, 0)]), Color(0.5, 0.9, 1.0).lightened(0.3 * k))
 	var hf := sh + Vector2(16, 18) if winding != "lob" else sh + Vector2(14, -18)
 	z._arm(sh + Vector2(5, 2), hf, sk, coat)
 	end_draw()

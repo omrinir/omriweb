@@ -267,17 +267,17 @@ class Brand extends Node2D:
 		var fade := clampf(t / 2.0, 0.2, 1.0)
 		Art.glow(self, Vector2.ZERO, 16.0 + 6.0 * k, Color(1.0, 0.4, 0.1, 0.35 * fade))
 		var c := Color(1.0, 0.55 + 0.3 * k, 0.15, fade)
-		draw_line(Vector2(-2.5, 5), Vector2(-2.5, -5), c, 2.0)
-		draw_arc(Vector2(-2.5, -2), 3.0, -PI * 0.5, PI * 0.5, 8, c, 2.0)
-		draw_line(Vector2(-6, 7), Vector2(6, 7), c, 2.0)
-		draw_line(Vector2(-6, -7), Vector2(-9, -11), c, 1.4)   # קרניים
-		draw_line(Vector2(5, -7), Vector2(8, -11), c, 1.4)
+		DrawBatch.line(self, Vector2(-2.5, 5), Vector2(-2.5, -5), c, 2.0)
+		DrawBatch.arc(self, Vector2(-2.5, -2), 3.0, -PI * 0.5, PI * 0.5, 8, c, 2.0)
+		DrawBatch.line(self, Vector2(-6, 7), Vector2(6, 7), c, 2.0)
+		DrawBatch.line(self, Vector2(-6, -7), Vector2(-9, -11), c, 1.4)   # קרניים
+		DrawBatch.line(self, Vector2(5, -7), Vector2(8, -11), c, 1.4)
 		# טבעת "העדר" שמתפשטת מהשחקן
 		var r := fmod(_tt * 1.2, 1.0)
-		draw_arc(Vector2(0, 20), 30.0 + r * 140.0, PI * 1.05, PI * 1.95, 24, Color(1.0, 0.45, 0.15, 0.35 * (1.0 - r) * fade), 2.0)
+		DrawBatch.arc(self, Vector2(0, 20), 30.0 + r * 140.0, PI * 1.05, PI * 1.95, 24, Color(1.0, 0.45, 0.15, 0.35 * (1.0 - r) * fade), 2.0)
 		# כמה זמן נשאר (פס קטן)
-		draw_rect(Rect2(-14, -22, 28, 3), Color(0, 0, 0, 0.4))
-		draw_rect(Rect2(-14, -22, 28.0 * clampf(t / BRAND_MAX, 0.0, 1.0), 3), Color(1.0, 0.5, 0.15, 0.9))
+		DrawBatch.rect(self, Rect2(-14, -22, 28, 3), Color(0, 0, 0, 0.4))
+		DrawBatch.rect(self, Rect2(-14, -22, 28.0 * clampf(t / BRAND_MAX, 0.0, 1.0), 3), Color(1.0, 0.5, 0.15, 0.9))
 
 
 # ============================================================
@@ -312,26 +312,26 @@ func draw() -> bool:
 	Art.fill_shaded(z, body, col(z.shirt), 0.15, 0.35)
 	var apron := PackedVector2Array([sh + Vector2(-5, 4), sh + Vector2(9, 4), hip + Vector2(10, 8), hip + Vector2(8, 13), hip + Vector2(-2, 12), hip + Vector2(-6, 8)])
 	Art.fill_shaded(z, apron, col(Color("5a3a22")), 0.12, 0.35)
-	z.draw_line(sh + Vector2(-5, 4), sh + Vector2(-3, -2), col(Color("3a2414")), 1.4)   # רצועה
+	DrawBatch.line(z, sh + Vector2(-5, 4), sh + Vector2(-3, -2), col(Color("3a2414")), 1.4)   # רצועה
 	for q in 3:   # כוויות וכתמים על הסינר
-		z.draw_circle(hip + Vector2(-1.0 + float(q) * 3.5, -6.0 + float(q % 2) * 6.0), 1.4, Color(0.15, 0.08, 0.04, 0.6))
+		DrawBatch.circle(z, hip + Vector2(-1.0 + float(q) * 3.5, -6.0 + float(q % 2) * 6.0), 1.4, Color(0.15, 0.08, 0.04, 0.6))
 	if not z.dead:
 		_brand_p(sh + Vector2(2, 10), 2.4, Color(0.25, 0.12, 0.06, 0.8))
 	# ראש: מטפחת, שפם
 	var head: Vector2 = sh + Vector2(3.0, -9.0)
 	z._head(head, sk)
 	Art.fill(z, PackedVector2Array([head + Vector2(-8, -3), head + Vector2(7, -6), head + Vector2(5, -10), head + Vector2(-5, -10), head + Vector2(-9, -6)]), col(Color("6a1a14")), Art.OUTLINE, 1.0)
-	z.draw_line(head + Vector2(-8, -4), head + Vector2(-13, 0), col(Color("6a1a14")), 2.0)   # קשר
-	z.draw_polyline(PackedVector2Array([head + Vector2(2, 3), head + Vector2(5, 2.5), head + Vector2(8, 4.5)]), col(Color("2a2420")), 1.8)   # שפם
+	DrawBatch.line(z, head + Vector2(-8, -4), head + Vector2(-13, 0), col(Color("6a1a14")), 2.0)   # קשר
+	DrawBatch.polyline(z, PackedVector2Array([head + Vector2(2, 3), head + Vector2(5, 2.5), head + Vector2(8, 4.5)]), col(Color("2a2420")), 1.8)   # שפם
 	if not z.dead:
-		z.draw_circle(head + Vector2(4.0, -1.5), 1.1, Color(1.0, 0.5, 0.15))
+		DrawBatch.circle(z, head + Vector2(4.0, -1.5), 1.1, Color(1.0, 0.5, 0.15))
 	# הברזל: מוט ארוך, ידית עץ, קצה לוהט בצורת P
 	var tail: Vector2 = grip_b - (tip_l - grip_b).normalized() * 10.0
-	z.draw_line(tail, grip_b.lerp(tip_l, 0.4), col(Color("4a3020")), 3.4)   # ידית
-	z.draw_line(grip_b.lerp(tip_l, 0.4), tip_l, col(Color("3a3634")), 2.2)
+	DrawBatch.line(z, tail, grip_b.lerp(tip_l, 0.4), col(Color("4a3020")), 3.4)   # ידית
+	DrawBatch.line(z, grip_b.lerp(tip_l, 0.4), tip_l, col(Color("3a3634")), 2.2)
 	var heat := 1.0 if state == AIM or state == THRUST else 0.65
 	var hot := Color(1.0, 0.45 + 0.35 * heat * (0.5 + 0.5 * sin(z._time * 12.0)), 0.1)
-	z.draw_line(tip_l.lerp(grip_b, 0.18), tip_l, Color(1.0, 0.35, 0.1, 0.9 * heat), 2.4)   # מתלהט לאורך המוט
+	DrawBatch.line(z, tip_l.lerp(grip_b, 0.18), tip_l, Color(1.0, 0.35, 0.1, 0.9 * heat), 2.4)   # מתלהט לאורך המוט
 	Art.glow(z, tip_l, 9.0 + 5.0 * heat, Color(1.0, 0.4, 0.1, 0.35 * heat))
 	_brand_p(tip_l + Vector2(3, 0), 4.0, hot)
 	z._arm(sh + Vector2(2, 2), grip_f, sk, col(Color("8a8070")))
@@ -340,6 +340,6 @@ func draw() -> bool:
 
 
 func _brand_p(c: Vector2, r: float, cl: Color) -> void:
-	z.draw_line(c + Vector2(-r * 0.35, r * 0.7), c + Vector2(-r * 0.35, -r * 0.7), cl, 1.6)
-	z.draw_arc(c + Vector2(-r * 0.35, -r * 0.3), r * 0.4, -PI * 0.5, PI * 0.5, 6, cl, 1.6)
-	z.draw_line(c + Vector2(-r * 0.7, r * 0.9), c + Vector2(r * 0.6, r * 0.9), cl, 1.4)
+	DrawBatch.line(z, c + Vector2(-r * 0.35, r * 0.7), c + Vector2(-r * 0.35, -r * 0.7), cl, 1.6)
+	DrawBatch.arc(z, c + Vector2(-r * 0.35, -r * 0.3), r * 0.4, -PI * 0.5, PI * 0.5, 6, cl, 1.6)
+	DrawBatch.line(z, c + Vector2(-r * 0.7, r * 0.9), c + Vector2(r * 0.6, r * 0.9), cl, 1.4)

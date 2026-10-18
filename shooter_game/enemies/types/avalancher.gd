@@ -166,20 +166,20 @@ class Slide extends Node2D:
 	func _draw() -> void:
 		if _t < WARN + 0.35:
 			var k := clampf(_t / WARN, 0.0, 1.0)
-			draw_colored_polygon(Art.ellipse(Vector2(0, -2), W * 0.5 * (0.5 + 0.5 * k), 6.0, 0.0, 16), Color(0.1, 0.2, 0.4, 0.15 + 0.3 * k))   # צל
+			DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -2), W * 0.5 * (0.5 + 0.5 * k), 6.0, 0.0, 16), Color(0.1, 0.2, 0.4, 0.15 + 0.3 * k))   # צל
 			if _t > WARN:   # גושים נופלים
 				var f := (_t - WARN) / 0.35
 				for c in _chunks:
 					var y: float = lerpf(float(c[1]), -float(c[2]), clampf(f + float(c[3]), 0.0, 1.0))
-					draw_circle(Vector2(float(c[0]), y), float(c[2]), Color(0.95, 0.97, 1.0))
-					draw_circle(Vector2(float(c[0]) + 2.0, y + 2.0), float(c[2]) * 0.6, Color(0.75, 0.85, 0.95))
+					DrawBatch.circle(self, Vector2(float(c[0]), y), float(c[2]), Color(0.95, 0.97, 1.0))
+					DrawBatch.circle(self, Vector2(float(c[0]) + 2.0, y + 2.0), float(c[2]) * 0.6, Color(0.75, 0.85, 0.95))
 		else:   # ערמה שנמסה לאט
 			var k := clampf(1.0 - (_t - WARN - 0.35) / PILE, 0.0, 1.0)
 			var h := 26.0 * (0.4 + 0.6 * k)
 			var p := PackedVector2Array([Vector2(-W * 0.5, 0), Vector2(-W * 0.35, -h * 0.6), Vector2(-W * 0.15, -h), Vector2(W * 0.1, -h * 0.85), Vector2(W * 0.3, -h * 0.55), Vector2(W * 0.5, 0)])
-			draw_colored_polygon(p, Color(0.93, 0.96, 1.0))
-			draw_polyline(p, Color(0.7, 0.8, 0.92), 1.5)
-			draw_colored_polygon(PackedVector2Array([Vector2(-W * 0.15, -h), Vector2(W * 0.1, -h * 0.85), Vector2(W * 0.05, -h * 0.5), Vector2(-W * 0.1, -h * 0.6)]), Color(0.78, 0.86, 0.96))
+			DrawBatch.colored_polygon(self, p, Color(0.93, 0.96, 1.0))
+			DrawBatch.polyline(self, p, Color(0.7, 0.8, 0.92), 1.5)
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-W * 0.15, -h), Vector2(W * 0.1, -h * 0.85), Vector2(W * 0.05, -h * 0.5), Vector2(-W * 0.1, -h * 0.6)]), Color(0.78, 0.86, 0.96))
 
 
 # ============================================================
@@ -201,24 +201,24 @@ func draw() -> bool:
 	Art.fill_shaded(z, pp, pon, 0.15, 0.4)
 	for q in 3:   # פסים
 		var yy := -30.0 + float(q) * 5.0
-		z.draw_line(Vector2(-12.0 + float(q), yy), Vector2(12.0 + float(q) * 0.5, yy), col([Color("e0b030"), Color("2a6a4a"), Color("e0e0d0")][q]), 1.5)
+		DrawBatch.line(z, Vector2(-12.0 + float(q), yy), Vector2(12.0 + float(q) * 0.5, yy), col([Color("e0b030"), Color("2a6a4a"), Color("e0e0d0")][q]), 1.5)
 	Art.oval_shaded(z, head, 5.6, 6.0, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -2), head + Vector2(0, -10), head + Vector2(6, -2)]), col(Color("c04a2a")))   # צ'ולו
-	z.draw_line(head + Vector2(-6, -2), head + Vector2(-6, 6), col(Color("c04a2a")), 2.0)
-	z.draw_line(head + Vector2(6, -2), head + Vector2(6, 6), col(Color("c04a2a")), 2.0)
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-6, -2), head + Vector2(0, -10), head + Vector2(6, -2)]), col(Color("c04a2a")))   # צ'ולו
+	DrawBatch.line(z, head + Vector2(-6, -2), head + Vector2(-6, 6), col(Color("c04a2a")), 2.0)
+	DrawBatch.line(z, head + Vector2(6, -2), head + Vector2(6, 6), col(Color("c04a2a")), 2.0)
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -1.0), 1.1, Color(0.8, 0.95, 1.0))
+		DrawBatch.circle(z, head + Vector2(3.5, -1.0), 1.1, Color(0.8, 0.95, 1.0))
 	var hf := head + Vector2(7, 2) if state == BLOW else sh + Vector2(13, 6)
 	z._arm(sh + Vector2(3, 1), hf, sk, pon)
 	# קונכיית הפוטוטו
 	var cc := hf + Vector2(5, 0)
-	z.draw_colored_polygon(PackedVector2Array([cc + Vector2(-5, -3), cc + Vector2(8, -6), cc + Vector2(12, 0), cc + Vector2(8, 6), cc + Vector2(-5, 3)]), col(Color("e8d0b0")))
-	z.draw_arc(cc + Vector2(6, 0), 3.5, 0.0, TAU, 8, col(Color("b07a5a")), 1.2)
+	DrawBatch.colored_polygon(z, PackedVector2Array([cc + Vector2(-5, -3), cc + Vector2(8, -6), cc + Vector2(12, 0), cc + Vector2(8, 6), cc + Vector2(-5, 3)]), col(Color("e8d0b0")))
+	DrawBatch.arc(z, cc + Vector2(6, 0), 3.5, 0.0, TAU, 8, col(Color("b07a5a")), 1.2)
 	if state == BLOW and not z.dead:   # גלי קול
 		var k := 1.0 - clampf(_st / BLOW_T, 0.0, 1.0)
 		for q in 3:
 			var r := 8.0 + fposmod(k * 30.0 + float(q) * 10.0, 30.0)
-			z.draw_arc(cc + Vector2(12, 0), r, -0.7, 0.7, 8, Color(1, 1, 1, 0.5 * (1.0 - r / 38.0)), 1.5)
+			DrawBatch.arc(z, cc + Vector2(12, 0), r, -0.7, 0.7, 8, Color(1, 1, 1, 0.5 * (1.0 - r / 38.0)), 1.5)
 	end_draw()
 	return true

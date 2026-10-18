@@ -128,37 +128,37 @@ func draw() -> bool:
 	var flap := sin(t * 2.2) * 2.0 + absf(z.velocity.x) * 0.03
 	var coat_pts := PackedVector2Array([sh + Vector2(-5, -1), sh + Vector2(5, -1), hip + Vector2(6, 2), hip + Vector2(7, 14), hip + Vector2(1, 12), hip + Vector2(-5, 15), hip + Vector2(-9 - flap, 12), hip + Vector2(-6, 2)])
 	Art.fill_shaded(z, coat_pts, coat, 0.15, 0.4)
-	z.draw_line(sh + Vector2(1, 0), hip + Vector2(2, 12), col(Art.shade(z.shirt, 0.45)), 1.0)   # שסע המעיל
+	DrawBatch.line(z, sh + Vector2(1, 0), hip + Vector2(2, 12), col(Art.shade(z.shirt, 0.45)), 1.0)   # שסע המעיל
 	for i in 3:   # כפתורים
-		z.draw_circle(sh.lerp(hip, 0.2 + float(i) * 0.25) + Vector2(3.5, 0), 0.8, col(Color("a89060")))
+		DrawBatch.circle(z, sh.lerp(hip, 0.2 + float(i) * 0.25) + Vector2(3.5, 0), 0.8, col(Color("a89060")))
 	# יד מצביעה (פקודה) / מחזיקה מקל מדידה
 	var pointing: bool = _point_t > 0.0 and not z.dead
 	var hand := sh + (Vector2(17, -5) if pointing else Vector2(8, 14))
 	Art.limb(z, PackedVector2Array([sh + Vector2(3, 1), sh + (Vector2(10, -2) if pointing else Vector2(6, 7)), hand]), 3.4, coat)
 	Art.disc(z, hand, 2.0, sk)
 	if pointing:
-		z.draw_line(hand, hand + Vector2(5, -1), sk, 1.4)   # אצבע
+		DrawBatch.line(z, hand, hand + Vector2(5, -1), sk, 1.4)   # אצבע
 	else:
-		z.draw_line(hand + Vector2(0, -2), hand + Vector2(1, 14), col(Color("6a5030")), 1.6)   # מקל
+		DrawBatch.line(z, hand + Vector2(0, -2), hand + Vector2(1, 14), col(Color("6a5030")), 1.6)   # מקל
 	# ראש + קסדה + עדשה
 	Art.oval_shaded(z, head, 6.2, 7.2, sk, 0.0)
-	z.draw_line(head + Vector2(1.0, 3.5), head + Vector2(5.5, 3.0), Color(0.15, 0.05, 0.05), 1.0)   # פה סגור בקו (רגוע)
+	DrawBatch.line(z, head + Vector2(1.0, 3.5), head + Vector2(5.5, 3.0), Color(0.15, 0.05, 0.05), 1.0)   # פה סגור בקו (רגוע)
 	Art.oval(z, head + Vector2(-0.5, 0.0), 1.2, 1.0, Color("1a0e0e"), 0.0, Art.NONE)
 	var helm := PackedVector2Array([head + Vector2(-7, -2), head + Vector2(-6, -7), head + Vector2(0, -10), head + Vector2(6, -7), head + Vector2(10, -3), head + Vector2(7, -2.5)])
 	Art.fill_shaded(z, helm, col(Color("b0a060")), 0.2, 0.35)
-	z.draw_line(head + Vector2(-2, -9), head + Vector2(1, -5), Color(0.2, 0.15, 0.05, 0.7), 0.8)   # סדק
+	DrawBatch.line(z, head + Vector2(-2, -9), head + Vector2(1, -5), Color(0.2, 0.15, 0.05, 0.7), 0.8)   # סדק
 	# עדשת פליז
 	var lens := head + Vector2(4.5, -1.0)
 	Art.disc(z, lens, 2.8, col(Color("8a6a2a")))
 	var teal := Color(0.3, 1.0, 0.85)
 	var pulse := 0.6 + 0.4 * sin(t * 6.0)
 	Art.glow(z, lens, 6.0, Color(teal, 0.55 * pulse))
-	z.draw_circle(lens, 1.4, teal)
+	DrawBatch.circle(z, lens, 1.4, teal)
 	if not z.dead:
 		# טבעת "למידה" שמתמלאת
 		var obs_k := clampf(_obs / 3.0, 0.0, 1.0)
 		if obs_k > 0.02:
-			z.draw_arc(lens, 4.6, -PI * 0.5, -PI * 0.5 + TAU * obs_k, 16, Color(teal, 0.9), 1.0)
+			DrawBatch.arc(z, lens, 4.6, -PI * 0.5, -PI * 0.5 + TAU * obs_k, 16, Color(teal, 0.9), 1.0)
 		# קרן סריקה אל השחקן
 		if _seeing:
 			end_draw()
@@ -166,8 +166,8 @@ func draw() -> bool:
 			var a := _scan_a
 			var ln := 120.0
 			var o: Vector2 = lw - z.global_position
-			z.draw_colored_polygon(PackedVector2Array([o, o + Vector2.from_angle(a - 0.09) * ln, o + Vector2.from_angle(a + 0.09) * ln]), Color(teal, 0.07 + 0.04 * pulse))
-			z.draw_line(o, o + Vector2.from_angle(a) * ln, Color(teal, 0.2), 1.0)
+			DrawBatch.colored_polygon(z, PackedVector2Array([o, o + Vector2.from_angle(a - 0.09) * ln, o + Vector2.from_angle(a + 0.09) * ln]), Color(teal, 0.07 + 0.04 * pulse))
+			DrawBatch.line(z, o, o + Vector2.from_angle(a) * ln, Color(teal, 0.2), 1.0)
 			return true
 	end_draw()
 	return true

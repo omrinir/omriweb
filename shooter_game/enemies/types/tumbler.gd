@@ -566,23 +566,23 @@ func _draw_ball() -> bool:
 	var squash := 1.0
 	if z.is_on_floor() and state == ROLL:
 		squash = 0.94
-	z.draw_set_transform_matrix(Transform2D(0.0, s, 0.0, Vector2.ZERO))
+	DrawBatch.set_transform_matrix(z, Transform2D(0.0, s, 0.0, Vector2.ZERO))
 	Art.ground_shadow(z, Vector2.ZERO, BALL_R * 0.9)
 	var R := BALL_R
 	var k := clampf(float(_ball) / float(BALL_HP), 0.0, 1.0) if _has_ball else 0.0
 	# בפנים: הגוף המכורבל (נראה יותר ככל שהענפים נתלשים)
 	var inner := col(Color("3a2e22").lerp(_poncho, 0.25))
-	z.draw_colored_polygon(Art.ellipse(c + Vector2(0, 2), R * 0.62, R * 0.55 * squash, _roll_a * 0.15, 14), inner)
-	z.draw_colored_polygon(Art.ellipse(c + Vector2.from_angle(_roll_a * 0.5 + 2.0) * R * 0.25, R * 0.3, R * 0.22, _roll_a * 0.5, 10), col(_poncho.darkened(0.25)))   # גב הפונצ'ו
+	DrawBatch.colored_polygon(z, Art.ellipse(c + Vector2(0, 2), R * 0.62, R * 0.55 * squash, _roll_a * 0.15, 14), inner)
+	DrawBatch.colored_polygon(z, Art.ellipse(c + Vector2.from_angle(_roll_a * 0.5 + 2.0) * R * 0.25, R * 0.3, R * 0.22, _roll_a * 0.5, 10), col(_poncho.darkened(0.25)))   # גב הפונצ'ו
 	var sk := col(z.skin)
 	var ra := _roll_a
 	var hand := c + Vector2.from_angle(ra * 0.5 + 0.8) * R * 0.7
-	z.draw_line(c + Vector2.from_angle(ra * 0.5 + 0.8) * R * 0.2, hand, sk, 3.0)
+	DrawBatch.line(z, c + Vector2.from_angle(ra * 0.5 + 0.8) * R * 0.2, hand, sk, 3.0)
 	for q in 3:   # אצבעות
-		z.draw_line(hand, hand + Vector2.from_angle(ra * 0.5 + 0.8 + (float(q) - 1.0) * 0.4) * 4.0, sk, 1.2)
+		DrawBatch.line(z, hand, hand + Vector2.from_angle(ra * 0.5 + 0.8 + (float(q) - 1.0) * 0.4) * 4.0, sk, 1.2)
 	var eye := c + Vector2.from_angle(ra * 0.5 + 2.6) * R * 0.32
-	z.draw_circle(eye, 2.6, col(Art.shade(z.skin, 0.3)))
-	z.draw_circle(eye, 1.2, Color(1.0, 0.25, 0.15))
+	DrawBatch.circle(z, eye, 2.6, col(Art.shade(z.skin, 0.3)))
+	DrawBatch.circle(z, eye, 1.2, Color(1.0, 0.25, 0.15))
 	Art.glow(z, eye, 4.0, Color(1.0, 0.3, 0.15, 0.35))
 	# ענפים (מערך משולשים אחד)
 	var pts := PackedVector2Array()
@@ -611,8 +611,8 @@ func _draw_ball() -> bool:
 	if not pts.is_empty():
 		RenderingServer.canvas_item_add_triangle_array(z.get_canvas_item(), PackedInt32Array(), pts, cols)
 	if state == SNAG:   # נתקע בתיל
-		z.draw_line(c + Vector2(-R - 4, -4), c + Vector2(R + 4, 2), Color("3a3634"), 1.4)
-	z.draw_set_transform_matrix(Transform2D.IDENTITY)
+		DrawBatch.line(z, c + Vector2(-R - 4, -4), c + Vector2(R + 4, 2), Color("3a3634"), 1.4)
+	DrawBatch.set_transform_matrix(z, Transform2D.IDENTITY)
 	return true
 
 
@@ -682,15 +682,15 @@ func _draw_body() -> void:
 	Art.fill_shaded(z, pon, po, 0.15, 0.35)
 	for q in 2:
 		var yy := 10.0 + float(q) * 6.0
-		z.draw_line(sh + Vector2(-9.0 + float(q) * 0.5, yy), sh + Vector2(10.0 - float(q) * 0.5, yy + 1.0), col(_scarf.darkened(0.2)), 1.3)
+		DrawBatch.line(z, sh + Vector2(-9.0 + float(q) * 0.5, yy), sh + Vector2(10.0 - float(q) * 0.5, yy + 1.0), col(_scarf.darkened(0.2)), 1.3)
 	for q in 4:   # ענפים קטנים שננעצו בגוף
 		var bp := sh + Vector2(-6.0 + float(q) * 4.0, 4.0 + float(q % 2) * 8.0)
-		z.draw_line(bp, bp + Vector2(-3.0 + float(q), -4.0), col(Color("6a5034")), 1.0)
+		DrawBatch.line(z, bp, bp + Vector2(-3.0 + float(q), -4.0), col(Color("6a5034")), 1.0)
 	if not dead:
 		Art.oval(z, sh + Vector2(2, 12), 3.0, 2.0, Color(0.45, 0.04, 0.04, 0.6), 0.3, Art.NONE)
 	# ממחטה על הצוואר, מתנופפת ברוח
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-4, -2), sh + Vector2(6, -2), sh + Vector2(1, 4)]), col(_scarf))
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-4, -2), sh + Vector2(-3, 1), sh + Vector2(-4 + wl * 9.0, -3.0 + sin(z._time * 12.0) * 2.0)]), col(_scarf.darkened(0.15)))
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-4, -2), sh + Vector2(6, -2), sh + Vector2(1, 4)]), col(_scarf))
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-4, -2), sh + Vector2(-3, 1), sh + Vector2(-4 + wl * 9.0, -3.0 + sin(z._time * 12.0) * 2.0)]), col(_scarf.darkened(0.15)))
 	# ראש: שיער פרוע עם ענפים
 	var head := sh + Vector2(4.0, -9.0)
 	if state == UNROLL or state == GRAB:
@@ -700,9 +700,9 @@ func _draw_body() -> void:
 		face(head)
 		for q in 5:
 			var a := -2.6 + float(q) * 0.45
-			z.draw_line(head + Vector2.from_angle(a) * 5.0, head + Vector2.from_angle(a) * (9.0 + float(q % 2) * 3.0), col(Color("4a3a28")), 1.2)
+			DrawBatch.line(z, head + Vector2.from_angle(a) * 5.0, head + Vector2.from_angle(a) * (9.0 + float(q % 2) * 3.0), col(Color("4a3a28")), 1.2)
 		if not dead:
-			z.draw_circle(head + Vector2(4.0, -1.0), 1.1, Color(1.0, 0.25, 0.15))
+			DrawBatch.circle(z, head + Vector2(4.0, -1.0), 1.1, Color(1.0, 0.25, 0.15))
 	# יד קדמית + ענף קוצני
 	z._arm(sh + Vector2(2, 2), sh + hand_f - Vector2(4, -41), sk, po)
 	_thorn_wrap(sh + Vector2(2, 2), sh + hand_f - Vector2(4, -41))
@@ -715,5 +715,5 @@ func _thorn_wrap(a: Vector2, b: Vector2) -> void:
 		var u := 0.2 + float(q) * 0.22
 		var p := a.lerp(b, u)
 		var s := 1.0 if q % 2 == 0 else -1.0
-		z.draw_line(p - n * 2.5 * s, p + n * 2.5 * s + (b - a).normalized() * 2.0, c, 1.1)
-		z.draw_line(p + n * 2.5 * s, p + n * 5.0 * s, c, 0.8)
+		DrawBatch.line(z, p - n * 2.5 * s, p + n * 2.5 * s + (b - a).normalized() * 2.0, c, 1.1)
+		DrawBatch.line(z, p + n * 2.5 * s, p + n * 5.0 * s, c, 0.8)

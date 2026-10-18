@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")   # כל הציור של זומבי ב-draw call אחד
 # ============================================================
 #  FLAME FX - ציור אש משותף (שטח בוער, אש קטנה על חפצים / זומבים בוערים, בקבוקי תבערה, להבות על זומבים).
 #  * tongue()  - לשון אש בצורת טיפה: צד שמאל/ימין מעוגלים, הקצה מתנדנד, 3-4 שכבות צבע (אדום -> כתום -> צהוב -> לבן-חם בבסיס).
@@ -43,7 +44,7 @@ static func additive() -> CanvasItemMaterial:
 
 
 static func glow(ci: CanvasItem, c: Vector2, r: Vector2, col: Color) -> void:
-	ci.draw_texture_rect(soft(), Rect2(c - r, r * 2.0), false, col)
+	DrawBatch.texture_rect(ci, soft(), Rect2(c - r, r * 2.0), false, col)
 
 
 # רעש חלק (סכום סינוסים) בטווח 0..1
@@ -72,7 +73,7 @@ static func tongue(ci: CanvasItem, base: Vector2, w: float, h: float, sway: floa
 			var s := float(i) / float(n)
 			var bulge := sin(minf(s * 1.6 + 0.35, PI)) * pow(1.0 - s, 0.55)
 			pts.append(base + Vector2(lw * bulge + sway * s * s, -lh * s))
-		ci.draw_colored_polygon(pts, col)
+		DrawBatch.colored_polygon(ci, pts, col)
 
 
 # פיסת אש קטנה שעולה (k = 0..1 לאורך החיים שלה)
@@ -82,5 +83,5 @@ static func puff(ci: CanvasItem, p: Vector2, size: float, k: float, pal: Array, 
 		return
 	var c: Color = pal[1].lerp(pal[0], k)
 	c.a = a * (1.0 - k * k)
-	ci.draw_colored_polygon(PackedVector2Array([p + Vector2(-s * 0.6, 0), p + Vector2(-s * 0.4, -s * 0.9), p + Vector2(0, -s * 1.7),
+	DrawBatch.colored_polygon(ci, PackedVector2Array([p + Vector2(-s * 0.6, 0), p + Vector2(-s * 0.4, -s * 0.9), p + Vector2(0, -s * 1.7),
 		p + Vector2(s * 0.4, -s * 0.9), p + Vector2(s * 0.6, 0), p + Vector2(0, s * 0.45)]), c)

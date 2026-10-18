@@ -133,7 +133,7 @@ class Cloth extends Node2D:   # רצועת אריג שנקרעת ועפה
 	func _draw() -> void:
 		var a := clampf(1.5 - _t, 0.0, 1.0)
 		var w := sin(_t * 14.0) * 3.0
-		draw_polyline(PackedVector2Array([Vector2(-10, 0), Vector2(-4, w), Vector2(3, -w), Vector2(10, w * 0.5)]), Color(col, a), 4.0)
+		DrawBatch.polyline(self, PackedVector2Array([Vector2(-10, 0), Vector2(-4, w), Vector2(3, -w), Vector2(10, w * 0.5)]), Color(col, a), 4.0)
 
 
 # ============================================================
@@ -155,12 +155,12 @@ func draw() -> bool:
 		z._arm(sh + Vector2(-2, 1), sh + Vector2(-4.0 - sin(p) * 2.0, 14.0), sk.darkened(0.2), sk.darkened(0.2))
 		Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)]), sk, 0.2, 0.45)
 		for q in 4:   # צלעות
-			z.draw_line(sh + Vector2(-4, 3.0 + float(q) * 3.0), sh + Vector2(4, 4.0 + float(q) * 3.0), sk.darkened(0.35), 1.0)
+			DrawBatch.line(z, sh + Vector2(-4, 3.0 + float(q) * 3.0), sh + Vector2(4, 4.0 + float(q) * 3.0), sk.darkened(0.35), 1.0)
 		Art.oval_shaded(z, head, 4.6, 5.4, sk, 0.0)
-		z.draw_colored_polygon(PackedVector2Array([head + Vector2(-5, -3), head + Vector2(3, -6), head + Vector2(-2, 14), head + Vector2(-7, 12)]), col(Color("141010")))   # שיער ארוך
+		DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-5, -3), head + Vector2(3, -6), head + Vector2(-2, 14), head + Vector2(-7, 12)]), col(Color("141010")))   # שיער ארוך
 		if not z.dead:
-			z.draw_circle(head + Vector2(2.5, -1.0), 1.2, Color(1.0, 0.8, 0.4))
-		z.draw_line(head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a1a10")), 1.5)
+			DrawBatch.circle(z, head + Vector2(2.5, -1.0), 1.2, Color(1.0, 0.8, 0.4))
+		DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a1a10")), 1.5)
 		z._arm(sh + Vector2(2, 1), sh + Vector2(12, 4), sk, sk)
 		end_draw()
 		return true
@@ -177,20 +177,20 @@ func draw() -> bool:
 	for q in 5:   # פסי אריג / חבלים
 		var yy := -4.0 - float(q) * h * 0.17 - bob
 		var hw := w * sqrt(maxf(1.0 - pow((yy + bob) / (h * 0.9), 2.0), 0.0))
-		z.draw_line(Vector2(-hw, yy), Vector2(hw, yy - 1.0), col(outer.darkened(0.35)), 1.4)
+		DrawBatch.line(z, Vector2(-hw, yy), Vector2(hw, yy - 1.0), col(outer.darkened(0.35)), 1.4)
 	if wraps >= 2:   # דוגמת טוקאפו (ריבועים)
 		for q in 3:
-			z.draw_rect(Rect2(-6.0 + float(q) * 5.0, -h * 0.45 - bob, 3.5, 3.5), col(Color("e0c060") if q % 2 == 0 else Color("1a1a1a")))
+			DrawBatch.rect(z, Rect2(-6.0 + float(q) * 5.0, -h * 0.45 - bob, 3.5, 3.5), col(Color("e0c060") if q % 2 == 0 else Color("1a1a1a")))
 	# ראש מזויף מאריג
 	var head := base + Vector2(3, -h * 0.9 - 5.0)
 	Art.oval_shaded(z, head, 6.0, 6.5, col(Color("c8b898")), 0.0)
-	z.draw_rect(Rect2(head + Vector2(-1, -2), Vector2(6, 2)), col(Color("6a4a2a")))
+	DrawBatch.rect(z, Rect2(head + Vector2(-1, -2), Vector2(6, 2)), col(Color("6a4a2a")))
 	if not z.dead:   # עיניים מבעד לאריג
-		z.draw_circle(head + Vector2(2.5, 1.0), 1.4, Color(1.0, 0.8, 0.35))
-	z.draw_line(head + Vector2(-5, -5), head + Vector2(-9, -11), col(Color("2a6a4a")), 2.0)   # נוצה
-	z.draw_line(head + Vector2(-3, -6), head + Vector2(-4, -13), col(Color("e0b030")), 2.0)
+		DrawBatch.circle(z, head + Vector2(2.5, 1.0), 1.4, Color(1.0, 0.8, 0.35))
+	DrawBatch.line(z, head + Vector2(-5, -5), head + Vector2(-9, -11), col(Color("2a6a4a")), 2.0)   # נוצה
+	DrawBatch.line(z, head + Vector2(-3, -6), head + Vector2(-4, -13), col(Color("e0b030")), 2.0)
 	if _wrap_anim > 0.0:   # מתעטף: רצועה מסתובבת
 		var a := _wrap_anim * 20.0
-		z.draw_arc(base + Vector2(0, -h * 0.4), w + 3.0, a, a + 2.5, 8, col(WRAP_COLS[clampi(wraps - 1, 0, 3)]), 3.0)
+		DrawBatch.arc(z, base + Vector2(0, -h * 0.4), w + 3.0, a, a + 2.5, 8, col(WRAP_COLS[clampi(wraps - 1, 0, 3)]), 3.0)
 	end_draw()
 	return true

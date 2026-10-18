@@ -603,16 +603,16 @@ func draw() -> bool:
 			xf = Transform2D(0.0, Vector2(0.0, dk * 62.0))
 	if z.is_on_floor() and state != DIVE:
 		Art.ground_shadow(z, Vector2.ZERO, 16.0 * z.wf * z.sc)
-	z.draw_set_transform_matrix(Transform2D(z.react_tilt(), Vector2(0.0, z.react_hop() * z.sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO) * xf)
+	DrawBatch.set_transform_matrix(z, Transform2D(z.react_tilt(), Vector2(0.0, z.react_hop() * z.sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO) * xf)
 	draw_body(z, pose, t, fl)
 	end_draw()
 	if state == DIVE:   # המים / הקרח מכסים אותו
 		var c := Color(0.03, 0.08, 0.14)
-		z.draw_rect(Rect2(-30.0, 0.0, 60.0, 70.0), c)
-		z.draw_rect(Rect2(-32.0, -2.0, 64.0, 3.0), Color(0.7, 0.9, 1.0, 0.8))
+		DrawBatch.rect(z, Rect2(-30.0, 0.0, 60.0, 70.0), c)
+		DrawBatch.rect(z, Rect2(-32.0, -2.0, 64.0, 3.0), Color(0.7, 0.9, 1.0, 0.8))
 		for q in 4:
 			var k := fmod(t * 2.0 + float(q) * 0.25, 1.0)
-			z.draw_circle(Vector2(sin(float(q) * 2.3) * 14.0, -k * 10.0), 1.5 + k * 2.0, Color(0.85, 0.95, 1.0, 0.7 * (1.0 - k)))
+			DrawBatch.circle(z, Vector2(sin(float(q) * 2.3) * 14.0, -k * 10.0), 1.5 + k * 2.0, Color(0.85, 0.95, 1.0, 0.7 * (1.0 - k)))
 	return true
 
 
@@ -623,16 +623,16 @@ func _draw_under(t: float) -> void:
 	var c := Color(0.02, 0.05, 0.1, a)
 	var dd: float = z._dir
 	var pts := PackedVector2Array([Vector2(-26 * dd, 18 + sw * 0.3), Vector2(-14 * dd, 13), Vector2(10 * dd, 12), Vector2(22 * dd, 15), Vector2(26 * dd, 18), Vector2(20 * dd, 22), Vector2(-12 * dd, 23), Vector2(-30 * dd, 20 - sw * 0.5)])
-	z.draw_colored_polygon(pts, c)
-	z.draw_colored_polygon(Art.ellipse(Vector2(-31.0 * dd, 18.0 + sw), 5.0, 2.4, 0.4 * dd, 8), c)   # סנפירים
-	z.draw_colored_polygon(Art.ellipse(Vector2(-31.0 * dd, 21.0 - sw), 5.0, 2.4, -0.4 * dd, 8), c)
+	DrawBatch.colored_polygon(z, pts, c)
+	DrawBatch.colored_polygon(z, Art.ellipse(Vector2(-31.0 * dd, 18.0 + sw), 5.0, 2.4, 0.4 * dd, 8), c)   # סנפירים
+	DrawBatch.colored_polygon(z, Art.ellipse(Vector2(-31.0 * dd, 21.0 - sw), 5.0, 2.4, -0.4 * dd, 8), c)
 	if absf(z.velocity.x) > 30.0:   # שובל בועות מתחת לקרח
 		for q in 4:
 			var k := fmod(t * 2.5 + float(q) * 0.25, 1.0)
-			z.draw_circle(Vector2(-dd * (28.0 + k * 30.0), 12.0 - k * 4.0), 1.2 + k, Color(0.8, 0.92, 1.0, 0.5 * (1.0 - k)))
+			DrawBatch.circle(z, Vector2(-dd * (28.0 + k * 30.0), 12.0 - k * 4.0), 1.2 + k, Color(0.8, 0.92, 1.0, 0.5 * (1.0 - k)))
 	elif fmod(_bub, 3.0) < 0.6:
 		var k2 := fmod(_bub, 3.0) / 0.6
-		z.draw_circle(Vector2(6.0 * dd, 12.0 - k2 * 8.0), 1.6, Color(0.85, 0.95, 1.0, 0.6 * (1.0 - k2)))
+		DrawBatch.circle(z, Vector2(6.0 * dd, 12.0 - k2 * 8.0), 1.6, Color(0.85, 0.95, 1.0, 0.6 * (1.0 - k2)))
 	if state == TELL:
 		var k3: float = clampf(1.0 - _st / TELL_T, 0.0, 1.0)
 		if _new_break:   # סדקים מתפשטים על הקרח
@@ -643,13 +643,13 @@ func _draw_under(t: float) -> void:
 				var p0 := Vector2.ZERO
 				var p1 := p0 + Vector2(cos(ang) * (8.0 + 22.0 * k3), sin(ang) * 3.0 * k3 + 2.0)
 				var p2 := p1 + Vector2(cos(ang + 0.4) * 12.0 * k3, 1.0)
-				z.draw_polyline(PackedVector2Array([p0, p1, p2]), Color(0.1, 0.25, 0.4, 0.85), 1.4)
-			z.draw_colored_polygon(Art.ellipse(Vector2(0, 2), 10.0 + 10.0 * k3, 3.0 + k3, 0.0, 12), Color(0.1, 0.25, 0.4, 0.4 * k3))
+				DrawBatch.polyline(z, PackedVector2Array([p0, p1, p2]), Color(0.1, 0.25, 0.4, 0.85), 1.4)
+			DrawBatch.colored_polygon(z, Art.ellipse(Vector2(0, 2), 10.0 + 10.0 * k3, 3.0 + k3, 0.0, 12), Color(0.1, 0.25, 0.4, 0.4 * k3))
 		for q in 8:
 			var k := fmod(t * 3.2 + float(q) / 8.0, 1.0)
 			var bx := sin(float(q) * 2.1 + t * 2.0) * 16.0
-			z.draw_circle(Vector2(bx, -k * 22.0 * (0.5 + k3)), 1.5 + k * 2.8, Color(0.88, 0.97, 1.0, 0.85 * (1.0 - k)))
-		z.draw_colored_polygon(Art.ellipse(Vector2(0, -1), 16.0 + 4.0 * sin(t * 30.0), 3.2, 0.0, 12), Color(0.75, 0.9, 1.0, 0.55 * k3 + 0.2))
+			DrawBatch.circle(z, Vector2(bx, -k * 22.0 * (0.5 + k3)), 1.5 + k * 2.8, Color(0.88, 0.97, 1.0, 0.85 * (1.0 - k)))
+		DrawBatch.colored_polygon(z, Art.ellipse(Vector2(0, -1), 16.0 + 4.0 * sin(t * 30.0), 3.2, 0.0, 12), Color(0.75, 0.9, 1.0, 0.55 * k3 + 0.2))
 
 
 # הגוף. pose: 0 הולך, 1 קפיצה (ההקפיק למעלה), 2 החלקה על הבטן (מסובב), 3 מוטל / מת, 4 נזרק המום, 5 קם, 6 חוצב, 7 צולל
@@ -712,7 +712,7 @@ func draw_body(ci: CanvasItem, pose: int, t: float, fl: bool) -> void:
 		var knee := Art.joint(hp, ft + Vector2(0, -3), 11.5, 11.5, 1.0)
 		Art.limb(ci, PackedVector2Array([hp, knee, ft + Vector2(0, -5)]), 6.6, Art.shade(trou, 0.25) if q == 0 else trou)
 		Art.fill(ci, PackedVector2Array([ft + Vector2(-3.5, -8.0), ft + Vector2(3.5, -8.0), ft + Vector2(7.5, -1.5), ft + Vector2(7.5, 0.5), ft + Vector2(-4.0, 0.5)]), boot, Art.OUTLINE, 1.0)
-		ci.draw_line(ft + Vector2(-4.0, -8.0), ft + Vector2(4.0, -8.0), Color.WHITE if fl else Color("d8d0c0"), 2.0)
+		DrawBatch.line(ci, ft + Vector2(-4.0, -8.0), ft + Vector2(4.0, -8.0), Color.WHITE if fl else Color("d8d0c0"), 2.0)
 	# יד אחורית
 	_arm(ci, sh + Vector2(-3, 1), hb, pelt_d, sk)
 	# גוף: פרוות כלב הים כמעיל עם "אוכף" כהה וכתמים
@@ -721,51 +721,51 @@ func draw_body(ci: CanvasItem, pose: int, t: float, fl: bool) -> void:
 	var r := RandomNumberGenerator.new()
 	r.seed = _seed
 	if _harp:   # "אוכף" בצורת נבל על הגב
-		ci.draw_colored_polygon(PackedVector2Array([sh + Vector2(-8, 2), sh + Vector2(-2, 3), hip + Vector2(-3, -4), hip + Vector2(-9, 3), hip + Vector2(-11, -2)]), Color(spots.r, spots.g, spots.b, 0.85))
+		DrawBatch.colored_polygon(ci, PackedVector2Array([sh + Vector2(-8, 2), sh + Vector2(-2, 3), hip + Vector2(-3, -4), hip + Vector2(-9, 3), hip + Vector2(-11, -2)]), Color(spots.r, spots.g, spots.b, 0.85))
 	for q in 7:
 		var sp := sh.lerp(hip, r.randf_range(0.1, 0.95)) + Vector2(r.randf_range(-7, 7), 0)
-		ci.draw_colored_polygon(Art.ellipse(sp, r.randf_range(0.8, 1.8), r.randf_range(0.6, 1.2), r.randf(), 6), Color(spots.r, spots.g, spots.b, 0.8))
+		DrawBatch.colored_polygon(ci, Art.ellipse(sp, r.randf_range(0.8, 1.8), r.randf_range(0.6, 1.2), r.randf(), 6), Color(spots.r, spots.g, spots.b, 0.8))
 	var belly := Color.WHITE if fl else _pelt.lightened(0.35)
-	ci.draw_colored_polygon(PackedVector2Array([sh + Vector2(3, 0), sh + Vector2(8, -1), hip + Vector2(8, 3), hip + Vector2(3, 4)]), Color(belly.r, belly.g, belly.b, 0.8))
-	ci.draw_line(hip + Vector2(-9, -3), hip + Vector2(8, -3), Color.WHITE if fl else Color("c03a20"), 2.4)   # חגורת חבל אדומה
+	DrawBatch.colored_polygon(ci, PackedVector2Array([sh + Vector2(3, 0), sh + Vector2(8, -1), hip + Vector2(8, 3), hip + Vector2(3, 4)]), Color(belly.r, belly.g, belly.b, 0.8))
+	DrawBatch.line(ci, hip + Vector2(-9, -3), hip + Vector2(8, -3), Color.WHITE if fl else Color("c03a20"), 2.4)   # חגורת חבל אדומה
 	# מים מטפטפים
 	if not fl and pose != 7:
 		for q in 3:
 			var k := fmod(t * 1.3 + float(q) * 0.33, 1.0)
-			ci.draw_circle(hip + Vector2(-6.0 + float(q) * 6.0, 2.0 + k * 20.0), 1.0, Color(0.7, 0.9, 1.0, 0.7 * (1.0 - k)))
+			DrawBatch.circle(ci, hip + Vector2(-6.0 + float(q) * 6.0, 2.0 + k * 20.0), 1.0, Color(0.7, 0.9, 1.0, 0.7 * (1.0 - k)))
 	# ראש: פנים כחלחלות, זקן קפוא, ומעליו ראש כלב הים (ברדס) עם עיניים שחורות ושפם
 	var head := sh + Vector2(2.5, -7.5)
 	Art.disc(ci, head, 6.2, sk)
-	ci.draw_colored_polygon(Art.ellipse(head + Vector2(3.5, -0.5), 1.6, 1.2, 0.0, 8), Color(0.08, 0.03, 0.05))
+	DrawBatch.colored_polygon(ci, Art.ellipse(head + Vector2(3.5, -0.5), 1.6, 1.2, 0.0, 8), Color(0.08, 0.03, 0.05))
 	if not fl and pose != 3:
 		Art.glow(ci, head + Vector2(3.6, -0.5), 3.0, Color(0.6, 0.9, 1.0, 0.45))
 	var bc := Color.WHITE if fl else _beard
-	ci.draw_colored_polygon(PackedVector2Array([head + Vector2(-3, 1), head + Vector2(6.5, 2.5), head + Vector2(5, 8.5), head + Vector2(0, 9), head + Vector2(-3, 5)]), bc)
+	DrawBatch.colored_polygon(ci, PackedVector2Array([head + Vector2(-3, 1), head + Vector2(6.5, 2.5), head + Vector2(5, 8.5), head + Vector2(0, 9), head + Vector2(-3, 5)]), bc)
 	for q in 4:   # נטיפי קרח בזקן
-		ci.draw_line(head + Vector2(-1.0 + float(q) * 1.8, 8.0), head + Vector2(-0.8 + float(q) * 1.8, 11.0 + float(q % 2)), Color(0.85, 0.96, 1.0, 0.85), 0.9)
-	ci.draw_colored_polygon(PackedVector2Array([head + Vector2(2.0, 3.0), head + Vector2(5.8, 2.6), head + Vector2(5.2, 4.6), head + Vector2(2.4, 4.6)]), Color(0.15, 0.05, 0.1))
+		DrawBatch.line(ci, head + Vector2(-1.0 + float(q) * 1.8, 8.0), head + Vector2(-0.8 + float(q) * 1.8, 11.0 + float(q % 2)), Color(0.85, 0.96, 1.0, 0.85), 0.9)
+	DrawBatch.colored_polygon(ci, PackedVector2Array([head + Vector2(2.0, 3.0), head + Vector2(5.8, 2.6), head + Vector2(5.2, 4.6), head + Vector2(2.4, 4.6)]), Color(0.15, 0.05, 0.1))
 	# ברדס: ראש כלב הים
 	var hood := PackedVector2Array([head + Vector2(-8, 6), head + Vector2(-9, -3), head + Vector2(-5, -9), head + Vector2(3, -10), head + Vector2(9, -8), head + Vector2(14, -5.5), head + Vector2(14.5, -3.5), head + Vector2(8, -3), head + Vector2(3, -4.5), head + Vector2(-3, -3), head + Vector2(-4, 5)])
 	Art.fill_shaded(ci, hood, pelt, 0.15, 0.3)
-	ci.draw_colored_polygon(Art.ellipse(head + Vector2(14.0, -4.6), 1.4, 1.0, 0.0, 8), Color.WHITE if fl else Color("1a1a1e"))   # אף הכלב
-	ci.draw_colored_polygon(Art.ellipse(head + Vector2(6.5, -7.0), 1.8, 1.6, 0.0, 8), Color.WHITE if fl else Color("101014"))   # עין הכלב
-	ci.draw_circle(head + Vector2(6.9, -7.4), 0.5, Color(1, 1, 1, 0.8))
+	DrawBatch.colored_polygon(ci, Art.ellipse(head + Vector2(14.0, -4.6), 1.4, 1.0, 0.0, 8), Color.WHITE if fl else Color("1a1a1e"))   # אף הכלב
+	DrawBatch.colored_polygon(ci, Art.ellipse(head + Vector2(6.5, -7.0), 1.8, 1.6, 0.0, 8), Color.WHITE if fl else Color("101014"))   # עין הכלב
+	DrawBatch.circle(ci, head + Vector2(6.9, -7.4), 0.5, Color(1, 1, 1, 0.8))
 	for q in 3:   # שפם
-		ci.draw_line(head + Vector2(13.0, -4.0 + float(q) * 0.8), head + Vector2(17.5, -5.0 + float(q) * 1.6), Color(0.9, 0.9, 0.85, 0.7), 0.6)
+		DrawBatch.line(ci, head + Vector2(13.0, -4.0 + float(q) * 0.8), head + Vector2(17.5, -5.0 + float(q) * 1.6), Color(0.9, 0.9, 0.85, 0.7), 0.6)
 	if _harp:
-		ci.draw_colored_polygon(Art.ellipse(head + Vector2(4.0, -8.0), 4.0, 1.6, 0.1, 8), Color(spots.r, spots.g, spots.b, 0.7))
+		DrawBatch.colored_polygon(ci, Art.ellipse(head + Vector2(4.0, -8.0), 4.0, 1.6, 0.1, 8), Color(spots.r, spots.g, spots.b, 0.7))
 	# יד קדמית + ההקפיק
 	_arm(ci, sh + Vector2(4, 1), hf, pelt, sk)
 	var ca := club_a
 	var cd := Vector2.from_angle(ca - PI / 2.0)
 	var tip := hf + cd * 24.0
-	ci.draw_line(hf - cd * 6.0, tip, Color.WHITE if fl else Color("7a5a32"), 2.4)
+	DrawBatch.line(ci, hf - cd * 6.0, tip, Color.WHITE if fl else Color("7a5a32"), 2.4)
 	var cn := Vector2(-cd.y, cd.x)
 	var ch := Color.WHITE if fl else _club_head
 	Art.fill(ci, PackedVector2Array([tip - cn * 3.5 - cd * 2.0, tip + cn * 2.0 - cd * 2.0, tip + cn * 2.0 + cd * 2.0, tip - cn * 3.5 + cd * 2.0]), ch, Art.OUTLINE, 0.9)
-	ci.draw_polyline(PackedVector2Array([tip + cn * 2.0, tip + cn * 6.0 + cd * 1.0, tip + cn * 7.0 - cd * 2.0]), ch, 1.6)   # הוו
+	DrawBatch.polyline(ci, PackedVector2Array([tip + cn * 2.0, tip + cn * 6.0 + cd * 1.0, tip + cn * 7.0 - cd * 2.0]), ch, 1.6)   # הוו
 	if not fl:
-		ci.draw_circle(tip + cn * 6.5, 0.9, Color(0.6, 0.05, 0.05, 0.8))
+		DrawBatch.circle(ci, tip + cn * 6.5, 0.9, Color(0.6, 0.05, 0.05, 0.8))
 
 
 func _arm(ci: CanvasItem, s: Vector2, h: Vector2, sleeve: Color, sk: Color) -> void:
@@ -805,8 +805,8 @@ class Bubbles extends Node2D:
 		for q in 8:
 			var k := fmod(_t * 3.2 + float(q) / 8.0, 1.0)
 			var bx := sin(float(q) * 2.1 + _t * 2.0) * 16.0
-			draw_circle(Vector2(bx, -k * 22.0), 1.5 + k * 2.8, Color(0.88, 0.97, 1.0, 0.85 * (1.0 - k) * a))
-		draw_colored_polygon(Art.ellipse(Vector2(0, -1), 16.0 + 4.0 * sin(_t * 30.0), 3.2, 0.0, 12), Color(0.75, 0.9, 1.0, 0.5 * a))
+			DrawBatch.circle(self, Vector2(bx, -k * 22.0), 1.5 + k * 2.8, Color(0.88, 0.97, 1.0, 0.85 * (1.0 - k) * a))
+		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -1), 16.0 + 4.0 * sin(_t * 30.0), 3.2, 0.0, 12), Color(0.75, 0.9, 1.0, 0.5 * a))
 
 
 # ---- חור שהוא שבר בקרח (נקפא מחדש אחרי REFREEZE) ----
@@ -852,16 +852,16 @@ class IceBreak extends Node2D:
 	func _draw() -> void:
 		var fz := clampf((_t - REFREEZE + 2.0) / 2.0, 0.0, 1.0)   # קופא מחדש
 		var a := 1.0 - fz
-		draw_colored_polygon(Art.ellipse(Vector2(0, 2), W * 0.7, 6.0, 0.0, 16), Color(0.75, 0.88, 0.96, a))
-		draw_colored_polygon(Art.ellipse(Vector2(0, 2), W * 0.5, 4.2, 0.0, 16), Color(0.03, 0.08, 0.14, a))
-		draw_colored_polygon(Art.ellipse(Vector2(-4, 1), W * 0.3, 1.4, 0.0, 10), Color(0.3, 0.5, 0.65, 0.6 * a))
+		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, 2), W * 0.7, 6.0, 0.0, 16), Color(0.75, 0.88, 0.96, a))
+		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, 2), W * 0.5, 4.2, 0.0, 16), Color(0.03, 0.08, 0.14, a))
+		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(-4, 1), W * 0.3, 1.4, 0.0, 10), Color(0.3, 0.5, 0.65, 0.6 * a))
 		for s in _shards:   # גושי קרח שבורים סביב
 			var p := Vector2(float(s[0]), -1.0)
 			var r := float(s[1])
-			draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.5, 2), p + Vector2(-r * 0.3, -r * 0.5), p + Vector2(r * 0.4, -r * 0.6), p + Vector2(r * 0.5, 2)]), Color(0.85, 0.95, 1.0, a))
-			draw_line(p + Vector2(-r * 0.3, -r * 0.5), p + Vector2(r * 0.4, -r * 0.6), Color(1, 1, 1, a), 1.2)
+			DrawBatch.colored_polygon(self, PackedVector2Array([p + Vector2(-r * 0.5, 2), p + Vector2(-r * 0.3, -r * 0.5), p + Vector2(r * 0.4, -r * 0.6), p + Vector2(r * 0.5, 2)]), Color(0.85, 0.95, 1.0, a))
+			DrawBatch.line(self, p + Vector2(-r * 0.3, -r * 0.5), p + Vector2(r * 0.4, -r * 0.6), Color(1, 1, 1, a), 1.2)
 		if _splash > 0.0:
 			for q in 7:
 				var ang := -PI / 2.0 + (float(q) - 3.0) * 0.32
 				var rr := (1.0 - _splash) * 50.0 + 6.0
-				draw_circle(Vector2.from_angle(ang) * rr * Vector2(0.9, 1.3), 3.0 + _splash * 3.0, Color(0.9, 0.97, 1.0, 0.75 * _splash))
+				DrawBatch.circle(self, Vector2.from_angle(ang) * rr * Vector2(0.9, 1.3), 3.0 + _splash * 3.0, Color(0.9, 0.97, 1.0, 0.75 * _splash))

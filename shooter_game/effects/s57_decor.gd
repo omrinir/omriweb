@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")   # כל הציור של זומבי ב-draw call אחד
 # ============================================================
 #  קישוטים לשלב 57 ("PENGUIN COAST") - אזור שביעי (פטגוניה), שלב 3. "THEY LEARNED TO BE MANY".
 #  חוף קר וסוער בסוף העולם: מושבת פינגווינים, חוף חלוקים, אצות ענק, מגדלור אדום-לבן ישן, תחנת ציד לווייתנים הרוסה.
@@ -190,22 +191,22 @@ static func far_coast(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float)
 			if q % 2 == 1:
 				peaks.append(Vector2(px, sea_top - hh))
 		ridge.append(Vector2(bx + period, sea_top))
-		ci.draw_colored_polygon(ridge, Color("7c8a9a"))
+		DrawBatch.colored_polygon(ci, ridge, Color("7c8a9a"))
 		for pk: Vector2 in peaks:
-			ci.draw_colored_polygon(PackedVector2Array([pk, pk + Vector2(38, 34), pk + Vector2(16, 28), pk + Vector2(2, 40), pk + Vector2(-14, 27), pk + Vector2(-36, 34)]), Color("e4e8ec"))
-			ci.draw_line(pk, pk + Vector2(36, 33), Color(0.5, 0.56, 0.66, 0.5), 1.4)
+			DrawBatch.colored_polygon(ci, PackedVector2Array([pk, pk + Vector2(38, 34), pk + Vector2(16, 28), pk + Vector2(2, 40), pk + Vector2(-14, 27), pk + Vector2(-36, 34)]), Color("e4e8ec"))
+			DrawBatch.line(ci, pk, pk + Vector2(36, 33), Color(0.5, 0.56, 0.66, 0.5), 1.4)
 		# צוק כהה קרוב יותר עם מגדלור קטן
 		var cx := bx + 1300.0
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(cx - 220, sea_top), Vector2(cx - 150, sea_top - 46), Vector2(cx - 40, sea_top - 70), Vector2(cx + 60, sea_top - 66), Vector2(cx + 110, sea_top - 30), Vector2(cx + 160, sea_top)]), Color("4e5866"))
-		ci.draw_line(Vector2(cx - 40, sea_top - 70), Vector2(cx + 60, sea_top - 66), Color(0.8, 0.84, 0.88, 0.4), 1.5)
-		ci.draw_rect(Rect2(cx + 6.0, sea_top - 98.0, 8.0, 30.0), Color("d8d4cc"))
-		ci.draw_rect(Rect2(cx + 6.0, sea_top - 88.0, 8.0, 5.0), Color("a83a30"))
-		ci.draw_rect(Rect2(cx + 4.0, sea_top - 104.0, 12.0, 6.0), Color("3a3e46"))
+		DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(cx - 220, sea_top), Vector2(cx - 150, sea_top - 46), Vector2(cx - 40, sea_top - 70), Vector2(cx + 60, sea_top - 66), Vector2(cx + 110, sea_top - 30), Vector2(cx + 160, sea_top)]), Color("4e5866"))
+		DrawBatch.line(ci, Vector2(cx - 40, sea_top - 70), Vector2(cx + 60, sea_top - 66), Color(0.8, 0.84, 0.88, 0.4), 1.5)
+		DrawBatch.rect(ci, Rect2(cx + 6.0, sea_top - 98.0, 8.0, 30.0), Color("d8d4cc"))
+		DrawBatch.rect(ci, Rect2(cx + 6.0, sea_top - 88.0, 8.0, 5.0), Color("a83a30"))
+		DrawBatch.rect(ci, Rect2(cx + 4.0, sea_top - 104.0, 12.0, 6.0), Color("3a3e46"))
 		var blink := 0.5 + 0.5 * sin(t * 2.2 + float(k))
 		Kit.soft_glow(ci, Vector2(cx + 10.0, sea_top - 101.0), 18.0 + 14.0 * blink, Color(1.0, 0.9, 0.6, 0.5 * blink))
 	# הים הרחוק
-	ci.draw_rect(Rect2(0, sea_top, v.x, v.y - sea_top), Color("5a7280"))
-	ci.draw_line(Vector2(0, sea_top), Vector2(v.x, sea_top), Color(0.86, 0.9, 0.92, 0.5), 1.5)
+	DrawBatch.rect(ci, Rect2(0, sea_top, v.x, v.y - sea_top), Color("5a7280"))
+	DrawBatch.line(ci, Vector2(0, sea_top), Vector2(v.x, sea_top), Color(0.86, 0.9, 0.92, 0.5), 1.5)
 	var pts := PackedVector2Array()
 	var cols := PackedColorArray()
 	for i in 40:   # נצנוצים על המים
@@ -232,11 +233,11 @@ static func far_coast(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float)
 		var sy := sea_top + 22.0
 		if sx < -200.0 or sx > v.x + 200.0:
 			continue
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(sx - 80, sy - 6), Vector2(sx + 70, sy - 20), Vector2(sx + 86, sy - 4), Vector2(sx - 60, sy + 4)]), Color("4a3a34"))
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(sx - 30, sy - 12), Vector2(sx + 10, sy - 18), Vector2(sx + 12, sy - 34), Vector2(sx - 26, sy - 28)]), Color("5a4a42"))
-		ci.draw_line(Vector2(sx - 10, sy - 30), Vector2(sx - 22, sy - 74), Color("3a302c"), 2.5)
-		ci.draw_line(Vector2(sx + 40, sy - 16), Vector2(sx + 34, sy - 52), Color("3a302c"), 2.0)
-		ci.draw_line(Vector2(sx - 22, sy - 74), Vector2(sx + 34, sy - 52), Color("3a302c"), 0.8)
+		DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(sx - 80, sy - 6), Vector2(sx + 70, sy - 20), Vector2(sx + 86, sy - 4), Vector2(sx - 60, sy + 4)]), Color("4a3a34"))
+		DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(sx - 30, sy - 12), Vector2(sx + 10, sy - 18), Vector2(sx + 12, sy - 34), Vector2(sx - 26, sy - 28)]), Color("5a4a42"))
+		DrawBatch.line(ci, Vector2(sx - 10, sy - 30), Vector2(sx - 22, sy - 74), Color("3a302c"), 2.5)
+		DrawBatch.line(ci, Vector2(sx + 40, sy - 16), Vector2(sx + 34, sy - 52), Color("3a302c"), 2.0)
+		DrawBatch.line(ci, Vector2(sx - 22, sy - 74), Vector2(sx + 34, sy - 52), Color("3a302c"), 0.8)
 		Kit.soft_smoke(ci, Vector2(sx - 4, sy - 36), t, 120.0, Color(0.36, 0.38, 0.42, 0.2), -90.0, 6)
 
 
@@ -247,7 +248,7 @@ static func mid_bay(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -
 	var span := v.y - top
 	for i in bands:
 		var k2 := float(i) / float(bands - 1)
-		ci.draw_rect(Rect2(0, top + span * float(i) / float(bands - 1) - 1.0, v.x, span / float(bands - 1) + 2.0), Color("5c7684").lerp(SEA_D, pow(k2, 0.8)))
+		DrawBatch.rect(ci, Rect2(0, top + span * float(i) / float(bands - 1) - 1.0, v.x, span / float(bands - 1) + 2.0), Color("5c7684").lerp(SEA_D, pow(k2, 0.8)))
 	var pts := PackedVector2Array()
 	var cols := PackedColorArray()
 	# מסדרי גלים שמתגלגלים אל החוף (קווי קצף שזזים למטה ומתבהרים)
@@ -274,8 +275,8 @@ static func mid_bay(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -
 		var rx := float(k) * period - sc + 200.0 + _h(k, 12) * 500.0
 		var ry := top + 46.0 + _h(k, 13) * 40.0
 		var rw := 90.0 + _h(k, 14) * 90.0
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(rx - rw * 0.5, ry + 8), Vector2(rx - rw * 0.4, ry - 14), Vector2(rx - rw * 0.1, ry - 24), Vector2(rx + rw * 0.2, ry - 20), Vector2(rx + rw * 0.45, ry - 8), Vector2(rx + rw * 0.5, ry + 8)]), Color("3a4048"))
-		ci.draw_line(Vector2(rx - rw * 0.1, ry - 24), Vector2(rx + rw * 0.2, ry - 20), Color(0.85, 0.85, 0.8, 0.5), 2.0)   # גואנו
+		DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(rx - rw * 0.5, ry + 8), Vector2(rx - rw * 0.4, ry - 14), Vector2(rx - rw * 0.1, ry - 24), Vector2(rx + rw * 0.2, ry - 20), Vector2(rx + rw * 0.45, ry - 8), Vector2(rx + rw * 0.5, ry + 8)]), Color("3a4048"))
+		DrawBatch.line(ci, Vector2(rx - rw * 0.1, ry - 24), Vector2(rx + rw * 0.2, ry - 20), Color(0.85, 0.85, 0.8, 0.5), 2.0)   # גואנו
 		pts = PackedVector2Array()
 		cols = PackedColorArray()
 		for q in 6:   # תושבי הסלע
@@ -295,11 +296,11 @@ static func mid_bay(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -
 		if bph < 1.2:
 			var hh := sin(bph / 1.2 * PI) * 30.0
 			Kit.soft_glow(ci, Vector2(rx - rw * 0.4, ry - hh * 0.5), 26.0 + bph * 22.0, Color(0.94, 0.97, 1.0, 0.55 * (1.0 - bph / 1.2)), 0.8)
-		ci.draw_line(Vector2(rx - rw * 0.55, ry + 9.0), Vector2(rx + rw * 0.55, ry + 9.0), Color(0.9, 0.95, 1.0, 0.45 + 0.2 * sin(t * 2.0 + float(k))), 2.0)
+		DrawBatch.line(ci, Vector2(rx - rw * 0.55, ry + 9.0), Vector2(rx + rw * 0.55, ry + 9.0), Color(0.9, 0.95, 1.0, 0.45 + 0.2 * sin(t * 2.0 + float(k))), 2.0)
 		# יער אצות על פני המים
 		for q in 5:
 			var kx := rx + rw * 0.8 + float(q) * 22.0 + sin(t * 0.8 + float(q)) * 3.0
-			ci.draw_line(Vector2(kx, ry + 18.0), Vector2(kx + 9.0, ry + 20.0 + sin(t + float(q)) * 2.0), Color(0.4, 0.38, 0.16, 0.7), 2.0)
+			DrawBatch.line(ci, Vector2(kx, ry + 18.0), Vector2(kx + 9.0, ry + 20.0 + sin(t + float(q)) * 2.0), Color(0.4, 0.38, 0.16, 0.7), 2.0)
 	# נחיל ציפורים רחוק שמשנה צורה (רמז)
 	var fx := fposmod(t * 22.0 - sc * 0.3, v.x + 800.0) - 400.0
 	var fy := top - 70.0 + sin(t * 0.3) * 30.0
@@ -348,7 +349,7 @@ static func chorus_face(ci: CanvasItem, v: Vector2, t: float) -> void:
 		for s2: float in [-1.0, 1.0]:
 			var e := c + Vector2(s2 * 62.0, -40.0)
 			Kit.soft_glow(ci, e, 26.0, Color(1.0, 0.18, 0.12, 0.45 * ea))
-			ci.draw_circle(e, 3.0, Color(1.0, 0.4, 0.3, ea))
+			DrawBatch.circle(ci, e, 3.0, Color(1.0, 0.4, 0.3, ea))
 
 
 # נקודה בפנים (יחסית למרכז): קו לסת / גולגולת, גבות, עיניים, אף, פה שזז
@@ -395,7 +396,7 @@ static func near_shore(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float
 		for q in 10:
 			bank.append(Vector2(bx + float(q) * 100.0, base - 34.0 - _h(k * 11 + q, 1) * 26.0))
 		bank.append(Vector2(bx + period, base + 30.0))
-		ci.draw_colored_polygon(bank, Color("5e5850"))
+		DrawBatch.colored_polygon(ci, bank, Color("5e5850"))
 		for q in 40:   # חלוקים על הסוללה
 			var px := bx + _h(k * 41 + q, 2) * period
 			var py := base - 10.0 - _h(k * 41 + q, 3) * 26.0
@@ -419,18 +420,18 @@ static func near_shore(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float
 				for q in 7:
 					var u := float(q) / 6.0
 					pr.append(Vector2(rx + sin(u * 2.4) * 22.0, base - 26.0 - u * rh))
-				ci.draw_polyline(pr, BONE_D, 6.0)
-				ci.draw_polyline(pr, BONE, 3.0)
+				DrawBatch.polyline(ci, pr, BONE_D, 6.0)
+				DrawBatch.polyline(ci, pr, BONE, 3.0)
 		else:   # סירת משוטים הפוכה + שרשרת עוגן
 			var bx2 := bx + 420.0
-			ci.draw_colored_polygon(PackedVector2Array([Vector2(bx2 - 60, base - 30), Vector2(bx2 - 50, base - 52), Vector2(bx2 + 40, base - 54), Vector2(bx2 + 66, base - 34)]), Color("6a4030"))
-			ci.draw_line(Vector2(bx2 - 50, base - 52), Vector2(bx2 + 40, base - 54), Color("a86a44"), 2.0)
+			DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(bx2 - 60, base - 30), Vector2(bx2 - 50, base - 52), Vector2(bx2 + 40, base - 54), Vector2(bx2 + 66, base - 34)]), Color("6a4030"))
+			DrawBatch.line(ci, Vector2(bx2 - 50, base - 52), Vector2(bx2 + 40, base - 54), Color("a86a44"), 2.0)
 			for q in 4:
-				ci.draw_line(Vector2(bx2 - 40 + float(q) * 25.0, base - 52), Vector2(bx2 - 44 + float(q) * 27.0, base - 31), Color("4a2a20"), 1.2)
+				DrawBatch.line(ci, Vector2(bx2 - 40 + float(q) * 25.0, base - 52), Vector2(bx2 - 44 + float(q) * 27.0, base - 31), Color("4a2a20"), 1.2)
 			var ch := PackedVector2Array()
 			for q in 12:
 				ch.append(Vector2(bx2 + 80.0 + float(q) * 9.0, base - 28.0 + sin(float(q) * 0.6) * 4.0))
-			ci.draw_polyline(ch, Color("5a3020"), 3.0)
+			DrawBatch.polyline(ci, ch, Color("5a3020"), 3.0)
 		# מחילות פינגווינים: חור כהה, ראש מציץ ונעלם
 		for q in 3:
 			var hx := bx + 150.0 + float(q) * 290.0
@@ -443,7 +444,7 @@ static func near_shore(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float
 				U.quad(pts, cols, Vector2(hx - 3.2, hy - up - 1.0), Vector2(hx + 3.2, hy - up - 1.0), Vector2(hx + 3.0, hy - up + 0.4), Vector2(hx - 3.0, hy - up + 0.4), Color("e8e6e0"), Color("e8e6e0"), Color("e8e6e0"), Color("e8e6e0"))
 				U.tri(pts, cols, Vector2(hx + 2.5, hy - up - 1.5), Vector2(hx + 7.0, hy - up - 0.6), Vector2(hx + 2.5, hy - up + 0.2), Color("2a2a2a"))
 	U.flush(ci, pts, cols)
-	ci.draw_rect(Rect2(0, base + 12.0, v.x, v.y - base), Color("4a4640"))
+	DrawBatch.rect(ci, Rect2(0, base + 12.0, v.x, v.y - base), Color("4a4640"))
 	# שחפים הולכים על הסוללה (בלי קשר לגלילה, הולכים לאט)
 	pts = PackedVector2Array()
 	cols = PackedColorArray()
@@ -456,8 +457,8 @@ static func near_shore(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float
 		U.oval(pts, cols, Vector2(gx + 5.0, gy - 10.0), 2.4, 2.2, Color("f4f4f2"), 6)
 		U.tri(pts, cols, Vector2(gx + 6.5, gy - 10.5), Vector2(gx + 10.5, gy - 9.8), Vector2(gx + 6.5, gy - 9.2), Color("e8b030"))
 		U.tri(pts, cols, Vector2(gx - 4.0, gy - 7.0), Vector2(gx - 10.0, gy - 8.0), Vector2(gx - 4.0, gy - 5.0), Color("1e2024"))
-		ci.draw_line(Vector2(gx, gy - 3.0), Vector2(gx - 1.0 + step, gy), Color("c08040"), 1.0)
-		ci.draw_line(Vector2(gx + 2.0, gy - 3.0), Vector2(gx + 2.0 - step, gy), Color("c08040"), 1.0)
+		DrawBatch.line(ci, Vector2(gx, gy - 3.0), Vector2(gx - 1.0 + step, gy), Color("c08040"), 1.0)
+		DrawBatch.line(ci, Vector2(gx + 2.0, gy - 3.0), Vector2(gx + 2.0 - step, gy), Color("c08040"), 1.0)
 	U.flush(ci, pts, cols)
 
 
@@ -483,11 +484,11 @@ class BeachGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
-		draw_rect(Rect2(0, 0, w, depth), Color("2e2a26"))
-		draw_rect(Rect2(0, 0, w, 14.0), SAND)
-		draw_rect(Rect2(0, 10.0, w, 6.0), SAND_D)
-		draw_rect(Rect2(0, 16.0, w, 26.0), SAND_WET)
-		draw_rect(Rect2(0, 0, w, 1.6), Color(0.92, 0.92, 0.86, 0.6))
+		DrawBatch.rect(self, Rect2(0, 0, w, depth), Color("2e2a26"))
+		DrawBatch.rect(self, Rect2(0, 0, w, 14.0), SAND)
+		DrawBatch.rect(self, Rect2(0, 10.0, w, 6.0), SAND_D)
+		DrawBatch.rect(self, Rect2(0, 16.0, w, 26.0), SAND_WET)
+		DrawBatch.rect(self, Rect2(0, 0, w, 1.6), Color(0.92, 0.92, 0.86, 0.6))
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var pts := PackedVector2Array()
@@ -511,7 +512,7 @@ class BeachGround extends Node2D:
 			U.oval(pts, cols, p, r.randf_range(12.0, 30.0), 1.6, Color(0.7, 0.78, 0.82, 0.3), 8)
 		U.flush(self, pts, cols)
 		for i in int(w / 26.0):
-			draw_circle(Vector2(r.randf_range(0.0, w), r.randf_range(46.0, depth - 6.0)), r.randf_range(1.5, 3.5), Color("3a3530"))
+			DrawBatch.circle(self, Vector2(r.randf_range(0.0, w), r.randf_range(46.0, depth - 6.0)), r.randf_range(1.5, 3.5), Color("3a3530"))
 
 
 # ============================================================
@@ -898,21 +899,21 @@ class Lighthouse extends Node2D:
 		var hx1 := house.y
 		var ht := house_tier
 		# בית השומר: קירות לבנים מכוסים חזזית, גג שטוח עם מעקה, חלונות, דלת
-		draw_rect(Rect2(hx0, -ht, hx1 - hx0, ht), Color("c8c0b0"))
-		draw_rect(Rect2(hx0, -ht, hx1 - hx0, ht), Color("6a6458"), false, 2.0)
-		draw_rect(Rect2(hx0, -40.0, hx1 - hx0, 40.0), Color("a89e8a"))
+		DrawBatch.rect(self, Rect2(hx0, -ht, hx1 - hx0, ht), Color("c8c0b0"))
+		DrawBatch.rect(self, Rect2(hx0, -ht, hx1 - hx0, ht), Color("6a6458"), false, 2.0)
+		DrawBatch.rect(self, Rect2(hx0, -40.0, hx1 - hx0, 40.0), Color("a89e8a"))
 		for q in int((hx1 - hx0) / 22.0):
-			draw_line(Vector2(hx0 + 4.0 + float(q) * 22.0, -ht + 6.0), Vector2(hx0 + 8.0 + float(q) * 22.0, -ht + 30.0 + float(q % 3) * 12.0), Color(0.45, 0.4, 0.3, 0.35), 3.0)   # כתמי רטיבות
-		draw_rect(Rect2(hx0 - 6.0, -ht - 8.0, hx1 - hx0 + 12.0, 10.0), RED_LH.darkened(0.3))
+			DrawBatch.line(self, Vector2(hx0 + 4.0 + float(q) * 22.0, -ht + 6.0), Vector2(hx0 + 8.0 + float(q) * 22.0, -ht + 30.0 + float(q % 3) * 12.0), Color(0.45, 0.4, 0.3, 0.35), 3.0)   # כתמי רטיבות
+		DrawBatch.rect(self, Rect2(hx0 - 6.0, -ht - 8.0, hx1 - hx0 + 12.0, 10.0), RED_LH.darkened(0.3))
 		for q in 2:
 			var wx := hx0 + 30.0 + float(q) * 100.0
-			draw_rect(Rect2(wx, -ht + 34.0, 34.0, 40.0), Color("2a3036"))
-			draw_rect(Rect2(wx, -ht + 34.0, 34.0, 40.0), Color("eae6dc"), false, 3.0)
-			draw_line(Vector2(wx + 17.0, -ht + 34.0), Vector2(wx + 17.0, -ht + 74.0), Color("eae6dc"), 2.0)
+			DrawBatch.rect(self, Rect2(wx, -ht + 34.0, 34.0, 40.0), Color("2a3036"))
+			DrawBatch.rect(self, Rect2(wx, -ht + 34.0, 34.0, 40.0), Color("eae6dc"), false, 3.0)
+			DrawBatch.line(self, Vector2(wx + 17.0, -ht + 34.0), Vector2(wx + 17.0, -ht + 74.0), Color("eae6dc"), 2.0)
 			var lit := 0.55 + 0.45 * sin(_t * 1.3 + float(q))
-			draw_rect(Rect2(wx + 2.0, -ht + 36.0, 13.0, 36.0), Color(1.0, 0.8, 0.45, 0.25 * lit))
-		draw_rect(Rect2(hx1 - 70.0, -64.0, 30.0, 64.0), RED_LH.darkened(0.25))
-		draw_circle(Vector2(hx1 - 46.0, -32.0), 2.0, Color("d8c070"))
+			DrawBatch.rect(self, Rect2(wx + 2.0, -ht + 36.0, 13.0, 36.0), Color(1.0, 0.8, 0.45, 0.25 * lit))
+		DrawBatch.rect(self, Rect2(hx1 - 70.0, -64.0, 30.0, 64.0), RED_LH.darkened(0.25))
+		DrawBatch.circle(self, Vector2(hx1 - 46.0, -32.0), 2.0, Color("d8c070"))
 		# המגדל: פסים אדומים-לבנים, צר למעלה
 		var b0 := 46.0
 		var b1 := 34.0
@@ -923,46 +924,46 @@ class Lighthouse extends Node2D:
 			var w0 := lerpf(b0, b1, float(q) / float(stripes))
 			var w1 := lerpf(b0, b1, float(q + 1) / float(stripes))
 			var c := RED_LH if q % 2 == 0 else WHITE_LH
-			draw_colored_polygon(PackedVector2Array([Vector2(-w0, y0), Vector2(w0, y0), Vector2(w1, y1), Vector2(-w1, y1)]), c)
-			draw_colored_polygon(PackedVector2Array([Vector2(w0 * 0.35, y0), Vector2(w0, y0), Vector2(w1, y1), Vector2(w1 * 0.35, y1)]), Color(0, 0, 0, 0.14))   # צל עגול
-			draw_colored_polygon(PackedVector2Array([Vector2(-w0 * 0.75, y0), Vector2(-w0 * 0.45, y0), Vector2(-w1 * 0.45, y1), Vector2(-w1 * 0.75, y1)]), Color(1, 1, 1, 0.12))
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-w0, y0), Vector2(w0, y0), Vector2(w1, y1), Vector2(-w1, y1)]), c)
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(w0 * 0.35, y0), Vector2(w0, y0), Vector2(w1, y1), Vector2(w1 * 0.35, y1)]), Color(0, 0, 0, 0.14))   # צל עגול
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-w0 * 0.75, y0), Vector2(-w0 * 0.45, y0), Vector2(-w1 * 0.45, y1), Vector2(-w1 * 0.75, y1)]), Color(1, 1, 1, 0.12))
 		for q in 3:   # חלונות קטנים במגדל
 			var wy := -g * (0.25 + float(q) * 0.25)
-			draw_rect(Rect2(-5.0, wy - 10.0, 10.0, 16.0), Color("1e2228"))
+			DrawBatch.rect(self, Rect2(-5.0, wy - 10.0, 10.0, 16.0), Color("1e2228"))
 		for q in 5:   # חלודה שזולגת
 			var rx := -30.0 + float(q) * 14.0
-			draw_line(Vector2(rx, -g + 4.0), Vector2(rx + 1.0, -g + 30.0 + float(q % 3) * 20.0), Color(0.5, 0.25, 0.12, 0.35), 2.0)
+			DrawBatch.line(self, Vector2(rx, -g + 4.0), Vector2(rx + 1.0, -g + 30.0 + float(q % 3) * 20.0), Color(0.5, 0.25, 0.12, 0.35), 2.0)
 		# מרפסת (הקומה) + מעקה
-		draw_rect(Rect2(-62.0, -g, 124.0, 9.0), Color("3a3c40"))
-		draw_rect(Rect2(-62.0, -g, 124.0, 2.0), Color("8a9098"))
+		DrawBatch.rect(self, Rect2(-62.0, -g, 124.0, 9.0), Color("3a3c40"))
+		DrawBatch.rect(self, Rect2(-62.0, -g, 124.0, 2.0), Color("8a9098"))
 		for q in 2:
-			draw_line(Vector2(-62.0, -g - 18.0 - float(q) * 10.0 + 10.0), Vector2(62.0, -g - 18.0 - float(q) * 10.0 + 10.0), Color("2a2c30"), 2.0)
+			DrawBatch.line(self, Vector2(-62.0, -g - 18.0 - float(q) * 10.0 + 10.0), Vector2(62.0, -g - 18.0 - float(q) * 10.0 + 10.0), Color("2a2c30"), 2.0)
 		for q in 9:
-			draw_line(Vector2(-60.0 + float(q) * 15.0, -g), Vector2(-60.0 + float(q) * 15.0, -g - 18.0), Color("2a2c30"), 1.6)
+			DrawBatch.line(self, Vector2(-60.0 + float(q) * 15.0, -g), Vector2(-60.0 + float(q) * 15.0, -g - 18.0), Color("2a2c30"), 1.6)
 		for q in 4:   # תומכות מתחת למרפסת
-			draw_line(Vector2(-60.0 + float(q) * 40.0, -g + 9.0), Vector2(-b1 * 0.9 + float(q) * b1 * 0.6, -g + 30.0), Color("2a2c30"), 2.0)
+			DrawBatch.line(self, Vector2(-60.0 + float(q) * 40.0, -g + 9.0), Vector2(-b1 * 0.9 + float(q) * b1 * 0.6, -g + 30.0), Color("2a2c30"), 2.0)
 		# חדר העדשה: זכוכית, כיפה אדומה, עדשה מסתובבת
-		draw_rect(Rect2(-24.0, -g - 52.0, 48.0, 52.0), Color("2a3440"))
+		DrawBatch.rect(self, Rect2(-24.0, -g - 52.0, 48.0, 52.0), Color("2a3440"))
 		var lamp := Vector2(0, -g - 28.0)
 		var rot := fmod(_t * 0.9, TAU)
 		var face := cos(rot)
 		Kit.soft_glow(self, lamp, 46.0 + 18.0 * maxf(face, 0.0), Color(1.0, 0.92, 0.6, 0.55 + 0.35 * maxf(face, 0.0)))
-		draw_circle(lamp, 9.0, Color(1.0, 0.96, 0.8))
+		DrawBatch.circle(self, lamp, 9.0, Color(1.0, 0.96, 0.8))
 		for q in 4:
-			draw_line(Vector2(-24.0 + float(q) * 16.0, -g - 52.0), Vector2(-24.0 + float(q) * 16.0, -g), Color("1a1e24"), 2.0)
-		draw_colored_polygon(PackedVector2Array([Vector2(-30, -g - 52), Vector2(30, -g - 52), Vector2(18, -g - 70), Vector2(0, -g - 78), Vector2(-18, -g - 70)]), RED_LH.darkened(0.15))
-		draw_line(Vector2(0, -g - 78), Vector2(0, -g - 92), Color("2a2c30"), 2.0)
-		draw_circle(Vector2(0, -g - 92), 3.0, Color("2a2c30"))
+			DrawBatch.line(self, Vector2(-24.0 + float(q) * 16.0, -g - 52.0), Vector2(-24.0 + float(q) * 16.0, -g), Color("1a1e24"), 2.0)
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-30, -g - 52), Vector2(30, -g - 52), Vector2(18, -g - 70), Vector2(0, -g - 78), Vector2(-18, -g - 70)]), RED_LH.darkened(0.15))
+		DrawBatch.line(self, Vector2(0, -g - 78), Vector2(0, -g - 92), Color("2a2c30"), 2.0)
+		DrawBatch.circle(self, Vector2(0, -g - 92), 3.0, Color("2a2c30"))
 		# האלומה: נמתחת ומתקצרת כשהיא "מסתובבת"
 		var reach := 700.0 * absf(face) + 60.0
 		var side := signf(face) if face != 0.0 else 1.0
 		var a := 0.22 * absf(face) + 0.04 + beams * 0.2
 		var tip := lamp + Vector2(side * reach, 26.0)
-		draw_polygon(PackedVector2Array([lamp + Vector2(0, -6), tip + Vector2(0, -60), tip + Vector2(0, 60), lamp + Vector2(0, 6)]),
+		DrawBatch.polygon(self, PackedVector2Array([lamp + Vector2(0, -6), tip + Vector2(0, -60), tip + Vector2(0, 60), lamp + Vector2(0, 6)]),
 			PackedColorArray([Color(1.0, 0.95, 0.7, a), Color(1.0, 0.95, 0.7, 0.0), Color(1.0, 0.95, 0.7, 0.0), Color(1.0, 0.95, 0.7, a)]))
 		# דלת המגדל
-		draw_rect(Rect2(-12.0, -46.0, 24.0, 46.0), Color("3a2a24"))
-		draw_arc(Vector2(0, -46.0), 12.0, PI, TAU, 10, Color("3a2a24"), 3.0)
+		DrawBatch.rect(self, Rect2(-12.0, -46.0, 24.0, 46.0), Color("3a2a24"))
+		DrawBatch.arc(self, Vector2(0, -46.0), 12.0, PI, TAU, 10, Color("3a2a24"), 3.0)
 
 
 # ============================================================
@@ -984,30 +985,30 @@ class Tank extends Node2D:
 			var k := float(q) / float(bands)
 			var shade := 0.75 + 0.35 * sin(k * PI) - 0.2 * k
 			var c := RUST.lerp(RUST_D, 1.0 - shade)
-			draw_rect(Rect2(w * k, -tier, w / float(bands) + 1.0, tier), c)
+			DrawBatch.rect(self, Rect2(w * k, -tier, w / float(bands) + 1.0, tier), c)
 		for q in 4:   # תפרים אופקיים + מסמרות
 			var yy := -tier + 10.0 + float(q) * (tier - 20.0) / 3.0
-			draw_line(Vector2(0, yy), Vector2(w, yy), Color(0.25, 0.12, 0.06, 0.7), 2.0)
+			DrawBatch.line(self, Vector2(0, yy), Vector2(w, yy), Color(0.25, 0.12, 0.06, 0.7), 2.0)
 			var x := 6.0
 			while x < w:
-				draw_circle(Vector2(x, yy - 3.0), 1.2, Color(0.75, 0.45, 0.3, 0.6))
+				DrawBatch.circle(self, Vector2(x, yy - 3.0), 1.2, Color(0.75, 0.45, 0.3, 0.6))
 				x += 12.0
 		for q in 7:   # חלודה זולגת
 			var rx := r.randf_range(8.0, w - 8.0)
 			var ln := r.randf_range(30.0, tier * 0.8)
-			draw_line(Vector2(rx, -tier + 4.0), Vector2(rx + r.randf_range(-3, 3), -tier + ln), Color(0.3, 0.12, 0.05, 0.45), r.randf_range(3.0, 6.0))
-		draw_string(ThemeDB.fallback_font, Vector2(16.0, -tier * 0.48), "C.B.A. 1912", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.9, 0.8, 0.6, 0.35))
+			DrawBatch.line(self, Vector2(rx, -tier + 4.0), Vector2(rx + r.randf_range(-3, 3), -tier + ln), Color(0.3, 0.12, 0.05, 0.45), r.randf_range(3.0, 6.0))
+		DrawBatch.string(self, ThemeDB.fallback_font, Vector2(16.0, -tier * 0.48), "C.B.A. 1912", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.9, 0.8, 0.6, 0.35))
 		# כיפה שטוחה + מעקה על הגג
-		draw_colored_polygon(PackedVector2Array([Vector2(-4, -tier), Vector2(w + 4, -tier), Vector2(w - 10, -tier - 8), Vector2(10, -tier - 8)]), RUST_L.darkened(0.2))
-		draw_line(Vector2(0, -tier), Vector2(w, -tier), Color("d0a080"), 1.5)
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-4, -tier), Vector2(w + 4, -tier), Vector2(w - 10, -tier - 8), Vector2(10, -tier - 8)]), RUST_L.darkened(0.2))
+		DrawBatch.line(self, Vector2(0, -tier), Vector2(w, -tier), Color("d0a080"), 1.5)
 		for q in int(w / 20.0) + 1:
-			draw_line(Vector2(float(q) * 20.0, -tier - 8.0), Vector2(float(q) * 20.0, -tier - 26.0), Color("2e1e18"), 1.8)
-		draw_line(Vector2(0, -tier - 26.0), Vector2(w, -tier - 26.0), Color("2e1e18"), 2.0)
-		draw_line(Vector2(0, -tier - 16.0), Vector2(w, -tier - 16.0), Color("2e1e18"), 1.2)
+			DrawBatch.line(self, Vector2(float(q) * 20.0, -tier - 8.0), Vector2(float(q) * 20.0, -tier - 26.0), Color("2e1e18"), 1.8)
+		DrawBatch.line(self, Vector2(0, -tier - 26.0), Vector2(w, -tier - 26.0), Color("2e1e18"), 2.0)
+		DrawBatch.line(self, Vector2(0, -tier - 16.0), Vector2(w, -tier - 16.0), Color("2e1e18"), 1.2)
 		# צינור + ברז בתחתית
-		draw_rect(Rect2(w - 14.0, -40.0, 30.0, 10.0), RUST_D)
-		draw_circle(Vector2(w + 18.0, -35.0), 7.0, Color("6a2a1a"))
-		draw_colored_polygon(Art.ellipse(Vector2(w + 10.0, -2.0), 30.0, 3.0, 0.0, 12), Color(0.1, 0.08, 0.06, 0.6))   # שלולית שמן ישנה
+		DrawBatch.rect(self, Rect2(w - 14.0, -40.0, 30.0, 10.0), RUST_D)
+		DrawBatch.circle(self, Vector2(w + 18.0, -35.0), 7.0, Color("6a2a1a"))
+		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(w + 10.0, -2.0), 30.0, 3.0, 0.0, 12), Color(0.1, 0.08, 0.06, 0.6))   # שלולית שמן ישנה
 
 
 # ============================================================
@@ -1024,21 +1025,21 @@ class Gantry extends Node2D:
 		var c := Color("4a3026")
 		var hi := Color("9a5a3a")
 		for lx: float in [10.0, w - 10.0]:   # רגליים בצורת A
-			draw_line(Vector2(lx - 24.0, 0), Vector2(lx, -tier), c, 9.0)
-			draw_line(Vector2(lx + 24.0, 0), Vector2(lx, -tier), c, 9.0)
-			draw_line(Vector2(lx - 24.0, 0), Vector2(lx, -tier), hi, 1.5)
-			draw_line(Vector2(lx - 14.0, -tier * 0.45), Vector2(lx + 14.0, -tier * 0.45), c, 5.0)
-		draw_rect(Rect2(-6.0, -tier - 4.0, w + 12.0, 14.0), c)   # הקורה
-		draw_line(Vector2(-6.0, -tier - 4.0), Vector2(w + 6.0, -tier - 4.0), hi, 2.0)
+			DrawBatch.line(self, Vector2(lx - 24.0, 0), Vector2(lx, -tier), c, 9.0)
+			DrawBatch.line(self, Vector2(lx + 24.0, 0), Vector2(lx, -tier), c, 9.0)
+			DrawBatch.line(self, Vector2(lx - 24.0, 0), Vector2(lx, -tier), hi, 1.5)
+			DrawBatch.line(self, Vector2(lx - 14.0, -tier * 0.45), Vector2(lx + 14.0, -tier * 0.45), c, 5.0)
+		DrawBatch.rect(self, Rect2(-6.0, -tier - 4.0, w + 12.0, 14.0), c)   # הקורה
+		DrawBatch.line(self, Vector2(-6.0, -tier - 4.0), Vector2(w + 6.0, -tier - 4.0), hi, 2.0)
 		var x := 0.0
 		while x < w:   # קורת מסבך
-			draw_line(Vector2(x, -tier + 10.0), Vector2(x + 20.0, -tier + 26.0), c, 3.0)
-			draw_line(Vector2(x + 20.0, -tier + 26.0), Vector2(x + 40.0, -tier + 10.0), c, 3.0)
+			DrawBatch.line(self, Vector2(x, -tier + 10.0), Vector2(x + 20.0, -tier + 26.0), c, 3.0)
+			DrawBatch.line(self, Vector2(x + 20.0, -tier + 26.0), Vector2(x + 40.0, -tier + 10.0), c, 3.0)
 			x += 40.0
-		draw_line(Vector2(0, -tier + 26.0), Vector2(w, -tier + 26.0), c, 4.0)
+		DrawBatch.line(self, Vector2(0, -tier + 26.0), Vector2(w, -tier + 26.0), c, 4.0)
 		for q in int(w / 14.0):   # קרשי הדק
-			draw_rect(Rect2(float(q) * 14.0 - 4.0, -tier - 8.0, 12.0, 4.0), Color("6a5440").darkened(0.1 * float(q % 3)))
-		draw_string(ThemeDB.fallback_font, Vector2(w * 0.5 - 42.0, -tier + 7.0), "CAPACIDAD 40 T", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.95, 0.85, 0.6, 0.55))
+			DrawBatch.rect(self, Rect2(float(q) * 14.0 - 4.0, -tier - 8.0, 12.0, 4.0), Color("6a5440").darkened(0.1 * float(q % 3)))
+		DrawBatch.string(self, ThemeDB.fallback_font, Vector2(w * 0.5 - 42.0, -tier + 7.0), "CAPACIDAD 40 T", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.95, 0.85, 0.6, 0.55))
 
 
 # ============================================================
@@ -1080,20 +1081,20 @@ class WhaleSkeleton extends Node2D:
 		var x := 30.0
 		while x < w - 10.0:
 			var y := spine_y(x)
-			draw_colored_polygon(Art.ellipse(Vector2(x, y + 4.0), 11.0, 8.0, 0.0, 12), BONE)
-			draw_line(Vector2(x, y - 2.0), Vector2(x - 4.0, y - 14.0), BONE_D, 4.0)
-			draw_circle(Vector2(x, y + 4.0), 3.0, BONE_D)
+			DrawBatch.colored_polygon(self, Art.ellipse(Vector2(x, y + 4.0), 11.0, 8.0, 0.0, 12), BONE)
+			DrawBatch.line(self, Vector2(x, y - 2.0), Vector2(x - 4.0, y - 14.0), BONE_D, 4.0)
+			DrawBatch.circle(self, Vector2(x, y + 4.0), 3.0, BONE_D)
 			x += 22.0
 		# קרשי הליכה על השדרה
-		draw_rect(Rect2(0, -tier - 6.0, w, 8.0), Color("6a5236"))
-		draw_line(Vector2(0, -tier - 6.0), Vector2(w, -tier - 6.0), Color("a88a5a"), 1.5)
+		DrawBatch.rect(self, Rect2(0, -tier - 6.0, w, 8.0), Color("6a5236"))
+		DrawBatch.line(self, Vector2(0, -tier - 6.0), Vector2(w, -tier - 6.0), Color("a88a5a"), 1.5)
 		for q in int(w / 30.0):
-			draw_line(Vector2(float(q) * 30.0, -tier - 6.0), Vector2(float(q) * 30.0, -tier + 2.0), Color("3a2a1a"), 1.5)
+			DrawBatch.line(self, Vector2(float(q) * 30.0, -tier - 6.0), Vector2(float(q) * 30.0, -tier + 2.0), Color("3a2a1a"), 1.5)
 		# הגולגולת והלסתות בקצה השמאלי
-		draw_colored_polygon(PackedVector2Array([Vector2(-10, -tier - 6), Vector2(-60, -tier + 6), Vector2(-120, -tier + 40), Vector2(-150, -tier + 70), Vector2(-60, -tier + 50), Vector2(0, -tier + 30)]), BONE)
-		draw_polyline(PackedVector2Array([Vector2(-20, -tier + 34), Vector2(-90, -tier + 70), Vector2(-150, -tier + 120), Vector2(-170, -tier + 168)]), BONE_D, 9.0)
-		draw_polyline(PackedVector2Array([Vector2(-20, -tier + 34), Vector2(-90, -tier + 70), Vector2(-150, -tier + 120), Vector2(-170, -tier + 168)]), BONE, 5.0)
-		draw_circle(Vector2(-40, -tier + 20), 8.0, Color("3a3024"))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-10, -tier - 6), Vector2(-60, -tier + 6), Vector2(-120, -tier + 40), Vector2(-150, -tier + 70), Vector2(-60, -tier + 50), Vector2(0, -tier + 30)]), BONE)
+		DrawBatch.polyline(self, PackedVector2Array([Vector2(-20, -tier + 34), Vector2(-90, -tier + 70), Vector2(-150, -tier + 120), Vector2(-170, -tier + 168)]), BONE_D, 9.0)
+		DrawBatch.polyline(self, PackedVector2Array([Vector2(-20, -tier + 34), Vector2(-90, -tier + 70), Vector2(-150, -tier + 120), Vector2(-170, -tier + 168)]), BONE, 5.0)
+		DrawBatch.circle(self, Vector2(-40, -tier + 20), 8.0, Color("3a3024"))
 
 
 # ============================================================
@@ -1164,31 +1165,31 @@ class OilBurst extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
-		draw_line(Vector2(-22, 0), Vector2(-18, -18), Color("3a2a22"), 4.0)   # רגליים
-		draw_line(Vector2(22, 0), Vector2(18, -18), Color("3a2a22"), 4.0)
+		DrawBatch.line(self, Vector2(-22, 0), Vector2(-18, -18), Color("3a2a22"), 4.0)   # רגליים
+		DrawBatch.line(self, Vector2(22, 0), Vector2(18, -18), Color("3a2a22"), 4.0)
 		var body := Rect2(-26, -76, 52, 60)
 		for q in 6:
 			var k := float(q) / 6.0
-			draw_rect(Rect2(body.position.x + body.size.x * k, body.position.y, body.size.x / 6.0 + 1.0, body.size.y), RUST.lerp(RUST_D, absf(k - 0.35) * 1.3))
-		draw_colored_polygon(Art.ellipse(Vector2(0, -76), 26.0, 6.0, 0.0, 14), RUST_L.darkened(0.15))
-		draw_rect(Rect2(-26, -50, 52, 2), Color(0.2, 0.08, 0.04, 0.8))
-		draw_string(ThemeDB.fallback_font, Vector2(-20, -58), "ACEITE", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.95, 0.85, 0.6, 0.6))
+			DrawBatch.rect(self, Rect2(body.position.x + body.size.x * k, body.position.y, body.size.x / 6.0 + 1.0, body.size.y), RUST.lerp(RUST_D, absf(k - 0.35) * 1.3))
+		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -76), 26.0, 6.0, 0.0, 14), RUST_L.darkened(0.15))
+		DrawBatch.rect(self, Rect2(-26, -50, 52, 2), Color(0.2, 0.08, 0.04, 0.8))
+		DrawBatch.string(self, ThemeDB.fallback_font, Vector2(-20, -58), "ACEITE", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.95, 0.85, 0.6, 0.6))
 		if state == 0:
 			# כתם חלודה אדום = נקודה לירות בה + טפטוף
-			draw_circle(Vector2(6, -36), 7.0, Color("c0442a"))
-			draw_circle(Vector2(6, -36), 3.0, Color("6a1a0a"))
+			DrawBatch.circle(self, Vector2(6, -36), 7.0, Color("c0442a"))
+			DrawBatch.circle(self, Vector2(6, -36), 3.0, Color("6a1a0a"))
 			var dk := fmod(_t * 0.8, 1.0)
-			draw_circle(Vector2(6, -28 + dk * 26.0), 1.6, Color(0.12, 0.1, 0.06, 1.0 - dk))
-			draw_colored_polygon(Art.ellipse(Vector2(8, -1), 14.0, 2.0, 0.0, 10), Color(0.08, 0.06, 0.04, 0.7))
+			DrawBatch.circle(self, Vector2(6, -28 + dk * 26.0), 1.6, Color(0.12, 0.1, 0.06, 1.0 - dk))
+			DrawBatch.colored_polygon(self, Art.ellipse(Vector2(8, -1), 14.0, 2.0, 0.0, 10), Color(0.08, 0.06, 0.04, 0.7))
 		else:
 			# חור קרוע עם פח מקופל
-			draw_colored_polygon(PackedVector2Array([Vector2(-10, -50), Vector2(4, -60), Vector2(16, -46), Vector2(10, -28), Vector2(-6, -24)]), Color("120c08"))
-			draw_line(Vector2(4, -60), Vector2(14, -70), RUST_L, 3.0)
-			draw_line(Vector2(16, -46), Vector2(30, -42), RUST_L, 3.0)
-			draw_line(Vector2(-6, -24), Vector2(-16, -14), RUST_L, 3.0)
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-10, -50), Vector2(4, -60), Vector2(16, -46), Vector2(10, -28), Vector2(-6, -24)]), Color("120c08"))
+			DrawBatch.line(self, Vector2(4, -60), Vector2(14, -70), RUST_L, 3.0)
+			DrawBatch.line(self, Vector2(16, -46), Vector2(30, -42), RUST_L, 3.0)
+			DrawBatch.line(self, Vector2(-6, -24), Vector2(-16, -14), RUST_L, 3.0)
 			if _t < 30.0:
 				var k := clampf(1.0 - _t / 30.0, 0.0, 1.0)
-				draw_line(Vector2(4, -30), Vector2(10, -2), Color(0.1, 0.08, 0.05, 0.9 * k), 4.0 * k + 1.0)
+				DrawBatch.line(self, Vector2(4, -30), Vector2(10, -2), Color(0.1, 0.08, 0.05, 0.9 * k), 4.0 * k + 1.0)
 
 
 class BurstBody extends StaticBody2D:
@@ -1434,9 +1435,9 @@ class GantryHook extends Node2D:
 		var an := anchor()
 		var hp := hook_pos()
 		# הגלגלת
-		draw_rect(Rect2(an.x - 12, an.y - 18, 24, 20), Color("3a2a22"))
-		draw_circle(an + Vector2(0, -8), 8.0, Color("6a4030"))
-		draw_circle(an + Vector2(0, -8), 3.0, Color("2a1a14"))
+		DrawBatch.rect(self, Rect2(an.x - 12, an.y - 18, 24, 20), Color("3a2a22"))
+		DrawBatch.circle(self, an + Vector2(0, -8), 8.0, Color("6a4030"))
+		DrawBatch.circle(self, an + Vector2(0, -8), 3.0, Color("2a1a14"))
 		if state == 0 and _cd <= 0.0:
 			Art.glow(self, an + Vector2(0, -8), 12.0, Color(1.0, 0.5, 0.2, 0.25 + 0.15 * sin(_tt * 4.0)))
 		# שרשרת (חוליות)
@@ -1445,21 +1446,21 @@ class GantryHook extends Node2D:
 			var p := an.lerp(hp, (float(q) + 0.5) / float(n))
 			var d := (hp - an).normalized()
 			if q % 2 == 0:
-				draw_line(p - d * 4.0, p + d * 4.0, Color("5a3a28"), 3.4)
+				DrawBatch.line(self, p - d * 4.0, p + d * 4.0, Color("5a3a28"), 3.4)
 			else:
-				draw_arc(p, 3.0, d.angle() - 1.2, d.angle() + 1.2, 6, Color("7a4a30"), 1.6)
+				DrawBatch.arc(self, p, 3.0, d.angle() - 1.2, d.angle() + 1.2, 6, Color("7a4a30"), 1.6)
 		# הוו: חלודה כבדה, מסובב לפי הנדנוד
-		draw_set_transform(hp, -_a, Vector2.ONE)
-		draw_rect(Rect2(-6, -8, 12, 10), Color("4a2a1a"))
-		draw_arc(Vector2(0, 12), 13.0, -PI * 0.1, PI * 1.25, 14, Color("2a1810"), 7.0)
-		draw_arc(Vector2(0, 12), 13.0, -PI * 0.1, PI * 1.25, 14, RUST, 4.5)
-		draw_colored_polygon(PackedVector2Array([Vector2(13, 10), Vector2(18, -2), Vector2(9, 6)]), RUST_L)
-		draw_arc(Vector2(0, 12), 13.0, PI * 0.3, PI * 0.8, 6, Color(1.0, 0.75, 0.5, 0.5), 1.2)
+		DrawBatch.set_transform(self, hp, -_a, Vector2.ONE)
+		DrawBatch.rect(self, Rect2(-6, -8, 12, 10), Color("4a2a1a"))
+		DrawBatch.arc(self, Vector2(0, 12), 13.0, -PI * 0.1, PI * 1.25, 14, Color("2a1810"), 7.0)
+		DrawBatch.arc(self, Vector2(0, 12), 13.0, -PI * 0.1, PI * 1.25, 14, RUST, 4.5)
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(13, 10), Vector2(18, -2), Vector2(9, 6)]), RUST_L)
+		DrawBatch.arc(self, Vector2(0, 12), 13.0, PI * 0.3, PI * 0.8, 6, Color(1.0, 0.75, 0.5, 0.5), 1.2)
 		if hooked > 0:
-			draw_line(Vector2(-8, 22), Vector2(-4, 34), Color(0.5, 0.05, 0.05, 0.85), 2.0)   # דם מטפטף
-		draw_set_transform_matrix(Transform2D.IDENTITY)
+			DrawBatch.line(self, Vector2(-8, 22), Vector2(-4, 34), Color(0.5, 0.05, 0.05, 0.85), 2.0)   # דם מטפטף
+		DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 		if state == 1:
-			draw_string(ThemeDB.fallback_font, an + Vector2(-6, 40), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(1.0, 0.5, 0.2, 0.6 + 0.4 * sin(_tt * 30.0)))
+			DrawBatch.string(self, ThemeDB.fallback_font, an + Vector2(-6, 40), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(1.0, 0.5, 0.2, 0.6 + 0.4 * sin(_tt * 30.0)))
 
 
 class HookBody extends StaticBody2D:
@@ -1711,41 +1712,41 @@ class Obstacle extends Node2D:
 				for q in 2:
 					var dx := float(q) * w * 0.5
 					var c := RUST.lerp(Color("5a6a6a"), float(q) * 0.5)
-					draw_rect(Rect2(dx + 2.0, -h * 0.62, w * 0.5 - 4.0, h * 0.62), c)
-					draw_rect(Rect2(dx + 2.0, -h * 0.62, w * 0.5 - 4.0, h * 0.62), Color(0, 0, 0, 0.5), false, 1.2)
+					DrawBatch.rect(self, Rect2(dx + 2.0, -h * 0.62, w * 0.5 - 4.0, h * 0.62), c)
+					DrawBatch.rect(self, Rect2(dx + 2.0, -h * 0.62, w * 0.5 - 4.0, h * 0.62), Color(0, 0, 0, 0.5), false, 1.2)
 					for b in 2:
-						draw_line(Vector2(dx + 2.0, -h * (0.2 + 0.25 * float(b))), Vector2(dx + w * 0.5 - 2.0, -h * (0.2 + 0.25 * float(b))), Color(0, 0, 0, 0.35), 2.0)
-					draw_line(Vector2(dx + 6.0, -h * 0.6), Vector2(dx + 7.0, -h * 0.1), Color(1, 1, 1, 0.18), 3.0)
-				draw_colored_polygon(Art.ellipse(Vector2(w * 0.5, -h * 0.81), w * 0.3, h * 0.19, 0.0, 14), RUST_D)
-				draw_colored_polygon(Art.ellipse(Vector2(w * 0.5 + w * 0.26, -h * 0.81), h * 0.08, h * 0.17, 0.0, 10), RUST_L)
-				draw_line(Vector2(w * 0.22, -h), Vector2(w * 0.78, -h), rim, 1.4)
-				draw_colored_polygon(Art.ellipse(Vector2(w * 0.3, 0), w * 0.35, 2.5, 0.0, 10), Color(0.06, 0.05, 0.04, 0.6))
+						DrawBatch.line(self, Vector2(dx + 2.0, -h * (0.2 + 0.25 * float(b))), Vector2(dx + w * 0.5 - 2.0, -h * (0.2 + 0.25 * float(b))), Color(0, 0, 0, 0.35), 2.0)
+					DrawBatch.line(self, Vector2(dx + 6.0, -h * 0.6), Vector2(dx + 7.0, -h * 0.1), Color(1, 1, 1, 0.18), 3.0)
+				DrawBatch.colored_polygon(self, Art.ellipse(Vector2(w * 0.5, -h * 0.81), w * 0.3, h * 0.19, 0.0, 14), RUST_D)
+				DrawBatch.colored_polygon(self, Art.ellipse(Vector2(w * 0.5 + w * 0.26, -h * 0.81), h * 0.08, h * 0.17, 0.0, 10), RUST_L)
+				DrawBatch.line(self, Vector2(w * 0.22, -h), Vector2(w * 0.78, -h), rim, 1.4)
+				DrawBatch.colored_polygon(self, Art.ellipse(Vector2(w * 0.3, 0), w * 0.35, 2.5, 0.0, 10), Color(0.06, 0.05, 0.04, 0.6))
 			"boat":   # סירת משוטים הפוכה
-				draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(6, -h * 0.75), Vector2(w * 0.3, -h), Vector2(w * 0.8, -h * 0.95), Vector2(w, -h * 0.5), Vector2(w - 4, 0)]), Color("2e5a6a"))
+				DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(0, 0), Vector2(6, -h * 0.75), Vector2(w * 0.3, -h), Vector2(w * 0.8, -h * 0.95), Vector2(w, -h * 0.5), Vector2(w - 4, 0)]), Color("2e5a6a"))
 				for q in 4:
 					var yy := -h * (0.2 + 0.18 * float(q))
-					draw_line(Vector2(4, yy), Vector2(w - 4, yy - 2.0), Color(0, 0, 0, 0.3), 1.4)
-				draw_line(Vector2(w * 0.3, -h), Vector2(w * 0.8, -h * 0.95), rim, 1.5)
-				draw_rect(Rect2(0, -6, w, 6), Color("e8e0d0"))
-				draw_rect(Rect2(0, -6, w, 2), RED_LH)
+					DrawBatch.line(self, Vector2(4, yy), Vector2(w - 4, yy - 2.0), Color(0, 0, 0, 0.3), 1.4)
+				DrawBatch.line(self, Vector2(w * 0.3, -h), Vector2(w * 0.8, -h * 0.95), rim, 1.5)
+				DrawBatch.rect(self, Rect2(0, -6, w, 6), Color("e8e0d0"))
+				DrawBatch.rect(self, Rect2(0, -6, w, 2), RED_LH)
 				for q in 5:   # צבע מתקלף
-					draw_circle(Vector2(r.randf_range(8, w - 8), -r.randf_range(8, h - 8)), r.randf_range(2.0, 5.0), Color("6a4a3a"))
-				draw_line(Vector2(w * 0.9, -h * 0.4), Vector2(w + 20.0, -6.0), Color("8a6a40"), 4.0)   # משוט
+					DrawBatch.circle(self, Vector2(r.randf_range(8, w - 8), -r.randf_range(8, h - 8)), r.randf_range(2.0, 5.0), Color("6a4a3a"))
+				DrawBatch.line(self, Vector2(w * 0.9, -h * 0.4), Vector2(w + 20.0, -6.0), Color("8a6a40"), 4.0)   # משוט
 			"boulders":   # סלעים עם אצות וגואנו
-				draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(4, -h * 0.6), Vector2(w * 0.3, -h), Vector2(w * 0.55, -h * 0.85), Vector2(w * 0.8, -h * 0.95), Vector2(w, -h * 0.4), Vector2(w, 0)]), Color("4a4e52"))
-				draw_colored_polygon(PackedVector2Array([Vector2(w * 0.55, -h * 0.85), Vector2(w * 0.8, -h * 0.95), Vector2(w, -h * 0.4), Vector2(w, 0), Vector2(w * 0.6, 0)]), Color("3a3e42"))
-				draw_line(Vector2(w * 0.3, -h), Vector2(w * 0.55, -h * 0.85), Color(0.95, 0.95, 0.9, 0.8), 3.0)
+				DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(0, 0), Vector2(4, -h * 0.6), Vector2(w * 0.3, -h), Vector2(w * 0.55, -h * 0.85), Vector2(w * 0.8, -h * 0.95), Vector2(w, -h * 0.4), Vector2(w, 0)]), Color("4a4e52"))
+				DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(w * 0.55, -h * 0.85), Vector2(w * 0.8, -h * 0.95), Vector2(w, -h * 0.4), Vector2(w, 0), Vector2(w * 0.6, 0)]), Color("3a3e42"))
+				DrawBatch.line(self, Vector2(w * 0.3, -h), Vector2(w * 0.55, -h * 0.85), Color(0.95, 0.95, 0.9, 0.8), 3.0)
 				for q in 6:
 					var kx := r.randf_range(4, w - 4)
-					draw_line(Vector2(kx, -r.randf_range(4, 14)), Vector2(kx + r.randf_range(-6, 6), 0), KELP_L, 3.0)
+					DrawBatch.line(self, Vector2(kx, -r.randf_range(4, 14)), Vector2(kx + r.randf_range(-6, 6), 0), KELP_L, 3.0)
 			_:   # ערימת חוליות לווייתן
 				for q in 3:
 					var c := Vector2(w * (0.22 + 0.28 * float(q)), -h * 0.35)
-					draw_colored_polygon(Art.ellipse(c, w * 0.16, h * 0.34, 0.0, 14), BONE)
-					draw_colored_polygon(Art.ellipse(c, w * 0.06, h * 0.12, 0.0, 10), BONE_D)
-					draw_line(c + Vector2(0, -h * 0.3), c + Vector2(r.randf_range(-6, 6), -h * 0.62), BONE, 6.0)
-					draw_line(c + Vector2(-w * 0.14, 0), c + Vector2(-w * 0.2, -h * 0.1), BONE_D, 3.0)
-				draw_colored_polygon(Art.ellipse(Vector2(w * 0.5, -h * 0.82), w * 0.18, h * 0.18, 0.4, 12), BONE.darkened(0.08))
+					DrawBatch.colored_polygon(self, Art.ellipse(c, w * 0.16, h * 0.34, 0.0, 14), BONE)
+					DrawBatch.colored_polygon(self, Art.ellipse(c, w * 0.06, h * 0.12, 0.0, 10), BONE_D)
+					DrawBatch.line(self, c + Vector2(0, -h * 0.3), c + Vector2(r.randf_range(-6, 6), -h * 0.62), BONE, 6.0)
+					DrawBatch.line(self, c + Vector2(-w * 0.14, 0), c + Vector2(-w * 0.2, -h * 0.1), BONE_D, 3.0)
+				DrawBatch.colored_polygon(self, Art.ellipse(Vector2(w * 0.5, -h * 0.82), w * 0.18, h * 0.18, 0.4, 12), BONE.darkened(0.08))
 
 
 # ============================================================
@@ -1782,22 +1783,22 @@ class BossBeach extends Node2D:
 		U.flush(self, pts, cols)
 		# מסילת הגרירה (שבה גררו את הלווייתנים מהים)
 		for q in 2:
-			draw_line(Vector2(440, -6.0 - float(q) * 10.0), Vector2(640, -30.0 - float(q) * 10.0), Color("3a2a22"), 4.0)
+			DrawBatch.line(self, Vector2(440, -6.0 - float(q) * 10.0), Vector2(640, -30.0 - float(q) * 10.0), Color("3a2a22"), 4.0)
 		for q in 9:
 			var x := 450.0 + float(q) * 22.0
-			draw_line(Vector2(x, -4.0 - float(q) * 2.6), Vector2(x + 6.0, -24.0 - float(q) * 2.6), Color("5a4430"), 4.0)
+			DrawBatch.line(self, Vector2(x, -4.0 - float(q) * 2.6), Vector2(x + 6.0, -24.0 - float(q) * 2.6), Color("5a4430"), 4.0)
 		# גולגולת לווייתן ענקית
-		draw_colored_polygon(PackedVector2Array([Vector2(700, -60), Vector2(760, -110), Vector2(880, -122), Vector2(940, -100), Vector2(920, -70), Vector2(820, -64)]), BONE)
-		draw_polyline(PackedVector2Array([Vector2(700, -60), Vector2(620, -40), Vector2(560, -10)]), BONE, 10.0)
-		draw_polyline(PackedVector2Array([Vector2(720, -54), Vector2(650, -28), Vector2(600, 0)]), BONE_D, 8.0)
-		draw_circle(Vector2(870, -100), 10.0, Color("2a2420"))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(700, -60), Vector2(760, -110), Vector2(880, -122), Vector2(940, -100), Vector2(920, -70), Vector2(820, -64)]), BONE)
+		DrawBatch.polyline(self, PackedVector2Array([Vector2(700, -60), Vector2(620, -40), Vector2(560, -10)]), BONE, 10.0)
+		DrawBatch.polyline(self, PackedVector2Array([Vector2(720, -54), Vector2(650, -28), Vector2(600, 0)]), BONE_D, 8.0)
+		DrawBatch.circle(self, Vector2(870, -100), 10.0, Color("2a2420"))
 		# שלט
-		draw_line(Vector2(250, 0), Vector2(250, -150), Color("3a2a1e"), 5.0)
-		draw_line(Vector2(330, 0), Vector2(330, -150), Color("3a2a1e"), 5.0)
-		draw_rect(Rect2(230, -176, 130, 40), Color("e0d8c4"))
-		draw_rect(Rect2(230, -176, 130, 40), RED_LH, false, 3.0)
-		draw_string(ThemeDB.fallback_font, Vector2(240, -160), "ESTACION BALLENERA", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("3a2a22"))
-		draw_string(ThemeDB.fallback_font, Vector2(262, -145), "PUNTA 1906", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, RED_LH.darkened(0.2))
+		DrawBatch.line(self, Vector2(250, 0), Vector2(250, -150), Color("3a2a1e"), 5.0)
+		DrawBatch.line(self, Vector2(330, 0), Vector2(330, -150), Color("3a2a1e"), 5.0)
+		DrawBatch.rect(self, Rect2(230, -176, 130, 40), Color("e0d8c4"))
+		DrawBatch.rect(self, Rect2(230, -176, 130, 40), RED_LH, false, 3.0)
+		DrawBatch.string(self, ThemeDB.fallback_font, Vector2(240, -160), "ESTACION BALLENERA", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("3a2a22"))
+		DrawBatch.string(self, ThemeDB.fallback_font, Vector2(262, -145), "PUNTA 1906", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, RED_LH.darkened(0.2))
 
 
 # ============================================================

@@ -134,12 +134,12 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 3.0, 15.0), Art.shade(sk, 0.25), Art.shade(coat, 0.3))
 	# מעיל גשם ארוך
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(8, 8), hip + Vector2(-8, 8)]), coat, 0.18, 0.35)
-	z.draw_line(sh + Vector2(1, 0), hip + Vector2(1, 8), col(Color("8a6a10")), 1.0)
-	z.draw_rect(Rect2(hip + Vector2(-7, 2), Vector2(15, 2)), col(Color(0.85, 0.85, 0.8)))   # פס מחזיר אור
+	DrawBatch.line(z, sh + Vector2(1, 0), hip + Vector2(1, 8), col(Color("8a6a10")), 1.0)
+	DrawBatch.rect(z, Rect2(hip + Vector2(-7, 2), Vector2(15, 2)), col(Color(0.85, 0.85, 0.8)))   # פס מחזיר אור
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(-7, 3), head + Vector2(-6, -5), head + Vector2(0, -8), head + Vector2(6, -6), head + Vector2(5, -3), head + Vector2(-2, -3), head + Vector2(-3, 4)]), coat, Art.OUTLINE, 1.0)   # ברדס
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
+		DrawBatch.circle(z, head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
 	# מוט
 	var hand: Vector2
 	var tip: Vector2
@@ -150,14 +150,14 @@ func draw() -> bool:
 		hand = sh + Vector2(9.0 + sin(p) * 2.0, 12.0)
 		tip = hand + Vector2(10, -34)
 	var butt := hand + (hand - tip).normalized() * 10.0
-	z.draw_line(butt, tip, Art.OUTLINE, 3.6)
-	z.draw_line(butt, tip, col(Color("8a8e94")), 2.2)
-	z.draw_colored_polygon(PackedVector2Array([tip + Vector2(-2.2, 2), tip + Vector2(0, -6), tip + Vector2(2.2, 2)]), col(Color("d88a40")))   # קצה נחושת
+	DrawBatch.line(z, butt, tip, Art.OUTLINE, 3.6)
+	DrawBatch.line(z, butt, tip, col(Color("8a8e94")), 2.2)
+	DrawBatch.colored_polygon(z, PackedVector2Array([tip + Vector2(-2.2, 2), tip + Vector2(0, -6), tip + Vector2(2.2, 2)]), col(Color("d88a40")))   # קצה נחושת
 	if state == RAISE and not z.dead:
 		Art.glow(z, tip, 14.0, Color(0.6, 0.85, 1.0, 0.6))
 		for q in 3:
 			var a := randf() * TAU
-			z.draw_line(tip, tip + Vector2.from_angle(a) * randf_range(5.0, 10.0), Color(0.85, 0.95, 1.0, 0.9), 1.2)
+			DrawBatch.line(z, tip, tip + Vector2.from_angle(a) * randf_range(5.0, 10.0), Color(0.85, 0.95, 1.0, 0.9), 1.2)
 	z._arm(sh + Vector2(3, 1), hand, sk, coat)
 	end_draw()
 	return true
@@ -233,15 +233,15 @@ class Strike extends Node2D:
 		if not _done:   # עיגול אזהרה שמתכווץ
 			var k := clampf(_t / delay, 0.0, 1.0)
 			var blink := fmod(_t * 8.0, 1.0) < 0.6
-			draw_colored_polygon(Art.ellipse(Vector2.ZERO, radius, radius * 0.22, 0.0, 20), Color(0.5, 0.8, 1.0, 0.18 + 0.2 * k))
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.22))   # עיגולים "שוכבים" על הקרקע
-			draw_arc(Vector2.ZERO, radius, 0, TAU, 24, Color(0.7, 0.9, 1.0, 0.9 if blink else 0.5), 3.0)
-			draw_arc(Vector2.ZERO, radius * (1.0 - k) + 4.0, 0, TAU, 20, Color(1, 1, 1, 0.7), 2.0)
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-			draw_line(Vector2(0, -6), Vector2(0, -30.0 * k), Color(0.8, 0.95, 1.0, 0.6 * k), 2.0)
+			DrawBatch.colored_polygon(self, Art.ellipse(Vector2.ZERO, radius, radius * 0.22, 0.0, 20), Color(0.5, 0.8, 1.0, 0.18 + 0.2 * k))
+			DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(1.0, 0.22))   # עיגולים "שוכבים" על הקרקע
+			DrawBatch.arc(self, Vector2.ZERO, radius, 0, TAU, 24, Color(0.7, 0.9, 1.0, 0.9 if blink else 0.5), 3.0)
+			DrawBatch.arc(self, Vector2.ZERO, radius * (1.0 - k) + 4.0, 0, TAU, 20, Color(1, 1, 1, 0.7), 2.0)
+			DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
+			DrawBatch.line(self, Vector2(0, -6), Vector2(0, -30.0 * k), Color(0.8, 0.95, 1.0, 0.6 * k), 2.0)
 		else:
 			var a := clampf(1.0 - (_t - delay) / 0.35, 0.0, 1.0)
-			draw_polyline(_bolt, Color(0.6, 0.85, 1.0, 0.5 * a), 7.0)
-			draw_polyline(_bolt, Color(1, 1, 1, a), 2.5)
+			DrawBatch.polyline(self, _bolt, Color(0.6, 0.85, 1.0, 0.5 * a), 7.0)
+			DrawBatch.polyline(self, _bolt, Color(1, 1, 1, a), 2.5)
 			Art.glow(self, Vector2(0, -6), radius * 1.4, Color(0.6, 0.85, 1.0, 0.6 * a))
-			draw_colored_polygon(Art.ellipse(Vector2.ZERO, radius, radius * 0.22, 0.0, 20), Color(0.05, 0.05, 0.06, 0.6 * a))
+			DrawBatch.colored_polygon(self, Art.ellipse(Vector2.ZERO, radius, radius * 0.22, 0.0, 20), Color(0.05, 0.05, 0.06, 0.6 * a))

@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")   # כל הציור של זומבי ב-draw call אחד
 # ============================================================
 #  FLESH FX - חתיכות שנתלשות מהזומבי כשהוא נפגע (zombie.gd -> take_damage).
 #  בנוסף לכל מה שכבר קורה בפגיעה (דם, פצעים, מספרי נזק):
@@ -89,6 +90,39 @@ static func _spray(parent: Node, pos: Vector2, d: Vector2, grey: Color, kill := 
 		p.finished.connect(p.queue_free)
 
 
+# חימום: הריסוס הראשון במשחק קומפל shader של חלקיקים בכרטיס המסך (~0.2 שנ' קפיאה בהריגה הראשונה
+# = ה"גליץ'" בהדשוט). main.gd קורא לזה בתחילת השלב: 3 שכבות שקופות כמעט לגמרי, באמצע המסך (מחוץ למסך לא מצויר).
+# מחכים קצת: הפריים הראשון אחרי הטעינה ארוך, והחלקיקים היו נגמרים בו בלי שצוירו בכלל
+static func prewarm(parent: Node, pos: Vector2) -> void:
+	parent.get_tree().create_timer(0.4, false).timeout.connect(func():
+		if is_instance_valid(parent) and parent.is_inside_tree():
+			var cam := parent.get_viewport().get_camera_2d()
+			_prewarm_now(parent, cam.get_screen_center_position() if cam != null else pos))
+
+
+static func _prewarm_now(parent: Node, pos: Vector2) -> void:
+	for layer in 3:
+		var p := CPUParticles2D.new()
+		p.one_shot = true
+		p.explosiveness = 1.0
+		p.amount = 2
+		p.lifetime = 0.5
+		p.scale_amount_min = 0.1
+		p.scale_amount_max = 0.1
+		if layer > 0:
+			p.texture = _soft_tex()
+		var g := Gradient.new()
+		g.set_color(0, Color(RED[1], 0.02))
+		g.set_color(1, Color(RED[1], 0.0))
+		p.color_ramp = g
+		p.modulate = Color(1, 1, 1, 0.02)
+		p.z_index = 6
+		parent.add_child(p)
+		p.global_position = pos
+		p.emitting = true
+		p.finished.connect(p.queue_free)
+
+
 static func _soft_tex() -> Texture2D:
 	if _soft == null:
 		var g := Gradient.new()
@@ -164,11 +198,11 @@ class Chunk extends Node2D:
 		var a := 1.0
 		if _smear != Vector2.INF:
 			var sl := to_local(_smear)
-			draw_set_transform(sl, -rotation, Vector2.ONE)
-			draw_colored_polygon(Art.ellipse(Vector2.ZERO, _smear_r, _smear_r * 0.3, 0.0, 10), Color(0.4, 0.02, 0.03, 0.55 * a))
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		draw_colored_polygon(_pts, Color(base, a))
+			DrawBatch.set_transform(self, sl, -rotation, Vector2.ONE)
+			DrawBatch.colored_polygon(self, Art.ellipse(Vector2.ZERO, _smear_r, _smear_r * 0.3, 0.0, 10), Color(0.4, 0.02, 0.03, 0.55 * a))
+			DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
+		DrawBatch.colored_polygon(self, _pts, Color(base, a))
 		var loop := _pts.duplicate()
 		loop.append(_pts[0])
-		draw_polyline(loop, Color(edge, a), 0.9, true)
-		draw_line(_pts[0] * 0.55, _pts[2] * 0.45, Color(cut, a), 1.3)   # חתך אדום בפנים
+		DrawBatch.polyline(self, loop, Color(edge, a), 0.9, true)
+		DrawBatch.line(self, _pts[0] * 0.55, _pts[2] * 0.45, Color(cut, a), 1.3)   # חתך אדום בפנים

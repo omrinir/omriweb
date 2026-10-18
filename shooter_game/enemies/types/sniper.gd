@@ -167,14 +167,14 @@ func draw() -> bool:
 		z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(6, 4), hip + Vector2(-6, 4)]), cam, 0.12, 0.4)
 	for q in 4:   # כתמי הסוואה
-		z.draw_circle(sh + Vector2(-3.0 + float(q % 2) * 5.0, 3.0 + float(q) * 3.0), 1.8, col(Color("3a4028")))
+		DrawBatch.circle(z, sh + Vector2(-3.0 + float(q % 2) * 5.0, 3.0 + float(q) * 3.0), 1.8, col(Color("3a4028")))
 	Art.oval_shaded(z, head, 5.2, 5.6, sk, 0.0)
 	face(head)
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, -1), head + Vector2(-5, -6), head + Vector2(3, -7), head + Vector2(7, -3), head + Vector2(6, -1)]), col(Color("4a5034")), Art.OUTLINE, 1.0)   # קסדה
 	for q in 3:
-		z.draw_line(head + Vector2(-5.0 + float(q) * 4.0, -6), head + Vector2(-4.0 + float(q) * 4.0, -1), col(Color("2a2e1a")), 0.8)
+		DrawBatch.line(z, head + Vector2(-5.0 + float(q) * 4.0, -6), head + Vector2(-4.0 + float(q) * 4.0, -1), col(Color("2a2e1a")), 0.8)
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
+		DrawBatch.circle(z, head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
 	# רובה
 	var la := 0.0
 	if state == AIM:
@@ -183,14 +183,14 @@ func draw() -> bool:
 	var hand := sh + Vector2(6, 3)
 	var tip := hand + Vector2.from_angle(la) * 30.0
 	var butt := hand - Vector2.from_angle(la) * 10.0
-	z.draw_line(butt, tip, Art.OUTLINE, 4.0)
-	z.draw_line(butt, tip, col(Color("3a3226")), 2.4)
+	DrawBatch.line(z, butt, tip, Art.OUTLINE, 4.0)
+	DrawBatch.line(z, butt, tip, col(Color("3a3226")), 2.4)
 	var sc_p := hand + Vector2.from_angle(la) * 8.0 + Vector2.from_angle(la - 1.57) * 3.0   # כוונת
-	z.draw_line(sc_p, sc_p + Vector2.from_angle(la) * 9.0, col(Color("1a1a1a")), 3.0)
+	DrawBatch.line(z, sc_p, sc_p + Vector2.from_angle(la) * 9.0, col(Color("1a1a1a")), 3.0)
 	z._arm(sh + Vector2(-3, 1), hand + Vector2.from_angle(la) * 12.0, Art.shade(sk, 0.2), Art.shade(cam, 0.25))
 	z._arm(sh + Vector2(3, 1), hand, sk, cam)
 	if _flash > 0.0:
-		z.draw_circle(tip + Vector2.from_angle(la) * 4.0, 6.0, Color(1.0, 0.85, 0.4, 0.9))
+		DrawBatch.circle(z, tip + Vector2.from_angle(la) * 4.0, 6.0, Color(1.0, 0.85, 0.4, 0.9))
 	end_draw()
 	if state == AIM and not z.dead:   # לייזר בקואורדינטות עולם
 		var from: Vector2 = _eye() - z.global_position
@@ -198,9 +198,9 @@ func draw() -> bool:
 		var k := 1.0 - clampf(_st / LOCK_T, 0.0, 1.0)
 		if _st < FREEZE and fmod(z._time * 20.0, 1.0) < 0.5:   # ננעל - מהבהב
 			k = 0.2
-		z.draw_line(from, to, Color(1.0, 0.1, 0.1, 0.35 + 0.45 * k), 1.0 + k)
-		z.draw_circle(to, 3.0 + k * 2.0, Color(1.0, 0.15, 0.1, 0.8))
-		z.draw_circle(from, 3.0 + sin(z._time * 30.0), Color(1.0, 1.0, 0.9, 0.9))   # ניצוץ בעדשה
+		DrawBatch.line(z, from, to, Color(1.0, 0.1, 0.1, 0.35 + 0.45 * k), 1.0 + k)
+		DrawBatch.circle(z, to, 3.0 + k * 2.0, Color(1.0, 0.15, 0.1, 0.8))
+		DrawBatch.circle(z, from, 3.0 + sin(z._time * 30.0), Color(1.0, 1.0, 0.9, 0.9))   # ניצוץ בעדשה
 	return true
 
 
@@ -222,4 +222,4 @@ class Tracer extends Node2D:
 
 	func _draw() -> void:
 		var k := _t / 0.2
-		draw_line(a - global_position, b - global_position, Color(1.0, 0.9, 0.6, 0.8 * k), 2.0)
+		DrawBatch.line(self, a - global_position, b - global_position, Color(1.0, 0.9, 0.6, 0.8 * k), 2.0)

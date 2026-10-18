@@ -414,10 +414,10 @@ func draw() -> bool:
 		var k2 := clampf(1.0 - _st / TURN_T, 0.0, 1.0)
 		var sx := absf(cos(k2 * PI)) * 0.8 + 0.2
 		var s := Vector2(z._dir * z.wf * z.sc * sx, z.sc)
-		z.draw_set_transform_matrix(Transform2D(z.react_tilt(), Vector2.ZERO) * Transform2D(0.0, s, 0.0, Vector2.ZERO))
+		DrawBatch.set_transform_matrix(z, Transform2D(z.react_tilt(), Vector2.ZERO) * Transform2D(0.0, s, 0.0, Vector2.ZERO))
 	elif tilt != 0.0:
 		var s2 := Vector2(z._dir * z.wf * z.sc, z.sc)
-		z.draw_set_transform_matrix(Transform2D(z.react_tilt() + tilt * z._dir, Vector2.ZERO) * Transform2D(0.0, s2, 0.0, Vector2.ZERO))
+		DrawBatch.set_transform_matrix(z, Transform2D(z.react_tilt() + tilt * z._dir, Vector2.ZERO) * Transform2D(0.0, s2, 0.0, Vector2.ZERO))
 	var r := RandomNumberGenerator.new()
 	r.seed = seed_v
 	var B: Array = _body_pts(rise, hump, flat)
@@ -447,22 +447,22 @@ func draw() -> bool:
 		belly.append(bot[k])
 	for k in range(bot.size() - 1, 0, -1):
 		belly.append(bot[k].lerp(spine[k], 0.38))
-	z.draw_colored_polygon(belly, col(Color(light.r, light.g * 0.98, light.b * 0.92, 0.85)))
+	DrawBatch.colored_polygon(z, belly, col(Color(light.r, light.g * 0.98, light.b * 0.92, 0.85)))
 	for q in 4:   # שריטות בבטן
 		var bx: float = lerpf(-26.0, 14.0, float(q) / 3.0)
-		z.draw_line(Vector2(bx, -2.5), Vector2(bx + 5.0, -4.0), col(Art.shade(hide, 0.35)), 0.7)
+		DrawBatch.line(z, Vector2(bx, -2.5), Vector2(bx + 5.0, -4.0), col(Art.shade(hide, 0.35)), 0.7)
 	# כתמי נשירה (עור שמתקלף)
 	for q in 4:
 		var k := r.randi_range(1, 5)
 		var c: Vector2 = (spine[k] as Vector2).lerp(top[k], r.randf_range(0.1, 0.6)) + Vector2(r.randf_range(-4, 4), 0)
 		Art.oval(z, c, r.randf_range(3.0, 5.5), r.randf_range(1.6, 3.0), col(Color(0.72, 0.62, 0.5, 0.75)), r.randf_range(-0.3, 0.3), Art.NONE)
-		z.draw_arc(c, 3.5, 0.2, 2.6, 6, col(Color(0.9, 0.84, 0.74, 0.7)), 0.7)
+		DrawBatch.arc(z, c, 3.5, 0.2, 2.6, 6, col(Color(0.9, 0.84, 0.74, 0.7)), 0.7)
 	# צלקות קרב ורודות
 	for q in int(_var[2]):
 		var k := r.randi_range(2, 5)
 		var c: Vector2 = (spine[k] as Vector2).lerp(bot[k], r.randf_range(0.1, 0.5))
 		var a := r.randf_range(-0.6, 0.6)
-		z.draw_line(c, c + Vector2(cos(a), sin(a)) * r.randf_range(5.0, 9.0), col(Color(0.85, 0.5, 0.5, 0.85)), 0.9)
+		DrawBatch.line(z, c, c + Vector2(cos(a), sin(a)) * r.randf_range(5.0, 9.0), col(Color(0.85, 0.5, 0.5, 0.85)), 0.9)
 	# הגב הקרוע: בשר חשוף, עמוד שדרה, צלעות (נקודת התורפה) - בוהק כשנפגע בגב
 	var raw: float = _var[3]
 	var g0: Vector2 = (spine[1] as Vector2).lerp(top[1], 0.55)
@@ -475,7 +475,7 @@ func draw() -> bool:
 	for q in 4:   # צלעות
 		var u := -0.7 + float(q) * 0.45
 		var pc := gc + Vector2(cos(ga), sin(ga)) * gl * u
-		z.draw_line(pc + Vector2(-1.0, -2.6), pc + Vector2(1.2, 2.4), col(Color("e8dcc0")), 1.0)
+		DrawBatch.line(z, pc + Vector2(-1.0, -2.6), pc + Vector2(1.2, 2.4), col(Color("e8dcc0")), 1.0)
 	for q in 5:   # חוליות
 		var u := -0.8 + float(q) * 0.4
 		Art.oval(z, gc + Vector2(cos(ga), sin(ga)) * gl * u + Vector2(0, -0.8), 1.2, 1.0, col(Color("f0e6d0")), 0.0, Art.NONE)
@@ -485,18 +485,18 @@ func draw() -> bool:
 	var st0: Vector2 = (spine[4] as Vector2).lerp(top[4], 0.2)
 	for q in 4:
 		var p := st0 + Vector2(-float(q) * 3.0, float(q) * 2.6)
-		z.draw_line(p + Vector2(-1.3, -1.3), p + Vector2(1.3, 1.3), col(Color("1a1410")), 0.8)
-		z.draw_line(p + Vector2(-1.3, 1.3), p + Vector2(1.3, -1.3), col(Color("1a1410")), 0.8)
+		DrawBatch.line(z, p + Vector2(-1.3, -1.3), p + Vector2(1.3, 1.3), col(Color("1a1410")), 0.8)
+		DrawBatch.line(z, p + Vector2(-1.3, 1.3), p + Vector2(1.3, -1.3), col(Color("1a1410")), 0.8)
 	# צלצל תקוע / אצות
 	if _var[4]:
 		var hp0: Vector2 = (spine[2] as Vector2).lerp(top[2], 0.8)
-		z.draw_line(hp0, hp0 + Vector2(-14, -14), col(Color("5a4a38")), 1.6)
-		z.draw_line(hp0 + Vector2(-14, -14), hp0 + Vector2(-26, -10), Color(0.3, 0.26, 0.2, 0.7), 0.6)
+		DrawBatch.line(z, hp0, hp0 + Vector2(-14, -14), col(Color("5a4a38")), 1.6)
+		DrawBatch.line(z, hp0 + Vector2(-14, -14), hp0 + Vector2(-26, -10), Color(0.3, 0.26, 0.2, 0.7), 0.6)
 		Art.oval(z, hp0, 2.0, 1.4, col(Color("7a1010")), 0.0, Art.NONE)
 	if _var[5]:
 		for q in 3:
 			var kp: Vector2 = (spine[2 + q] as Vector2).lerp(top[2 + q], 0.9)
-			z.draw_polyline(PackedVector2Array([kp, kp + Vector2(1.5, 4.0), kp + Vector2(-0.5, 8.0 + float(q)), kp + Vector2(1.0, 11.0)]), col(Color("5a6a2a")), 1.4)
+			DrawBatch.polyline(z, PackedVector2Array([kp, kp + Vector2(1.5, 4.0), kp + Vector2(-0.5, 8.0 + float(q)), kp + Vector2(1.0, 11.0)]), col(Color("5a6a2a")), 1.4)
 	# ראש פיל הים (קסדה) + חדק משתלשל, ומתחתיו פני המת
 	var nk: Vector2 = spine[6]
 	var head := nk + Vector2(5.0, -2.0)
@@ -506,18 +506,18 @@ func draw() -> bool:
 	Art.oval(z, face + Vector2(0, 1), 5.6, 4.4 + mouth * 1.5, col(Color("2a0c0c")), 0.0, Art.OUTLINE, 1.0)
 	Art.oval(z, face, 4.2, 3.4, col(Art.shade(z.skin, -0.05)), 0.0, Art.NONE)
 	var o := 1.0 + mouth * 2.5
-	z.draw_colored_polygon(PackedVector2Array([face + Vector2(-1.0, 1.4), face + Vector2(3.4, 1.0), face + Vector2(3.0, 1.4 + o), face + Vector2(-0.6, 1.4 + o * 0.8)]), col(Color("3a0808")))
-	z.draw_line(face + Vector2(-0.6, 1.6), face + Vector2(3.0, 1.3), col(Color("e0d8b0")), 0.7)
-	z.draw_circle(face + Vector2(2.0, -1.0), 0.9, Color(1.0, 0.25, 0.15))
-	z.draw_circle(face + Vector2(-1.0, -1.0), 0.7, Color(1.0, 0.25, 0.15, 0.8))
+	DrawBatch.colored_polygon(z, PackedVector2Array([face + Vector2(-1.0, 1.4), face + Vector2(3.4, 1.0), face + Vector2(3.0, 1.4 + o), face + Vector2(-0.6, 1.4 + o * 0.8)]), col(Color("3a0808")))
+	DrawBatch.line(z, face + Vector2(-0.6, 1.6), face + Vector2(3.0, 1.3), col(Color("e0d8b0")), 0.7)
+	DrawBatch.circle(z, face + Vector2(2.0, -1.0), 0.9, Color(1.0, 0.25, 0.15))
+	DrawBatch.circle(z, face + Vector2(-1.0, -1.0), 0.7, Color(1.0, 0.25, 0.15, 0.8))
 	Art.glow(z, face + Vector2(1.0, -1.0), 5.0, Color(1.0, 0.3, 0.15, 0.3))
 	# שיניים של פיל הים (ניבים) מעל הפנים
 	for q in 2:
 		var tp := head + Vector2(1.5 + float(q) * 6.0, 4.0)
-		z.draw_colored_polygon(PackedVector2Array([tp, tp + Vector2(1.6, 0), tp + Vector2(0.8, 3.2)]), col(Color("e8dcc0")))
+		DrawBatch.colored_polygon(z, PackedVector2Array([tp, tp + Vector2(1.6, 0), tp + Vector2(0.8, 3.2)]), col(Color("e8dcc0")))
 	# עין פיל (מתה, מבריקה)
 	Art.oval(z, head + Vector2(3.0, -3.5), 1.7, 1.4, col(Color("0c0a0a")), 0.0, Art.NONE)
-	z.draw_circle(head + Vector2(3.5, -4.0), 0.5, Color(0.8, 0.85, 0.9, 0.8))
+	DrawBatch.circle(z, head + Vector2(3.5, -4.0), 0.5, Color(0.8, 0.85, 0.9, 0.8))
 	# חדק משתלשל מעל הפה (מתנפח בשאגה)
 	var pr0 := head + Vector2(6.0, -2.0)
 	var sw := sin(tt * 4.0 + _gal) * 1.5
@@ -525,14 +525,14 @@ func draw() -> bool:
 	Art.limb(z, pts, 3.0 * prob, col(Art.shade(hide, -0.05)))
 	for q in 3:   # קמטים בחדק
 		var wp: Vector2 = pts[1].lerp(pts[2], 0.3 + float(q) * 0.3)
-		z.draw_line(wp + Vector2(-1.2, -0.6), wp + Vector2(1.2, 0.6), col(Art.shade(hide, -0.35)), 0.6)
+		DrawBatch.line(z, wp + Vector2(-1.2, -0.6), wp + Vector2(1.2, 0.6), col(Art.shade(hide, -0.35)), 0.6)
 	Art.oval(z, pts[3] + Vector2(-0.4, 0.8), 1.8 * prob, 1.3 * prob, col(Color("9a6a62")), 0.0, Art.OUTLINE, 0.8)   # קצה בשרני
-	z.draw_circle(pts[3] + Vector2(-0.2, 1.3), 0.6, col(Color("2a1a18")))
+	DrawBatch.circle(z, pts[3] + Vector2(-0.2, 1.3), 0.6, col(Color("2a1a18")))
 	# יד קדמית (סנפיר אנושי) מושכת קדימה
 	_arm(chest + Vector2(3, 3), chest + Vector2(14 + pull, 15.0), false)
 	if state == BELLOW or state == PAUSE:
 		var k3 := clampf(_st / BELLOW_T, 0.0, 1.0)
-		z.draw_string(ThemeDB.fallback_font, head + Vector2(-2, -14), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1.0, 0.35, 0.2, 0.4 + k3 * 0.6))
+		DrawBatch.string(z, ThemeDB.fallback_font, head + Vector2(-2, -14), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1.0, 0.35, 0.2, 0.4 + k3 * 0.6))
 	end_draw()
 	return true
 
@@ -545,12 +545,12 @@ func _arm(sh: Vector2, hand: Vector2, back: bool) -> void:
 	Art.limb(z, PackedVector2Array([sh, el]), 4.4, col(Art.shade(z.shirt, -0.2 if back else 0.0)))
 	Art.limb(z, PackedVector2Array([el, hand]), 3.2, sk)
 	for f in 3:
-		z.draw_line(hand, hand + Vector2(2.5 + float(f) * 0.6, -0.6 + float(f) * 0.9), sk, 1.0)
+		DrawBatch.line(z, hand, hand + Vector2(2.5 + float(f) * 0.6, -0.6 + float(f) * 0.9), sk, 1.0)
 
 
 func _draw_dead(hide: Color, seed_v: int) -> void:
 	var s := Vector2(z._dir * z.wf * z.sc, z.sc)
-	z.draw_set_transform_matrix(Transform2D(0.0, s, 0.0, Vector2.ZERO))
+	DrawBatch.set_transform_matrix(z, Transform2D(0.0, s, 0.0, Vector2.ZERO))
 	var r := RandomNumberGenerator.new()
 	r.seed = seed_v
 	# העור נשאר שטוח על החול, מרוקן, עם שלולית דם
@@ -559,7 +559,7 @@ func _draw_dead(hide: Color, seed_v: int) -> void:
 	Art.fill_shaded(z, pts, col(Art.shade(hide, -0.08)), 0.12, 0.3, Art.OUTLINE, 1.2)
 	Art.oval(z, Vector2(-10, -6), 13.0, 2.8, col(Color("8a1414")), 0.05, Art.NONE)
 	for q in 4:
-		z.draw_line(Vector2(-18 + q * 6, -7), Vector2(-17 + q * 6, -4), col(Color("e8dcc0")), 1.0)
+		DrawBatch.line(z, Vector2(-18 + q * 6, -7), Vector2(-17 + q * 6, -4), col(Color("e8dcc0")), 1.0)
 	Art.limb(z, PackedVector2Array([Vector2(36, -8), Vector2(42, -5), Vector2(44, -1)]), 3.6, col(Art.shade(hide, -0.1)))
 	Art.oval(z, Vector2(30, -9), 1.4, 1.1, Color(0.05, 0.04, 0.04), 0.0, Art.NONE)
 	Art.limb(z, PackedVector2Array([Vector2(20, -3), Vector2(26, 0), Vector2(33, -1)]), 2.6, col(Art.shade(z.skin, -0.2)))

@@ -117,8 +117,8 @@ func draw() -> bool:
 	var bk := sh + Vector2(-13, 2)
 	Art.fill_shaded(z, PackedVector2Array([bk + Vector2(-5, -8), bk + Vector2(6, -8), bk + Vector2(5, 14), bk + Vector2(-4, 14)]), col(Color("7a5a34")), 0.15, 0.4)
 	for q in 3:
-		z.draw_circle(bk + Vector2(-2.0 + float(q) * 3.0, -9.0 - float(q % 2) * 2.0), 3.0, col(Color("8a8070")))
-	z.draw_line(bk + Vector2(5, -6), head + Vector2(-2, -4), col(Color("4a3a20")), 1.6)   # רצועת מצח
+		DrawBatch.circle(z, bk + Vector2(-2.0 + float(q) * 3.0, -9.0 - float(q % 2) * 2.0), 3.0, col(Color("8a8070")))
+	DrawBatch.line(z, bk + Vector2(5, -6), head + Vector2(-2, -4), col(Color("4a3a20")), 1.6)   # רצועת מצח
 	# ידיים
 	var hb: Vector2
 	var hf: Vector2
@@ -134,18 +134,18 @@ func draw() -> bool:
 	Art.fill_shaded(z, pts, pon, 0.12, 0.35)
 	for q in 3:
 		var yy := sh.y + 5.0 + float(q) * 6.0
-		z.draw_line(Vector2(-9.0 - float(q), yy), Vector2(9.0 + float(q), yy), col([Color("e8c030"), Color("2a6aa0"), Color("e8e0d0")][q]), 1.6)
-	z.draw_line(sh + Vector2(-2, 1), sh + Vector2(2, 6), col(Color("2a1a14")), 1.2)   # קרע
+		DrawBatch.line(z, Vector2(-9.0 - float(q), yy), Vector2(9.0 + float(q), yy), col([Color("e8c030"), Color("2a6aa0"), Color("e8e0d0")][q]), 1.6)
+	DrawBatch.line(z, sh + Vector2(-2, 1), sh + Vector2(2, 6), col(Color("2a1a14")), 1.2)   # קרע
 	Art.oval_shaded(z, head, 6.0, 6.2, sk, 0.0)
 	face(head, Vector2(3.5, -1.0))
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -1.0), 1.0, Color(1.0, 0.45, 0.2))
-	z.draw_line(head + Vector2(-1, 3.5), head + Vector2(5, 3.5), col(Color("3a2a1a")), 1.2)
+		DrawBatch.circle(z, head + Vector2(3.5, -1.0), 1.0, Color(1.0, 0.45, 0.2))
+	DrawBatch.line(z, head + Vector2(-1, 3.5), head + Vector2(5, 3.5), col(Color("3a2a1a")), 1.2)
 	z._arm(sh + Vector2(4, 1), hf, sk, pon)
 	if lifting:   # הסלע מעל הראש
 		var rc := sh + Vector2(3, -26)
 		Art.oval_shaded(z, rc, 13.0, 11.0, col(Color("8a8070")), 0.2)
-		z.draw_line(rc + Vector2(-6, -3), rc + Vector2(2, 4), col(Color("5a5048")), 1.4)
+		DrawBatch.line(z, rc + Vector2(-6, -3), rc + Vector2(2, 4), col(Color("5a5048")), 1.4)
 	end_draw()
 	return true
 
@@ -231,10 +231,10 @@ class Rock extends Node2D:
 
 	func _draw() -> void:
 		var A := preload("res://art.gd")
-		draw_circle(Vector2(2, 2), radius, Color(0, 0, 0, 0.25))
+		DrawBatch.circle(self, Vector2(2, 2), radius, Color(0, 0, 0, 0.25))
 		A.oval_shaded(self, Vector2.ZERO, radius, radius * 0.92, Color("8a8070"), _ang)
 		for k in 3:   # סדקים וכתמים שמסתובבים
 			var a := _ang + float(k) * 2.1
-			draw_line(Vector2.from_angle(a) * radius * 0.2, Vector2.from_angle(a) * radius * 0.8, Color("5a5048"), 1.6)
-		draw_circle(Vector2.from_angle(_ang + 1.0) * radius * 0.5, radius * 0.18, Color("6a6458"))
-		draw_circle(Vector2.from_angle(_ang + 3.5) * radius * 0.55, radius * 0.12, Color(0.9, 0.95, 1.0, 0.7))   # שלג דבוק
+			DrawBatch.line(self, Vector2.from_angle(a) * radius * 0.2, Vector2.from_angle(a) * radius * 0.8, Color("5a5048"), 1.6)
+		DrawBatch.circle(self, Vector2.from_angle(_ang + 1.0) * radius * 0.5, radius * 0.18, Color("6a6458"))
+		DrawBatch.circle(self, Vector2.from_angle(_ang + 3.5) * radius * 0.55, radius * 0.12, Color(0.9, 0.95, 1.0, 0.7))   # שלג דבוק

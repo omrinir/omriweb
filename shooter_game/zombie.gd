@@ -1,4 +1,5 @@
 extends CharacterBody2D
+const DrawBatch := preload("res://effects/draw_batch.gd")   # כל הציור של זומבי ב-draw call אחד
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  זומבי. יש 3 סוגים (kind):
@@ -1620,9 +1621,11 @@ func _ragdoll_kind() -> bool:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)   # כל הצורות נאספות ונשלחות כ-draw call אחד (effects/draw_batch.gd, כמו רימון הכבידה)
 	if prof_on:
 		var t0 := Time.get_ticks_usec()
 		_draw_main()
+		DrawBatch.end(self)
 		var k := "draw:" + _prof_name()
 		prof[k] = int(prof.get(k, 0)) + Time.get_ticks_usec() - t0
 		prof["draws"] = int(prof.get("draws", 0)) + 1
@@ -1630,6 +1633,7 @@ func _draw() -> void:
 	_draw_main()
 	if _burn_t > 0.0 and not dead and not _lying():
 		_draw_burning()
+	DrawBatch.end(self)
 
 
 # בוער (בקבוק תבערה / שטח בוער): להבות אמיתיות על הגוף (effects/flame_fx.gd)
@@ -1674,23 +1678,23 @@ func _draw_main() -> void:
 		Art.ground_shadow(self, Vector2(0.0, 0.0), 14.0 * wf * sc)
 	if dead:
 		var outer := Transform2D(_angle, Vector2(0.0, -9.0 * sc))
-		draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
+		DrawBatch.set_transform_matrix(self, outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
 	elif _lying():
 		# שוכב, או קם לאט (מסתובב מהשכיבה לעמידה)
 		var k := 1.0 if dormant else clampf(_rise_t / RISE_TIME, 0.0, 1.0)
 		k = k * k * (3.0 - 2.0 * k)
 		var outer := Transform2D(PI / 2.0 * _lie_side * k, Vector2(0.0, lerpf(-28.0, -9.0, k) * sc))
-		draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
+		DrawBatch.set_transform_matrix(self, outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
 	elif kind == JETPACK:   # עף עקום
-		draw_set_transform_matrix(Transform2D(_tilt, Vector2(0.0, -30.0 * sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 30.0 * sc)))
+		DrawBatch.set_transform_matrix(self, Transform2D(_tilt, Vector2(0.0, -30.0 * sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 30.0 * sc)))
 	elif kind == IMP and _carrier != null:   # קטן מוחזק ביד אחת: שוכב על הצד, המותן בכף היד, ראש קדימה, רגליים תלויות
-		draw_set_transform_matrix(Transform2D(PI / 2.0 * _dir, Vector2.ZERO) * Transform2D(0.0, s, 0.0, Vector2(0.0, 25.0 * sc)))
+		DrawBatch.set_transform_matrix(self, Transform2D(PI / 2.0 * _dir, Vector2.ZERO) * Transform2D(0.0, s, 0.0, Vector2(0.0, 25.0 * sc)))
 	elif kind == IMP and _thrown:   # קטן שנזרק: מסתובב באוויר
-		draw_set_transform_matrix(Transform2D(_spin_a, Vector2(0.0, -28.0 * sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
+		DrawBatch.set_transform_matrix(self, Transform2D(_spin_a, Vector2(0.0, -28.0 * sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
 	else:
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(s.x, -s.y) if on_ceiling else s)
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(s.x, -s.y) if on_ceiling else s)
 	_draw_body()
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 
 
 func _draw_body() -> void:
@@ -1807,33 +1811,33 @@ func _draw_body() -> void:
 			_torso_walker(sh, hip, sk, sh_col)
 	if kind == DRUNK and not dead:   # חליפה קרועה: חולצה לבנה ועניבה אדומה
 		Art.fill(self, PackedVector2Array([sh + Vector2(-1, 1), sh + Vector2(5, 1), sh + Vector2(2, 12)]), Color(0.85, 0.82, 0.75), Art.NONE)
-		draw_line(sh + Vector2(2, 2), sh + Vector2(1, 15), Color("8a1a1a"), 2.4)
-		draw_line(sh + Vector2(-5, 8), sh + Vector2(-2, 14), Color(0, 0, 0, 0.5), 1.0)
-		draw_line(sh + Vector2(6, 12), sh + Vector2(3, 18), Color(0, 0, 0, 0.5), 1.0)
+		DrawBatch.line(self, sh + Vector2(2, 2), sh + Vector2(1, 15), Color("8a1a1a"), 2.4)
+		DrawBatch.line(self, sh + Vector2(-5, 8), sh + Vector2(-2, 14), Color(0, 0, 0, 0.5), 1.0)
+		DrawBatch.line(self, sh + Vector2(6, 12), sh + Vector2(3, 18), Color(0, 0, 0, 0.5), 1.0)
 	if kind == JETPACK:   # ג'טפאק על הגב + להבות
 		var pk := sh + Vector2(-10.0, 7.0)
 		var jc := Color.WHITE if _flash > 0.0 else Color("6a6e74")
 		Art.fill_shaded(self, PackedVector2Array([pk + Vector2(-5, -10), pk + Vector2(4, -10), pk + Vector2(4, 12), pk + Vector2(-5, 12)]), jc, 0.2, 0.3, Art.OUTLINE, 1.2)
-		draw_rect(Rect2(pk + Vector2(-4, -6), Vector2(7, 3)), Color("c8a020"))
+		DrawBatch.rect(self, Rect2(pk + Vector2(-4, -6), Vector2(7, 3)), Color("c8a020"))
 		for nz in [-3.0, 2.0]:
-			draw_rect(Rect2(pk + Vector2(nz - 1.5, 12), Vector2(3.5, 4)), Color("2a2a2e"))
+			DrawBatch.rect(self, Rect2(pk + Vector2(nz - 1.5, 12), Vector2(3.5, 4)), Color("2a2a2e"))
 			if not dead or _crashing:
 				var fl := 7.0 + randf() * 9.0
-				draw_colored_polygon(PackedVector2Array([pk + Vector2(nz - 2.0, 16), pk + Vector2(nz + 2.0, 16), pk + Vector2(nz, 16 + fl)]), Color(1.0, 0.5, 0.1, 0.9))
-				draw_colored_polygon(PackedVector2Array([pk + Vector2(nz - 1.0, 16), pk + Vector2(nz + 1.0, 16), pk + Vector2(nz, 16 + fl * 0.55)]), Color(1.0, 0.95, 0.6))
+				DrawBatch.colored_polygon(self, PackedVector2Array([pk + Vector2(nz - 2.0, 16), pk + Vector2(nz + 2.0, 16), pk + Vector2(nz, 16 + fl)]), Color(1.0, 0.5, 0.1, 0.9))
+				DrawBatch.colored_polygon(self, PackedVector2Array([pk + Vector2(nz - 1.0, 16), pk + Vector2(nz + 1.0, 16), pk + Vector2(nz, 16 + fl * 0.55)]), Color(1.0, 0.95, 0.6))
 	if kind == CONDUCTOR and not dead and _transformer > 0:   # שנאי על הגב
 		var tb := sh + Vector2(-12.0, 4.0)
 		Art.fill_shaded(self, PackedVector2Array([tb + Vector2(-6, -8), tb + Vector2(5, -8), tb + Vector2(5, 14), tb + Vector2(-6, 14)]), Color("3a4048"), 0.2, 0.3, Art.OUTLINE, 1.2)
 		for i in 3:
-			draw_line(tb + Vector2(-6, -4 + i * 6), tb + Vector2(5, -4 + i * 6), Color("20242a"), 1.0)
-		draw_line(tb + Vector2(0, -8), sh + Vector2(2, -3), Color("1a1a1a"), 1.4, true)   # כבלים
-		draw_line(tb + Vector2(4, -6), head + Vector2(-2, 2), Color("1a1a1a"), 1.2, true)
+			DrawBatch.line(self, tb + Vector2(-6, -4 + i * 6), tb + Vector2(5, -4 + i * 6), Color("20242a"), 1.0)
+		DrawBatch.line(self, tb + Vector2(0, -8), sh + Vector2(2, -3), Color("1a1a1a"), 1.4, true)   # כבלים
+		DrawBatch.line(self, tb + Vector2(4, -6), head + Vector2(-2, 2), Color("1a1a1a"), 1.2, true)
 		var gl := 0.5 + 0.5 * sin(_time * 12.0)
 		Art.glow(self, tb + Vector2(0, -10), 7.0, Color(0.5, 0.75, 1.0, 0.5 * gl))
 		Art.glow(self, tb + Vector2(0, 3), 13.0, Color(0.45, 0.7, 1.0, 0.18 + 0.14 * gl))   # נקודת התורפה זוהרת - רואים מה לירות
 		if randf() < 0.3:
 			var sp := tb + Vector2(randf_range(-6, 5), -9)
-			draw_line(sp, sp + Vector2(randf_range(-6, 6), -randf_range(3, 8)), Color(0.8, 0.9, 1.0), 1.0)
+			DrawBatch.line(self, sp, sp + Vector2(randf_range(-6, 6), -randf_range(3, 8)), Color(0.8, 0.9, 1.0), 1.0)
 	if kind == BLOATER and not dead:   # בטן נפוחה שפועמת
 		var pulse := 1.0 + 0.06 * sin(_time * (6.0 + 14.0 * _swell))
 		var r := (9.0 + 9.0 * _swell) * pulse
@@ -1844,7 +1848,7 @@ func _draw_body() -> void:
 		Art.oval(self, c, r * 0.9, r, bc, 0.0, Art.OUTLINE)
 		for v in 3:   # ורידים
 			var a := float(v) * 2.1 + 0.4
-			draw_line(c + Vector2.from_angle(a) * r * 0.3, c + Vector2.from_angle(a + 0.4) * r * 0.85, Color(0.4, 0.15, 0.2, 0.6), 1.0, true)
+			DrawBatch.line(self, c + Vector2.from_angle(a) * r * 0.3, c + Vector2.from_angle(a + 0.4) * r * 0.85, Color(0.4, 0.15, 0.2, 0.6), 1.0, true)
 		Art.glow(self, c, r * 1.4, Color(0.7, 1.0, 0.3, 0.12 + 0.2 * _swell))
 	if kind in [WALKER, RUNNER, BRUTE, SPITTER, SCREAMER, BLOATER, CRAWLER, COP, DRUNK, HURLER, IMP, JETPACK, CONDUCTOR, BOSS] and not dead:
 		_details(sh, hip, sk)
@@ -1869,23 +1873,23 @@ func _draw_body() -> void:
 	_arm(fs, front_hand, sk, sh_col, _gore_arm and not dead)
 	if (kind == DRUNK or kind == JETPACK) and not dead:   # אקדח / תת-מקלע
 		var gl := 7.0 if kind == DRUNK else 11.0
-		draw_rect(Rect2(front_hand + Vector2(-1.0, -2.5), Vector2(gl, 3.2)), Color("1a1a1e"))
-		draw_rect(Rect2(front_hand + Vector2(-1.0, 0.5), Vector2(2.5, 4.0)), Color("1a1a1e"))
+		DrawBatch.rect(self, Rect2(front_hand + Vector2(-1.0, -2.5), Vector2(gl, 3.2)), Color("1a1a1e"))
+		DrawBatch.rect(self, Rect2(front_hand + Vector2(-1.0, 0.5), Vector2(2.5, 4.0)), Color("1a1a1e"))
 		if _muzzle_t > 0.0:
-			draw_circle(front_hand + Vector2(gl + 2.0, -1.0), 3.0, Color(1.0, 0.85, 0.4))
+			DrawBatch.circle(self, front_hand + Vector2(gl + 2.0, -1.0), 3.0, Color(1.0, 0.85, 0.4))
 	if kind == IMP and not dead:   # כידון
-		draw_line(front_hand + Vector2(-2.0, 1.0), front_hand + Vector2(3.0, 0.0), Color("3a2a1a"), 2.5)
-		draw_colored_polygon(PackedVector2Array([front_hand + Vector2(3.0, -1.2), front_hand + Vector2(17.0, -0.5), front_hand + Vector2(3.0, 1.2)]), Color("c8ccd4"))
+		DrawBatch.line(self, front_hand + Vector2(-2.0, 1.0), front_hand + Vector2(3.0, 0.0), Color("3a2a1a"), 2.5)
+		DrawBatch.colored_polygon(self, PackedVector2Array([front_hand + Vector2(3.0, -1.2), front_hand + Vector2(17.0, -0.5), front_hand + Vector2(3.0, 1.2)]), Color("c8ccd4"))
 	if kind == COP and not dead:   # מגן משטרה שקוף
 		var sx := sh.x + 12.0
 		var shield := PackedVector2Array([Vector2(sx, sh.y - 12.0), Vector2(sx + 5.0, sh.y - 13.0), Vector2(sx + 5.0, hip.y + 8.0), Vector2(sx, hip.y + 9.0)])
 		Art.fill(self, shield, Color(0.6, 0.75, 0.9, 0.45), Art.OUTLINE, 1.2)
-		draw_line(Vector2(sx + 1.5, sh.y - 9.0), Vector2(sx + 1.5, hip.y + 4.0), Color(1, 1, 1, 0.35), 1.0)
-		draw_rect(Rect2(sx, sh.y + 2.0, 5.0, 3.0), Color(0.9, 0.9, 0.95, 0.7))
+		DrawBatch.line(self, Vector2(sx + 1.5, sh.y - 9.0), Vector2(sx + 1.5, hip.y + 4.0), Color(1, 1, 1, 0.35), 1.0)
+		DrawBatch.rect(self, Rect2(sx, sh.y + 2.0, 5.0, 3.0), Color(0.9, 0.9, 0.95, 0.7))
 	if kind == SCREAMER and _scream_t > 0.0:   # גלי קול
 		for i in 3:
 			var k := fmod(1.2 - _scream_t + float(i) * 0.3, 0.9) / 0.9
-			draw_arc(head + Vector2(6, 2), 8.0 + k * 40.0, -0.9, 0.9, 12, Color(0.9, 0.9, 1.0, 0.7 * (1.0 - k)), 2.0, true)
+			DrawBatch.arc(self, head + Vector2(6, 2), 8.0 + k * 40.0, -0.9, 0.9, 12, Color(0.9, 0.9, 1.0, 0.7 * (1.0 - k)), 2.0, true)
 
 
 # ביצועים: האנימציה של הגוף מצוירת מחדש כל פריים שני (התזוזה עצמה נשארת חלקה),
@@ -1934,8 +1938,8 @@ func _boss_arms(fs: Vector2, head: Vector2, sk: Color, sh_col: Color) -> void:
 	Art.fill_shaded(self, door, Color("7a3a32"), 0.15, 0.4, Art.OUTLINE, 1.4)
 	var win := Transform2D(rot, c) * PackedVector2Array([Vector2(-3, -21), Vector2(3, -22), Vector2(3.5, -6), Vector2(-3, -5)])
 	Art.fill(self, win, Color("14181e"), Art.OUTLINE, 0.8)
-	draw_line(Transform2D(rot, c) * Vector2(-2, -18), Transform2D(rot, c) * Vector2(2, -9), Color(0.8, 0.85, 0.9, 0.35), 0.6, true)
-	draw_line(Transform2D(rot, c) * Vector2(1, 2), Transform2D(rot, c) * Vector2(4, 2), Color("aaaaaa"), 1.2, true)   # ידית
+	DrawBatch.line(self, Transform2D(rot, c) * Vector2(-2, -18), Transform2D(rot, c) * Vector2(2, -9), Color(0.8, 0.85, 0.9, 0.35), 0.6, true)
+	DrawBatch.line(self, Transform2D(rot, c) * Vector2(1, 2), Transform2D(rot, c) * Vector2(4, 2), Color("aaaaaa"), 1.2, true)   # ידית
 	for i in 3:   # חלודה ופגיעות קליעים
 		Art.oval(self, Transform2D(rot, c) * Vector2(-2.0 + float(i) * 2.0, 4.0 + float(i) * 4.0), 1.6, 1.0, Color(0.4, 0.2, 0.08, 0.7), 0.0, Art.NONE)
 
@@ -1967,16 +1971,16 @@ func _arm(shoulder: Vector2, hand: Vector2, sk: Color, sleeve: Color, gore := fa
 	if gore and not crowded():   # בשר קרוע ועצם חשופה באמה
 		var m := elbow.lerp(hand, 0.5)
 		Art.oval(self, m, 3.4, w * 0.42, Color("6e0c0c"), d.angle(), Art.NONE)
-		draw_line(m - d * 2.4, m + d * 2.6, Color("e8dcc4"), 1.4, true)
-		draw_circle(m + d * 2.8, 0.95, Color("e8dcc4"))
+		DrawBatch.line(self, m - d * 2.4, m + d * 2.6, Color("e8dcc4"), 1.4, true)
+		DrawBatch.circle(self, m + d * 2.8, 0.95, Color("e8dcc4"))
 	# כף יד עם אצבעות שמוטות
 	Art.disc(self, hand, w * 0.5 + 0.6, sk)
 	if crowded():   # הרבה זומבים על המסך: בלי אצבעות (לא רואים אותן בגודל הזה)
 		return
 	for i in 3:
 		var a := d.rotated(0.5 + float(i) * 0.35)
-		draw_line(hand + d * 1.5, hand + d * 2.0 + a * 4.0, Art.OUTLINE, 1.6, true)
-		draw_line(hand + d * 1.5, hand + d * 2.0 + a * 4.0, sk, 0.9, true)
+		DrawBatch.line(self, hand + d * 1.5, hand + d * 2.0 + a * 4.0, Art.OUTLINE, 1.6, true)
+		DrawBatch.line(self, hand + d * 1.5, hand + d * 2.0 + a * 4.0, sk, 0.9, true)
 
 
 func _torso_walker(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color) -> void:
@@ -1988,16 +1992,16 @@ func _torso_walker(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color) -> void
 	])
 	Art.fill_shaded(self, body, shirt_c, 0.15, 0.35, Art.OUTLINE, 1.4)
 	# צווארון פתוח + כפתורים
-	draw_polyline(PackedVector2Array([sh + Vector2(-4.0, -0.6), sh + Vector2(-0.5, 4.0), sh + Vector2(4.5, -0.4)]), Art.shade(shirt_c, 0.5), 1.2, true)
-	draw_circle(sh + Vector2(-0.8, 6.0), 0.7, Art.shade(shirt_c, 0.55))
-	draw_circle(hip + Vector2(-0.3, -6.5), 0.7, Art.shade(shirt_c, 0.55))
+	DrawBatch.polyline(self, PackedVector2Array([sh + Vector2(-4.0, -0.6), sh + Vector2(-0.5, 4.0), sh + Vector2(4.5, -0.4)]), Art.shade(shirt_c, 0.5), 1.2, true)
+	DrawBatch.circle(self, sh + Vector2(-0.8, 6.0), 0.7, Art.shade(shirt_c, 0.55))
+	DrawBatch.circle(self, hip + Vector2(-0.3, -6.5), 0.7, Art.shade(shirt_c, 0.55))
 	# קרע בחולצה + צלעות
 	Art.fill(self, PackedVector2Array([sh + Vector2(1.0, 7.0), sh + Vector2(6.0, 5.0), sh + Vector2(5.0, 12.0), sh + Vector2(2.0, 10.0)]), Art.shade(sk, 0.15), Art.NONE)
-	draw_line(sh + Vector2(2.5, 7.5), sh + Vector2(5.3, 6.6), Art.shade(sk, 0.45), 0.8, true)
-	draw_line(sh + Vector2(2.7, 9.3), sh + Vector2(5.2, 8.6), Art.shade(sk, 0.45), 0.8, true)
+	DrawBatch.line(self, sh + Vector2(2.5, 7.5), sh + Vector2(5.3, 6.6), Art.shade(sk, 0.45), 0.8, true)
+	DrawBatch.line(self, sh + Vector2(2.7, 9.3), sh + Vector2(5.2, 8.6), Art.shade(sk, 0.45), 0.8, true)
 	Art.oval(self, sh + Vector2(-3.0, 11.0), 3.0, 4.0, Color(0.45, 0.04, 0.04, 0.55), 0.3, Art.NONE)   # כתם דם
-	draw_polyline(PackedVector2Array([sh + Vector2(-6.0, 2.0), hip + Vector2(-5.0, -3.0)]), Color(0, 0, 0, 0.25), 1.0, true)
-	draw_line(hip + Vector2(-8.0, -1.0), hip + Vector2(8.0, -2.0), Color("2a2218"), 2.0, true)   # חגורה
+	DrawBatch.polyline(self, PackedVector2Array([sh + Vector2(-6.0, 2.0), hip + Vector2(-5.0, -3.0)]), Color(0, 0, 0, 0.25), 1.0, true)
+	DrawBatch.line(self, hip + Vector2(-8.0, -1.0), hip + Vector2(8.0, -2.0), Color("2a2218"), 2.0, true)   # חגורה
 
 
 func _torso_runner(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color) -> void:
@@ -2018,8 +2022,8 @@ func _torso_runner(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color) -> void
 	Art.fill_shaded(self, top, shirt_c, 0.15, 0.35, Art.OUTLINE, 1.0)
 	for i in 3:   # צלעות בולטות
 		var y := hip.y - 6.5 + float(i) * 2.2
-		draw_line(Vector2(hip.x + 0.5, y), Vector2(hip.x + 5.5, y - 0.8), Art.shade(sk, 0.4), 0.9, true)
-	draw_line(hip + Vector2(-6.5, -1.0), hip + Vector2(6.5, -1.5), Art.shade(pants, 0.2), 2.5, true)
+		DrawBatch.line(self, Vector2(hip.x + 0.5, y), Vector2(hip.x + 5.5, y - 0.8), Art.shade(sk, 0.4), 0.9, true)
+	DrawBatch.line(self, hip + Vector2(-6.5, -1.0), hip + Vector2(6.5, -1.5), Art.shade(pants, 0.2), 2.5, true)
 
 
 func _torso_brute(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color, pa: Color) -> void:
@@ -2054,7 +2058,7 @@ func _head(c: Vector2, sk: Color) -> void:
 			for i in 6:
 				var a := Vector2(-4.0 + float(i) * 1.2, -6.5 + float(i) * 0.4)
 				var flow := Vector2(-12.0 - float(i), 3.0 + float(i) * 1.6 + sin(_time * 8.0 + float(i)) * 1.5)
-				draw_line(c + a, c + a + flow, hair, 2.2, true)
+				DrawBatch.line(self, c + a, c + a + flow, hair, 2.2, true)
 		BRUTE:
 			pass
 		_:
@@ -2064,10 +2068,10 @@ func _head(c: Vector2, sk: Color) -> void:
 	var ry := 7.5 if _big() else 8.2
 	Art.oval_shaded(self, c, rx, ry, sk, tilt, Art.OUTLINE, 1.4)
 	if kind < 20 and not _bald and not _big() and kind != COP and kind != CONDUCTOR:   # שיער על הקודקוד (צבע שונה לכל זומבי), פרוע וקרוע
-		draw_colored_polygon(PackedVector2Array([c + Vector2(-6.8, -2.0), c + Vector2(-5.6, -5.6), c + Vector2(-2.0, -7.9), c + Vector2(2.5, -7.8),
+		DrawBatch.colored_polygon(self, PackedVector2Array([c + Vector2(-6.8, -2.0), c + Vector2(-5.6, -5.6), c + Vector2(-2.0, -7.9), c + Vector2(2.5, -7.8),
 			c + Vector2(5.4, -5.8), c + Vector2(3.0, -6.0), c + Vector2(1.0, -4.9), c + Vector2(-1.0, -6.2), c + Vector2(-3.0, -4.6),
 			c + Vector2(-4.6, -5.4), c + Vector2(-5.8, -1.4)]), hair)
-		draw_line(c + Vector2(-4.2, -6.6), c + Vector2(0.5, -8.0), Color(1, 1, 1, 0.2), 1.0, true)   # ברק בשיער
+		DrawBatch.line(self, c + Vector2(-4.2, -6.6), c + Vector2(0.5, -8.0), Color(1, 1, 1, 0.2), 1.0, true)   # ברק בשיער
 	elif kind < 20 and _bald and not _big():   # קרחת: כתם ריקבון / שריטה על הקודקוד
 		Art.oval(self, c + Vector2(-2.0, -5.0), 2.2, 1.4, Color(0.42, 0.06, 0.05, 0.75), 0.3, Art.NONE)
 	Art.oval(self, c + Vector2(2.5, -0.5), 4.5, 3.0, Color(0.1, 0.0, 0.05, 0.22), 0.1, Art.NONE)   # עיניים שקועות
@@ -2075,30 +2079,30 @@ func _head(c: Vector2, sk: Color) -> void:
 	if not lod:
 		_head_micro(c, sk)
 	else:
-		draw_circle(c + Vector2(4.0, -1.0), 1.1, Color(0.85, 0.88, 0.75, 0.85))
+		DrawBatch.circle(self, c + Vector2(4.0, -1.0), 1.1, Color(0.85, 0.88, 0.75, 0.85))
 	_head_rest(c, sk, lod)
 
 
 # פרטים זעירים בפנים (מדולגים כשיש המון זומבים על המסך)
 func _head_micro(c: Vector2, sk: Color) -> void:
-	draw_line(c + Vector2(-4.0, 2.0), c + Vector2(-1.0, 5.0), Color(0.3, 0.1, 0.3, 0.4), 0.7, true)   # ורידים
-	draw_line(c + Vector2(-3.0, -3.0), c + Vector2(-5.0, 0.5), Color(0.3, 0.1, 0.3, 0.4), 0.7, true)
+	DrawBatch.line(self, c + Vector2(-4.0, 2.0), c + Vector2(-1.0, 5.0), Color(0.3, 0.1, 0.3, 0.4), 0.7, true)   # ורידים
+	DrawBatch.line(self, c + Vector2(-3.0, -3.0), c + Vector2(-5.0, 0.5), Color(0.3, 0.1, 0.3, 0.4), 0.7, true)
 	# פרטים בפנים: סדקים בעור, עין מתה, שערות
-	draw_line(c + Vector2(-1.0, -6.5), c + Vector2(1.5, -3.5), Color(0.15, 0.05, 0.05, 0.5), 0.6, true)
-	draw_line(c + Vector2(1.5, -3.5), c + Vector2(0.5, -1.0), Color(0.15, 0.05, 0.05, 0.5), 0.6, true)
-	draw_circle(c + Vector2(4.0, -1.0), 1.1, Color(0.85, 0.88, 0.75, 0.85))   # עין מתה (בלי אישון)
-	draw_circle(c + Vector2(4.3, -1.0), 0.4, Color(0.3, 0.05, 0.05))
+	DrawBatch.line(self, c + Vector2(-1.0, -6.5), c + Vector2(1.5, -3.5), Color(0.15, 0.05, 0.05, 0.5), 0.6, true)
+	DrawBatch.line(self, c + Vector2(1.5, -3.5), c + Vector2(0.5, -1.0), Color(0.15, 0.05, 0.05, 0.5), 0.6, true)
+	DrawBatch.circle(self, c + Vector2(4.0, -1.0), 1.1, Color(0.85, 0.88, 0.75, 0.85))   # עין מתה (בלי אישון)
+	DrawBatch.circle(self, c + Vector2(4.3, -1.0), 0.4, Color(0.3, 0.05, 0.05))
 	if kind in [WALKER, SPITTER, DRUNK, IMP, CRAWLER, BLOATER]:
 		for i in 4:   # שערות דלילות
 			var hs := c + Vector2(-4.0 + float(i) * 1.8, -7.5 + absf(float(i) - 1.5) * 0.6)
-			draw_line(hs, hs + Vector2(-2.0 - float(i) * 0.5, -2.5 + sin(_time * 3.0 + float(i)) * 0.6), hair, 0.8, true)
+			DrawBatch.line(self, hs, hs + Vector2(-2.0 - float(i) * 0.5, -2.5 + sin(_time * 3.0 + float(i)) * 0.6), hair, 0.8, true)
 
 
 func _head_rest(c: Vector2, sk: Color, lod: bool) -> void:
 	if _det[5]:   # לחי קרועה: רואים שיניים (גור - נשאר גם בציור המפושט)
 		Art.fill(self, PackedVector2Array([c + Vector2(-1.0, 1.0), c + Vector2(2.5, 0.5), c + Vector2(2.0, 4.0), c + Vector2(-1.5, 3.5)]), Color("5a1010"), Art.NONE)
 		for i in 3:
-			draw_line(c + Vector2(-0.5 + float(i) * 1.0, 1.4), c + Vector2(-0.5 + float(i) * 1.0, 2.6), Color("e0d8b0"), 0.6)
+			DrawBatch.line(self, c + Vector2(-0.5 + float(i) * 1.0, 1.4), c + Vector2(-0.5 + float(i) * 1.0, 2.6), Color("e0d8b0"), 0.6)
 	if kind == SPITTER:   # שק חומצה ירוק נפוח בגרון
 		Art.oval(self, c + Vector2(2.0, 8.0), 5.5 + (1.5 if _spit_anim > 0.0 else 0.0), 4.5, Color("8ad040"), 0.0, Art.OUTLINE, 1.0)
 		Art.glow(self, c + Vector2(2.0, 8.0), 8.0, Color(0.6, 1.0, 0.2, 0.4))
@@ -2125,28 +2129,28 @@ func _head_rest(c: Vector2, sk: Color, lod: bool) -> void:
 		eye_col = Color(0.6, 1.0, 0.2, 0.8)
 	Art.glow(self, eye, 5.0, eye_col)
 	Art.disc(self, eye, 1.2, eye_col.lightened(0.5), Art.NONE)
-	draw_circle(c + Vector2(0.8, -1.4), 0.7, Color(eye_col.lightened(0.2), 0.55))   # העין השנייה: ניצוץ עמום (הפנים נקראות)
+	DrawBatch.circle(self, c + Vector2(0.8, -1.4), 0.7, Color(eye_col.lightened(0.2), 0.55))   # העין השנייה: ניצוץ עמום (הפנים נקראות)
 	if _det[0] and kind < 20:   # ריר דם מהפה
 		var lip := c + Vector2(3.0, 6.8 + jaw_open * 0.7)
-		draw_line(lip, lip + Vector2(-0.4, 3.2), Color(0.5, 0.02, 0.02, 0.9), 1.2, true)
-		draw_circle(lip + Vector2(-0.4, 3.4), 0.8, Color(0.55, 0.03, 0.03, 0.9))
-	draw_line(c + Vector2(2.0, -4.0), c + Vector2(7.0, -3.2), Art.shade(sk, 0.45), 1.4, true)   # גבה
+		DrawBatch.line(self, lip, lip + Vector2(-0.4, 3.2), Color(0.5, 0.02, 0.02, 0.9), 1.2, true)
+		DrawBatch.circle(self, lip + Vector2(-0.4, 3.4), 0.8, Color(0.55, 0.03, 0.03, 0.9))
+	DrawBatch.line(self, c + Vector2(2.0, -4.0), c + Vector2(7.0, -3.2), Art.shade(sk, 0.45), 1.4, true)   # גבה
 	if not lod:
 		Art.disc(self, c + Vector2(-2.5, 0.5), 1.8, Art.shade(sk, 0.15), Art.OUTLINE, 0.8)            # אוזן
 	match kind:
 		BRUTE, BOSS:   # קרחת עם תפרים
-			draw_polyline(PackedVector2Array([c + Vector2(-5.0, -4.0), c + Vector2(-1.0, -6.5), c + Vector2(3.0, -6.8)]), Color("3a1a1a"), 1.0, true)
+			DrawBatch.polyline(self, PackedVector2Array([c + Vector2(-5.0, -4.0), c + Vector2(-1.0, -6.5), c + Vector2(3.0, -6.8)]), Color("3a1a1a"), 1.0, true)
 			for i in 4:
 				var q := c + Vector2(-4.0 + float(i) * 2.2, -4.8 - float(i) * 0.6)
-				draw_line(q + Vector2(-0.6, -1.0), q + Vector2(0.6, 1.0), Color("3a1a1a"), 0.8, true)
+				DrawBatch.line(self, q + Vector2(-0.6, -1.0), q + Vector2(0.6, 1.0), Color("3a1a1a"), 0.8, true)
 		CONDUCTOR, COP:   # כובע: מוליך (כחול עם פס זהב) / שוטר
 			var cap := Color("1e2a44") if kind == CONDUCTOR else Color("161e2e")
 			Art.fill(self, PackedVector2Array([c + Vector2(-6.0, -5.0), c + Vector2(-5.0, -10.5), c + Vector2(5.0, -10.5), c + Vector2(6.5, -5.0)]), cap, Art.OUTLINE, 1.0)
 			Art.fill(self, PackedVector2Array([c + Vector2(4.0, -5.5), c + Vector2(10.0, -4.5), c + Vector2(9.0, -3.5), c + Vector2(4.0, -4.0)]), Color("0e0e12"), Art.OUTLINE, 0.8)
-			draw_line(c + Vector2(-5.5, -6.5), c + Vector2(6.0, -6.5), Color("c8a030") if kind == CONDUCTOR else Color("8090a0"), 1.2)
+			DrawBatch.line(self, c + Vector2(-5.5, -6.5), c + Vector2(6.0, -6.5), Color("c8a030") if kind == CONDUCTOR else Color("8090a0"), 1.2)
 		WALKER:
-			draw_line(c + Vector2(-2.0, -7.5), c + Vector2(-4.0, -10.5), hair, 1.0, true)
-			draw_line(c + Vector2(0.0, -8.0), c + Vector2(0.5, -11.0), hair, 1.0, true)
+			DrawBatch.line(self, c + Vector2(-2.0, -7.5), c + Vector2(-4.0, -10.5), hair, 1.0, true)
+			DrawBatch.line(self, c + Vector2(0.0, -8.0), c + Vector2(0.5, -11.0), hair, 1.0, true)
 			Art.oval(self, c + Vector2(-1.0, -4.5), 2.0, 1.3, Color("7a0a0a"), 0.4, Art.NONE)   # פצע בראש
 
 
@@ -2266,21 +2270,21 @@ const RAT_EYE := Color("ff5030")
 func _draw_rat() -> void:
 	var f := _dir
 	var ph := _walk_phase * 2.0
-	draw_set_transform(Vector2.ZERO, _angle if dead else 0.0, Vector2(f, 1.0))
+	DrawBatch.set_transform(self, Vector2.ZERO, _angle if dead else 0.0, Vector2(f, 1.0))
 	var c := Color.WHITE if _flash > 0.0 else skin
 	var pink := RAT_PINK if _flash <= 0.0 else Color.WHITE
 	var tw := sin(_time * 8.0) * 2.0
-	draw_polyline(PackedVector2Array([Vector2(-7, -3), Vector2(-12, -3.5 + tw * 0.4), Vector2(-17, -5 + tw)]), pink, 1.3)   # זנב ורוד
+	DrawBatch.polyline(self, PackedVector2Array([Vector2(-7, -3), Vector2(-12, -3.5 + tw * 0.4), Vector2(-17, -5 + tw)]), pink, 1.3)   # זנב ורוד
 	for i in 2:
 		var lx := -3.0 + float(i) * 6.0
-		draw_line(Vector2(lx, -1), Vector2(lx + sin(ph + float(i) * PI) * 2.0, 0.5), RAT_LEG, 1.4)
+		DrawBatch.line(self, Vector2(lx, -1), Vector2(lx + sin(ph + float(i) * PI) * 2.0, 0.5), RAT_LEG, 1.4)
 	Art.oval(self, Vector2(0, -4), 7.5, 4.0, c, 0.0, Art.OUTLINE, 1.0)   # גוף
-	draw_line(Vector2(-5.0, -6.4), Vector2(3.0, -6.8), Art.shade(c, -0.25), 1.4)   # אור על הגב (נפח)
-	draw_circle(Vector2(-1.5, -3.4), 1.5, RAT_SORE)   # פצע פתוח (עור קרחת)
+	DrawBatch.line(self, Vector2(-5.0, -6.4), Vector2(3.0, -6.8), Art.shade(c, -0.25), 1.4)   # אור על הגב (נפח)
+	DrawBatch.circle(self, Vector2(-1.5, -3.4), 1.5, RAT_SORE)   # פצע פתוח (עור קרחת)
 	Art.oval(self, Vector2(7, -5), 3.6, 2.6, c, 0.2, Art.OUTLINE, 1.0)
-	draw_circle(Vector2(6.4, -8.0), 1.6, pink)   # אוזן ורודה
-	draw_circle(Vector2(8.8, -5.6), 1.1, RAT_EYE)   # עין אדומה
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.circle(self, Vector2(6.4, -8.0), 1.6, pink)   # אוזן ורודה
+	DrawBatch.circle(self, Vector2(8.8, -5.6), 1.1, RAT_EYE)   # עין אדומה
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 
 
 const HAND_SLEEVE := Color("5a5446")
@@ -2292,22 +2296,22 @@ func _draw_hand() -> void:
 	if _grab_state == 0:   # בועות על המים
 		for i in 2:
 			var k := fmod(_time * 0.8 + float(i) * 0.5, 1.0)
-			draw_arc(Vector2(0, -3), 3.0 + 8.0 * k, PI, TAU, 10, Color(0.7, 0.85, 0.8, 0.5 * (1.0 - k)), 1.0)
+			DrawBatch.arc(self, Vector2(0, -3), 3.0 + 8.0 * k, PI, TAU, 10, Color(0.7, 0.85, 0.8, 0.5 * (1.0 - k)), 1.0)
 		return
 	var up := -34.0 if _grab_state == 1 else -34.0 * clampf(_grab_t / 3.5, 0.0, 1.0)
 	var c := Color.WHITE if _flash > 0.0 else skin
 	Art.limb(self, PackedVector2Array([Vector2(-3, 2), Vector2(-1, up * 0.5), Vector2(2, up)]), 5.0, c)
 	# שרוול קרוע ורטוב + עצם / בשר חשוף באמה
 	var cuff := up * 0.2
-	draw_colored_polygon(PackedVector2Array([Vector2(-6.4, 2), Vector2(0.4, 2), Vector2(0.8, cuff), Vector2(-0.6, cuff + 2.0), Vector2(-2.6, cuff - 0.5), Vector2(-4.4, cuff + 1.8), Vector2(-5.8, cuff)]), HAND_SLEEVE if _flash <= 0.0 else c)
+	DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-6.4, 2), Vector2(0.4, 2), Vector2(0.8, cuff), Vector2(-0.6, cuff + 2.0), Vector2(-2.6, cuff - 0.5), Vector2(-4.4, cuff + 1.8), Vector2(-5.8, cuff)]), HAND_SLEEVE if _flash <= 0.0 else c)
 	Art.oval(self, Vector2(-1.0, up * 0.55), 1.8, 3.0, HAND_FLESH, 0.1, Art.NONE)
-	draw_line(Vector2(-1.2, up * 0.45), Vector2(-0.6, up * 0.65), HAND_BONE, 1.2)
+	DrawBatch.line(self, Vector2(-1.2, up * 0.45), Vector2(-0.6, up * 0.65), HAND_BONE, 1.2)
 	var fc := Art.shade(c, 0.2)
 	for i in 4:   # אצבעות סביב הקרסול
 		var a := -1.2 + float(i) * 0.5
-		draw_line(Vector2(3, up - 2), Vector2(3, up - 2) + Vector2.from_angle(a) * 6.0, fc, 1.9)
+		DrawBatch.line(self, Vector2(3, up - 2), Vector2(3, up - 2) + Vector2.from_angle(a) * 6.0, fc, 1.9)
 	Art.oval_shaded(self, Vector2(3, up - 2), 4.5, 3.5, c, 0.3, Art.OUTLINE, 1.0)   # כף יד
-	draw_arc(Vector2(-2, -3), 7.0, PI, TAU, 12, Color(0.7, 0.85, 0.8, 0.6), 1.2)   # טבעת מים
+	DrawBatch.arc(self, Vector2(-2, -3), 7.0, PI, TAU, 12, Color(0.7, 0.85, 0.8, 0.6), 1.2)   # טבעת מים
 
 
 # ============================================================
@@ -2480,10 +2484,10 @@ func _draw_mech() -> void:
 	var plate: Color = W.call(Color("4a5a3a"))
 	var dark: Color = W.call(Color("2a2c30"))
 	if dead:
-		draw_set_transform_matrix(Transform2D(_angle, Vector2(0.0, -14.0 * sc)) * Transform2D(0.0, Vector2(f * sc, sc), 0.0, Vector2(0.0, 14.0 * sc)))
+		DrawBatch.set_transform_matrix(self, Transform2D(_angle, Vector2(0.0, -14.0 * sc)) * Transform2D(0.0, Vector2(f * sc, sc), 0.0, Vector2(0.0, 14.0 * sc)))
 	else:
 		Art.ground_shadow(self, Vector2.ZERO, 28.0 * sc)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(f * sc, sc))
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(f * sc, sc))
 	# ---- זחלים ----
 	var track := PackedVector2Array()
 	for i in 9:
@@ -2494,46 +2498,46 @@ func _draw_mech() -> void:
 	var lk := fmod(_walk_phase * 6.0, 6.0)
 	var x := -20.0 + lk
 	while x < 20.0:   # חוליות הזחל זזות
-		draw_rect(Rect2(x, -16.5, 3.0, 2.0), W.call(Color("3a3a3e")))
-		draw_rect(Rect2(-x - 3.0, -1.5, 3.0, 2.0), W.call(Color("3a3a3e")))
+		DrawBatch.rect(self, Rect2(x, -16.5, 3.0, 2.0), W.call(Color("3a3a3e")))
+		DrawBatch.rect(self, Rect2(-x - 3.0, -1.5, 3.0, 2.0), W.call(Color("3a3a3e")))
 		x += 6.0
 	for wx in [-18.0, -6.0, 6.0, 18.0]:   # גלגלי הנעה
-		draw_circle(Vector2(wx, -8.0), 4.6, dark)
-		draw_circle(Vector2(wx, -8.0), 2.0, steel)
-		draw_line(Vector2(wx, -8.0), Vector2(wx, -8.0) + Vector2.from_angle(_walk_phase * 2.0) * 4.0, W.call(Color("8a8e94")), 1.0)
+		DrawBatch.circle(self, Vector2(wx, -8.0), 4.6, dark)
+		DrawBatch.circle(self, Vector2(wx, -8.0), 2.0, steel)
+		DrawBatch.line(self, Vector2(wx, -8.0), Vector2(wx, -8.0) + Vector2.from_angle(_walk_phase * 2.0) * 4.0, W.call(Color("8a8e94")), 1.0)
 	# ---- מנוע + צינורות פליטה (מאחור) ----
 	Art.fill_shaded(self, PackedVector2Array([Vector2(-30, -18), Vector2(-20, -18), Vector2(-20, -42), Vector2(-30, -40)]), dark, 0.15, 0.3, Art.OUTLINE, 1.2)
 	for k in 3:
-		draw_line(Vector2(-29, -22.0 - k * 6.0), Vector2(-21, -22.0 - k * 6.0), W.call(Color("4a4c50")), 1.5)
+		DrawBatch.line(self, Vector2(-29, -22.0 - k * 6.0), Vector2(-21, -22.0 - k * 6.0), W.call(Color("4a4c50")), 1.5)
 	for ex in [-28.0, -23.0]:
-		draw_line(Vector2(ex, -40), Vector2(ex - 2.0, -60), W.call(Color("3a3a3c")), 3.0)
-		draw_line(Vector2(ex - 3.5, -60), Vector2(ex - 0.5, -60), W.call(Color("1a1a1a")), 3.0)
+		DrawBatch.line(self, Vector2(ex, -40), Vector2(ex - 2.0, -60), W.call(Color("3a3a3c")), 3.0)
+		DrawBatch.line(self, Vector2(ex - 3.5, -60), Vector2(ex - 0.5, -60), W.call(Color("1a1a1a")), 3.0)
 		if not dead:
 			for pf in 3:
 				var age := fmod(_time * 1.2 + float(pf) * 0.33 + ex * 0.1, 1.0)
-				draw_circle(Vector2(ex - 2.0 - age * 10.0, -62.0 - age * 22.0), 2.0 + age * 6.0, Color(0.15, 0.15, 0.15, 0.45 * (1.0 - age)))
+				DrawBatch.circle(self, Vector2(ex - 2.0 - age * 10.0, -62.0 - age * 22.0), 2.0 + age * 6.0, Color(0.15, 0.15, 0.15, 0.45 * (1.0 - age)))
 			if randf() < 0.15:
-				draw_circle(Vector2(ex - 2.0, -61.0), 2.2, Color(1.0, 0.55, 0.15, 0.9))
+				DrawBatch.circle(self, Vector2(ex - 2.0, -61.0), 2.2, Color(1.0, 0.55, 0.15, 0.9))
 	# ---- גוף מרותך מפחים ----
 	Art.fill_shaded(self, PackedVector2Array([Vector2(-22, -16), Vector2(26, -16), Vector2(24, -30), Vector2(16, -40), Vector2(-20, -42)]), steel, 0.18, 0.35, Art.OUTLINE, 1.6)
 	Art.fill(self, PackedVector2Array([Vector2(-20, -18), Vector2(-4, -18), Vector2(-5, -32), Vector2(-19, -33)]), rust, Art.OUTLINE, 1.0)
 	Art.fill(self, PackedVector2Array([Vector2(4, -18), Vector2(24, -18), Vector2(22, -30), Vector2(6, -31)]), plate, Art.OUTLINE, 1.0)
 	for i in 8:   # ריתוכים
-		draw_circle(Vector2(-4.5 + float(i % 2) * 0.6, -19.0 - float(i) * 1.7), 0.7, W.call(Color("b0a090")))
+		DrawBatch.circle(self, Vector2(-4.5 + float(i % 2) * 0.6, -19.0 - float(i) * 1.7), 0.7, W.call(Color("b0a090")))
 	for p in [Vector2(-18, -20), Vector2(-18, -31), Vector2(-6, -20), Vector2(22, -20), Vector2(8, -20), Vector2(20, -29)]:
-		draw_circle(p, 1.0, W.call(Color("c8c8cc")))
-	draw_rect(Rect2(10, -24, 14, 3), W.call(Color("c8a020")))   # פס אזהרה
+		DrawBatch.circle(self, p, 1.0, W.call(Color("c8c8cc")))
+	DrawBatch.rect(self, Rect2(10, -24, 14, 3), W.call(Color("c8a020")))   # פס אזהרה
 	for i in 3:
-		draw_line(Vector2(11.0 + i * 5.0, -21.0), Vector2(14.0 + i * 5.0, -24.0), Color(0, 0, 0, 0.8), 1.4)
+		DrawBatch.line(self, Vector2(11.0 + i * 5.0, -21.0), Vector2(14.0 + i * 5.0, -24.0), Color(0, 0, 0, 0.8), 1.4)
 	# מיכל "דלק זומבי" ירוק זוהר עם בועות
 	Art.fill(self, PackedVector2Array([Vector2(-16, -34), Vector2(-6, -34), Vector2(-6, -24), Vector2(-16, -24)]), W.call(Color(0.25, 0.9, 0.3, 0.75)), Art.OUTLINE, 1.2)
 	if not dead:
 		Art.glow(self, Vector2(-11, -29), 9.0, Color(0.3, 1.0, 0.3, 0.25 + 0.15 * sin(_time * 5.0)))
 		for bb in 3:
 			var by := -25.0 - fmod(_time * 8.0 + float(bb) * 3.0, 9.0)
-			draw_circle(Vector2(-13.0 + float(bb) * 2.5, by), 0.8, Color(0.8, 1.0, 0.8, 0.8))
+			DrawBatch.circle(self, Vector2(-13.0 + float(bb) * 2.5, by), 0.8, Color(0.8, 1.0, 0.8, 0.8))
 	# פנס קדמי
-	draw_circle(Vector2(25, -26), 2.4, W.call(Color("e8e0b0")))
+	DrawBatch.circle(self, Vector2(25, -26), 2.4, W.call(Color("e8e0b0")))
 	if not dead:
 		Art.glow(self, Vector2(27, -26), 8.0, Color(1.0, 0.95, 0.7, 0.25))
 	# ---- תא: כלוב + הזומבי (הנקודה הפגיעה) ----
@@ -2541,72 +2545,72 @@ func _draw_mech() -> void:
 		var sk: Color = W.call(skin)
 		var bob := sin(_time * 3.0) * 0.6
 		# כבלים מהראש למכונה (הזומבי מחובר לרובוט)
-		draw_line(Vector2(-8, -64 + bob), Vector2(-17, -42), W.call(Color("1a1a1a")), 1.6, true)
-		draw_line(Vector2(-6, -66 + bob), Vector2(-20, -45), W.call(Color("8a2020")), 1.2, true)
+		DrawBatch.line(self, Vector2(-8, -64 + bob), Vector2(-17, -42), W.call(Color("1a1a1a")), 1.6, true)
+		DrawBatch.line(self, Vector2(-6, -66 + bob), Vector2(-20, -45), W.call(Color("8a2020")), 1.2, true)
 		# גוף: חולצה קרועה וצלעות חשופות
 		Art.fill(self, PackedVector2Array([Vector2(-11, -40), Vector2(5, -40), Vector2(5, -54 + bob), Vector2(-10, -55 + bob)]), W.call(shirt), Art.OUTLINE, 1.0)
 		Art.fill(self, PackedVector2Array([Vector2(-3, -42), Vector2(4, -42), Vector2(4, -51 + bob), Vector2(-2, -52 + bob)]), W.call(Color("8a3a2a")), Art.NONE)
 		for r in 3:
-			draw_line(Vector2(-2, -44.0 - r * 2.6 + bob * 0.5), Vector2(4, -44.5 - r * 2.6 + bob * 0.5), W.call(Color("e0d8c0")), 0.9)
+			DrawBatch.line(self, Vector2(-2, -44.0 - r * 2.6 + bob * 0.5), Vector2(4, -44.5 - r * 2.6 + bob * 0.5), W.call(Color("e0d8c0")), 0.9)
 		# יד על ידית ההיגוי
 		Art.limb(self, PackedVector2Array([Vector2(3, -52 + bob), Vector2(9, -46), Vector2(13, -42)]), 2.6, sk)
-		draw_line(Vector2(13, -38), Vector2(15, -45), W.call(Color("2a2a2a")), 1.6)
+		DrawBatch.line(self, Vector2(13, -38), Vector2(15, -45), W.call(Color("2a2a2a")), 1.6)
 		# ראש: נרקב, לסת פתוחה, שתל מתכת עם עין אדומה
 		var hc := Vector2(-2.0, -61.0 + bob)
 		Art.oval(self, hc, 7.0, 7.8, sk, 0.0, Art.OUTLINE, 1.2)
 		Art.oval(self, hc + Vector2(-3.0, 2.0), 2.4, 1.6, W.call(Art.shade(skin, 0.35)), 0.3, Art.NONE)   # כתם ריקבון
 		Art.fill(self, PackedVector2Array([hc + Vector2(-6, -6), hc + Vector2(2, -8), hc + Vector2(3, -3), hc + Vector2(-5, -1)]), W.call(Color("6a6e74")), Art.OUTLINE, 0.9)   # שתל מתכת
-		draw_circle(hc + Vector2(-2, -4.5), 0.7, W.call(Color("c8c8cc")))
+		DrawBatch.circle(self, hc + Vector2(-2, -4.5), 0.7, W.call(Color("c8c8cc")))
 		Art.glow(self, hc + Vector2(3.5, -1.0), 5.0, Color(1.0, 0.15, 0.1, 0.8))
-		draw_circle(hc + Vector2(3.5, -1.0), 1.3, Color(1.0, 0.45, 0.35))
+		DrawBatch.circle(self, hc + Vector2(3.5, -1.0), 1.3, Color(1.0, 0.45, 0.35))
 		Art.fill(self, PackedVector2Array([hc + Vector2(1, 3), hc + Vector2(7, 2.5), hc + Vector2(6, 7.5 + absf(sin(_time * 6.0)) * 1.5), hc + Vector2(1, 6)]), W.call(Color("2a0808")), Art.OUTLINE, 0.8)   # לסת פתוחה
 		for tth in 3:
-			draw_line(hc + Vector2(2.0 + tth * 1.6, 3.0), hc + Vector2(2.3 + tth * 1.6, 4.4), W.call(Color("e8e0c8")), 0.8)
+			DrawBatch.line(self, hc + Vector2(2.0 + tth * 1.6, 3.0), hc + Vector2(2.3 + tth * 1.6, 4.4), W.call(Color("e8e0c8")), 0.8)
 		# כלוב מגן
 		for cx in [-14.0, 8.0]:
-			draw_line(Vector2(cx, -40), Vector2(cx + 2.0, -70), W.call(Color("3a3c40")), 1.6)
-		draw_arc(Vector2(-3, -70), 11.0, PI, TAU, 10, W.call(Color("3a3c40")), 1.6)
-	draw_rect(Rect2(-20, -44, 34, 4), dark)   # שפת התא
+			DrawBatch.line(self, Vector2(cx, -40), Vector2(cx + 2.0, -70), W.call(Color("3a3c40")), 1.6)
+		DrawBatch.arc(self, Vector2(-3, -70), 11.0, PI, TAU, 10, W.call(Color("3a3c40")), 1.6)
+	DrawBatch.rect(self, Rect2(-20, -44, 34, 4), dark)   # שפת התא
 	# אנטנה מהבהבת
-	draw_line(Vector2(-18, -42), Vector2(-22, -74), dark, 1.2)
-	draw_circle(Vector2(-22, -74), 1.8, Color(1.0, 0.15, 0.1, 0.4 + 0.6 * float(int(_time * 3.0) % 2)))
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.line(self, Vector2(-18, -42), Vector2(-22, -74), dark, 1.2)
+	DrawBatch.circle(self, Vector2(-22, -74), 1.8, Color(1.0, 0.15, 0.1, 0.4 + 0.6 * float(int(_time * 3.0) % 2)))
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 	if dead:
 		return
 	# ---- זרוע הידראולית + גאטלינג מסתובב ----
 	var base := Vector2(f * 12.0 * sc, -30.0 * sc)
 	var piv := Vector2(f * 14.0 * wf, -34.0 * sc)
-	draw_line(base, piv, Color("3a3c40"), 4.0)
-	draw_line(base + Vector2(0, -2), piv + Vector2(0, -2), Color("9a9ea4"), 1.0)
+	DrawBatch.line(self, base, piv, Color("3a3c40"), 4.0)
+	DrawBatch.line(self, base + Vector2(0, -2), piv + Vector2(0, -2), Color("9a9ea4"), 1.0)
 	var dv := Vector2.from_angle(_gun_ang)
 	var nv := dv.rotated(PI / 2.0)
 	var L := 30.0 * sc
-	draw_colored_polygon(PackedVector2Array([piv - nv * 5.0 - dv * 7.0, piv - nv * 5.0 + dv * 11.0, piv + nv * 5.0 + dv * 11.0, piv + nv * 5.0 - dv * 7.0]), Color("26282c"))
-	draw_line(piv - nv * 5.0 + dv * 2.0, piv - nv * 5.0 + dv * 9.0, Color("c8a020"), 1.5)
+	DrawBatch.colored_polygon(self, PackedVector2Array([piv - nv * 5.0 - dv * 7.0, piv - nv * 5.0 + dv * 11.0, piv + nv * 5.0 + dv * 11.0, piv + nv * 5.0 - dv * 7.0]), Color("26282c"))
+	DrawBatch.line(self, piv - nv * 5.0 + dv * 2.0, piv - nv * 5.0 + dv * 9.0, Color("c8a020"), 1.5)
 	var spin := _time * (30.0 if _burst > 0 else 2.0)   # הקנים מסתובבים בירי
 	for k in 3:
 		var o := sin(spin + float(k) * TAU / 3.0) * 2.2
-		draw_line(piv + dv * 10.0 + nv * o, piv + dv * L + nv * o, Color(0.12 + 0.05 * float(k), 0.12, 0.13), 1.6)
-	draw_line(piv + dv * (L - 3.0) - nv * 3.0, piv + dv * (L - 3.0) + nv * 3.0, Color("44464a"), 2.5)
+		DrawBatch.line(self, piv + dv * 10.0 + nv * o, piv + dv * L + nv * o, Color(0.12 + 0.05 * float(k), 0.12, 0.13), 1.6)
+	DrawBatch.line(self, piv + dv * (L - 3.0) - nv * 3.0, piv + dv * (L - 3.0) + nv * 3.0, Color("44464a"), 2.5)
 	# שרשרת תחמושת מהגוף לנשק
 	var belt_a := Vector2(f * 2.0 * sc, -26.0 * sc)
 	for i in 7:
 		var tt := float(i) / 6.0
 		var bp := belt_a.lerp(piv + nv * 4.0, tt) + Vector2(0, sin(tt * PI) * 6.0)
-		draw_rect(Rect2(bp - Vector2(1.2, 1.2), Vector2(2.4, 2.4)), Color("c8903a"))
+		DrawBatch.rect(self, Rect2(bp - Vector2(1.2, 1.2), Vector2(2.4, 2.4)), Color("c8903a"))
 	var muzzle := piv + dv * L
 	if _muzzle_t > 0.0:
 		for i in 6:
-			draw_line(muzzle, muzzle + dv.rotated(randf_range(-0.6, 0.6)) * randf_range(6.0, 16.0), Color(1.0, 0.85, 0.4), 2.0)
+			DrawBatch.line(self, muzzle, muzzle + dv.rotated(randf_range(-0.6, 0.6)) * randf_range(6.0, 16.0), Color(1.0, 0.85, 0.4), 2.0)
 	if _aim_t > 0.0:   # לייזר אזהרה
-		draw_line(muzzle, muzzle + dv * 520.0, Color(1.0, 0.1, 0.1, 0.35 + 0.35 * sin(_time * 30.0)), 1.2)
+		DrawBatch.line(self, muzzle, muzzle + dv * 520.0, Color(1.0, 0.1, 0.1, 0.35 + 0.35 * sin(_time * 30.0)), 1.2)
 	if hp < max_hp * 0.4:   # עשן וניצוצות כשנפגע
 		for i in 3:
 			var age := fmod(_time * 0.8 + float(i) * 0.33, 1.0)
-			draw_circle(Vector2(-f * 8.0, -44.0 * sc - age * 30.0), 4.0 + age * 8.0, Color(0.2, 0.2, 0.2, 0.45 * (1.0 - age)))
+			DrawBatch.circle(self, Vector2(-f * 8.0, -44.0 * sc - age * 30.0), 4.0 + age * 8.0, Color(0.2, 0.2, 0.2, 0.45 * (1.0 - age)))
 		if randf() < 0.2:
 			var sp := Vector2(f * randf_range(-15.0, 15.0), -randf_range(20.0, 40.0) * sc)
-			draw_line(sp, sp + Vector2(randf_range(-6, 6), -randf_range(3, 8)), Color(1.0, 0.85, 0.4), 1.2)
+			DrawBatch.line(self, sp, sp + Vector2(randf_range(-6, 6), -randf_range(3, 8)), Color(1.0, 0.85, 0.4), 1.2)
 
 
 # ============================================================
@@ -2802,7 +2806,7 @@ func _draw_canine(S: float, hound: bool) -> void:
 		base = Transform2D(_angle, Vector2(0.0, -20.0 * S)) * Transform2D(0.0, Vector2(f * S, S), 0.0, Vector2(0.0, 20.0 * S))
 	else:
 		Art.ground_shadow(self, Vector2.ZERO, 26.0 * S)
-	draw_set_transform_matrix(base)
+	DrawBatch.set_transform_matrix(self, base)
 	var bob := absf(sin(ph)) * 2.0 if run and not dead else 0.0
 	var nk := Vector2(23.0, -36.0)
 	# מת על הריצפה: הגוף צונח לקרקע והרגליים נשמטות לצדדים
@@ -2824,11 +2828,11 @@ func _draw_canine(S: float, hound: bool) -> void:
 			if i % 2 == 1:   # קוצים
 				for s2 in 3:
 					var sa := float(s2) * TAU / 3.0 + _time
-					draw_colored_polygon(PackedVector2Array([p + Vector2.from_angle(sa + 0.4) * 2.0, p + Vector2.from_angle(sa) * 6.5, p + Vector2.from_angle(sa - 0.4) * 2.0]), Color("9a9aa2"))
+					DrawBatch.colored_polygon(self, PackedVector2Array([p + Vector2.from_angle(sa + 0.4) * 2.0, p + Vector2.from_angle(sa) * 6.5, p + Vector2.from_angle(sa - 0.4) * 2.0]), Color("9a9aa2"))
 		Art.oval(self, pts[-1], 5.5, 5.5, Color("3a3a40"), 0.0, Art.OUTLINE, 1.0)   # כדור קוצים בקצה
 		for s2 in 6:
 			var sa := float(s2) * TAU / 6.0
-			draw_colored_polygon(PackedVector2Array([pts[-1] + Vector2.from_angle(sa + 0.35) * 4.0, pts[-1] + Vector2.from_angle(sa) * 10.0, pts[-1] + Vector2.from_angle(sa - 0.35) * 4.0]), Color("b0b0b8"))
+			DrawBatch.colored_polygon(self, PackedVector2Array([pts[-1] + Vector2.from_angle(sa + 0.35) * 4.0, pts[-1] + Vector2.from_angle(sa) * 10.0, pts[-1] + Vector2.from_angle(sa - 0.35) * 4.0]), Color("b0b0b8"))
 	# ---- ספרייט הכלב (תמונה אחת + תנועה פרוצדורלית: דהירה, קפיצה, כריעה) ----
 	var rot := 0.0
 	var sq := Vector2.ONE
@@ -2858,17 +2862,17 @@ func _draw_canine(S: float, hound: bool) -> void:
 		var la: float = lg[5] if air else sin(ph + lg[4]) * amp
 		if dead:
 			la = (-1.35 if lg[0] > 80.0 else 1.35) * dk
-		draw_set_transform_matrix(bm * Transform2D(la, pv) * Transform2D(0.0, -pv))
-		draw_texture_rect_region(DOG_TEX, Rect2(Vector2(-36.0, -50.0) + Vector2(lg[0], lg[1] - 2.0) * k, src.size * k), src, mod)
-	draw_set_transform_matrix(bm)
-	draw_texture_rect_region(DOG_TEX, Rect2(-36, -50, 76, 50), Rect2(0, 0, 186, 123), mod)
+		DrawBatch.set_transform_matrix(self, bm * Transform2D(la, pv) * Transform2D(0.0, -pv))
+		DrawBatch.texture_rect_region(self, DOG_TEX, Rect2(Vector2(-36.0, -50.0) + Vector2(lg[0], lg[1] - 2.0) * k, src.size * k), src, mod)
+	DrawBatch.set_transform_matrix(self, bm)
+	DrawBatch.texture_rect_region(self, DOG_TEX, Rect2(-36, -50, 76, 50), Rect2(0, 0, 186, 123), mod)
 	if hound:   # קולר קוצים
 		Art.limb(self, PackedVector2Array([nk + Vector2(-3, -9), nk + Vector2(3, 9)]), 5.0, Color("2a2a2e"))
 		for i in 5:
 			var cp := nk.lerp(nk + Vector2(6, 18), float(i) / 4.0) + Vector2(-3, -9)
-			draw_colored_polygon(PackedVector2Array([cp + Vector2(-1.5, 0), cp + Vector2(-6, -1), cp + Vector2(-1.5, 2)]), Color("b8b8c0"))
-			draw_colored_polygon(PackedVector2Array([cp + Vector2(1.5, 0), cp + Vector2(6, 1), cp + Vector2(1.5, 2)]), Color("b8b8c0"))
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+			DrawBatch.colored_polygon(self, PackedVector2Array([cp + Vector2(-1.5, 0), cp + Vector2(-6, -1), cp + Vector2(-1.5, 2)]), Color("b8b8c0"))
+			DrawBatch.colored_polygon(self, PackedVector2Array([cp + Vector2(1.5, 0), cp + Vector2(6, 1), cp + Vector2(1.5, 2)]), Color("b8b8c0"))
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 
 
 # ---- ציור מקלען על חצובה ----
@@ -2878,10 +2882,10 @@ func _draw_gunner() -> void:
 	var sk: Color = Color.WHITE if white else skin
 	var army: Color = Color.WHITE if white else shirt
 	if dead:
-		draw_set_transform_matrix(Transform2D(_angle, Vector2(0.0, -20.0 * sc)) * Transform2D(0.0, Vector2(f * sc, sc), 0.0, Vector2(0.0, 20.0 * sc)))
+		DrawBatch.set_transform_matrix(self, Transform2D(_angle, Vector2(0.0, -20.0 * sc)) * Transform2D(0.0, Vector2(f * sc, sc), 0.0, Vector2(0.0, 20.0 * sc)))
 	else:
 		Art.ground_shadow(self, Vector2.ZERO, 26.0 * sc)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(f * sc, sc))
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(f * sc, sc))
 	# שקי חול
 	for p in [Vector2(14, -5), Vector2(25, -5), Vector2(19, -13)]:
 		Art.oval(self, p, 7.0, 5.0, Color("8a7a58"), 0.0, Art.OUTLINE, 1.0)
@@ -2893,34 +2897,34 @@ func _draw_gunner() -> void:
 	Art.oval(self, hc, 7.0, 7.5, sk, 0.0, Art.OUTLINE, 1.2)
 	Art.fill(self, PackedVector2Array([hc + Vector2(-8, -1), hc + Vector2(-6, -8), hc + Vector2(2, -10), hc + Vector2(8, -5), hc + Vector2(9, -1)]), Color.WHITE if white else Color("3a4a2e"), Art.OUTLINE, 1.0)   # קסדה
 	Art.glow(self, hc + Vector2(4, 1), 3.5, Color(1.0, 0.2, 0.1, 0.7))
-	draw_line(hc + Vector2(2, 4), hc + Vector2(6, 4), Color(0.2, 0.05, 0.05), 1.2)
+	DrawBatch.line(self, hc + Vector2(2, 4), hc + Vector2(6, 4), Color(0.2, 0.05, 0.05), 1.2)
 	# חצובה
-	draw_line(Vector2(10, -32), Vector2(3, 0), Color("2a2a2e"), 1.8)
-	draw_line(Vector2(10, -32), Vector2(19, 0), Color("2a2a2e"), 1.8)
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.line(self, Vector2(10, -32), Vector2(3, 0), Color("2a2a2e"), 1.8)
+	DrawBatch.line(self, Vector2(10, -32), Vector2(19, 0), Color("2a2a2e"), 1.8)
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 	if dead:
 		return
 	# מקלע + מגן פלדה (מסתובבים לכיוון השחקן)
 	var piv := Vector2(f * 10.0 * wf, -34.0 * sc)
 	var dv := Vector2.from_angle(_gun_ang)
 	var nv := dv.rotated(PI / 2.0)
-	draw_colored_polygon(PackedVector2Array([piv - nv * 4.0 - dv * 10.0, piv - nv * 4.0 + dv * 12.0, piv + nv * 4.0 + dv * 12.0, piv + nv * 4.0 - dv * 10.0]), Color("26282c"))
-	draw_line(piv + dv * 12.0, piv + dv * 34.0, Color("3a3c40"), 4.0)
+	DrawBatch.colored_polygon(self, PackedVector2Array([piv - nv * 4.0 - dv * 10.0, piv - nv * 4.0 + dv * 12.0, piv + nv * 4.0 + dv * 12.0, piv + nv * 4.0 - dv * 10.0]), Color("26282c"))
+	DrawBatch.line(self, piv + dv * 12.0, piv + dv * 34.0, Color("3a3c40"), 4.0)
 	for i in 4:
-		draw_circle(piv + dv * (15.0 + float(i) * 4.5), 1.0, Color(0.08, 0.08, 0.1))
-	draw_rect(Rect2(piv + nv * 4.0 - Vector2(4, 0), Vector2(8, 7)), Color("4a4a2e"))   # ארגז תחמושת
+		DrawBatch.circle(self, piv + dv * (15.0 + float(i) * 4.5), 1.0, Color(0.08, 0.08, 0.1))
+	DrawBatch.rect(self, Rect2(piv + nv * 4.0 - Vector2(4, 0), Vector2(8, 7)), Color("4a4a2e"))   # ארגז תחמושת
 	var sp := piv + dv * 8.0
 	var shield := PackedVector2Array([sp - nv * 18.0, sp - nv * 18.0 + dv * 3.0, sp + nv * 12.0 + dv * 3.0, sp + nv * 12.0])
-	draw_colored_polygon(shield, Color.WHITE if white else Color("5d6168"))
+	DrawBatch.colored_polygon(self, shield, Color.WHITE if white else Color("5d6168"))
 	shield.append(shield[0])
-	draw_polyline(shield, Color(0, 0, 0, 0.8), 1.2, true)
-	draw_line(sp - nv * 10.0 + dv * 1.5, sp - nv * 6.0 + dv * 1.5, Color(0.05, 0.05, 0.05), 1.5)   # חריץ הצצה
+	DrawBatch.polyline(self, shield, Color(0, 0, 0, 0.8), 1.2, true)
+	DrawBatch.line(self, sp - nv * 10.0 + dv * 1.5, sp - nv * 6.0 + dv * 1.5, Color(0.05, 0.05, 0.05), 1.5)   # חריץ הצצה
 	var muzzle := piv + dv * 34.0
 	if _aim_t > 0.0:
 		Art.glow(self, muzzle, 6.0, Color(1.0, 0.6, 0.2, 0.5 + 0.4 * sin(_time * 30.0)))
 	if _muzzle_t > 0.0:
 		for i in 5:
-			draw_line(muzzle, muzzle + dv.rotated(randf_range(-0.6, 0.6)) * randf_range(6.0, 14.0), Color(1.0, 0.85, 0.4), 2.0)
+			DrawBatch.line(self, muzzle, muzzle + dv.rotated(randf_range(-0.6, 0.6)) * randf_range(6.0, 14.0), Color(1.0, 0.85, 0.4), 2.0)
 
 
 # ---- פרטים על הגוף: ריקבון, חולצה קרועה, תפרים, רצועת בשר תלויה ----
@@ -2934,23 +2938,24 @@ func _details(sh: Vector2, hip: Vector2, sk: Color) -> void:
 	var hem := PackedVector2Array()
 	for i in 7:
 		hem.append(hip + Vector2(-7.0 + float(i) * 2.3, -1.5 + (2.0 if i % 2 == 0 else -0.5)))
-	draw_polyline(hem, Color(0, 0, 0, 0.45), 0.9, true)
+	DrawBatch.polyline(self, hem, Color(0, 0, 0, 0.45), 0.9, true)
 	if _det[1]:   # תפרים על החזה
 		var a := sh + Vector2(-5.0, 4.0)
 		var b := sh + Vector2(3.0, 9.0)
-		draw_line(a, b, Color(0.12, 0.05, 0.05, 0.8), 0.8, true)
+		DrawBatch.line(self, a, b, Color(0.12, 0.05, 0.05, 0.8), 0.8, true)
 		for i in 4:
 			var q := a.lerp(b, (float(i) + 0.5) / 4.0)
-			draw_line(q + Vector2(-0.8, 1.0), q + Vector2(0.8, -1.0), Color(0.8, 0.75, 0.6, 0.8), 0.6, true)
+			DrawBatch.line(self, q + Vector2(-0.8, 1.0), q + Vector2(0.8, -1.0), Color(0.8, 0.75, 0.6, 0.8), 0.6, true)
 	if _det[2]:   # רצועת בשר תלויה
 		var t0 := mid + Vector2(5.0, 2.0)
-		draw_colored_polygon(PackedVector2Array([t0, t0 + Vector2(2.0, 0.0), t0 + Vector2(1.5, 6.0 + sin(_time * 4.0)), t0 + Vector2(0.5, 5.0)]), Color("6a1414"))
+		DrawBatch.colored_polygon(self, PackedVector2Array([t0, t0 + Vector2(2.0, 0.0), t0 + Vector2(1.5, 6.0 + sin(_time * 4.0)), t0 + Vector2(0.5, 5.0)]), Color("6a1414"))
 	# צל בצד הגוף (נפח)
-	draw_line(sh + Vector2(-6.5, 3.0), hip + Vector2(-6.0, -2.0), Color(0, 0, 0, 0.22), 2.0, true)
+	DrawBatch.line(self, sh + Vector2(-6.5, 3.0), hip + Vector2(-6.0, -2.0), Color(0, 0, 0, 0.22), 2.0, true)
 
 
 # ---- טקסט קופץ (HEADSHOT!) ----
 class HitText extends Node2D:
+	const FS := 32
 	var text := ""
 	var color := Color.WHITE
 	var size := 18
@@ -2976,11 +2981,13 @@ class HitText extends Node2D:
 		var k := 1.0
 		if pop:
 			k = 1.0 + 0.6 * clampf(1.0 - t / 0.15, 0.0, 1.0)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(k, k))
-		var w := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+		# גודל פונט אחד קבוע (FS) ומגדילים בסקייל: כל גודל פונט חדש = רסטור אותיות מחדש = גמגום
+		k *= float(size) / float(FS)
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(k, k))
+		var w := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FS).x
 		var pos := Vector2(-w / 2.0, 0.0)
-		draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 5, Color(0, 0, 0, 0.85))
-		draw_string(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+		DrawBatch.string_outline(self, f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, FS, 7, Color(0, 0, 0, 0.85))
+		DrawBatch.string(self, f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, FS, color)
 
 
 # ---- כדור חשמל של המוליך: קופץ על המים ומחשמל את השלולית ----
@@ -3021,20 +3028,20 @@ class Orb extends Node2D:
 	func _draw() -> void:
 		if zap_t >= 0.0:   # מים מחושמלים
 			var a := clampf(zap_t, 0.0, 1.0)
-			draw_set_transform(Vector2(0, 4), 0.0, Vector2(1.0, 0.12))
-			draw_circle(Vector2.ZERO, radius, Color(0.4, 0.7, 1.0, 0.18 * a))
-			draw_set_transform_matrix(Transform2D.IDENTITY)
+			DrawBatch.set_transform(self, Vector2(0, 4), 0.0, Vector2(1.0, 0.12))
+			DrawBatch.circle(self, Vector2.ZERO, radius, Color(0.4, 0.7, 1.0, 0.18 * a))
+			DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 			for i in 5:
 				var x0 := randf_range(-radius, radius)
 				var pts := PackedVector2Array([Vector2(x0, 2)])
 				for k in 4:
 					pts.append(pts[-1] + Vector2(randf_range(4, 12) * signf(randf() - 0.5), randf_range(-8, 2)))
-				draw_polyline(pts, Color(0.75, 0.9, 1.0, a), 1.4)
+				DrawBatch.polyline(self, pts, Color(0.75, 0.9, 1.0, a), 1.4)
 			return
-		draw_circle(Vector2.ZERO, 12.0, Color(0.3, 0.6, 1.0, 0.25))
-		draw_circle(Vector2.ZERO, 6.0, Color(0.7, 0.9, 1.0, 0.9))
+		DrawBatch.circle(self, Vector2.ZERO, 12.0, Color(0.3, 0.6, 1.0, 0.25))
+		DrawBatch.circle(self, Vector2.ZERO, 6.0, Color(0.7, 0.9, 1.0, 0.9))
 		for i in 3:
-			draw_line(Vector2.ZERO, Vector2.from_angle(randf() * TAU) * randf_range(8, 14), Color(0.85, 0.95, 1.0), 1.2)
+			DrawBatch.line(self, Vector2.ZERO, Vector2.from_angle(randf() * TAU) * randf_range(8, 14), Color(0.85, 0.95, 1.0), 1.2)
 
 
 # ---- כדור של רובוט זומבי ----
@@ -3067,5 +3074,5 @@ class EnemyShot extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_line(Vector2(-20, 0), Vector2(0, 0), Color(1.0, 0.55, 0.2, 0.45), 2.0)
-		draw_line(Vector2(-7, 0), Vector2(2, 0), Color(1.0, 0.9, 0.6), 2.2)
+		DrawBatch.line(self, Vector2(-20, 0), Vector2(0, 0), Color(1.0, 0.55, 0.2, 0.45), 2.0)
+		DrawBatch.line(self, Vector2(-7, 0), Vector2(2, 0), Color(1.0, 0.9, 0.6), 2.2)

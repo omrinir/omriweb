@@ -1008,6 +1008,26 @@ Measured with a headless profiler (60 zombies around the player, fixed 60 fps, C
 * Profiling hooks: `zombie.gd` has `static var prof_on` / `prof` - set `prof_on = true` and read `prof` (µs per kind for logic and
   draw) to find the expensive zombie types.
 
+### One draw call per zombie (`effects/draw_batch.gd`)
+In Godot 4, every `draw_circle` / `draw_colored_polygon` / `draw_polyline` / `draw_arc` / thick `draw_line` is its own draw call.
+A zombie used ~120 of them, so 20 zombies cost more than the whole level. Same fix as the gravity grenade black hole: collect
+all triangles and send them in ONE `RenderingServer.canvas_item_add_triangle_array` call.
+* `DrawBatch.begin(self)` ... `DrawBatch.end(self)` around a `_draw()` (zombie.gd does it). Between them, `DrawBatch.circle(self, ...)`,
+  `.colored_polygon`, `.polygon`, `.polyline`, `.arc`, `.line`, `.rect`, `.set_transform` take the same parameters as Godot's
+  `draw_*` (plus the canvas item first) and are only recorded. Outside a begin/end they just call the normal `draw_*`.
+* Textures and text (`.texture_rect`, `.string`, `.string_outline`) can't go in the batch: they flush, draw natively, carry on.
+* zombie.gd, enemies/types/*, stationary_boss, art.gd, ragdoll, flesh/flame/s9 fx and the newer decor files already use it.
+  New zombie art: write `DrawBatch.circle(self, ...)`, not `draw_circle(...)`. `DrawBatch.ENABLED = false` switches it off.
+* Antialiased polylines get a 1 px fading edge strip (`FEATHER`); `Art.disc`/`oval` draw a soft outline ring the same way.
+* Level decor is still ~1,270 draw calls per frame; it can be batched the same way if a level is slow.
+
+### No stutter on kills
+* **Text never animates its font size.** Every new (font size, outline) pair makes Godot rasterize new glyphs and upload a texture
+  (the HEADSHOT! stamp did that every frame for ~12 frames). Draw at a fixed size and scale with `draw_set_transform`:
+  `ui/kill_streak.gd` (`FONT_SIZES` buckets + `_prewarm`), zombie.gd `HitText` (`FS`), hud.gd level title.
+* **Blood spray shader warms up at level start.** The first CPUParticles2D spray compiled a GPU shader (~0.2 s freeze on the first
+  kill). main.gd calls `FleshFx.prewarm()`: 0.4 s in, three almost invisible sprays in the middle of the screen.
+
 ## Fire (effects/flame_fx.gd)
 Shared flame drawing for every fire: `tongue()` (teardrop flame tongue, 3-4 colour layers, swaying tip), `puff()` (a bit of flame
 that breaks off and rises), `glow()` (soft radial texture - no hard-edged discs), `additive()` (light blend for glow children),

@@ -205,43 +205,43 @@ class Scrap extends Node2D:
 		var burnt := Color("5a4630")
 		var steel := Color("8a9098")
 		var dark := Color("2a2a2e")
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(sc * dir, sc))
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(sc * dir, sc))
 		match kind:
 			"hull":   # שלד שרוף: גוף מעוך + זחל, חצי צבע חצי פיח
 				A.fill_shaded(self, PackedVector2Array([Vector2(-22, -2), Vector2(14, -2), Vector2(16, -18), Vector2(4, -24), Vector2(-18, -22)]), paint.lerp(burnt, 0.55), 0.1, 0.4, A.OUTLINE, 1.4)
 				A.fill_shaded(self, PackedVector2Array([Vector2(-20, 0), Vector2(14, 0), Vector2(18, 5), Vector2(14, 9), Vector2(-20, 9), Vector2(-24, 5)]), dark, 0.1, 0.3, A.OUTLINE, 1.2)
 				for i in 4:
 					A.disc(self, Vector2(-16.0 + float(i) * 9.0, 5.0), 2.8, Color("4e545c"))
-				draw_line(Vector2(-12, -22), Vector2(-14, -30), Color("3a3a3a"), 2.5)   # צינור מעוקם
-				draw_circle(Vector2(-4, -12), 5.0, Color(0.1, 0.08, 0.06, 0.6))   # חור פיח
+				DrawBatch.line(self, Vector2(-12, -22), Vector2(-14, -30), Color("3a3a3a"), 2.5)   # צינור מעוקם
+				DrawBatch.circle(self, Vector2(-4, -12), 5.0, Color(0.1, 0.08, 0.06, 0.6))   # חור פיח
 			"drill":   # המקדח: קונוס פלדה עם ספירלה
 				A.fill_shaded(self, PackedVector2Array([Vector2(-10, -8), Vector2(16, 0), Vector2(-10, 8)]), steel, 0.2, 0.45, A.OUTLINE, 1.3)
 				for i in 4:
 					var x := -10.0 + float(i) * 6.0
 					var hw := 8.0 * (1.0 - float(i) / 4.0)
-					draw_line(Vector2(x, -hw), Vector2(x + 4.0, hw), Color("3e434a"), 1.2)
-				draw_rect(Rect2(-15, -4, 5, 8), Color("4e545c"))
+					DrawBatch.line(self, Vector2(x, -hw), Vector2(x + 4.0, hw), Color("3e434a"), 1.2)
+				DrawBatch.rect(self, Rect2(-15, -4, 5, 8), Color("4e545c"))
 			"tread":   # קטע זחל עם שני גלגלים
 				A.fill_shaded(self, PackedVector2Array([Vector2(-12, -4), Vector2(12, -4), Vector2(14, 0), Vector2(12, 4), Vector2(-12, 4), Vector2(-14, 0)]), dark, 0.1, 0.3, A.OUTLINE, 1.2)
 				for i in 6:
-					draw_line(Vector2(-11.0 + float(i) * 4.4, -4), Vector2(-11.0 + float(i) * 4.4, -3), Color(0.6, 0.6, 0.62), 1.0)
+					DrawBatch.line(self, Vector2(-11.0 + float(i) * 4.4, -4), Vector2(-11.0 + float(i) * 4.4, -3), Color(0.6, 0.6, 0.62), 1.0)
 				A.disc(self, Vector2(-6, 0), 2.6, Color("4e545c"))
 				A.disc(self, Vector2(6, 0), 2.6, Color("4e545c"))
 			"wheel":
 				A.disc(self, Vector2.ZERO, 4.5, dark, A.OUTLINE, 1.2)
 				A.disc(self, Vector2.ZERO, 2.0, steel)
-				draw_line(Vector2.ZERO, Vector2(3.5, 0), Color("6a7078"), 1.0)
+				DrawBatch.line(self, Vector2.ZERO, Vector2(3.5, 0), Color("6a7078"), 1.0)
 			"panel":   # פח צהוב מעוקם עם פסי אזהרה
 				var pts := PackedVector2Array([Vector2(-8, -5), Vector2(7, -6), Vector2(9, 3), Vector2(-6, 6)])
 				A.fill_shaded(self, pts, paint, 0.15, 0.4, A.OUTLINE, 1.2)
-				draw_colored_polygon(PackedVector2Array([Vector2(-6, 2), Vector2(-3, 2), Vector2(0, -4), Vector2(-3, -4)]), Color("1e1e20"))
-				draw_colored_polygon(PackedVector2Array([Vector2(0, 3), Vector2(3, 3), Vector2(6, -3), Vector2(3, -3)]), Color("1e1e20"))
+				DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-6, 2), Vector2(-3, 2), Vector2(0, -4), Vector2(-3, -4)]), Color("1e1e20"))
+				DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(0, 3), Vector2(3, 3), Vector2(6, -3), Vector2(3, -3)]), Color("1e1e20"))
 			"glass":   # רסיס זכוכית מהתא
-				draw_colored_polygon(PackedVector2Array([Vector2(-4, -3), Vector2(4, -1), Vector2(0, 4)]), Color(0.65, 0.85, 0.9, 0.7))
-				draw_line(Vector2(-3, -2), Vector2(2, 0), Color(1, 1, 1, 0.8), 0.8)
+				DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-4, -3), Vector2(4, -1), Vector2(0, 4)]), Color(0.65, 0.85, 0.9, 0.7))
+				DrawBatch.line(self, Vector2(-3, -2), Vector2(2, 0), Color(1, 1, 1, 0.8), 0.8)
 			"pipe":   # צינור הפליטה
-				draw_line(Vector2(-8, 0), Vector2(8, 0), A.OUTLINE, 4.5)
-				draw_line(Vector2(-8, 0), Vector2(8, 0), Color("4e545c"), 3.0)
+				DrawBatch.line(self, Vector2(-8, 0), Vector2(8, 0), A.OUTLINE, 4.5)
+				DrawBatch.line(self, Vector2(-8, 0), Vector2(8, 0), Color("4e545c"), 3.0)
 			_:   # בורג / אום
 				A.disc(self, Vector2.ZERO, 1.8, steel, A.OUTLINE, 0.8)
 
@@ -456,13 +456,13 @@ func draw() -> bool:
 	begin_draw(_sink < 0.3 and absf(_pitch) < 0.05)
 	if not z.dead and (_sink > 0.0 or absf(_pitch) > 0.001):   # נכנס לאדמה (אף למטה) / פורץ (אף למעלה) - מה שמתחת לקרקע נחתך בשיידר
 		var piv := Vector2(-22.0, 0.0)
-		z.draw_set_transform_matrix(Transform2D(0.0, Vector2(z._dir * z.wf * s, s), 0.0, Vector2(0.0, _sink * 40.0 * s)) * Transform2D(_pitch, piv) * Transform2D(0.0, -piv))
+		DrawBatch.set_transform_matrix(z, Transform2D(0.0, Vector2(z._dir * z.wf * s, s), 0.0, Vector2(0.0, _sink * 40.0 * s)) * Transform2D(_pitch, piv) * Transform2D(0.0, -piv))
 	_draw_machine()
 	end_draw()
 	if _sink > 0.0:   # תל עפר סביב החור שהמקדח פותח
-		z.draw_colored_polygon(_mound(30.0 * s * z.wf, 8.0 * s), DIRT)
+		DrawBatch.colored_polygon(z, _mound(30.0 * s * z.wf, 8.0 * s), DIRT)
 	for q in _bits:
-		z.draw_circle(q[0], 1.6 if int(q[1].x) % 2 == 0 else 2.4, Color(DIRT_D, 1.0 - q[2] / 0.9))
+		DrawBatch.circle(z, q[0], 1.6 if int(q[1].x) % 2 == 0 else 2.4, Color(DIRT_D, 1.0 - q[2] / 0.9))
 	return true
 
 
@@ -476,32 +476,32 @@ func _mound(w: float, h: float) -> PackedVector2Array:
 
 func _draw_under(s: float) -> void:
 	# תל עפר שזז + סדקים מאחוריו
-	z.draw_colored_polygon(_mound(20.0 * s, 7.0 * s), DIRT)
-	z.draw_polyline(_mound(20.0 * s, 7.0 * s), DIRT_D, 1.2)
+	DrawBatch.colored_polygon(z, _mound(20.0 * s, 7.0 * s), DIRT)
+	DrawBatch.polyline(z, _mound(20.0 * s, 7.0 * s), DIRT_D, 1.2)
 	for i in 4:
 		var bx: float = -z._dir * (10.0 + float(i) * 9.0) * s
-		z.draw_line(Vector2(bx, -1), Vector2(bx - z._dir * 7.0 * s, -1.0 - float(i % 2) * 2.0), Color(0.35, 0.25, 0.15, 0.8 - float(i) * 0.15), 1.4)
+		DrawBatch.line(z, Vector2(bx, -1), Vector2(bx - z._dir * 7.0 * s, -1.0 - float(i % 2) * 2.0), Color(0.35, 0.25, 0.15, 0.8 - float(i) * 0.15), 1.4)
 	if state == WARN:
 		var k := 1.0 - clampf(_st / WARN_T, 0.0, 1.0)
 		var r := _radius()
 		var pulse := 0.5 + 0.5 * sin(k * 40.0)
 		var off: float = _target_x - z.global_position.x
-		z.draw_set_transform(Vector2(off, -1.0), 0.0, Vector2(1.0, 0.22))   # עיגול אזהרה אדום שטוח על הקרקע
-		z.draw_circle(Vector2.ZERO, r, Color(1.0, 0.1, 0.05, 0.18 + 0.2 * pulse))
-		z.draw_arc(Vector2.ZERO, r, 0.0, TAU, 28, Color(1.0, 0.2, 0.1, 0.9), 3.0)
-		z.draw_arc(Vector2.ZERO, r * k, 0.0, TAU, 24, Color(1.0, 0.85, 0.3, 0.8), 2.0)   # טבעת שמתמלאת = הזמן שנשאר
-		z.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		DrawBatch.set_transform(z, Vector2(off, -1.0), 0.0, Vector2(1.0, 0.22))   # עיגול אזהרה אדום שטוח על הקרקע
+		DrawBatch.circle(z, Vector2.ZERO, r, Color(1.0, 0.1, 0.05, 0.18 + 0.2 * pulse))
+		DrawBatch.arc(z, Vector2.ZERO, r, 0.0, TAU, 28, Color(1.0, 0.2, 0.1, 0.9), 3.0)
+		DrawBatch.arc(z, Vector2.ZERO, r * k, 0.0, TAU, 24, Color(1.0, 0.85, 0.3, 0.8), 2.0)   # טבעת שמתמלאת = הזמן שנשאר
+		DrawBatch.set_transform(z, Vector2.ZERO, 0.0, Vector2.ONE)
 		for i in 9:   # סדקים מתרחבים
 			var a := -PI + float(i) * PI / 8.0
 			var ln := r * (0.3 + 0.8 * k)
-			z.draw_line(Vector2(off, -1), Vector2(off + cos(a) * ln, -1.0 - absf(sin(a)) * 3.0), Color(0.25, 0.15, 0.08, 0.9), 1.6)
+			DrawBatch.line(z, Vector2(off, -1), Vector2(off + cos(a) * ln, -1.0 - absf(sin(a)) * 3.0), Color(0.25, 0.15, 0.08, 0.9), 1.6)
 		var ex := Vector2(off, -70.0 - 6.0 * pulse)   # "!" מעל המקום
-		z.draw_circle(ex, 11.0, Color(1.0, 0.15, 0.1, 0.85))
-		z.draw_rect(Rect2(ex + Vector2(-1.8, -7), Vector2(3.6, 9)), Color.WHITE)
-		z.draw_circle(ex + Vector2(0, 5), 1.9, Color.WHITE)
+		DrawBatch.circle(z, ex, 11.0, Color(1.0, 0.15, 0.1, 0.85))
+		DrawBatch.rect(z, Rect2(ex + Vector2(-1.8, -7), Vector2(3.6, 9)), Color.WHITE)
+		DrawBatch.circle(z, ex + Vector2(0, 5), 1.9, Color.WHITE)
 		if k > 0.6:   # קצה המקדח מבצבץ
 			var tip := (k - 0.6) / 0.4 * 12.0
-			z.draw_colored_polygon(PackedVector2Array([Vector2(off - 6, 0), Vector2(off, -tip), Vector2(off + 6, 0)]), Color("b8bcc4"))
+			DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(off - 6, 0), Vector2(off, -tip), Vector2(off + 6, 0)]), Color("b8bcc4"))
 
 
 # המכונה (בקואורדינטות מקומיות: פונה ימינה, (0,0) = תחתית הזחלים)
@@ -516,34 +516,34 @@ func _draw_machine() -> void:
 	for i in 5:
 		var wx := -18.0 + float(i) * 8.5
 		Art.disc(z, Vector2(wx, -5), 3.2, steel_d)
-		z.draw_line(Vector2(wx, -5), Vector2(wx, -5) + Vector2.from_angle(_spin * 0.4 + float(i)) * 2.6, steel, 1.0)
+		DrawBatch.line(z, Vector2(wx, -5), Vector2(wx, -5) + Vector2.from_angle(_spin * 0.4 + float(i)) * 2.6, steel, 1.0)
 	var tread_off := fposmod(z._walk_phase * 6.0, 4.0)
 	for i in 10:
 		var tx := tr.position.x + 2.0 + float(i) * 4.0 + tread_off
 		if tx < tr.end.x - 2.0:
-			z.draw_line(Vector2(tx, -10), Vector2(tx, -9), Color(0.6, 0.6, 0.62), 1.0)
+			DrawBatch.line(z, Vector2(tx, -10), Vector2(tx, -9), Color(0.6, 0.6, 0.62), 1.0)
 	# גוף
 	var body := PackedVector2Array([Vector2(-22, -10), Vector2(14, -10), Vector2(16, -30), Vector2(-18, -32)])
 	Art.fill_shaded(z, body, paint, 0.15, 0.45, Art.OUTLINE, 1.4)
 	for i in 4:   # פסי אזהרה שחור-צהוב
 		var hx := -16.0 + float(i) * 7.0
-		z.draw_colored_polygon(PackedVector2Array([Vector2(hx, -10), Vector2(hx + 3, -10), Vector2(hx + 6, -15), Vector2(hx + 3, -15)]), col(Color("1e1e20")))
+		DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(hx, -10), Vector2(hx + 3, -10), Vector2(hx + 6, -15), Vector2(hx + 3, -15)]), col(Color("1e1e20")))
 	for p in [Vector2(-18, -27), Vector2(10, -27), Vector2(-4, -27)]:   # ניטים
-		z.draw_circle(p, 1.1, dark)
+		DrawBatch.circle(z, p, 1.1, dark)
 	# תא נהג עם הזומבי
 	var cab := Rect2(-18, -50, 20, 19)
 	Art.fill_shaded(z, PackedVector2Array([cab.position, cab.position + Vector2(cab.size.x, 2), cab.end, Vector2(cab.position.x, cab.end.y)]), dark, 0.1, 0.35, Art.OUTLINE, 1.2)
 	var win := Rect2(-14, -47, 13, 11)
-	z.draw_rect(win, Color(0.55, 0.75, 0.8, 0.55))
+	DrawBatch.rect(z, win, Color(0.55, 0.75, 0.8, 0.55))
 	var sk := col(z.skin)
 	var head := Vector2(-7, -41)
 	Art.oval_shaded(z, head, 4.2, 4.6, sk, 0.0)
-	z.draw_rect(Rect2(head + Vector2(-4.5, -5.5), Vector2(9, 3)), col(Color("e8c020")))   # קסדה
+	DrawBatch.rect(z, Rect2(head + Vector2(-4.5, -5.5), Vector2(9, 3)), col(Color("e8c020")))   # קסדה
 	if not z.dead:
-		z.draw_circle(head + Vector2(2.0, -0.5), 1.0, Color(1.0, 0.25, 0.15))
-	z.draw_line(head + Vector2(0.5, 2.5), head + Vector2(3.5, 2.2), col(Color("2a0a0a")), 1.0)
-	z.draw_line(win.position + Vector2(2, 1), win.position + Vector2(6, 9), Color(1, 1, 1, 0.5), 1.0)   # ברק זכוכית + סדק
-	z.draw_line(win.position + Vector2(9, 2), win.position + Vector2(11, 7), Color(0.2, 0.2, 0.2, 0.7), 0.8)
+		DrawBatch.circle(z, head + Vector2(2.0, -0.5), 1.0, Color(1.0, 0.25, 0.15))
+	DrawBatch.line(z, head + Vector2(0.5, 2.5), head + Vector2(3.5, 2.2), col(Color("2a0a0a")), 1.0)
+	DrawBatch.line(z, win.position + Vector2(2, 1), win.position + Vector2(6, 9), Color(1, 1, 1, 0.5), 1.0)   # ברק זכוכית + סדק
+	DrawBatch.line(z, win.position + Vector2(9, 2), win.position + Vector2(11, 7), Color(0.2, 0.2, 0.2, 0.7), 0.8)
 	if _gun_t > 0.0 and not z.dead:   # יד עם אקדח יוצאת מהחלון
 		var out := clampf(minf(1.4 - _gun_t, _gun_t) / 0.25, 0.0, 1.0)
 		var la := Vector2(cos(_gun_ang) * z._dir, sin(_gun_ang)).normalized()
@@ -556,7 +556,7 @@ func _draw_machine() -> void:
 		if _gun_shot_t > 0.12 and _gun_left < GUN_SHOTS + (2 if _boss() else 0):
 			Art.glow(z, gt * Vector2(8, -0.7), 5.0, Color(1.0, 0.85, 0.4, 0.9))
 	# צינור פליטה
-	z.draw_line(Vector2(-14, -50), Vector2(-14, -60), steel_d, 3.0)
+	DrawBatch.line(z, Vector2(-14, -50), Vector2(-14, -60), steel_d, 3.0)
 	# זרוע + מקדח (מסתובב לפי _tilt: 0 קדימה, 1 למטה, -1 למעלה)
 	var piv := Vector2(14, -20)
 	var ang := _tilt * PI * 0.5
@@ -568,4 +568,4 @@ func _draw_machine() -> void:
 		var u := fposmod(float(i) / 5.0 + _spin * 0.25, 1.0)
 		var x := 8.0 + u * 26.0
 		var hw := 9.0 * (1.0 - u)
-		z.draw_line(t * Vector2(x, -hw), t * Vector2(x + 4.0, hw), col(Color("3e434a")), 1.2)
+		DrawBatch.line(z, t * Vector2(x, -hw), t * Vector2(x + 4.0, hw), col(Color("3e434a")), 1.2)

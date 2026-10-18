@@ -156,11 +156,11 @@ class KnotMark extends Node2D:
 
 	func _draw() -> void:
 		var b := sin(_t * 3.0) * 2.0
-		draw_line(Vector2(-6, b - 4), Vector2(6, b + 4), col.darkened(0.2), 2.5)
-		draw_line(Vector2(-6, b + 4), Vector2(6, b - 4), col.darkened(0.2), 2.5)
-		draw_circle(Vector2(0, b), 3.5, col)
-		draw_circle(Vector2(0, b), 1.5, col.lightened(0.5))
-		draw_line(Vector2(0, b + 3), Vector2(1, b + 10), Color(col, 0.7), 1.5)
+		DrawBatch.line(self, Vector2(-6, b - 4), Vector2(6, b + 4), col.darkened(0.2), 2.5)
+		DrawBatch.line(self, Vector2(-6, b + 4), Vector2(6, b - 4), col.darkened(0.2), 2.5)
+		DrawBatch.circle(self, Vector2(0, b), 3.5, col)
+		DrawBatch.circle(self, Vector2(0, b), 1.5, col.lightened(0.5))
+		DrawBatch.line(self, Vector2(0, b + 3), Vector2(1, b + 10), Color(col, 0.7), 1.5)
 
 
 # ============================================================
@@ -180,18 +180,18 @@ func draw() -> bool:
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 2.0, 15.0), Art.shade(sk, 0.25), Art.shade(robe, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(9, 0), hip + Vector2(10, 14), hip + Vector2(-10, 14)]), robe, 0.15, 0.4)   # גלימה ארוכה
-	z.draw_line(hip + Vector2(-10, 12), hip + Vector2(10, 12), col(Color("e0c060")), 2.0)
+	DrawBatch.line(z, hip + Vector2(-10, 12), hip + Vector2(10, 12), col(Color("e0c060")), 2.0)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-5, -7), head + Vector2(5, -7), head + Vector2(6, -2), head + Vector2(-6, 0)]), col(Color("c03a2a")))   # כיסוי ראש
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-5, -7), head + Vector2(5, -7), head + Vector2(6, -2), head + Vector2(-6, 0)]), col(Color("c03a2a")))   # כיסוי ראש
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.2, Color(1.0, 0.85, 0.4))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.2, Color(1.0, 0.85, 0.4))
 	# הקיפו
 	var hf := sh + Vector2(10, -12) if _tie > 0.0 else sh + Vector2(13, 2)
 	z._arm(sh + Vector2(3, 1), hf, sk, robe)
 	var top_a := hf + Vector2(-4, 0)
 	var top_b := hf + Vector2(10, 2)
-	z.draw_line(top_a, top_b, col(Color("c8b898")), 2.0)
+	DrawBatch.line(z, top_a, top_b, col(Color("c8b898")), 2.0)
 	var cols := [Color("c03a2a"), Color("e0c040"), Color("2a8a4a"), Color("2a5a9a"), Color("e0e0d0"), Color("6a3a8a"), Color("c03a2a"), Color("1a1a1a"), Color("e08030")]
 	for q in 9:
 		var a := top_a.lerp(top_b, float(q) / 8.0)
@@ -201,8 +201,8 @@ func draw() -> bool:
 		if q == 4 and _tie > 0.0 and _pending >= 0:   # החוט החדש - בצבע הנשק שנרשם
 			c = WDB.val(_pending, "color", Color(1, 0.8, 0.3))
 			Art.glow(z, a + Vector2(sway, ln * 0.6), 6.0, Color(c, 0.5))
-		z.draw_line(a, a + Vector2(sway, ln), col(c), 1.2)
+		DrawBatch.line(z, a, a + Vector2(sway, ln), col(c), 1.2)
 		for kk in 2:   # קשרים
-			z.draw_circle(a + Vector2(sway * (0.4 + 0.3 * float(kk)), ln * (0.35 + 0.35 * float(kk))), 1.3, col(c.darkened(0.3)))
+			DrawBatch.circle(z, a + Vector2(sway * (0.4 + 0.3 * float(kk)), ln * (0.35 + 0.35 * float(kk))), 1.3, col(c.darkened(0.3)))
 	end_draw()
 	return true

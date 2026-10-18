@@ -281,7 +281,7 @@ func draw() -> bool:
 			if z.is_on_floor():
 				Art.ground_shadow(z, Vector2.ZERO, 18.0 * z.wf * s)
 			xf = Transform2D(0.0, Vector2(z._dir * z.wf * s, s), 0.0, Vector2.ZERO)
-	z.draw_set_transform_matrix(xf)
+	DrawBatch.set_transform_matrix(z, xf)
 	_body(xf.basis_xform_inv(Vector2.DOWN).normalized())
 	end_draw()
 	return true
@@ -315,8 +315,8 @@ func _body(down: Vector2) -> void:
 		var mid: Vector2 = knee.lerp(foot, 0.45) + Vector2(2.0 if l[1].x > l[0].x else -2.0, 0.0)
 		Art.limb(z, PackedVector2Array([root, knee, mid, foot]), 3.6 if i >= 2 else 3.0, c)
 		for q in 3:   # אצבעות ארוכות
-			z.draw_line(foot, foot + Vector2(-3.0 + float(q) * 3.0, 1.5), Art.OUTLINE, 1.0)
-		z.draw_circle(knee, 1.6, col(Color("d8d4c8")))   # מפרק בולט
+			DrawBatch.line(z, foot, foot + Vector2(-3.0 + float(q) * 3.0, 1.5), Art.OUTLINE, 1.0)
+		DrawBatch.circle(z, knee, 1.6, col(Color("d8d4c8")))   # מפרק בולט
 	# גו שטוח עם חולצה לבנה קרועה
 	var mid_back := hip.lerp(chest, 0.5) + Vector2(0, -10)   # גב מקושת
 	var torso := PackedVector2Array([hip + Vector2(-5, 3), hip + Vector2(-3, -5), mid_back, chest + Vector2(4, -6), chest + Vector2(5, 3), chest + Vector2(-6, 6), hip + Vector2(6, 6)])
@@ -330,7 +330,7 @@ func _body(down: Vector2) -> void:
 		var u := float(i) / 4.0
 		var sp: Vector2 = (hip + Vector2(-2, -5)).lerp(mid_back, u * 2.0) if u < 0.5 else mid_back.lerp(chest + Vector2(3, -6), u * 2.0 - 1.0)
 		var pulse := 0.5 + 0.5 * sin(z._time * 4.0 + float(i) * 1.3)
-		z.draw_circle(sp, 1.1, Color(glow_c, 0.5 + 0.5 * pulse))
+		DrawBatch.circle(z, sp, 1.1, Color(glow_c, 0.5 + 0.5 * pulse))
 		if i % 2 == 0:
 			Art.glow(z, sp, 3.5, Color(glow_c, 0.35 * pulse))
 	# שיער שחור ארוך - תמיד נופל למטה (בעולם)
@@ -343,11 +343,11 @@ func _body(down: Vector2) -> void:
 		var hl := 16.0 + float(i % 3) * 5.0
 		var tip := hair_root + off + down * hl + side * (sway + (float(i) - 2.5) * 1.6)
 		var midp := (hair_root + off).lerp(tip, 0.5) + side * sway * 0.5
-		z.draw_polyline(PackedVector2Array([hair_root + off, midp, tip]), Color(0.05, 0.04, 0.06, 0.9), 1.3, true)
+		DrawBatch.polyline(z, PackedVector2Array([hair_root + off, midp, tip]), Color(0.05, 0.04, 0.06, 0.9), 1.3, true)
 	# לסת שמתפצלת לצדדים
 	var jaw := 2.0 + (3.5 if state == TELL or z._bite_anim > 0.0 else 0.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(3, 1), head + Vector2(8, 0), head + Vector2(7, 2.0 + jaw), head + Vector2(3, 3.0 + jaw * 0.6)]), Color("200810"), Art.OUTLINE, 0.8)
 	# 4 עיניים ציאן
 	for e in [Vector2(2.0, -2.0), Vector2(4.5, -2.4), Vector2(3.0, -0.2), Vector2(5.5, -0.6)]:
-		z.draw_circle(head + e, 0.8, glow_c)
+		DrawBatch.circle(z, head + e, 0.8, glow_c)
 	Art.glow(z, head + Vector2(4.0, -1.5), 5.0, Color(glow_c, 0.45 if state != TELL else 0.9))

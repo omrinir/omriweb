@@ -146,31 +146,31 @@ func draw() -> bool:
 	var sh: Vector2 = o.sh
 	var hf: Vector2 = o.hf
 	# תרמיל
-	z.draw_rect(Rect2(sh + Vector2(-14, -2), Vector2(8, 18)), col(Color("3a3a32")))
-	z.draw_rect(Rect2(sh + Vector2(-13, 2), Vector2(6, 4)), col(Color("1a1a1a")))
-	z.draw_circle(sh + Vector2(-10, 11), 1.2, Color(0.3, 1.0, 0.4) if working else Color(0.3, 0.1, 0.1))
+	DrawBatch.rect(z, Rect2(sh + Vector2(-14, -2), Vector2(8, 18)), col(Color("3a3a32")))
+	DrawBatch.rect(z, Rect2(sh + Vector2(-13, 2), Vector2(6, 4)), col(Color("1a1a1a")))
+	DrawBatch.circle(z, sh + Vector2(-10, 11), 1.2, Color(0.3, 1.0, 0.4) if working else Color(0.3, 0.1, 0.1))
 	# מוט + צופר
 	var top := Vector2(-10, -64)
-	z.draw_line(sh + Vector2(-10, -2), top, col(Color("2a2a2a")), 1.6)
+	DrawBatch.line(z, sh + Vector2(-10, -2), top, col(Color("2a2a2a")), 1.6)
 	if working:
-		z.draw_colored_polygon(PackedVector2Array([top + Vector2(-2, -3), top + Vector2(2, -3), top + Vector2(12, -8), top + Vector2(12, 4), top + Vector2(2, 2), top + Vector2(-2, 2)]), col(Color("c8c4b8")))
-		z.draw_line(top + Vector2(12, -8), top + Vector2(12, 4), col(Color("5a5850")), 1.4)
+		DrawBatch.colored_polygon(z, PackedVector2Array([top + Vector2(-2, -3), top + Vector2(2, -3), top + Vector2(12, -8), top + Vector2(12, 4), top + Vector2(2, 2), top + Vector2(-2, 2)]), col(Color("c8c4b8")))
+		DrawBatch.line(z, top + Vector2(12, -8), top + Vector2(12, 4), col(Color("5a5850")), 1.4)
 		if horn_hp < HORN_HP:
-			z.draw_line(top + Vector2(5, -4), top + Vector2(9, 1), col(Color("1a1a1a")), 1.0)
+			DrawBatch.line(z, top + Vector2(5, -4), top + Vector2(9, 1), col(Color("1a1a1a")), 1.0)
 	else:   # צופר שבור תלוי
-		z.draw_colored_polygon(PackedVector2Array([top + Vector2(-2, 0), top + Vector2(2, 0), top + Vector2(5, 10), top + Vector2(-4, 10)]), col(Color("8a867a")))
+		DrawBatch.colored_polygon(z, PackedVector2Array([top + Vector2(-2, 0), top + Vector2(2, 0), top + Vector2(5, 10), top + Vector2(-4, 10)]), col(Color("8a867a")))
 	# מגפון
 	var mg := hf + Vector2(1, -1)
-	z.draw_colored_polygon(PackedVector2Array([mg + Vector2(0, -1.5), mg + Vector2(0, 1.5), mg + Vector2(9, 4.5), mg + Vector2(9, -4.5)]), col(E.RED))
-	z.draw_line(mg + Vector2(9, -4.5), mg + Vector2(9, 4.5), col(Color("e8e0d0")), 1.2)
+	DrawBatch.colored_polygon(z, PackedVector2Array([mg + Vector2(0, -1.5), mg + Vector2(0, 1.5), mg + Vector2(9, 4.5), mg + Vector2(9, -4.5)]), col(E.RED))
+	DrawBatch.line(z, mg + Vector2(9, -4.5), mg + Vector2(9, 4.5), col(Color("e8e0d0")), 1.2)
 	end_draw()
 	if _wind > 0.0 and not z.dead:   # שאיפה לפני צעקה
 		var k := 1.0 - clampf(_wind / SHOUT_WIND, 0.0, 1.0)
-		z.draw_string(ThemeDB.fallback_font, Vector2(-6, -100), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, int(12.0 + 8.0 * k), Color(1.0, 0.8, 0.2, 0.6 + 0.4 * k))
+		DrawBatch.string(z, ThemeDB.fallback_font, Vector2(-6, -100), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, int(12.0 + 8.0 * k), Color(1.0, 0.8, 0.2, 0.6 + 0.4 * k))
 	if _ring > 0.0:   # גלי קול בקונוס
 		var k2 := 1.0 - _ring / 0.6
 		for q in 3:
 			var rr := 30.0 + (SHOUT_R - 30.0) * clampf(k2 + float(q) * 0.12, 0.0, 1.0)
 			var a0 := 0.0 if z._dir > 0.0 else PI
-			z.draw_arc(Vector2(0, -36), rr, a0 - 0.35, a0 + 0.35, 10, Color(1.0, 0.85, 0.3, 0.45 * (1.0 - k2)), 3.0)
+			DrawBatch.arc(z, Vector2(0, -36), rr, a0 - 0.35, a0 + 0.35, 10, Color(1.0, 0.85, 0.3, 0.45 * (1.0 - k2)), 3.0)
 	return true

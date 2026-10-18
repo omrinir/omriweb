@@ -667,7 +667,7 @@ func wants_redraw() -> bool:
 func _xf(angle: float) -> void:
 	var s := Vector2(z._dir * z.wf * z.sc, z.sc)
 	var piv := Vector2(0.0, -CANOPY_Y)
-	z.draw_set_transform_matrix(Transform2D(angle, Vector2(0.0, -CANOPY_Y * z.sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO) * Transform2D(0.0, -piv))
+	DrawBatch.set_transform_matrix(z, Transform2D(angle, Vector2(0.0, -CANOPY_Y * z.sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO) * Transform2D(0.0, -piv))
 
 
 func draw() -> bool:
@@ -681,7 +681,7 @@ func draw() -> bool:
 		# צל על הקרקע מתחתיו (הרמז: "תסתכל למעלה")
 		var hgt: float = maxf(0.0, _gy - z.global_position.y)
 		var a := clampf(1.0 - hgt / 520.0, 0.15, 0.6)
-		z.draw_colored_polygon(Art.ellipse(Vector2(0, hgt), 22.0 * (0.6 + hgt / 600.0), 4.0, 0.0, 14), Color(0.1, 0.06, 0.02, a * 0.5))
+		DrawBatch.colored_polygon(z, Art.ellipse(Vector2(0, hgt), 22.0 * (0.6 + hgt / 600.0), 4.0, 0.0, 14), Color(0.1, 0.06, 0.02, a * 0.5))
 		var ang := _swing
 		if state == SPIRAL:
 			ang = sin(_spin_a) * 0.9
@@ -731,32 +731,32 @@ func _draw_canopy() -> void:
 			cc = Color.WHITE
 		var mid_t := top[i].lerp(bot[i], 0.62)
 		var mid_t2 := top[i + 1].lerp(bot[i + 1], 0.62)
-		z.draw_colored_polygon(PackedVector2Array([top[i], top[i + 1], mid_t2, mid_t]), cc)
-		z.draw_colored_polygon(PackedVector2Array([mid_t, mid_t2, bot[i + 1], bot[i]]), cc.darkened(0.32))   # הצד התחתון
-		z.draw_colored_polygon(PackedVector2Array([top[i], top[i + 1], top[i + 1].lerp(mid_t2, 0.3), top[i].lerp(mid_t, 0.3)]), Color(1, 1, 1, 0.22))   # ברק
-	z.draw_polyline(top, Art.OUTLINE, 1.8)
-	z.draw_polyline(bot, Art.OUTLINE, 1.4)
-	z.draw_line(top[0], bot[0], Art.OUTLINE, 1.4)
-	z.draw_line(top[n], bot[n], Art.OUTLINE, 1.4)
+		DrawBatch.colored_polygon(z, PackedVector2Array([top[i], top[i + 1], mid_t2, mid_t]), cc)
+		DrawBatch.colored_polygon(z, PackedVector2Array([mid_t, mid_t2, bot[i + 1], bot[i]]), cc.darkened(0.32))   # הצד התחתון
+		DrawBatch.colored_polygon(z, PackedVector2Array([top[i], top[i + 1], top[i + 1].lerp(mid_t2, 0.3), top[i].lerp(mid_t, 0.3)]), Color(1, 1, 1, 0.22))   # ברק
+	DrawBatch.polyline(z, top, Art.OUTLINE, 1.8)
+	DrawBatch.polyline(z, bot, Art.OUTLINE, 1.4)
+	DrawBatch.line(z, top[0], bot[0], Art.OUTLINE, 1.4)
+	DrawBatch.line(z, top[n], bot[n], Art.OUTLINE, 1.4)
 	for i in range(1, n):   # תפרים + פתחי התאים בשפה התחתונה
-		z.draw_line(top[i], bot[i], Color(0, 0, 0, 0.3), 0.9)
+		DrawBatch.line(z, top[i], bot[i], Color(0, 0, 0, 0.3), 0.9)
 		var o := bot[i].lerp(bot[i - 1], 0.5) + Vector2(0, -2.0)
-		z.draw_colored_polygon(Art.ellipse(o, 2.6, 1.6, 0.0, 6), Color(0, 0, 0, 0.45))
+		DrawBatch.colored_polygon(z, Art.ellipse(o, 2.6, 1.6, 0.0, 6), Color(0, 0, 0, 0.45))
 	# חורים (רואים דרכם את השמיים)
 	for h in _holes:
 		var u: float = h[0]
 		var i := clampi(int((u + 1.0) * 0.5 * float(n)), 0, n - 1)
 		var c: Vector2 = top[i].lerp(bot[i], float(h[1]))
 		var r: float = float(h[2]) * 1.3
-		z.draw_colored_polygon(Art.ellipse(c, r, r * 0.6, 0.4, 8), Color("8ab8e0"))
-		z.draw_arc(c, r, 0.0, TAU, 8, Color(0, 0, 0, 0.55), 1.0)
+		DrawBatch.colored_polygon(z, Art.ellipse(c, r, r * 0.6, 0.4, 8), Color("8ab8e0"))
+		DrawBatch.arc(z, c, r, 0.0, TAU, 8, Color(0, 0, 0, 0.55), 1.0)
 	# קרעים מתנופפים (תמיד במורד הרוח, גם כשהוא מסתכל לצד השני)
 	var wl: float = _wd * z._dir
 	for q in 4:
 		var base: Vector2 = bot[1 + q * 3]
 		var len := 12.0 + float(q % 2) * 6.0 + (16.0 if _torn else 0.0)
 		var tip := base + Vector2(wl * len, 5.0 + sin(z._time * 12.0 + float(q)) * 4.0)
-		z.draw_colored_polygon(PackedVector2Array([base + Vector2(-2.5, 0), base + Vector2(2.5, 0), tip]), _c1.darkened(0.15) if q % 2 == 0 else _c2)
+		DrawBatch.colored_polygon(z, PackedVector2Array([base + Vector2(-2.5, 0), base + Vector2(2.5, 0), tip]), _c1.darkened(0.15) if q % 2 == 0 else _c2)
 
 
 # חוטים מהכנף לרתמה (risers)
@@ -771,7 +771,7 @@ func _draw_lines(attached: bool) -> void:
 		var to := sh + Vector2(-3.0 if u < 0.0 else 3.0, -4.0)
 		if not attached:
 			to = p + Vector2(sin(z._time * 6.0 + u) * 4.0, 24.0)
-		z.draw_line(p, to, lc, 0.8)
+		DrawBatch.line(z, p, to, lc, 0.8)
 
 
 # על הקרקע: הכנף שוכבת / מתנפחת מאחוריו (KITE), או מקופלת על הגב (PERCH)
@@ -783,9 +783,9 @@ func _draw_ground_canopy() -> void:
 	if state == PERCH:
 		var b := Vector2(-9, -40)
 		Art.fill(z, PackedVector2Array([b + Vector2(-6, -8), b + Vector2(4, -10), b + Vector2(6, 14), b + Vector2(-8, 16)]), cc1, Art.OUTLINE, 1.0)
-		z.draw_line(b + Vector2(-5, 0), b + Vector2(5, -1), cc2, 2.0)
+		DrawBatch.line(z, b + Vector2(-5, 0), b + Vector2(5, -1), cc2, 2.0)
 		var fl := Vector2(back * (14.0 + 10.0 * inf), -50.0 - 12.0 * inf + sin(z._time * 9.0) * 3.0)
-		z.draw_colored_polygon(PackedVector2Array([b + Vector2(-4, -8), b + Vector2(0, -10), b + fl]), cc2)
+		DrawBatch.colored_polygon(z, PackedVector2Array([b + Vector2(-4, -8), b + Vector2(0, -10), b + fl]), cc2)
 		return
 	# בד מתנפח מאחור: קשת שעולה ויורדת עם המשבים
 	var cx := back * 34.0
@@ -800,12 +800,12 @@ func _draw_ground_canopy() -> void:
 	var poly := pts.duplicate()
 	for i in range(n, -1, -1):
 		poly.append(pts[i] + Vector2(0, 6.0 + 3.0 * inf))
-	z.draw_colored_polygon(poly, cc1)
+	DrawBatch.colored_polygon(z, poly, cc1)
 	for i in range(1, n, 2):
-		z.draw_colored_polygon(PackedVector2Array([pts[i], pts[i + 1], pts[i + 1] + Vector2(0, 6), pts[i] + Vector2(0, 6)]), cc2)
-	z.draw_polyline(pts, Art.OUTLINE, 1.2)
+		DrawBatch.colored_polygon(z, PackedVector2Array([pts[i], pts[i + 1], pts[i + 1] + Vector2(0, 6), pts[i] + Vector2(0, 6)]), cc2)
+	DrawBatch.polyline(z, pts, Art.OUTLINE, 1.2)
 	for i in [1, 4, 8]:
-		z.draw_line(pts[i] + Vector2(0, 6), Vector2(-2, -42), Color(0.15, 0.13, 0.12, 0.6), 0.7)
+		DrawBatch.line(z, pts[i] + Vector2(0, 6), Vector2(-2, -42), Color(0.15, 0.13, 0.12, 0.6), 0.7)
 
 
 func _draw_pilot(hanging: bool, dead: bool) -> void:
@@ -845,16 +845,16 @@ func _draw_pilot(hanging: bool, dead: bool) -> void:
 	z._arm(sh + Vector2(-3, 2), hand_b, skd, jkd)
 	# רתמה (מושב) מאחורי הירכיים
 	Art.fill(z, PackedVector2Array([hip + Vector2(-10, -6), hip + Vector2(4, -4), hip + Vector2(6, 6), hip + Vector2(-8, 8), hip + Vector2(-12, 2)]), col(Color("2a2a30")), Art.OUTLINE, 1.0)
-	z.draw_line(hip + Vector2(-9, -4), hip + Vector2(3, -3), col(Color("e0c040")), 1.2)
+	DrawBatch.line(z, hip + Vector2(-9, -4), hip + Vector2(3, -3), col(Color("e0c040")), 1.2)
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	# מעיל רוח קרוע שמתנופף ברוח
 	var wl: float = _wd * z._dir
 	var body := PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(7, -1), hip + Vector2(-7, 0), sh + Vector2(-9, 6)])
 	Art.fill_shaded(z, body, jk, 0.15, 0.35)
 	var tail := hip + Vector2(wl * (8.0 + 4.0 * absf(_wind())), -2.0 + sin(z._time * 10.0) * 2.0)
-	z.draw_colored_polygon(PackedVector2Array([hip + Vector2(-6, -6), hip + Vector2(6, -6), tail]), jkd)
-	z.draw_line(sh + Vector2(-6, 1), sh + Vector2(-6, 12), col(Color("d8d0c0")), 0.8)   # רוכסן / רצועה
-	z.draw_line(sh + Vector2(5, 1), hip + Vector2(4, -5), col(Color("1a1a1e")), 1.6)   # רצועת כתף
+	DrawBatch.colored_polygon(z, PackedVector2Array([hip + Vector2(-6, -6), hip + Vector2(6, -6), tail]), jkd)
+	DrawBatch.line(z, sh + Vector2(-6, 1), sh + Vector2(-6, 12), col(Color("d8d0c0")), 0.8)   # רוכסן / רצועה
+	DrawBatch.line(z, sh + Vector2(5, 1), hip + Vector2(4, -5), col(Color("1a1a1e")), 1.6)   # רצועת כתף
 	if not dead:
 		Art.oval(z, sh + Vector2(2, 10), 3.0, 2.2, Color(0.45, 0.04, 0.04, 0.6), 0.3, Art.NONE)
 	# ראש: קסדה סדוקה + משקפי טיסה
@@ -864,18 +864,18 @@ func _draw_pilot(hanging: bool, dead: bool) -> void:
 		face(head)
 		var hc := col(_helmet)
 		Art.fill(z, PackedVector2Array([head + Vector2(-7, -1), head + Vector2(-6, -7), head + Vector2(0, -10), head + Vector2(6, -8), head + Vector2(8, -3), head + Vector2(2, -4), head + Vector2(-4, -2)]), hc, Art.OUTLINE, 1.0)
-		z.draw_line(head + Vector2(-1, -9), head + Vector2(1, -5), Color(0, 0, 0, 0.5), 0.8)   # סדק
-		z.draw_line(head + Vector2(-6, -3), head + Vector2(6, -3), col(Color("3a3030")), 1.6)   # רצועת משקפיים
+		DrawBatch.line(z, head + Vector2(-1, -9), head + Vector2(1, -5), Color(0, 0, 0, 0.5), 0.8)   # סדק
+		DrawBatch.line(z, head + Vector2(-6, -3), head + Vector2(6, -3), col(Color("3a3030")), 1.6)   # רצועת משקפיים
 		Art.disc(z, head + Vector2(4.5, -2.5), 2.2, col(Color("6a8a9a")), Art.OUTLINE, 0.8)
 		if not dead:
-			z.draw_circle(head + Vector2(4.8, -2.2), 0.9, Color(1.0, 0.3, 0.15))
+			DrawBatch.circle(z, head + Vector2(4.8, -2.2), 0.9, Color(1.0, 0.3, 0.15))
 	# יד קדמית
 	z._arm(sh + Vector2(2, 2), hand_f, sk, jk)
 	if hanging:   # ידיות הבלמים
-		z.draw_line(hand_f, hand_f + Vector2(0, -4), col(Color("e83a2a")), 2.0)
+		DrawBatch.line(z, hand_f, hand_f + Vector2(0, -4), col(Color("e83a2a")), 2.0)
 	elif state == GROUND or state == LANDED or dead:   # חוטים חתוכים שתלויים מהרתמה
 		for q in 3:
-			z.draw_line(sh + Vector2(-2.0 + float(q) * 2.0, -2), sh + Vector2(-6.0 + float(q) * 3.0 - wl * 6.0, -14.0 + sin(z._time * 8.0 + float(q)) * 2.0), Color(0.15, 0.13, 0.12, 0.6), 0.6)
+			DrawBatch.line(z, sh + Vector2(-2.0 + float(q) * 2.0, -2), sh + Vector2(-6.0 + float(q) * 3.0 - wl * 6.0, -14.0 + sin(z._time * 8.0 + float(q)) * 2.0), Color(0.15, 0.13, 0.12, 0.6), 0.6)
 
 
 # ============================================================
@@ -937,16 +937,16 @@ class Rock extends Node2D:
 		if not _done:   # צל
 			var hgt := maxf(0.0, ground_y - global_position.y)
 			var k := clampf(1.0 - hgt / 360.0, 0.2, 1.0)
-			draw_colored_polygon(Art.ellipse(Vector2(0, hgt), 4.0 + 9.0 * k, 2.0 + 1.5 * k, 0.0, 12), Color(0.0, 0.0, 0.0, 0.25 + 0.35 * k))
-		draw_set_transform(Vector2.ZERO, _rot if not _done else (0.0 if not post else PI * 0.5), Vector2.ONE)
+			DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, hgt), 4.0 + 9.0 * k, 2.0 + 1.5 * k, 0.0, 12), Color(0.0, 0.0, 0.0, 0.25 + 0.35 * k))
+		DrawBatch.set_transform(self, Vector2.ZERO, _rot if not _done else (0.0 if not post else PI * 0.5), Vector2.ONE)
 		if post:
 			Art.fill(self, PackedVector2Array([Vector2(-3, -15), Vector2(3, -15), Vector2(3.5, 15), Vector2(-3.5, 15)]), Color("6a4a30"), Art.OUTLINE, 1.0)
-			draw_line(Vector2(-3, -6), Vector2(3, -6), Color("8a8e90"), 1.0)
-			draw_line(Vector2(-3, 4), Vector2(3, 4), Color("8a8e90"), 1.0)
+			DrawBatch.line(self, Vector2(-3, -6), Vector2(3, -6), Color("8a8e90"), 1.0)
+			DrawBatch.line(self, Vector2(-3, 4), Vector2(3, 4), Color("8a8e90"), 1.0)
 		else:
 			Art.fill(self, PackedVector2Array([Vector2(-8, -3), Vector2(-4, -8), Vector2(5, -7), Vector2(9, -1), Vector2(6, 6), Vector2(-5, 7)]), Color("7a7064"), Art.OUTLINE, 1.0)
-			draw_line(Vector2(-4, -5), Vector2(4, -5), Color(1, 1, 1, 0.25), 1.2)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			DrawBatch.line(self, Vector2(-4, -5), Vector2(4, -5), Color(1, 1, 1, 0.25), 1.2)
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 # ============================================================
@@ -986,7 +986,7 @@ class LooseCanopy extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
-		draw_set_transform(Vector2.ZERO, _rot, Vector2(k, k))
+		DrawBatch.set_transform(self, Vector2.ZERO, _rot, Vector2(k, k))
 		var n := 8
 		var top := PackedVector2Array()
 		var bot := PackedVector2Array()
@@ -998,14 +998,14 @@ class LooseCanopy extends Node2D:
 			top.append(Vector2(u * 46.0, yy))
 			bot.append(Vector2(u * 44.0, yy + 9.0 - 3.0 * u * u))
 		for i in n:
-			draw_colored_polygon(PackedVector2Array([top[i], top[i + 1], bot[i + 1], bot[i]]), c1 if i % 2 == 0 else (c3 if i == 3 or i == 4 else c2))
-		draw_polyline(top, Art.OUTLINE, 1.2)
-		draw_polyline(bot, Art.OUTLINE, 1.0)
+			DrawBatch.colored_polygon(self, PackedVector2Array([top[i], top[i + 1], bot[i + 1], bot[i]]), c1 if i % 2 == 0 else (c3 if i == 3 or i == 4 else c2))
+		DrawBatch.polyline(self, top, Art.OUTLINE, 1.2)
+		DrawBatch.polyline(self, bot, Art.OUTLINE, 1.0)
 		for h in holes:
 			var i := clampi(int((float(h[0]) + 1.0) * 0.5 * float(n)), 0, n - 1)
-			draw_colored_polygon(Art.ellipse(top[i].lerp(bot[i], float(h[1])), float(h[2]), float(h[2]) * 0.6, 0.0, 8), Color("8ab8e0"))
+			DrawBatch.colored_polygon(self, Art.ellipse(top[i].lerp(bot[i], float(h[1])), float(h[2]), float(h[2]) * 0.6, 0.0, 8), Color("8ab8e0"))
 		for i in 6:   # חוטים תלויים
 			var u := float(i) / 5.0 * 2.0 - 1.0
 			var p := Vector2(u * 40.0, bot[clampi(int((u + 1.0) * 0.5 * float(n)), 0, n)].y)
-			draw_line(p, p + Vector2(sin(_t * 5.0 + u * 3.0) * 6.0, 26.0 + absf(u) * 4.0), Color(0.15, 0.13, 0.12, 0.6), 0.7)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			DrawBatch.line(self, p, p + Vector2(sin(_t * 5.0 + u * 3.0) * 6.0, 26.0 + absf(u) * 4.0), Color(0.15, 0.13, 0.12, 0.6), 0.7)
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)

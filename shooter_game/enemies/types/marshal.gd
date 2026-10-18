@@ -86,10 +86,10 @@ class Marker extends Node2D:   # עשן אדום שמסמן את המטח
 	func _draw() -> void:
 		var k := 1.0 - clampf(t / MARK_T, 0.0, 1.0)
 		for q in 4:   # עמוד עשן אדום
-			draw_circle(Vector2(sin(float(q) * 2.0 + t * 3.0) * 4.0, -8.0 - float(q) * 14.0 - k * 10.0), 8.0 + float(q) * 3.0, Color(0.9, 0.12, 0.08, 0.35 - float(q) * 0.06))
-		draw_circle(Vector2.ZERO, 5.0, Color(1.0, 0.2, 0.1, 0.9))
+			DrawBatch.circle(self, Vector2(sin(float(q) * 2.0 + t * 3.0) * 4.0, -8.0 - float(q) * 14.0 - k * 10.0), 8.0 + float(q) * 3.0, Color(0.9, 0.12, 0.08, 0.35 - float(q) * 0.06))
+		DrawBatch.circle(self, Vector2.ZERO, 5.0, Color(1.0, 0.2, 0.1, 0.9))
 		var w := SPREAD * float(int(float(n) / 2.0)) + BLAST * 0.6   # האזור שיופגז
-		draw_line(Vector2(-w + lean, 2), Vector2(w + lean, 2), Color(1.0, 0.2, 0.1, 0.3 + 0.5 * k), 3.0)
+		DrawBatch.line(self, Vector2(-w + lean, 2), Vector2(w + lean, 2), Color(1.0, 0.2, 0.1, 0.3 + 0.5 * k), 3.0)
 
 
 func stats() -> Dictionary:
@@ -263,38 +263,38 @@ func draw() -> bool:
 	var hf: Vector2 = o.hf
 	var gold := col(E.BRASS)
 	# שולי מעיל ארוכים
-	z.draw_colored_polygon(PackedVector2Array([hip + Vector2(-8, 4), hip + Vector2(8, 4), hip + Vector2(10, 16), hip + Vector2(-10, 16)]), col(E.UNIFORM_D))
-	z.draw_line(sh + Vector2(-7, 0), hip + Vector2(7, 2), col(E.RED), 2.6)   # אבנט
+	DrawBatch.colored_polygon(z, PackedVector2Array([hip + Vector2(-8, 4), hip + Vector2(8, 4), hip + Vector2(10, 16), hip + Vector2(-10, 16)]), col(E.UNIFORM_D))
+	DrawBatch.line(z, sh + Vector2(-7, 0), hip + Vector2(7, 2), col(E.RED), 2.6)   # אבנט
 	for q in 3:   # מדליות
-		z.draw_line(sh + Vector2(-4.0 + float(q) * 2.5, 2), sh + Vector2(-4.0 + float(q) * 2.5, 5), col(E.RED), 1.2)
-		z.draw_circle(sh + Vector2(-4.0 + float(q) * 2.5, 6), 1.1, gold)
-	z.draw_rect(Rect2(sh + Vector2(-9, -2), Vector2(6, 2.4)), gold)   # כותפות
-	z.draw_rect(Rect2(sh + Vector2(4, -2), Vector2(6, 2.4)), gold)
+		DrawBatch.line(z, sh + Vector2(-4.0 + float(q) * 2.5, 2), sh + Vector2(-4.0 + float(q) * 2.5, 5), col(E.RED), 1.2)
+		DrawBatch.circle(z, sh + Vector2(-4.0 + float(q) * 2.5, 6), 1.1, gold)
+	DrawBatch.rect(z, Rect2(sh + Vector2(-9, -2), Vector2(6, 2.4)), gold)   # כותפות
+	DrawBatch.rect(z, Rect2(sh + Vector2(4, -2), Vector2(6, 2.4)), gold)
 	# כובע ענק (מעל כובע הקצין)
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-8, -4), head + Vector2(-7, -11), head + Vector2(8, -12), head + Vector2(9, -5)]), col(E.UNIFORM_D))
-	z.draw_rect(Rect2(head + Vector2(-8, -6), Vector2(17, 2.4)), col(E.RED))
-	z.draw_rect(Rect2(head + Vector2(2, -4), Vector2(10, 1.8)), col(Color("141414")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-8, -4), head + Vector2(-7, -11), head + Vector2(8, -12), head + Vector2(9, -5)]), col(E.UNIFORM_D))
+	DrawBatch.rect(z, Rect2(head + Vector2(-8, -6), Vector2(17, 2.4)), col(E.RED))
+	DrawBatch.rect(z, Rect2(head + Vector2(2, -4), Vector2(10, 1.8)), col(Color("141414")))
 	E.emblem(z, head + Vector2(0.5, -9), 2.4)
-	z.draw_line(head + Vector2(-6, -5), head + Vector2(8, -5), gold, 0.8)
+	DrawBatch.line(z, head + Vector2(-6, -5), head + Vector2(8, -5), gold, 0.8)
 	# אקדח
-	z.draw_rect(Rect2(hf + Vector2(0, -2), Vector2(8, 3)), col(Color("1a1a1a")))
+	DrawBatch.rect(z, Rect2(hf + Vector2(0, -2), Vector2(8, 3)), col(Color("1a1a1a")))
 	if winding == "pistol" and not z.dead:
 		Art.glow(z, hf + Vector2(9, -0.5), 3.0 + 4.0 * k, Color(1.0, 0.85, 0.4, 0.3 + 0.5 * k))
 	# מגפון ביד האחורית
 	var mg := sh + (Vector2(6, -14) if raise else Vector2(-5, 15))
-	z.draw_colored_polygon(PackedVector2Array([mg + Vector2(0, -1.5), mg + Vector2(0, 1.5), mg + Vector2(8, 4), mg + Vector2(8, -4)]), col(E.RED))
+	DrawBatch.colored_polygon(z, PackedVector2Array([mg + Vector2(0, -1.5), mg + Vector2(0, 1.5), mg + Vector2(8, 4), mg + Vector2(8, -4)]), col(E.RED))
 	end_draw()
 	# הזכוכית המשוריינת (בעולם, קבועה)
 	if glass > 0:
 		var gx: float = glass_x() - z.global_position.x
 		var top: float = -62.0 * z.sc
 		var gc := Color(0.75, 0.9, 1.0, 0.22 + (0.25 if _crack_t > 0.0 else 0.0))
-		z.draw_rect(Rect2(gx - 3.0, top, 6.0, -top - 4.0), gc)
-		z.draw_line(Vector2(gx + 2.0, top + 6.0), Vector2(gx + 2.0, -10.0), Color(1, 1, 1, 0.35), 1.2)
-		z.draw_rect(Rect2(gx - 4.0, -6.0, 8.0, 6.0), Color("2a2a2a"))
+		DrawBatch.rect(z, Rect2(gx - 3.0, top, 6.0, -top - 4.0), gc)
+		DrawBatch.line(z, Vector2(gx + 2.0, top + 6.0), Vector2(gx + 2.0, -10.0), Color(1, 1, 1, 0.35), 1.2)
+		DrawBatch.rect(z, Rect2(gx - 4.0, -6.0, 8.0, 6.0), Color("2a2a2a"))
 		var cracks := GLASS_HP - glass
 		for q in cracks:   # סדקים
 			var cy := top + 20.0 + float(q) * (-top - 40.0) / float(GLASS_HP)
-			z.draw_line(Vector2(gx - 3.0, cy), Vector2(gx + 3.0, cy + 8.0), Color(1, 1, 1, 0.7), 1.0)
-			z.draw_line(Vector2(gx + 3.0, cy), Vector2(gx - 2.0, cy + 6.0), Color(1, 1, 1, 0.5), 0.8)
+			DrawBatch.line(z, Vector2(gx - 3.0, cy), Vector2(gx + 3.0, cy + 8.0), Color(1, 1, 1, 0.7), 1.0)
+			DrawBatch.line(z, Vector2(gx + 3.0, cy), Vector2(gx - 2.0, cy + 6.0), Color(1, 1, 1, 0.5), 0.8)
 	return true

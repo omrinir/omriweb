@@ -479,17 +479,17 @@ class ArmPiece extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(face * sc, sc))
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(face * sc, sc))
 		Art.limb(self, PackedVector2Array([Vector2(-10, 0), Vector2(-3, 0)]), 5.0, Color("6a6e74"))
 		if kind == "rocket":
 			Art.fill(self, PackedVector2Array([Vector2(-4, -5), Vector2(10, -5), Vector2(10, 5), Vector2(-4, 5)]), Color("5a4a3a"))
 			for q in 3:
-				draw_circle(Vector2(10, -3 + q * 3), 1.4, Color(0.1, 0.1, 0.1))
+				DrawBatch.circle(self, Vector2(10, -3 + q * 3), 1.4, Color(0.1, 0.1, 0.1))
 		else:
 			Art.fill(self, PackedVector2Array([Vector2(-4, -4), Vector2(9, -3), Vector2(9, 3), Vector2(-4, 4)]), Color("7a7e86"))
 			Art.fill(self, PackedVector2Array([Vector2(9, -2), Vector2(16, -2), Vector2(16, 2), Vector2(9, 2)]), Color("3a3c40"))
-		draw_line(Vector2(-10, 0), Vector2(-14, randf_range(-3, 3)), Color(0.9, 0.2, 0.15), 1.4)   # צינור קרוע
-		draw_line(Vector2(-10, 1), Vector2(-13, 4), Color(0.3, 0.3, 0.35), 1.2)
+		DrawBatch.line(self, Vector2(-10, 0), Vector2(-14, randf_range(-3, 3)), Color(0.9, 0.2, 0.15), 1.4)   # צינור קרוע
+		DrawBatch.line(self, Vector2(-10, 1), Vector2(-13, 4), Color(0.3, 0.3, 0.35), 1.2)
 
 
 # ============================================================
@@ -513,9 +513,9 @@ func draw() -> bool:
 	# המנוע על הגב
 	var pack := sh + Vector2(-12, 3)
 	Art.fill_shaded(z, PackedVector2Array([pack + Vector2(-5, -6), pack + Vector2(6, -7), pack + Vector2(7, 13), pack + Vector2(-6, 14)]), col(STEEL_D), 0.15, 0.35)
-	z.draw_rect(Rect2(pack + Vector2(-3, -3), Vector2(7, 3)), col(BRASS))
+	DrawBatch.rect(z, Rect2(pack + Vector2(-3, -3), Vector2(7, 3)), col(BRASS))
 	var vent := 0.5 + 0.5 * sin(z._time * 6.0)
-	z.draw_circle(pack + Vector2(0, 6), 2.2, Color(1.0, 0.35 + 0.3 * _glow, 0.15 + 0.6 * _glow, 0.6 + 0.4 * vent))
+	DrawBatch.circle(z, pack + Vector2(0, 6), 2.2, Color(1.0, 0.35 + 0.3 * _glow, 0.15 + 0.6 * _glow, 0.6 + 0.4 * vent))
 	if not z.dead and Engine.get_physics_frames() % 40 == 0 and Art.on_screen(z, z.global_position):
 		Particles.burst(z.get_parent(), _w(pack + Vector2(0, -8)), "smoke", Vector2.UP, 1)
 	# זרועות שמאחורי הגוף
@@ -528,25 +528,25 @@ func draw() -> bool:
 	var torso := PackedVector2Array([sh + Vector2(-10, -2), sh + Vector2(9, -1), sh + Vector2(9, 9), hip + Vector2(7, 2), hip + Vector2(-7, 2), sh + Vector2(-10, 9)])
 	Art.fill_shaded(z, torso, shirt, 0.12, 0.4)
 	Art.fill(z, PackedVector2Array([sh + Vector2(-4, 6), sh + Vector2(3, 9), sh + Vector2(-1, 14)]), sk, Art.NONE)   # קרע
-	z.draw_line(sh + Vector2(-7, 2), sh + Vector2(-6, 14), col(Color(0.5, 0.1, 0.1, 0.6)), 1.0)   # תפר
+	DrawBatch.line(z, sh + Vector2(-7, 2), sh + Vector2(-6, 14), col(Color(0.5, 0.1, 0.1, 0.6)), 1.0)   # תפר
 	# צינורות מהמנוע לכתפיים
-	z.draw_line(pack + Vector2(4, -6), sh + Vector2(2, -2), col(Color("9a2a22")), 1.8)
-	z.draw_line(pack + Vector2(5, 0), sh + Vector2(0, 5), col(Color("2a2a30")), 1.6)
+	DrawBatch.line(z, pack + Vector2(4, -6), sh + Vector2(2, -2), col(Color("9a2a22")), 1.8)
+	DrawBatch.line(z, pack + Vector2(5, 0), sh + Vector2(0, 5), col(Color("2a2a30")), 1.6)
 	# כתפיות ברזל מוברגות
 	Art.oval_shaded(z, sh + Vector2(3, 0), 6.5, 4.5, col(STEEL), -0.2)
 	for q in 3:
-		z.draw_circle(sh + Vector2(-0.5 + float(q) * 3.0, 0.5 - float(q) * 0.6), 0.8, col(BRASS))
-	z.draw_rect(Rect2(hip + Vector2(-7, -1), Vector2(14, 3)), col(Color("2a2018")))   # חגורה
+		DrawBatch.circle(z, sh + Vector2(-0.5 + float(q) * 3.0, 0.5 - float(q) * 0.6), 0.8, col(BRASS))
+	DrawBatch.rect(z, Rect2(hip + Vector2(-7, -1), Vector2(14, 3)), col(Color("2a2018")))   # חגורה
 	# ראש: לסת מתכת + עין אופטית
 	Art.oval_shaded(z, head, 5.6, 6.0, sk, 0.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(-2, 1), head + Vector2(6, 1), head + Vector2(5.5, 6), head + Vector2(-1, 6.5)]), col(STEEL), Art.OUTLINE, 0.9)
 	for q in 3:
-		z.draw_line(head + Vector2(0.5 + float(q) * 2.0, 2.5), head + Vector2(0.5 + float(q) * 2.0, 5.5), col(STEEL_D), 0.7)
-	z.draw_circle(head + Vector2(3.5, -1.5), 2.2, col(Color("2a2a30")))
+		DrawBatch.line(z, head + Vector2(0.5 + float(q) * 2.0, 2.5), head + Vector2(0.5 + float(q) * 2.0, 5.5), col(STEEL_D), 0.7)
+	DrawBatch.circle(z, head + Vector2(3.5, -1.5), 2.2, col(Color("2a2a30")))
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.8, -1.5), 1.2, Color(1.0, 0.2, 0.15))
+		DrawBatch.circle(z, head + Vector2(3.8, -1.5), 1.2, Color(1.0, 0.2, 0.15))
 		Art.glow(z, head + Vector2(3.8, -1.5), 4.0, Color(1.0, 0.2, 0.1, 0.5))
-	z.draw_line(head + Vector2(-5, -3), head + Vector2(2, -6), col(Color(0.3, 0.1, 0.1, 0.6)), 0.9)   # תפרים על הקרקפת
+	DrawBatch.line(z, head + Vector2(-5, -3), head + Vector2(2, -6), col(Color(0.3, 0.1, 0.1, 0.6)), 0.9)   # תפרים על הקרקפת
 	# זרועות שלפני הגוף
 	for i in arms.size():
 		if not _layout()[i][4]:
@@ -560,9 +560,9 @@ func _draw_arm(i: int, sk: Color) -> void:
 	var s: Vector2 = pts[0]
 	if not arms[i].alive:   # גדם: בשר + חוטים קרועים
 		Art.disc(z, s + Vector2(2, 2), 3.0, col(Color("6a2a24")))
-		z.draw_line(s + Vector2(3, 3), s + Vector2(6, 6 + sin(z._time * 9.0)), col(Color(0.9, 0.2, 0.15)), 1.0)
+		DrawBatch.line(z, s + Vector2(3, 3), s + Vector2(6, 6 + sin(z._time * 9.0)), col(Color(0.9, 0.2, 0.15)), 1.0)
 		if not z.dead and randf() < 0.08:
-			z.draw_circle(s + Vector2(6, 6), 1.6, Color(1.0, 0.9, 0.5))
+			DrawBatch.circle(z, s + Vector2(6, 6), 1.6, Color(1.0, 0.9, 0.5))
 		return
 	var e: Vector2 = pts[1]
 	var m: Vector2 = pts[2]
@@ -570,9 +570,9 @@ func _draw_arm(i: int, sk: Color) -> void:
 	var st := col(STEEL * Color(dk, dk, dk))
 	# עליון: בוכנה
 	Art.limb(z, PackedVector2Array([s, e]), 4.6, col(STEEL_D * Color(dk, dk, dk)))
-	z.draw_line(s + Vector2(0, -2), s.lerp(e, 0.7) + Vector2(0, -2), col(Color("c8c8d0")), 1.2)
+	DrawBatch.line(z, s + Vector2(0, -2), s.lerp(e, 0.7) + Vector2(0, -2), col(Color("c8c8d0")), 1.2)
 	Art.disc(z, e, 2.8, col(BRASS), Art.OUTLINE, 1.0)
-	z.draw_line(e, s + Vector2(-1, 4), col(Color("9a2a22")), 1.2)   # צינור הידראולי
+	DrawBatch.line(z, e, s + Vector2(-1, 4), col(Color("9a2a22")), 1.2)   # צינור הידראולי
 	# אמה = קנה
 	var dirv := (m - e).normalized()
 	var n := dirv.orthogonal()
@@ -580,22 +580,22 @@ func _draw_arm(i: int, sk: Color) -> void:
 		var b0 := e + dirv * 3.0
 		Art.fill_shaded(z, PackedVector2Array([b0 + n * 5.0, b0 + dirv * 14.0 + n * 5.0, b0 + dirv * 14.0 - n * 5.0, b0 - n * 5.0]), col(Color("5a4a3a")), 0.15, 0.3)
 		for q in 3:
-			z.draw_circle(b0 + dirv * 14.0 + n * (-3.0 + float(q) * 3.0), 1.3, Color(0.08, 0.06, 0.05))
+			DrawBatch.circle(z, b0 + dirv * 14.0 + n * (-3.0 + float(q) * 3.0), 1.3, Color(0.08, 0.06, 0.05))
 		if _rocket_cd < 1.0 and not z.dead:
 			Art.glow(z, b0 + dirv * 15.0, 6.0, Color(1.0, 0.5, 0.2, 0.7))
 		return
 	Art.fill_shaded(z, PackedVector2Array([e + n * 3.6, e + dirv * 13.0 + n * 3.2, e + dirv * 13.0 - n * 3.2, e - n * 3.6]), st, 0.18, 0.35)
 	for q in 2:   # טבעות קירור
 		var rp := e + dirv * (5.0 + float(q) * 4.0)
-		z.draw_line(rp + n * 3.6, rp - n * 3.6, col(STEEL_D), 1.0)
+		DrawBatch.line(z, rp + n * 3.6, rp - n * 3.6, col(STEEL_D), 1.0)
 	Art.fill(z, PackedVector2Array([e + dirv * 13.0 + n * 2.0, m + n * 2.0, m - n * 2.0, e + dirv * 13.0 - n * 2.0]), col(Color("2e3036")), Art.OUTLINE, 0.9)
-	z.draw_circle(m, 1.3, Color(0.05, 0.05, 0.05))
+	DrawBatch.circle(z, m, 1.3, Color(0.05, 0.05, 0.05))
 	var g := _glow if state == CHARGE else 0.0
 	if g > 0.0 and not z.dead:
 		Art.glow(z, m, 5.0 + 6.0 * g, Color(0.5, 0.9, 1.0, 0.5 + 0.4 * g))
-		z.draw_line(e + dirv * 4.0, m, Color(0.5, 0.9, 1.0, 0.6 * g), 1.4)
+		DrawBatch.line(z, e + dirv * 4.0, m, Color(0.5, 0.9, 1.0, 0.6 * g), 1.4)
 	if float(arms[i].kick) > 0.6 and not z.dead:   # הבזק
 		Art.glow(z, m + dirv * 3.0, 6.0, Color(1.0, 0.8, 0.4, 0.8))
 	if int(arms[i].hp) < (BOSS_ARM_HP if _boss() else ARM_HP) / 2:   # זרוע פגועה: ניצוצות
 		if not z.dead and randf() < 0.2:
-			z.draw_circle(e + n * 2.0, 1.2, Color(1.0, 0.9, 0.5))
+			DrawBatch.circle(z, e + n * 2.0, 1.2, Color(1.0, 0.9, 0.5))

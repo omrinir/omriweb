@@ -292,13 +292,13 @@ class Tire extends Node2D:
 		return false
 
 	func _draw() -> void:
-		draw_circle(Vector2.ZERO, R + 1.5, Color("0e0e0e"))
-		draw_circle(Vector2.ZERO, R, Color("262628"))
-		draw_circle(Vector2.ZERO, R * 0.5, Color("5a5a5e"))
-		draw_circle(Vector2.ZERO, R * 0.25, Color("2a2a2c"))
+		DrawBatch.circle(self, Vector2.ZERO, R + 1.5, Color("0e0e0e"))
+		DrawBatch.circle(self, Vector2.ZERO, R, Color("262628"))
+		DrawBatch.circle(self, Vector2.ZERO, R * 0.5, Color("5a5a5e"))
+		DrawBatch.circle(self, Vector2.ZERO, R * 0.25, Color("2a2a2c"))
 		for k in 8:   # חריצים
 			var a := _rot + float(k) * TAU / 8.0
-			draw_line(Vector2.from_angle(a) * (R - 4.0), Vector2.from_angle(a) * R, Color("3a3a3e"), 2.0)
+			DrawBatch.line(self, Vector2.from_angle(a) * (R - 4.0), Vector2.from_angle(a) * R, Color("3a3a3e"), 2.0)
 
 
 # ============================================================
@@ -326,14 +326,14 @@ func draw() -> bool:
 	# צמיג על הגב/כתף (התחמושת שלו)
 	if not (state == THROW and _st < 0.2):
 		var tc := sh + Vector2(-9, 4)
-		z.draw_circle(tc, 10.5, Art.OUTLINE)
-		z.draw_circle(tc, 9.0, col(Color("2a2a2c")))
+		DrawBatch.circle(z, tc, 10.5, Art.OUTLINE)
+		DrawBatch.circle(z, tc, 9.0, col(Color("2a2a2c")))
 		for k in 8:   # חריצי הצמיג
 			var ta := float(k) * TAU / 8.0
-			z.draw_line(tc + Vector2.from_angle(ta) * 6.5, tc + Vector2.from_angle(ta) * 9.0, col(Color("46464a")), 1.6)
-		z.draw_circle(tc, 4.2, col(Color("8a8a90")))
-		z.draw_circle(tc, 2.0, col(Color("3a3a3e")))
-		z.draw_line(tc + Vector2(-8, -6), sh + Vector2(4, 2), col(Color("5a4030")), 1.6)   # רצועה
+			DrawBatch.line(z, tc + Vector2.from_angle(ta) * 6.5, tc + Vector2.from_angle(ta) * 9.0, col(Color("46464a")), 1.6)
+		DrawBatch.circle(z, tc, 4.2, col(Color("8a8a90")))
+		DrawBatch.circle(z, tc, 2.0, col(Color("3a3a3e")))
+		DrawBatch.line(z, tc + Vector2(-8, -6), sh + Vector2(4, 2), col(Color("5a4030")), 1.6)   # רצועה
 	var hb := sh + Vector2(-6.0 - sin(p) * 3.0, 17.0)
 	var hf := sh + Vector2(10.0 + sin(p) * 3.0, 15.0)
 	if state == CHARGE:
@@ -348,23 +348,23 @@ func draw() -> bool:
 	# גוף עם כרס
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(9, 0), hip + Vector2(11, -4), hip + Vector2(8, 3), hip + Vector2(-8, 3), hip + Vector2(-9, -4)]), shirt, 0.12, 0.4)
 	Art.oval_shaded(z, hip + Vector2(5, -8), 7.0, 7.0, sk, 0.0)   # כרס מבצבצת
-	z.draw_line(sh + Vector2(1, 0), hip + Vector2(3, -2), col(Color("2a3e56")), 1.2)   # כפתורים פתוחים
+	DrawBatch.line(z, sh + Vector2(1, 0), hip + Vector2(3, -2), col(Color("2a3e56")), 1.2)   # כפתורים פתוחים
 	Art.oval_shaded(z, head, 6.0, 6.2, sk, 0.0)
-	z.draw_circle(head + Vector2(2.0, 3.5), 3.5, col(Color(0.25, 0.25, 0.22, 0.4)))   # זיפים
+	DrawBatch.circle(z, head + Vector2(2.0, 3.5), 3.5, col(Color(0.25, 0.25, 0.22, 0.4)))   # זיפים
 	# כובע מצחייה
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-5, -7), head + Vector2(2, -9), head + Vector2(6, -6), head + Vector2(6, -3)]), col(Color("b02a2a")), Art.OUTLINE, 1.0)
-	z.draw_line(head + Vector2(5, -3), head + Vector2(12, -2), col(Color("8a1e1e")), 2.2)
+	DrawBatch.line(z, head + Vector2(5, -3), head + Vector2(12, -2), col(Color("8a1e1e")), 2.2)
 	if not z.dead:
 		var ec := Color(1.0, 0.85, 0.3) if state in [REV, CHARGE] else Color(0.8, 0.85, 0.5)
-		z.draw_circle(head + Vector2(3.5, -0.5), 1.1, ec)
+		DrawBatch.circle(z, head + Vector2(3.5, -0.5), 1.1, ec)
 		if state == CRASH:   # המום: כוכבים מעל הראש
 			for k in 3:
 				var a: float = z._time * 4.0 + float(k) * TAU / 3.0
-				z.draw_circle(head + Vector2(cos(a) * 9.0, -14.0 + sin(a) * 2.5), 1.4, Color(1.0, 0.95, 0.5))
+				DrawBatch.circle(z, head + Vector2(cos(a) * 9.0, -14.0 + sin(a) * 2.5), 1.4, Color(1.0, 0.95, 0.5))
 	z._arm(sh + Vector2(4, 1), hf, sk, shirt)
 	if state == THROW and _st > 0.2:   # הצמיג מורם מעל הראש
-		z.draw_circle(hf + Vector2(0, -6), 10.0, Art.OUTLINE)
-		z.draw_circle(hf + Vector2(0, -6), 8.5, col(Color("262628")))
-		z.draw_circle(hf + Vector2(0, -6), 4.0, col(Color("4a4a4e")))
+		DrawBatch.circle(z, hf + Vector2(0, -6), 10.0, Art.OUTLINE)
+		DrawBatch.circle(z, hf + Vector2(0, -6), 8.5, col(Color("262628")))
+		DrawBatch.circle(z, hf + Vector2(0, -6), 4.0, col(Color("4a4a4e")))
 	end_draw()
 	return true

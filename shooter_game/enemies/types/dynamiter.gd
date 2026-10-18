@@ -145,16 +145,16 @@ func draw() -> bool:
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 3.0, 14.0), Art.shade(sk, 0.25), Art.shade(shirt, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)]), shirt, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-5, 0), hip + Vector2(4, -1), col(Color("3a2a1a")), 3.0)   # חגורת דינמיט
+	DrawBatch.line(z, sh + Vector2(-5, 0), hip + Vector2(4, -1), col(Color("3a2a1a")), 3.0)   # חגורת דינמיט
 	for q in 4:
 		var bp := (sh + Vector2(-5, 0)).lerp(hip + Vector2(4, -1), 0.15 + 0.22 * float(q))
-		z.draw_rect(Rect2(bp + Vector2(-1.5, -3), Vector2(3, 6)), col(Color("c03020")))
+		DrawBatch.rect(z, Rect2(bp + Vector2(-1.5, -3), Vector2(3, 6)), col(Color("c03020")))
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	face(head)
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
+		DrawBatch.circle(z, head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
 	Art.fill(z, PackedVector2Array([head + Vector2(-6.5, -3), head + Vector2(-5, -8), head + Vector2(4, -8.5), head + Vector2(7, -3)]), col(Color("8a8a8e")), Art.OUTLINE, 1.0)   # קסדה
-	z.draw_rect(Rect2(head + Vector2(4, -8), Vector2(3, 3)), col(Color("e8e0a0")))   # פנס
+	DrawBatch.rect(z, Rect2(head + Vector2(4, -8), Vector2(3, 3)), col(Color("e8e0a0")))   # פנס
 	if not z.dead:
 		Art.glow(z, head + Vector2(8, -6.5), 12.0, Color(1.0, 0.95, 0.6, 0.5))
 	var hand: Vector2
@@ -166,9 +166,9 @@ func draw() -> bool:
 		hand = sh + Vector2(9.0 + sin(p) * 3.0, 13.0)
 	z._arm(sh + Vector2(3, 1), hand, sk, shirt)
 	if state == LIGHT and not z.dead:
-		z.draw_rect(Rect2(hand + Vector2(-1.5, -8), Vector2(3, 8)), col(Color("c03020")))
-		z.draw_line(hand + Vector2(0, -8), hand + Vector2(2, -12), col(Color("d8c8a0")), 1.0)
-		z.draw_circle(hand + Vector2(2, -12), 1.8 + sin(z._time * 40.0), Color(1.0, 0.8, 0.3))
+		DrawBatch.rect(z, Rect2(hand + Vector2(-1.5, -8), Vector2(3, 8)), col(Color("c03020")))
+		DrawBatch.line(z, hand + Vector2(0, -8), hand + Vector2(2, -12), col(Color("d8c8a0")), 1.0)
+		DrawBatch.circle(z, hand + Vector2(2, -12), 1.8 + sin(z._time * 40.0), Color(1.0, 0.8, 0.3))
 	end_draw()
 	return true
 
@@ -221,15 +221,15 @@ class Stick extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_set_transform(Vector2.ZERO, _rot, Vector2.ONE)
+		DrawBatch.set_transform(self, Vector2.ZERO, _rot, Vector2.ONE)
 		var n := 3 if bundle else 1
 		for i in n:
 			var ox := (float(i) - float(n - 1) * 0.5) * 4.5
-			draw_rect(Rect2(ox - 2.2, -7, 4.4, 14), Color("c03020"))
-			draw_rect(Rect2(ox - 2.2, -7, 4.4, 14), Color("1a0a08"), false, 1.0)
-		draw_line(Vector2(0, -7), Vector2(2, -11), Color("d8c8a0"), 1.2)
+			DrawBatch.rect(self, Rect2(ox - 2.2, -7, 4.4, 14), Color("c03020"))
+			DrawBatch.rect(self, Rect2(ox - 2.2, -7, 4.4, 14), Color("1a0a08"), false, 1.0)
+		DrawBatch.line(self, Vector2(0, -7), Vector2(2, -11), Color("d8c8a0"), 1.2)
 		var k := clampf(fuse, 0.0, 1.0)
-		draw_circle(Vector2(2, -11), 2.0 + (1.0 - k) * 2.0 + sin(fuse * 40.0), Color(1.0, 0.8 - (1.0 - k) * 0.5, 0.3))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		DrawBatch.circle(self, Vector2(2, -11), 2.0 + (1.0 - k) * 2.0 + sin(fuse * 40.0), Color(1.0, 0.8 - (1.0 - k) * 0.5, 0.3))
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
 		if fuse < 0.5 and fmod(fuse * 10.0, 1.0) < 0.5:   # עוד רגע
-			draw_arc(Vector2.ZERO, radius * 0.6, 0.0, TAU, 20, Color(1.0, 0.3, 0.1, 0.35), 2.0)
+			DrawBatch.arc(self, Vector2.ZERO, radius * 0.6, 0.0, TAU, 20, Color(1.0, 0.3, 0.1, 0.35), 2.0)

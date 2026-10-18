@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")   # כל הציור של זומבי ב-draw call אחד
 # ============================================================
 #  RAGDOLL - גופה רכה לזומבים אנושיים (במקום "בלוק" שמסתובב ונוחת תמיד באותה תנוחה).
 #  11 מפרקים (ראש, צוואר, אגן, ברכיים, כפות רגליים, מרפקים, ידיים) מחוברים ב"עצמות".
@@ -222,7 +223,7 @@ func draw(ci: CanvasItem) -> void:
 	var lo := minf(p[PELVIS].x, minf(p[HEAD].x, p[FOOT_F].x))
 	var hi := maxf(p[PELVIS].x, maxf(p[HEAD].x, p[FOOT_F].x))
 	var gy := (p[PELVIS].y if ground[PELVIS] == INF else ground[PELVIS]) + rad[PELVIS]
-	ci.draw_colored_polygon(Art.ellipse(Vector2((lo + hi) * 0.5, gy + 1.0), (hi - lo) * 0.5 + 8.0 * sc, 3.0 * sc, 0.0, 14), Color(0, 0, 0, 0.25))
+	DrawBatch.colored_polygon(ci, Art.ellipse(Vector2((lo + hi) * 0.5, gy + 1.0), (hi - lo) * 0.5 + 8.0 * sc, 3.0 * sc, 0.0, 14), Color(0, 0, 0, 0.25))
 	# יד ורגל אחוריות (כהות יותר)
 	_arm(ci, NECK, ELBOW_B, HAND_B, Art.shade(sk, back), Art.shade(shirt, back), 4.6 * sc * w)
 	_leg(ci, KNEE_B, FOOT_B, Art.shade(pa, back), Art.shade(sk, back), Art.shade(shoe, back), 6.2 * sc * w)
@@ -253,7 +254,7 @@ func draw(ci: CanvasItem) -> void:
 			if hk == 1:   # RUNNER: שיער ארוך פרוע - נשפך אחורה ולמטה (כבידה)
 				for i in 5:
 					var a: Vector2 = L.call(-4.0 + float(i) * 1.2, -6.5 + float(i) * 0.4)
-					ci.draw_line(a, a + (-side * (8.0 + float(i)) + Vector2(0, 5.0 + float(i) * 1.4)) * sc, hair, 2.0 * sc, true)
+					DrawBatch.line(ci, a, a + (-side * (8.0 + float(i)) + Vector2(0, 5.0 + float(i) * 1.4)) * sc, hair, 2.0 * sc, true)
 			elif hk != 2 and not bald:   # שיער מאחור (לא BRUTE)
 				Art.oval(ci, L.call(-2.5, -2.5), 6.0 * k, 5.5 * k, hair, rot, Art.OUTLINE, 1.0)
 		Art.oval_shaded(ci, p[HEAD], 6.0 * sc, 6.6 * sc, sk, rot)
@@ -262,14 +263,14 @@ func draw(ci: CanvasItem) -> void:
 				var cap := PackedVector2Array()
 				for v: Vector2 in HAIR_CAP:
 					cap.append(L.call(v.x, v.y))
-				ci.draw_colored_polygon(cap, hair)
-				ci.draw_line(L.call(-4.2, -6.6), L.call(0.5, -8.0), Color(1, 1, 1, 0.2), 1.0, true)
+				DrawBatch.colored_polygon(ci, cap, hair)
+				DrawBatch.line(ci, L.call(-4.2, -6.6), L.call(0.5, -8.0), Color(1, 1, 1, 0.2), 1.0, true)
 			else:
 				Art.oval(ci, L.call(-2.0, -5.0), 2.2 * k, 1.4 * k, Color(0.42, 0.06, 0.05, 0.75), rot, Art.NONE)
 		var eye := p[HEAD] + side * 2.6 * sc + hd * 0.5 * sc
-		ci.draw_line(eye + Vector2(-1.4, -1.4) * sc, eye + Vector2(1.4, 1.4) * sc, Color(0.1, 0.05, 0.05), 1.2)   # עין X
-		ci.draw_line(eye + Vector2(-1.4, 1.4) * sc, eye + Vector2(1.4, -1.4) * sc, Color(0.1, 0.05, 0.05), 1.2)
-		ci.draw_line(p[HEAD] + side * 3.5 * sc - hd * 2.5 * sc, p[HEAD] + side * 1.0 * sc - hd * 3.0 * sc, Color(0.25, 0.05, 0.05), 1.4)   # פה
+		DrawBatch.line(ci, eye + Vector2(-1.4, -1.4) * sc, eye + Vector2(1.4, 1.4) * sc, Color(0.1, 0.05, 0.05), 1.2)   # עין X
+		DrawBatch.line(ci, eye + Vector2(-1.4, 1.4) * sc, eye + Vector2(1.4, -1.4) * sc, Color(0.1, 0.05, 0.05), 1.2)
+		DrawBatch.line(ci, p[HEAD] + side * 3.5 * sc - hd * 2.5 * sc, p[HEAD] + side * 1.0 * sc - hd * 3.0 * sc, Color(0.25, 0.05, 0.05), 1.4)   # פה
 	_arm(ci, NECK, ELBOW_F, HAND_F, sk, shirt, 5.0 * sc * w)
 
 

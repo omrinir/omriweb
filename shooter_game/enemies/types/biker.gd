@@ -178,7 +178,7 @@ func draw() -> bool:
 	elif state == SKID:
 		lift = 0.06
 	var rear := Vector2(-15, -9)
-	z.draw_set_transform_matrix(Transform2D(0.0, s, 0.0, Vector2.ZERO) * Transform2D(lift, rear) * Transform2D(0.0, -rear))
+	DrawBatch.set_transform_matrix(z, Transform2D(0.0, s, 0.0, Vector2.ZERO) * Transform2D(lift, rear) * Transform2D(0.0, -rear))
 	if z.is_on_floor() and lift > -0.1:
 		Art.ground_shadow(z, Vector2.ZERO, 26.0)
 	var sk := col(z.skin)
@@ -187,21 +187,21 @@ func draw() -> bool:
 	var red := col(Color("8a2a22"))
 	# גלגלים
 	for wc in [Vector2(-15, -9), Vector2(17, -9)]:
-		z.draw_circle(wc, 9.0, Art.OUTLINE)
-		z.draw_circle(wc, 7.5, col(Color("2a2a2c")))
-		z.draw_circle(wc, 4.5, metal)
+		DrawBatch.circle(z, wc, 9.0, Art.OUTLINE)
+		DrawBatch.circle(z, wc, 7.5, col(Color("2a2a2c")))
+		DrawBatch.circle(z, wc, 4.5, metal)
 		for k in 4:
 			var a := _wheel + float(k) * PI / 4.0
-			z.draw_line(wc - Vector2.from_angle(a) * 4.0, wc + Vector2.from_angle(a) * 4.0, col(Color("3a3a3e")), 1.0)
+			DrawBatch.line(z, wc - Vector2.from_angle(a) * 4.0, wc + Vector2.from_angle(a) * 4.0, col(Color("3a3a3e")), 1.0)
 	# שלדה, מיכל, מושב, מזלג קדמי, אגזוז
-	z.draw_line(Vector2(-15, -9), Vector2(-2, -18), metal, 3.0)
-	z.draw_line(Vector2(-2, -18), Vector2(12, -20), metal, 3.0)
-	z.draw_line(Vector2(12, -24), Vector2(17, -9), col(Color("8a8e94")), 2.4)   # מזלג
+	DrawBatch.line(z, Vector2(-15, -9), Vector2(-2, -18), metal, 3.0)
+	DrawBatch.line(z, Vector2(-2, -18), Vector2(12, -20), metal, 3.0)
+	DrawBatch.line(z, Vector2(12, -24), Vector2(17, -9), col(Color("8a8e94")), 2.4)   # מזלג
 	Art.fill(z, PackedVector2Array([Vector2(-1, -19), Vector2(13, -22), Vector2(12, -15), Vector2(0, -14)]), red, Art.OUTLINE, 1.0)   # מיכל
 	Art.fill(z, PackedVector2Array([Vector2(-14, -19), Vector2(-1, -19), Vector2(-2, -16), Vector2(-14, -16)]), col(Color("1e1a18")), Art.OUTLINE, 0.8)   # מושב
-	z.draw_line(Vector2(-6, -12), Vector2(-22, -14), col(Color("9a9aa0")), 2.4)   # אגזוז
-	z.draw_line(Vector2(12, -24), Vector2(9, -28), col(Color("2a2a2c")), 2.0)   # כידון
-	z.draw_circle(Vector2(18, -21), 2.4, col(Color("d8d0a0")))   # פנס
+	DrawBatch.line(z, Vector2(-6, -12), Vector2(-22, -14), col(Color("9a9aa0")), 2.4)   # אגזוז
+	DrawBatch.line(z, Vector2(12, -24), Vector2(9, -28), col(Color("2a2a2c")), 2.0)   # כידון
+	DrawBatch.circle(z, Vector2(18, -21), 2.4, col(Color("d8d0a0")))   # פנס
 	if not z.dead:
 		Art.glow(z, Vector2(22, -21), 7.0 if state == CHARGE else 4.0, Color(1.0, 0.95, 0.7, 0.5))
 	# רוכב: רגליים על הדוושות, גוף רכון קדימה, ידיים לכידון
@@ -210,11 +210,11 @@ func draw() -> bool:
 	var head := sh + Vector2(5, -6)
 	z._leg(hip, Vector2(2, -12), col(z.pants), sk, col(z.shoe))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(5, 0), hip + Vector2(5, 1), hip + Vector2(-5, 1)]), jacket, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-3, 1), hip + Vector2(0, -1), col(Color("6a6a70")), 1.0)   # רוכסן
+	DrawBatch.line(z, sh + Vector2(-3, 1), hip + Vector2(0, -1), col(Color("6a6a70")), 1.0)   # רוכסן
 	Art.oval_shaded(z, head, 5.2, 5.6, sk, 0.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, -1), head + Vector2(-4, -6), head + Vector2(4, -6.5), head + Vector2(6, -2)]), red, Art.OUTLINE, 0.9)   # בנדנה
-	z.draw_line(head + Vector2(-5, -2), head + Vector2(-9 - sin(z._time * 14.0) * 2.0, 1), red, 1.4)   # קצה מתנופף
-	z.draw_rect(Rect2(head + Vector2(0.5, -2.5), Vector2(5.5, 2.0)), col(Color("101014")))   # משקפיים
+	DrawBatch.line(z, head + Vector2(-5, -2), head + Vector2(-9 - sin(z._time * 14.0) * 2.0, 1), red, 1.4)   # קצה מתנופף
+	DrawBatch.rect(z, Rect2(head + Vector2(0.5, -2.5), Vector2(5.5, 2.0)), col(Color("101014")))   # משקפיים
 	z._arm(sh + Vector2(2, 1), Vector2(10, -27), sk, jacket)
 	end_draw()
 	return true
@@ -236,7 +236,7 @@ func _draw_foot() -> bool:   # בלי אופנוע: זומבי עם מעיל ע�
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, -1), head + Vector2(-4, -6), head + Vector2(4, -6.5), head + Vector2(6, -2)]), col(Color("8a2a22")), Art.OUTLINE, 0.9)
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -1.0), 0.9, Color(1.0, 0.5, 0.2))
+		DrawBatch.circle(z, head + Vector2(3.5, -1.0), 0.9, Color(1.0, 0.5, 0.2))
 	z._arm(sh + Vector2(3, 1), sh + Vector2(9.0 + sin(p) * 3.0, 13.0), sk, jacket)
 	end_draw()
 	return true
@@ -276,9 +276,9 @@ class Wreck extends Node2D:
 
 	func _draw() -> void:
 		var a := clampf(life, 0.0, 1.0)
-		draw_set_transform(Vector2.ZERO, _rot * 0.6, Vector2(face * sc, sc))
+		DrawBatch.set_transform(self, Vector2.ZERO, _rot * 0.6, Vector2(face * sc, sc))
 		for wc in [Vector2(-15, -9), Vector2(17, -9)]:
-			draw_circle(wc, 8.5, Color(0.1, 0.1, 0.1, a))
-			draw_circle(wc, 4.0, Color(0.4, 0.4, 0.42, a))
-		draw_line(Vector2(-15, -9), Vector2(12, -20), Color(0.35, 0.35, 0.38, a), 3.0)
-		draw_colored_polygon(PackedVector2Array([Vector2(-1, -19), Vector2(13, -22), Vector2(12, -15), Vector2(0, -14)]), Color(0.45, 0.15, 0.12, a))
+			DrawBatch.circle(self, wc, 8.5, Color(0.1, 0.1, 0.1, a))
+			DrawBatch.circle(self, wc, 4.0, Color(0.4, 0.4, 0.42, a))
+		DrawBatch.line(self, Vector2(-15, -9), Vector2(12, -20), Color(0.35, 0.35, 0.38, a), 3.0)
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-1, -19), Vector2(13, -22), Vector2(12, -15), Vector2(0, -14)]), Color(0.45, 0.15, 0.12, a))

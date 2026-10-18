@@ -88,10 +88,14 @@ func _draw_intro(vp: Vector2) -> void:
 	_text(Vector2(0, y - 34), "STAGE %d  ·  %s" % [Game.level, Game.level_name(Game.level).to_upper()], 18, Color(1, 1, 1, 0.7 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 	var f := ThemeDB.fallback_font
 	var title: String = t[0]
-	var fs := int(54.0 * spread)
+	# גודל פונט קבוע + סקייל: גודל פונט שמשתנה בכל פריים מרסטר אותיות מחדש (גמגום)
+	var fs := 64
+	var k := 54.0 * spread / float(fs)
 	var w := f.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	draw_string_outline(f, Vector2((vp.x - w) * 0.5, y + 22), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 6, Color(0, 0, 0, 0.8 * a))
-	draw_string(f, Vector2((vp.x - w) * 0.5, y + 22), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.85, 0.12, 0.1, a))
+	draw_set_transform(Vector2(vp.x * 0.5, y + 22), 0.0, Vector2(k, k))
+	draw_string_outline(f, Vector2(-w * 0.5, 0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 7, Color(0, 0, 0, 0.8 * a))
+	draw_string(f, Vector2(-w * 0.5, 0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.85, 0.12, 0.1, a))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_text(Vector2(0, y + 52), t[1], 18, Color(0.9, 0.85, 0.8, 0.85 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 
 

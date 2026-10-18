@@ -220,8 +220,8 @@ class ReviveAura extends Node2D:
 			var rise := fposmod(_t * 0.6 + float(q) * 0.31, 1.0)
 			var p := c + Vector2(cos(a) * 16.0 * sc, sin(a) * 6.0 * sc + (0.5 - rise) * 44.0 * sc)
 			var al := sin(rise * PI)
-			draw_circle(p, 2.6 * sc, Color(0.35, 0.65, 1.0, 0.35 * al))
-			draw_circle(p, 1.3 * sc, Color(0.75, 0.9, 1.0, 0.9 * al))
+			DrawBatch.circle(self, p, 2.6 * sc, Color(0.35, 0.65, 1.0, 0.35 * al))
+			DrawBatch.circle(self, p, 1.3 * sc, Color(0.75, 0.9, 1.0, 0.9 * al))
 
 
 # ============================================================
@@ -245,25 +245,25 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(robe, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-9, -2), sh + Vector2(7, -1), hip + Vector2(9, 10), hip + Vector2(-11, 10)]), robe, 0.12, 0.4)
 	for q in 4:   # רקמה בפונצ'ו
-		z.draw_line(sh + Vector2(-6.0 + float(q) * 4.0, 6), hip + Vector2(-7.0 + float(q) * 5.0, 8), col(Color(0.4, 0.6, 1.0, 0.45)), 1.0)
+		DrawBatch.line(z, sh + Vector2(-6.0 + float(q) * 4.0, 6), hip + Vector2(-7.0 + float(q) * 5.0, 8), col(Color(0.4, 0.6, 1.0, 0.45)), 1.0)
 	Art.oval_shaded(z, head, 5.0, 5.6, sk, 0.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, 4), head + Vector2(-5, -5), head + Vector2(1, -8), head + Vector2(6, -5), head + Vector2(2, -3), head + Vector2(-1, 5)]), col(Art.shade(z.shirt, 0.2)), Art.OUTLINE, 0.9)   # ברדס
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.2, Color(0.5, 0.8, 1.0))
-		z.draw_line(sh + Vector2(2, 2), sh + Vector2(6, 9), Color(0.4, 0.7, 1.0, 0.7), 1.0)   # ורידים כחולים
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.2, Color(0.5, 0.8, 1.0))
+		DrawBatch.line(z, sh + Vector2(2, 2), sh + Vector2(6, 9), Color(0.4, 0.7, 1.0, 0.7), 1.0)   # ורידים כחולים
 	# המקל עם הגביש
 	var hf := sh + Vector2(11, 6) if not kneel else sh + Vector2(12, 0)
 	var top := hf + Vector2(4, -26) if not kneel else hf + Vector2(10, -22)
-	z.draw_line(hf + Vector2(-2, 16), top, col(Color("5a4030")), 2.2)
+	DrawBatch.line(z, hf + Vector2(-2, 16), top, col(Color("5a4030")), 2.2)
 	z._arm(sh + Vector2(3, 1), hf, sk, robe)
 	var glow := 0.6 + 0.4 * sin(z._time * (12.0 if kneel else 3.0))
-	z.draw_colored_polygon(PackedVector2Array([top + Vector2(0, -7), top + Vector2(3.5, 0), top + Vector2(0, 4), top + Vector2(-3.5, 0)]), Color(0.5, 0.8, 1.0, 0.9))
+	DrawBatch.colored_polygon(z, PackedVector2Array([top + Vector2(0, -7), top + Vector2(3.5, 0), top + Vector2(0, 4), top + Vector2(-3.5, 0)]), Color(0.5, 0.8, 1.0, 0.9))
 	Art.glow(z, top, 10.0 + glow * 6.0, Color(0.4, 0.7, 1.0, 0.25 * glow))
 	end_draw()
 	if kneel and target != null and is_instance_valid(target):   # קרן כחולה לגופה (בקואורדינטות העולם)
 		var from: Vector2 = Vector2(top.x * z._dir * z.wf * z.sc, top.y * z.sc)
 		var to: Vector2 = target.global_position - z.global_position + Vector2(0, -6)
-		z.draw_line(from, to, Color(0.4, 0.7, 1.0, 0.5 * glow), 3.0)
-		z.draw_line(from, to, Color(0.85, 0.95, 1.0, 0.8 * glow), 1.0)
+		DrawBatch.line(z, from, to, Color(0.4, 0.7, 1.0, 0.5 * glow), 3.0)
+		DrawBatch.line(z, from, to, Color(0.85, 0.95, 1.0, 0.8 * glow), 1.0)
 		Art.glow(z, to, 22.0, Color(0.4, 0.7, 1.0, 0.3 * glow))
 	return true

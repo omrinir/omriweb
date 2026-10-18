@@ -416,10 +416,10 @@ class Wave extends Node2D:
 		var top := -S.WATER_Y - hgt
 		var back := -dir * W
 		var pts := PackedVector2Array([Vector2(back * 1.6, -S.WATER_Y), Vector2(back * 0.6, top + hgt * 0.4), Vector2(0, top), Vector2(dir * W * 0.4, top + 6.0), Vector2(dir * W * 0.3, top + hgt * 0.5), Vector2(dir * W * 0.6, -S.WATER_Y)])
-		draw_colored_polygon(pts, Color(0.2, 0.45, 0.55, 0.85))
-		draw_polyline(PackedVector2Array([Vector2(back * 0.6, top + hgt * 0.4), Vector2(0, top), Vector2(dir * W * 0.4, top + 6.0)]), Color(0.9, 0.97, 1.0, 0.9), 3.0)   # קצף
+		DrawBatch.colored_polygon(self, pts, Color(0.2, 0.45, 0.55, 0.85))
+		DrawBatch.polyline(self, PackedVector2Array([Vector2(back * 0.6, top + hgt * 0.4), Vector2(0, top), Vector2(dir * W * 0.4, top + 6.0)]), Color(0.9, 0.97, 1.0, 0.9), 3.0)   # קצף
 		for q in 4:
-			draw_circle(Vector2(dir * W * 0.3 + float(q) * dir * 5.0, top + 4.0 + float(q) * 4.0), 3.0 - float(q) * 0.5, Color(1, 1, 1, 0.8))
+			DrawBatch.circle(self, Vector2(dir * W * 0.3 + float(q) * dir * 5.0, top + 4.0 + float(q) * 4.0), 3.0 - float(q) * 0.5, Color(1, 1, 1, 0.8))
 
 
 # ============================================================
@@ -450,41 +450,41 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(shirt, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(8, 3), hip + Vector2(-8, 3)]), shirt, 0.12, 0.4)
 	for q in 3:   # קרעים
-		z.draw_line(hip + Vector2(-6.0 + float(q) * 5.0, 3), hip + Vector2(-5.0 + float(q) * 5.0, 7), shirt, 1.6)
+		DrawBatch.line(z, hip + Vector2(-6.0 + float(q) * 5.0, 3), hip + Vector2(-5.0 + float(q) * 5.0, 7), shirt, 1.6)
 	Art.oval_shaded(z, head, 6.0, 6.4, sk, 0.0)   # ראש נפוח
 	for q in 5:   # אצות בשיער
 		var a := -PI * 0.5 + float(q - 2) * 0.45
 		var b := head + Vector2.from_angle(a) * 5.5
-		z.draw_line(b, b + Vector2(-2.0 + float(q) * 0.5, 8.0 + float(q % 2) * 4.0), col(Color("3a6a2a")), 1.4)
+		DrawBatch.line(z, b, b + Vector2(-2.0 + float(q) * 0.5, 8.0 + float(q % 2) * 4.0), col(Color("3a6a2a")), 1.4)
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.4, Color(0.85, 0.95, 0.9))
-		z.draw_circle(head + Vector2(3.0, -0.5), 0.6, Color(0.1, 0.2, 0.2))
-		z.draw_colored_polygon(Art.ellipse(head + Vector2(3.5, 3.0), 1.8, 1.3, 0.0, 8), col(Color("1a2a2a")))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.4, Color(0.85, 0.95, 0.9))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 0.6, Color(0.1, 0.2, 0.2))
+		DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(3.5, 3.0), 1.8, 1.3, 0.0, 8), col(Color("1a2a2a")))
 		for q in 2:   # טיפות
 			var dy := fposmod(z._time * 30.0 + float(q) * 9.0, 18.0)
-			z.draw_circle(hb + Vector2(0, dy), 0.9, Color(0.7, 0.9, 1.0, 0.8))
+			DrawBatch.circle(z, hb + Vector2(0, dy), 0.9, Color(0.7, 0.9, 1.0, 0.8))
 	z._arm(sh + Vector2(3, 1), hf, sk, shirt)
 	end_draw()
 	return true
 
 
 func _draw_under() -> bool:
-	z.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	DrawBatch.set_transform(z, Vector2.ZERO, 0.0, Vector2.ONE)
 	var S := preload("res://effects/s31_decor.gd")
 	var sc: float = z.sc
 	var surf := -S.WATER_Y
-	z.draw_colored_polygon(Art.ellipse(Vector2(0, -8.0 * sc), 12.0 * sc, 6.0 * sc, 0.0, 10), Color(0.05, 0.12, 0.14, 0.35))   # צל מתחת למים
+	DrawBatch.colored_polygon(z, Art.ellipse(Vector2(0, -8.0 * sc), 12.0 * sc, 6.0 * sc, 0.0, 10), Color(0.05, 0.12, 0.14, 0.35))   # צל מתחת למים
 	var spd := absf(z.velocity.x)
 	if spd > 20.0:   # אדווה בצורת V
 		var back := -signf(z.velocity.x) * 22.0 * sc
-		z.draw_line(Vector2(4.0 * sc * signf(z.velocity.x), surf), Vector2(back, surf - 3.0), Color(0.9, 0.97, 1.0, 0.55), 1.5)
-		z.draw_line(Vector2(4.0 * sc * signf(z.velocity.x), surf), Vector2(back, surf + 3.0), Color(0.9, 0.97, 1.0, 0.4), 1.5)
+		DrawBatch.line(z, Vector2(4.0 * sc * signf(z.velocity.x), surf), Vector2(back, surf - 3.0), Color(0.9, 0.97, 1.0, 0.55), 1.5)
+		DrawBatch.line(z, Vector2(4.0 * sc * signf(z.velocity.x), surf), Vector2(back, surf + 3.0), Color(0.9, 0.97, 1.0, 0.4), 1.5)
 	var n := 4 if state == SWIM else 9
 	for q in n:   # בועות
 		var t: float = z._time * (1.6 if state == SWIM else 3.0) + float(q) * 0.37
 		var k := fposmod(t, 1.0)
 		var bx := sin(float(q) * 2.1 + z._time) * 5.0 * sc
-		z.draw_arc(Vector2(bx, lerpf(-6.0, surf - 2.0, k)), (1.2 + float(q % 3) * 0.6) * sc, 0.0, TAU, 8, Color(0.85, 0.95, 1.0, 0.7 * (1.0 - k * 0.5)), 1.0)
+		DrawBatch.arc(z, Vector2(bx, lerpf(-6.0, surf - 2.0, k)), (1.2 + float(q % 3) * 0.6) * sc, 0.0, TAU, 8, Color(0.85, 0.95, 1.0, 0.7 * (1.0 - k * 0.5)), 1.0)
 	if state == RISE:   # אזהרה: מים רותחים
-		z.draw_colored_polygon(Art.ellipse(Vector2(0, surf), 16.0 * sc, 3.0, 0.0, 12), Color(1, 1, 1, 0.45 + 0.2 * sin(z._time * 30.0)))
+		DrawBatch.colored_polygon(z, Art.ellipse(Vector2(0, surf), 16.0 * sc, 3.0, 0.0, 12), Color(1, 1, 1, 0.45 + 0.2 * sin(z._time * 30.0)))
 	return true

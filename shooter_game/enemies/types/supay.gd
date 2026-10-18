@@ -270,10 +270,10 @@ class Rocket extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_rect(Rect2(-8, -2.5, 14, 5), Color("c02a2a") if not blue else Color("2a6ac0"))
-		draw_colored_polygon(PackedVector2Array([Vector2(6, -3), Vector2(11, 0), Vector2(6, 3)]), Color("e0c040"))
-		draw_line(Vector2(-8, 0), Vector2(-20, 0), Color("8a6a3a"), 1.2)
-		draw_circle(Vector2(-9, 0), 3.0 + sin(_t * 40.0), Color(1.0, 0.7, 0.2, 0.9) if not blue else Color(0.4, 0.7, 1.0, 0.9))
+		DrawBatch.rect(self, Rect2(-8, -2.5, 14, 5), Color("c02a2a") if not blue else Color("2a6ac0"))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(6, -3), Vector2(11, 0), Vector2(6, 3)]), Color("e0c040"))
+		DrawBatch.line(self, Vector2(-8, 0), Vector2(-20, 0), Color("8a6a3a"), 1.2)
+		DrawBatch.circle(self, Vector2(-9, 0), 3.0 + sin(_t * 40.0), Color(1.0, 0.7, 0.2, 0.9) if not blue else Color(0.4, 0.7, 1.0, 0.9))
 
 
 # ============================================================
@@ -294,12 +294,12 @@ func draw() -> bool:
 	# גלימה מאחור
 	var flap := sin(z._time * 4.0) * 2.0
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -2), sh + Vector2(2, -2), hip + Vector2(-4, 22), hip + Vector2(-20 + flap, 20), hip + Vector2(-16, 4)]), Art.shade(cape, 0.3), 0.1, 0.3)
-	z.draw_polyline(PackedVector2Array([hip + Vector2(-14, 6), hip + Vector2(-10, 12), hip + Vector2(-15, 16), hip + Vector2(-9, 18)]), gold, 1.4)   # דרקון זהב
+	DrawBatch.polyline(z, PackedVector2Array([hip + Vector2(-14, 6), hip + Vector2(-10, 12), hip + Vector2(-15, 16), hip + Vector2(-9, 18)]), gold, 1.4)   # דרקון זהב
 	if raged and not z.dead:   # להבות גופרית כחולות
 		for q in 6:
 			var fp := hip + Vector2(-18.0 + float(q) * 4.0, 18.0 - float(q % 2) * 4.0)
 			var fh := 8.0 + sin(z._time * 14.0 + float(q)) * 3.0
-			z.draw_colored_polygon(PackedVector2Array([fp + Vector2(-2.5, 0), fp + Vector2(0, -fh), fp + Vector2(2.5, 0)]), Color(0.4, 0.7, 1.0, 0.8))
+			DrawBatch.colored_polygon(z, PackedVector2Array([fp + Vector2(-2.5, 0), fp + Vector2(0, -fh), fp + Vector2(2.5, 0)]), Color(0.4, 0.7, 1.0, 0.8))
 	z._leg(hip + Vector2(-3, 0), f[1], col(Art.shade(z.pants, 0.25)), sk, col(z.shoe))
 	z._leg(hip + Vector2(3, 0), f[0], col(z.pants), sk, col(z.shoe))
 	var hb := sh + Vector2(-6.0 - sin(p) * 2.0, 16.0)
@@ -307,7 +307,7 @@ func draw() -> bool:
 	# שריון חזה
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(9, 0), hip + Vector2(8, 3), hip + Vector2(-8, 3)]), cape, 0.15, 0.4)
 	Art.fill(z, PackedVector2Array([sh + Vector2(-7, 1), sh + Vector2(7, 1), sh + Vector2(5, 12), sh + Vector2(-5, 12)]), gold, Art.OUTLINE, 1.0)
-	z.draw_circle(sh + Vector2(0, 6), 2.2, col(Color("2a8a3a")))
+	DrawBatch.circle(z, sh + Vector2(0, 6), 2.2, col(Color("2a8a3a")))
 	# מסכה + קרניים + כתר
 	var m := head
 	Art.fill_shaded(z, PackedVector2Array([m + Vector2(-8, 7), m + Vector2(-9, -4), m + Vector2(-4, -9), m + Vector2(4, -9), m + Vector2(9, -4), m + Vector2(9, 7), m + Vector2(3, 11), m + Vector2(-3, 11)]), col(Color("8a1018")), 0.15, 0.35, Art.OUTLINE, 1.3)
@@ -315,31 +315,31 @@ func draw() -> bool:
 		for sgn in [-1.0, 1.0]:
 			var o := float(k) * 5.0
 			Art.fill(z, PackedVector2Array([m + Vector2(sgn * (3.0 + o), -8), m + Vector2(sgn * (10.0 + o * 1.5), -18 - o), m + Vector2(sgn * (8.0 + o), -28 - o * 1.6), m + Vector2(sgn * (13.0 + o * 1.5), -31 - o * 1.4), m + Vector2(sgn * (14.0 + o * 1.4), -19 - o), m + Vector2(sgn * (6.0 + o), -7)]), gold if k == 0 else col(Color("c0a060")), Art.OUTLINE, 1.0)
-	z.draw_rect(Rect2(m + Vector2(-6, -12), Vector2(12, 4)), gold)   # כתר
+	DrawBatch.rect(z, Rect2(m + Vector2(-6, -12), Vector2(12, 4)), gold)   # כתר
 	for q in 3:
-		z.draw_colored_polygon(PackedVector2Array([m + Vector2(-6.0 + float(q) * 5.0, -12), m + Vector2(-4.0 + float(q) * 5.0, -16), m + Vector2(-2.0 + float(q) * 5.0, -12)]), gold)
+		DrawBatch.colored_polygon(z, PackedVector2Array([m + Vector2(-6.0 + float(q) * 5.0, -12), m + Vector2(-4.0 + float(q) * 5.0, -16), m + Vector2(-2.0 + float(q) * 5.0, -12)]), gold)
 	if not z.dead:
 		var ec := Color(1.0, 0.25, 0.1) if not raged else Color(0.5, 0.8, 1.0)
-		z.draw_circle(m + Vector2(-3, -2), 3.4, Color("f4f0e0"))
-		z.draw_circle(m + Vector2(5, -2), 3.4, Color("f4f0e0"))
-		z.draw_circle(m + Vector2(-2.5, -2), 1.7, ec)
-		z.draw_circle(m + Vector2(5.5, -2), 1.7, ec)
-		z.draw_line(m + Vector2(-5, 6), m + Vector2(7, 6), col(Color("1a0505")), 2.2)
+		DrawBatch.circle(z, m + Vector2(-3, -2), 3.4, Color("f4f0e0"))
+		DrawBatch.circle(z, m + Vector2(5, -2), 3.4, Color("f4f0e0"))
+		DrawBatch.circle(z, m + Vector2(-2.5, -2), 1.7, ec)
+		DrawBatch.circle(z, m + Vector2(5.5, -2), 1.7, ec)
+		DrawBatch.line(z, m + Vector2(-5, 6), m + Vector2(7, 6), col(Color("1a0505")), 2.2)
 		for q in 4:
-			z.draw_colored_polygon(PackedVector2Array([m + Vector2(-5.0 + float(q) * 3.5, 6), m + Vector2(-4.0 + float(q) * 3.5, 10), m + Vector2(-3.0 + float(q) * 3.5, 6)]), Color("f4f0e0"))
+			DrawBatch.colored_polygon(z, PackedVector2Array([m + Vector2(-5.0 + float(q) * 3.5, 6), m + Vector2(-4.0 + float(q) * 3.5, 10), m + Vector2(-3.0 + float(q) * 3.5, 6)]), Color("f4f0e0"))
 	# יד עם קלשון
 	var hf := sh + Vector2(10.0, 8.0) if not winding else sh + Vector2(6, -16)
 	z._arm(sh + Vector2(3, 1), hf, sk, cape)
 	var shaft_top := hf + Vector2(2, -26) if not winding else hf + Vector2(10, -20)
 	var shaft_bot := hf + Vector2(-2, 22) if not winding else hf + Vector2(-8, 20)
-	z.draw_line(shaft_bot, shaft_top, col(Color("4a3a2a")), 2.4)
+	DrawBatch.line(z, shaft_bot, shaft_top, col(Color("4a3a2a")), 2.4)
 	var tdir := (shaft_top - shaft_bot).normalized()
 	var perp := Vector2(-tdir.y, tdir.x)
-	z.draw_line(shaft_top - perp * 5.0, shaft_top + perp * 5.0, gold, 2.0)
+	DrawBatch.line(z, shaft_top - perp * 5.0, shaft_top + perp * 5.0, gold, 2.0)
 	for q in 3:
 		var base := shaft_top + perp * (float(q) - 1.0) * 5.0
-		z.draw_line(base, base + tdir * 9.0, gold, 2.0)
+		DrawBatch.line(z, base, base + tdir * 9.0, gold, 2.0)
 	if winding:
-		z.draw_circle(shaft_top + tdir * 10.0, 3.0 + sin(z._time * 30.0), Color(1.0, 0.6, 0.2, 0.7))
+		DrawBatch.circle(z, shaft_top + tdir * 10.0, 3.0 + sin(z._time * 30.0), Color(1.0, 0.6, 0.2, 0.7))
 	end_draw()
 	return true

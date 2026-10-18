@@ -334,24 +334,24 @@ class Shot extends Node2D:
 	func _draw() -> void:
 		match kind:
 			"nail", "bolt":
-				draw_line(Vector2(-r * 1.6, 0), Vector2(r * 0.6, 0), Color(col, 0.5), r * 0.6)
-				draw_line(Vector2(-r, 0), Vector2(r, 0), col.lightened(0.4), r * 0.35)
+				DrawBatch.line(self, Vector2(-r * 1.6, 0), Vector2(r * 0.6, 0), Color(col, 0.5), r * 0.6)
+				DrawBatch.line(self, Vector2(-r, 0), Vector2(r, 0), col.lightened(0.4), r * 0.35)
 			"stone":   # אבן מקלע
-				draw_line(Vector2(-r * 3.0, 0), Vector2(-r, 0), Color(1, 1, 1, 0.22), r * 0.7)
-				draw_circle(Vector2.ZERO, r + 1.2, Color(0.1, 0.08, 0.06))
-				draw_circle(Vector2.ZERO, r, Color("7a7068"))
-				draw_circle(Vector2(-r * 0.3, -r * 0.3), r * 0.35, Color("9a9088"))
+				DrawBatch.line(self, Vector2(-r * 3.0, 0), Vector2(-r, 0), Color(1, 1, 1, 0.22), r * 0.7)
+				DrawBatch.circle(self, Vector2.ZERO, r + 1.2, Color(0.1, 0.08, 0.06))
+				DrawBatch.circle(self, Vector2.ZERO, r, Color("7a7068"))
+				DrawBatch.circle(self, Vector2(-r * 0.3, -r * 0.3), r * 0.35, Color("9a9088"))
 			"ball":
-				draw_circle(Vector2.ZERO, r + 1.5, Color(0.1, 0.1, 0.1))
-				draw_circle(Vector2.ZERO, r, Color(0.95, 0.95, 0.95))
+				DrawBatch.circle(self, Vector2.ZERO, r + 1.5, Color(0.1, 0.1, 0.1))
+				DrawBatch.circle(self, Vector2.ZERO, r, Color(0.95, 0.95, 0.95))
 				for q in 5:
-					draw_circle(Vector2.from_angle(_t * 20.0 + float(q) * TAU / 5.0) * r * 0.55, r * 0.25, Color(0.1, 0.1, 0.1))
-				draw_line(Vector2(-r * 3.0, 0), Vector2(-r, 0), Color(col, 0.6), r * 0.8)   # זנב אש
+					DrawBatch.circle(self, Vector2.from_angle(_t * 20.0 + float(q) * TAU / 5.0) * r * 0.55, r * 0.25, Color(0.1, 0.1, 0.1))
+				DrawBatch.line(self, Vector2(-r * 3.0, 0), Vector2(-r, 0), Color(col, 0.6), r * 0.8)   # זנב אש
 			_:   # כדור אנרגיה
-				draw_circle(Vector2.ZERO, r * 1.9, Color(col, 0.18))
-				draw_circle(Vector2.ZERO, r, col)
-				draw_circle(Vector2.ZERO, r * 0.5, col.lightened(0.6))
-				draw_line(Vector2(-r * 3.0, 0), Vector2(-r, 0), Color(col, 0.4), r * 0.9)
+				DrawBatch.circle(self, Vector2.ZERO, r * 1.9, Color(col, 0.18))
+				DrawBatch.circle(self, Vector2.ZERO, r, col)
+				DrawBatch.circle(self, Vector2.ZERO, r * 0.5, col.lightened(0.6))
+				DrawBatch.line(self, Vector2(-r * 3.0, 0), Vector2(-r, 0), Color(col, 0.4), r * 0.9)
 
 
 class Lob extends Node2D:
@@ -413,36 +413,36 @@ class Lob extends Node2D:
 				var pts := PackedVector2Array()
 				for q in 6:
 					pts.append(Vector2.from_angle(float(q) * TAU / 6.0) * r * (0.8 + 0.3 * float(q % 2)))
-				draw_colored_polygon(pts, Color(0.75, 0.9, 1.0, 0.95))
-				draw_polyline(pts + PackedVector2Array([pts[0]]), Color(1, 1, 1), 1.2)
+				DrawBatch.colored_polygon(self, pts, Color(0.75, 0.9, 1.0, 0.95))
+				DrawBatch.polyline(self, pts + PackedVector2Array([pts[0]]), Color(1, 1, 1), 1.2)
 			"rock":
-				draw_circle(Vector2.ZERO, r + 1.5, Color(0.1, 0.08, 0.06))
-				draw_circle(Vector2.ZERO, r, Color("6a5e52"))
-				draw_circle(Vector2(-r * 0.3, -r * 0.3), r * 0.35, Color("8a7e70"))
+				DrawBatch.circle(self, Vector2.ZERO, r + 1.5, Color(0.1, 0.08, 0.06))
+				DrawBatch.circle(self, Vector2.ZERO, r, Color("6a5e52"))
+				DrawBatch.circle(self, Vector2(-r * 0.3, -r * 0.3), r * 0.35, Color("8a7e70"))
 			"canister":
-				draw_rect(Rect2(-r * 0.6, -r, r * 1.2, r * 2.0), col)
-				draw_rect(Rect2(-r * 0.6, -r, r * 1.2, r * 0.4), Color(0.2, 0.2, 0.2))
-				draw_circle(Vector2(0, -r * 1.2), 2.5 + sin(_t * 30.0), Color(1, 0.7, 0.2))
+				DrawBatch.rect(self, Rect2(-r * 0.6, -r, r * 1.2, r * 2.0), col)
+				DrawBatch.rect(self, Rect2(-r * 0.6, -r, r * 1.2, r * 0.4), Color(0.2, 0.2, 0.2))
+				DrawBatch.circle(self, Vector2(0, -r * 1.2), 2.5 + sin(_t * 30.0), Color(1, 0.7, 0.2))
 			"shell":   # פגז טנק / מרגמה
 				var d := velocity.normalized().rotated(-rotation)
 				var nn := d.orthogonal()
-				draw_colored_polygon(PackedVector2Array([-d * r * 1.4 + nn * r * 0.5, d * r * 0.6 + nn * r * 0.5, d * r * 1.4, d * r * 0.6 - nn * r * 0.5, -d * r * 1.4 - nn * r * 0.5]), Color("3a3a30"))
-				draw_line(-d * r * 0.6 + nn * r * 0.5, -d * r * 0.6 - nn * r * 0.5, Color("c8a040"), 1.5)
-				draw_line(-d * r * 1.4, -d * r * 3.5, Color(1.0, 0.7, 0.3, 0.5), r * 0.6)
+				DrawBatch.colored_polygon(self, PackedVector2Array([-d * r * 1.4 + nn * r * 0.5, d * r * 0.6 + nn * r * 0.5, d * r * 1.4, d * r * 0.6 - nn * r * 0.5, -d * r * 1.4 - nn * r * 0.5]), Color("3a3a30"))
+				DrawBatch.line(self, -d * r * 0.6 + nn * r * 0.5, -d * r * 0.6 - nn * r * 0.5, Color("c8a040"), 1.5)
+				DrawBatch.line(self, -d * r * 1.4, -d * r * 3.5, Color(1.0, 0.7, 0.3, 0.5), r * 0.6)
 			"football":   # כדור (השוער)
-				draw_circle(Vector2.ZERO, r + 1.2, Color(0.1, 0.1, 0.1))
-				draw_circle(Vector2.ZERO, r, Color(0.97, 0.97, 0.97))
+				DrawBatch.circle(self, Vector2.ZERO, r + 1.2, Color(0.1, 0.1, 0.1))
+				DrawBatch.circle(self, Vector2.ZERO, r, Color(0.97, 0.97, 0.97))
 				for q in 5:
-					draw_circle(Vector2.from_angle(float(q) * TAU / 5.0) * r * 0.55, r * 0.24, Color(0.1, 0.1, 0.1))
+					DrawBatch.circle(self, Vector2.from_angle(float(q) * TAU / 5.0) * r * 0.55, r * 0.24, Color(0.1, 0.1, 0.1))
 			"rocket":   # רוג'או (זיקוק) - מקל עם ראש אדום וזנב ניצוצות
 				var d := velocity.normalized().rotated(-rotation)
-				draw_line(-d * r * 1.6, d * r * 1.2, Color("c8a060"), 2.0)
-				draw_line(d * r * 0.4, d * r * 1.4, Color("d03020"), r * 0.6)
+				DrawBatch.line(self, -d * r * 1.6, d * r * 1.2, Color("c8a060"), 2.0)
+				DrawBatch.line(self, d * r * 0.4, d * r * 1.4, Color("d03020"), r * 0.6)
 				for q in 4:
-					draw_circle(-d * (r * 1.6 + float(q) * 4.0) + Vector2(randf_range(-2, 2), randf_range(-2, 2)), 2.0 - float(q) * 0.4, Color(1.0, 0.8 - float(q) * 0.15, 0.3))
+					DrawBatch.circle(self, -d * (r * 1.6 + float(q) * 4.0) + Vector2(randf_range(-2, 2), randf_range(-2, 2)), 2.0 - float(q) * 0.4, Color(1.0, 0.8 - float(q) * 0.15, 0.3))
 			"beam":
-				draw_rect(Rect2(-r * 2.5, -r * 0.5, r * 5.0, r), Color("8a3a2a"))
-				draw_line(Vector2(-r * 2.5, 0), Vector2(r * 2.5, 0), Color(0.3, 0.1, 0.1), 1.5)
+				DrawBatch.rect(self, Rect2(-r * 2.5, -r * 0.5, r * 5.0, r), Color("8a3a2a"))
+				DrawBatch.line(self, Vector2(-r * 2.5, 0), Vector2(r * 2.5, 0), Color(0.3, 0.1, 0.1), 1.5)
 			_:
-				draw_circle(Vector2.ZERO, r * 1.8, Color(col, 0.2))
-				draw_circle(Vector2.ZERO, r, col)
+				DrawBatch.circle(self, Vector2.ZERO, r * 1.8, Color(col, 0.2))
+				DrawBatch.circle(self, Vector2.ZERO, r, col)

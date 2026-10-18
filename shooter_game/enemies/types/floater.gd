@@ -351,11 +351,11 @@ class GasCloud extends Node2D:
 			var rr := r * (0.15 + 0.6 * fposmod(float(q) * 0.37, 1.0)) * grow
 			var p := Vector2(cos(ang + _t * 0.4), sin(ang + _t * 0.3) * 0.55) * rr + Vector2(0, -_t * 4.0)
 			var sz := r * (0.32 + 0.12 * float(q % 3)) * grow
-			draw_circle(p, sz, Color(0.55, 0.68, 0.22, 0.2 * a))
-			draw_circle(p + Vector2(sz * 0.2, -sz * 0.2), sz * 0.55, Color(0.72, 0.8, 0.3, 0.16 * a))
+			DrawBatch.circle(self, p, sz, Color(0.55, 0.68, 0.22, 0.2 * a))
+			DrawBatch.circle(self, p + Vector2(sz * 0.2, -sz * 0.2), sz * 0.55, Color(0.72, 0.8, 0.3, 0.16 * a))
 		for q in 6:   # בועות קטנות
 			var bp := Vector2(sin(float(q) * 3.1 + _t * 1.5) * r * 0.6, -fposmod(_t * 30.0 + float(q) * 17.0, r * 0.9) + r * 0.3)
-			draw_arc(bp, 2.5 + float(q % 2), 0.0, TAU, 8, Color(0.85, 0.95, 0.5, 0.5 * a), 1.0)
+			DrawBatch.arc(self, bp, 2.5 + float(q % 2), 0.0, TAU, 8, Color(0.85, 0.95, 0.5, 0.5 * a), 1.0)
 
 
 # ============================================================
@@ -403,10 +403,10 @@ class GasBubble extends Node2D:
 
 	func _draw() -> void:
 		var w := 1.0 + sin(_t * 18.0) * 0.08
-		draw_colored_polygon(preload("res://art.gd").ellipse(Vector2.ZERO, 11.0 * w, 11.0 / w, 0.0, 14), Color(0.6, 0.75, 0.25, 0.55))
-		draw_arc(Vector2.ZERO, 11.0, 0.0, TAU, 14, Color(0.85, 0.95, 0.5, 0.8), 1.5)
-		draw_circle(Vector2(-4, -4), 3.0, Color(1, 1, 1, 0.6))
-		draw_line(Vector2.ZERO, -velocity.normalized() * 22.0, Color(0.6, 0.75, 0.25, 0.3), 6.0)
+		DrawBatch.colored_polygon(self, preload("res://art.gd").ellipse(Vector2.ZERO, 11.0 * w, 11.0 / w, 0.0, 14), Color(0.6, 0.75, 0.25, 0.55))
+		DrawBatch.arc(self, Vector2.ZERO, 11.0, 0.0, TAU, 14, Color(0.85, 0.95, 0.5, 0.8), 1.5)
+		DrawBatch.circle(self, Vector2(-4, -4), 3.0, Color(1, 1, 1, 0.6))
+		DrawBatch.line(self, Vector2.ZERO, -velocity.normalized() * 22.0, Color(0.6, 0.75, 0.25, 0.3), 6.0)
 
 
 # ============================================================
@@ -419,11 +419,11 @@ func draw() -> bool:
 	var t: float = z._time
 	var p: float = z._walk_phase
 	if z.dead:   # עור מרוקן ושטוח
-		z.draw_colored_polygon(Art.ellipse(Vector2(0, -6), 20.0, 6.0, 0.0, 16), Art.shade(sk, 0.2))
-		z.draw_colored_polygon(Art.ellipse(Vector2(-4, -9), 12.0, 3.0, 0.1, 12), shirt)
+		DrawBatch.colored_polygon(z, Art.ellipse(Vector2(0, -6), 20.0, 6.0, 0.0, 16), Art.shade(sk, 0.2))
+		DrawBatch.colored_polygon(z, Art.ellipse(Vector2(-4, -9), 12.0, 3.0, 0.1, 12), shirt)
 		Art.oval_shaded(z, Vector2(18, -8), 5.0, 4.5, sk, 0.0)
 		for q in 3:
-			z.draw_line(Vector2(-14.0 + float(q) * 10.0, -10.0), Vector2(-12.0 + float(q) * 9.0, -2.0), col(Color(0.35, 0.2, 0.35, 0.6)), 1.0)
+			DrawBatch.line(z, Vector2(-14.0 + float(q) * 10.0, -10.0), Vector2(-12.0 + float(q) * 9.0, -2.0), col(Color(0.35, 0.2, 0.35, 0.6)), 1.0)
 		end_draw()
 		return true
 	var big := _boss()
@@ -448,42 +448,42 @@ func draw() -> bool:
 	if state == SWELL or state == WAVE or sw > 0.6:
 		Art.glow(z, bc, brx * 1.8, Color(0.6, 0.85, 0.2, 0.18 + 0.2 * pulse))
 	Art.oval_shaded(z, bc, brx, bry, sk, 0.0)
-	z.draw_colored_polygon(Art.ellipse(bc + Vector2(-4, 5), brx * 0.55, bry * 0.4, 0.3, 12), col(Color(0.45, 0.5, 0.55, 0.35)))   # כתמים כחלחלים
-	z.draw_colored_polygon(Art.ellipse(bc + Vector2(0, bry * 0.55), brx * 0.85, bry * 0.4, 0.0, 14), col(Color(0.25, 0.3, 0.22, 0.35)))   # תחתית כהה
-	z.draw_colored_polygon(Art.ellipse(bc + Vector2(brx * 0.35, -bry * 0.1), brx * 0.25, bry * 0.18, 0.5, 10), col(Color(0.5, 0.42, 0.2, 0.4)))   # כתם ריקבון
+	DrawBatch.colored_polygon(z, Art.ellipse(bc + Vector2(-4, 5), brx * 0.55, bry * 0.4, 0.3, 12), col(Color(0.45, 0.5, 0.55, 0.35)))   # כתמים כחלחלים
+	DrawBatch.colored_polygon(z, Art.ellipse(bc + Vector2(0, bry * 0.55), brx * 0.85, bry * 0.4, 0.0, 14), col(Color(0.25, 0.3, 0.22, 0.35)))   # תחתית כהה
+	DrawBatch.colored_polygon(z, Art.ellipse(bc + Vector2(brx * 0.35, -bry * 0.1), brx * 0.25, bry * 0.18, 0.5, 10), col(Color(0.5, 0.42, 0.2, 0.4)))   # כתם ריקבון
 	for q in 5:   # ורידים סגולים
 		var a0 := -2.2 + float(q) * 0.9
 		var v0 := bc + Vector2.from_angle(a0) * brx * 0.35
 		var v1 := bc + Vector2.from_angle(a0 + 0.35) * brx * 0.85
-		z.draw_polyline(PackedVector2Array([v0, v0.lerp(v1, 0.5) + Vector2(1.5, -1), v1]), col(Color(0.38, 0.22, 0.42, 0.7)), 1.0)
-	z.draw_circle(bc + Vector2(3, 4), 1.4, col(Color(0.3, 0.25, 0.3)))   # טבור
+		DrawBatch.polyline(z, PackedVector2Array([v0, v0.lerp(v1, 0.5) + Vector2(1.5, -1), v1]), col(Color(0.38, 0.22, 0.42, 0.7)), 1.0)
+	DrawBatch.circle(z, bc + Vector2(3, 4), 1.4, col(Color(0.3, 0.25, 0.3)))   # טבור
 	if sw > 0.4:   # עור מתוח - סדקים
 		for q in int(sw * 4.0):
 			var cp := bc + Vector2(-6.0 + float(q) * 5.0, -6.0 + float(q % 2) * 8.0)
-			z.draw_line(cp, cp + Vector2(3, 2), col(Color(0.5, 0.15, 0.2, 0.8)), 1.0)
+			DrawBatch.line(z, cp, cp + Vector2(3, 2), col(Color(0.5, 0.15, 0.2, 0.8)), 1.0)
 	# חולצה קרועה שלא נסגרת
 	Art.fill(z, PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(-2, 0), bc + Vector2(-brx * 0.55, -bry * 0.2), bc + Vector2(-brx * 0.9, bry * 0.1), sh + Vector2(-11, 8)]), shirt, Art.OUTLINE, 0.9)
 	Art.fill(z, PackedVector2Array([sh + Vector2(4, 0), sh + Vector2(10, 1), bc + Vector2(brx * 0.92, -bry * 0.25), bc + Vector2(brx * 0.6, -bry * 0.5)]), shirt, Art.OUTLINE, 0.9)
 	# ראש קטן ששקוע בכתפיים
 	var head := sh + Vector2(4.0, -5.0)
 	Art.oval_shaded(z, head, 5.6, 5.0, Art.shade(sk, -0.05), 0.0)
-	z.draw_circle(head + Vector2(2.5, -1.0), 1.5, Color(0.88, 0.92, 0.9))   # עין עכורה
-	z.draw_circle(head + Vector2(-0.5, -1.2), 1.2, Color(0.82, 0.86, 0.84))
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(3.0, 2.6), 2.2, 1.3 + pulse, 0.0, 8), col(Color("2a1a22")))   # פה פתוח
+	DrawBatch.circle(z, head + Vector2(2.5, -1.0), 1.5, Color(0.88, 0.92, 0.9))   # עין עכורה
+	DrawBatch.circle(z, head + Vector2(-0.5, -1.2), 1.2, Color(0.82, 0.86, 0.84))
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(3.0, 2.6), 2.2, 1.3 + pulse, 0.0, 8), col(Color("2a1a22")))   # פה פתוח
 	if Engine.get_process_frames() % 40 < 20:   # מים נוטפים מהפה
-		z.draw_line(head + Vector2(3.5, 4.0), head + Vector2(3.8, 7.0 + fmod(t * 6.0, 4.0)), Color(0.5, 0.55, 0.45, 0.7), 1.0)
+		DrawBatch.line(z, head + Vector2(3.5, 4.0), head + Vector2(3.8, 7.0 + fmod(t * 6.0, 4.0)), Color(0.5, 0.55, 0.45, 0.7), 1.0)
 	# אצות על הראש והכתפיים
 	for q in 4:
 		var ap := head + Vector2(-5.0 + float(q) * 3.0, -4.0)
-		z.draw_polyline(PackedVector2Array([ap, ap + Vector2(-2.0 + sin(t * 2.0 + float(q)) * 1.5, 5.0), ap + Vector2(-3.0, 10.0)]), col(Color("3a5a2a")), 1.4)
+		DrawBatch.polyline(z, PackedVector2Array([ap, ap + Vector2(-2.0 + sin(t * 2.0 + float(q)) * 1.5, 5.0), ap + Vector2(-3.0, 10.0)]), col(Color("3a5a2a")), 1.4)
 	if big:   # בוס: כתר של קנים ושקי גז בגב
 		for q in 5:
 			var rp := head + Vector2(-5.0 + float(q) * 2.6, -4.5)
-			z.draw_line(rp, rp + Vector2(-1.0 + float(q) * 0.5, -7.0 - float(q % 2) * 3.0), col(Color("5a4a2a")), 1.4)
+			DrawBatch.line(z, rp, rp + Vector2(-1.0 + float(q) * 0.5, -7.0 - float(q % 2) * 3.0), col(Color("5a4a2a")), 1.4)
 		for q in 3:
 			var gp := bc + Vector2(-brx * 0.75, -bry * 0.55 + float(q) * 7.0)
 			Art.oval(z, gp, 4.0 + float(q % 2), 3.5, Color(0.6, 0.7, 0.3, 0.9) if z._flash <= 0.0 else Color.WHITE)
-			z.draw_circle(gp + Vector2(-1, -1), 1.0, Color(0.9, 1.0, 0.6, 0.6 + 0.4 * pulse))
+			DrawBatch.circle(z, gp + Vector2(-1, -1), 1.0, Color(0.9, 1.0, 0.6, 0.6 + 0.4 * pulse))
 	# יד קדמית (תלויה על הבטן, אצות מהאצבעות)
 	var hf := Vector2(brx + 1.0, -22.0 + bob - sin(p) * 1.5)
 	var el := Vector2(brx * 0.85, -36.0 + bob)
@@ -491,6 +491,6 @@ func draw() -> bool:
 		hf = Vector2(brx * 0.7, -15.0 + bob)
 		el = Vector2(brx * 0.95, -32.0 + bob)
 	Art.limb(z, PackedVector2Array([sh + Vector2(6, 1), el, hf]), 5.5, sk)
-	z.draw_polyline(PackedVector2Array([hf, hf + Vector2(sin(t * 2.0) * 1.5, 5.0), hf + Vector2(-1.0, 9.0)]), col(Color("3a5a2a")), 1.3)
+	DrawBatch.polyline(z, PackedVector2Array([hf, hf + Vector2(sin(t * 2.0) * 1.5, 5.0), hf + Vector2(-1.0, 9.0)]), col(Color("3a5a2a")), 1.3)
 	end_draw()
 	return true

@@ -218,28 +218,28 @@ class Net extends Node2D:
 			var r := 16.0 + minf(_t * 30.0, 10.0)
 			for q in 5:
 				var a := float(q) * TAU / 5.0 + _t * 6.0
-				draw_line(Vector2.ZERO, Vector2.from_angle(a) * r, c, 1.0)
+				DrawBatch.line(self, Vector2.ZERO, Vector2.from_angle(a) * r, c, 1.0)
 			for k in 2:
 				var pts := PackedVector2Array()
 				for q in 9:
 					pts.append(Vector2.from_angle(float(q) * TAU / 8.0 + _t * 6.0) * r * (0.5 + 0.5 * float(k)))
-				draw_polyline(pts, c, 1.0)
+				DrawBatch.polyline(self, pts, c, 1.0)
 			for q in 4:   # משקולות
-				draw_circle(Vector2.from_angle(float(q) * TAU / 4.0 + _t * 6.0) * r, 1.8, Color("5a5a5a"))
+				DrawBatch.circle(self, Vector2.from_angle(float(q) * TAU / 4.0 + _t * 6.0) * r, 1.8, Color("5a5a5a"))
 			return
 		# עוטפת את השחקן + חבל לדייג
 		var h := 52.0
 		for q in 6:
 			var x := -14.0 + float(q) * 5.6
-			draw_line(Vector2(x, 0), Vector2(x * 0.6, -h), c, 1.0)
+			DrawBatch.line(self, Vector2(x, 0), Vector2(x * 0.6, -h), c, 1.0)
 		for q in 7:
 			var y := -float(q) * h / 6.0
 			var ww := 14.0 - float(q) * 0.9
-			draw_line(Vector2(-ww, y), Vector2(ww, y), c, 1.0)
+			DrawBatch.line(self, Vector2(-ww, y), Vector2(ww, y), c, 1.0)
 		if owner_z != null and is_instance_valid(owner_z):
 			var hand: Vector2 = owner_z.global_position + Vector2(owner_z._dir * 10.0, -36.0) - global_position
 			var mid := (Vector2(0, -26) + hand) * 0.5 + Vector2(0, 10)
-			draw_polyline(PackedVector2Array([Vector2(0, -26), mid, hand]), Color("8a6a3a"), 1.6)
+			DrawBatch.polyline(self, PackedVector2Array([Vector2(0, -26), mid, hand]), Color("8a6a3a"), 1.6)
 
 
 # ============================================================
@@ -267,27 +267,27 @@ func draw() -> bool:
 		hf = sh + Vector2(12, 2)
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(poncho, 0.3))
 	if not winding and not reeling and not z.dead:   # רשת מקופלת על הכתף
-		z.draw_colored_polygon(Art.ellipse(sh + Vector2(-6, 6), 6.0, 10.0, 0.3, 10), col(Color(0.8, 0.76, 0.6, 0.85)))
+		DrawBatch.colored_polygon(z, Art.ellipse(sh + Vector2(-6, 6), 6.0, 10.0, 0.3, 10), col(Color(0.8, 0.76, 0.6, 0.85)))
 		for q in 3:
-			z.draw_line(sh + Vector2(-10.0 + float(q) * 3.0, -2), sh + Vector2(-6.0 + float(q) * 3.0, 14), Color(0.5, 0.45, 0.35, 0.6), 1.0)
+			DrawBatch.line(z, sh + Vector2(-10.0 + float(q) * 3.0, -2), sh + Vector2(-6.0 + float(q) * 3.0, 14), Color(0.5, 0.45, 0.35, 0.6), 1.0)
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(9, 0), hip + Vector2(9, 5), hip + Vector2(-9, 5)]), poncho, 0.12, 0.4)
 	for q in 3:   # פסים בפונצ'ו
-		z.draw_line(sh + Vector2(-8, 5.0 + float(q) * 5.0), sh + Vector2(8, 5.0 + float(q) * 5.0), col([Color("e0c030"), Color("2a8a6a"), Color("f0f0f0")][q]), 1.4)
+		DrawBatch.line(z, sh + Vector2(-8, 5.0 + float(q) * 5.0), sh + Vector2(8, 5.0 + float(q) * 5.0), col([Color("e0c030"), Color("2a8a6a"), Color("f0f0f0")][q]), 1.4)
 	Art.oval_shaded(z, head, 5.0, 5.6, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
 	# צ'ויו: כובע צמר מחודד עם דשים לאוזניים
 	Art.fill(z, PackedVector2Array([head + Vector2(-5.5, 1), head + Vector2(-5, -4), head + Vector2(0, -10), head + Vector2(5, -4), head + Vector2(5.5, 1), head + Vector2(3, -2), head + Vector2(-3, -2)]), col(Color("c02a4a")), Art.OUTLINE, 1.0)
-	z.draw_line(head + Vector2(-4.5, -4), head + Vector2(4.5, -4), col(Color("f0d040")), 1.6)
-	z.draw_line(head + Vector2(-5, 1), head + Vector2(-5.5, 7), col(Color("2a6ac0")), 1.6)   # חוטים תלויים
-	z.draw_circle(head + Vector2(0, -10.5), 1.6, col(Color("f0f0f0")))
+	DrawBatch.line(z, head + Vector2(-4.5, -4), head + Vector2(4.5, -4), col(Color("f0d040")), 1.6)
+	DrawBatch.line(z, head + Vector2(-5, 1), head + Vector2(-5.5, 7), col(Color("2a6ac0")), 1.6)   # חוטים תלויים
+	DrawBatch.circle(z, head + Vector2(0, -10.5), 1.6, col(Color("f0f0f0")))
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.0, Color(0.85, 0.9, 0.5))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.0, Color(0.85, 0.9, 0.5))
 	z._arm(sh + Vector2(3, 1), hf, sk, poncho)
 	if winding:   # הרשת מסתובבת מעל הראש
 		var c := hf + Vector2(0, -8)
 		var a: float = z._time * 18.0
 		for q in 4:
-			z.draw_line(c, c + Vector2.from_angle(a + float(q) * PI * 0.5) * 12.0, Color(0.85, 0.82, 0.7, 0.9), 1.0)
-		z.draw_arc(c, 12.0, 0.0, TAU, 12, Color(0.85, 0.82, 0.7, 0.7), 1.0)
+			DrawBatch.line(z, c, c + Vector2.from_angle(a + float(q) * PI * 0.5) * 12.0, Color(0.85, 0.82, 0.7, 0.9), 1.0)
+		DrawBatch.arc(z, c, 12.0, 0.0, TAU, 12, Color(0.85, 0.82, 0.7, 0.7), 1.0)
 	end_draw()
 	return true

@@ -111,12 +111,12 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 2.0, 15.0), Art.shade(sk, 0.25), Art.shade(shirt, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(6, 2), hip + Vector2(-6, 2)]), shirt, 0.12, 0.4)
 	for q in 3:   # כפור על הבגדים
-		z.draw_line(sh + Vector2(-5.0 + float(q) * 4.0, 2), sh + Vector2(-4.0 + float(q) * 4.0, 7), col(Color(0.9, 0.95, 1.0, 0.6)), 1.0)
+		DrawBatch.line(z, sh + Vector2(-5.0 + float(q) * 4.0, 2), sh + Vector2(-4.0 + float(q) * 4.0, 7), col(Color(0.9, 0.95, 1.0, 0.6)), 1.0)
 	Art.oval_shaded(z, head, 5.6, 6.0, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -1.0), 1.0, Color(0.6, 0.9, 1.0))
-	z.draw_line(head + Vector2(0, 3), head + Vector2(5, 3), col(Color("2a3a4a")), 1.2)
+		DrawBatch.circle(z, head + Vector2(3.5, -1.0), 1.0, Color(0.6, 0.9, 1.0))
+	DrawBatch.line(z, head + Vector2(0, 3), head + Vector2(5, 3), col(Color("2a3a4a")), 1.2)
 	z._arm(sh + Vector2(3, 1), sh + Vector2(9.0 + sin(p) * 3.0, 14.0), sk, shirt)
 	var k := clampf(ice / maxf(ice_max, 1.0), 0.0, 1.0)
 	if k > 0.0 and not z.dead:   # שריון קרח
@@ -131,11 +131,11 @@ func draw() -> bool:
 			var pts := PackedVector2Array()
 			for a in 6:
 				pts.append(c + Vector2.from_angle(float(a) * TAU / 6.0 + float(i)) * r * (0.8 + 0.25 * float((a + i) % 3)))
-			z.draw_colored_polygon(pts, ic)
-			z.draw_polyline(pts + PackedVector2Array([pts[0]]), edge, 1.0)
-			z.draw_line(c + Vector2(-r * 0.3, -r * 0.3), c + Vector2(r * 0.1, -r * 0.5), Color(1, 1, 1, 0.8), 1.0)
+			DrawBatch.colored_polygon(z, pts, ic)
+			DrawBatch.polyline(z, pts + PackedVector2Array([pts[0]]), edge, 1.0)
+			DrawBatch.line(z, c + Vector2(-r * 0.3, -r * 0.3), c + Vector2(r * 0.1, -r * 0.5), Color(1, 1, 1, 0.8), 1.0)
 		for q in 4:   # נטיפים מהזרועות
 			var ip := sh + Vector2(-8.0 + float(q) * 5.0, 6.0)
-			z.draw_colored_polygon(PackedVector2Array([ip + Vector2(-1.5, 0), ip + Vector2(0, 5), ip + Vector2(1.5, 0)]), edge)
+			DrawBatch.colored_polygon(z, PackedVector2Array([ip + Vector2(-1.5, 0), ip + Vector2(0, 5), ip + Vector2(1.5, 0)]), edge)
 	end_draw()
 	return true

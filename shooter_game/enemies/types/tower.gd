@@ -173,8 +173,8 @@ class Hat extends Node2D:   # הקסדה עפה
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_colored_polygon(PackedVector2Array([Vector2(-14, 2), Vector2(-12, -8), Vector2(0, -14), Vector2(12, -8), Vector2(14, 2)]), Color("f0c820"))
-		draw_rect(Rect2(-18, 0, 36, 4), Color("d0a810"))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-14, 2), Vector2(-12, -8), Vector2(0, -14), Vector2(12, -8), Vector2(14, 2)]), Color("f0c820"))
+		DrawBatch.rect(self, Rect2(-18, 0, 36, 4), Color("d0a810"))
 
 
 # ============================================================
@@ -192,64 +192,64 @@ func draw() -> bool:
 	var head := sh + Vector2(5, -12)
 	# התורן (מסבכת צהובה)
 	var mx := -12.0
-	z.draw_line(Vector2(mx - 6, 0), Vector2(mx - 6, -112), steel, 2.0)
-	z.draw_line(Vector2(mx + 6, 0), Vector2(mx + 6, -112), steel, 2.0)
+	DrawBatch.line(z, Vector2(mx - 6, 0), Vector2(mx - 6, -112), steel, 2.0)
+	DrawBatch.line(z, Vector2(mx + 6, 0), Vector2(mx + 6, -112), steel, 2.0)
 	var yy := 0.0
 	while yy > -108.0:
-		z.draw_line(Vector2(mx - 6, yy), Vector2(mx + 6, yy - 10.0), steel, 1.2)
-		z.draw_line(Vector2(mx - 6, yy - 10.0), Vector2(mx + 6, yy - 10.0), steel, 1.0)
+		DrawBatch.line(z, Vector2(mx - 6, yy), Vector2(mx + 6, yy - 10.0), steel, 1.2)
+		DrawBatch.line(z, Vector2(mx - 6, yy - 10.0), Vector2(mx + 6, yy - 10.0), steel, 1.0)
 		yy -= 10.0
 	# הג'יב קדימה + נגד-ג'יב אחורה עם משקולות
-	z.draw_line(Vector2(mx - 40, -112), Vector2(JIB + 6.0, -112), steel, 2.5)
-	z.draw_line(Vector2(mx - 40, -104), Vector2(JIB + 6.0, -106), steel, 1.5)
+	DrawBatch.line(z, Vector2(mx - 40, -112), Vector2(JIB + 6.0, -112), steel, 2.5)
+	DrawBatch.line(z, Vector2(mx - 40, -104), Vector2(JIB + 6.0, -106), steel, 1.5)
 	var jx := mx - 36.0
 	while jx < JIB:
-		z.draw_line(Vector2(jx, -104), Vector2(jx + 6.0, -112), steel, 1.0)
+		DrawBatch.line(z, Vector2(jx, -104), Vector2(jx + 6.0, -112), steel, 1.0)
 		jx += 8.0
-	z.draw_line(Vector2(mx, -126), Vector2(JIB, -112), col(Color("8a8a8a")), 1.0)   # כבלי תמיכה
-	z.draw_line(Vector2(mx, -126), Vector2(mx - 40, -112), col(Color("8a8a8a")), 1.0)
-	z.draw_line(Vector2(mx - 6, -112), Vector2(mx, -126), steel, 1.5)
-	z.draw_line(Vector2(mx + 6, -112), Vector2(mx, -126), steel, 1.5)
-	z.draw_rect(Rect2(mx - 42, -110, 16, 14), col(Color("8a8680")))   # משקולות בטון
-	z.draw_rect(Rect2(mx - 42, -110, 16, 14), Art.OUTLINE, false, 0.8)
+	DrawBatch.line(z, Vector2(mx, -126), Vector2(JIB, -112), col(Color("8a8a8a")), 1.0)   # כבלי תמיכה
+	DrawBatch.line(z, Vector2(mx, -126), Vector2(mx - 40, -112), col(Color("8a8a8a")), 1.0)
+	DrawBatch.line(z, Vector2(mx - 6, -112), Vector2(mx, -126), steel, 1.5)
+	DrawBatch.line(z, Vector2(mx + 6, -112), Vector2(mx, -126), steel, 1.5)
+	DrawBatch.rect(z, Rect2(mx - 42, -110, 16, 14), col(Color("8a8680")))   # משקולות בטון
+	DrawBatch.rect(z, Rect2(mx - 42, -110, 16, 14), Art.OUTLINE, false, 0.8)
 	# עגלה, כבל, וו וקורה
 	var hx := _hook
-	z.draw_rect(Rect2(hx - 4, -110, 8, 4), col(Color("3a3a3a")))
+	DrawBatch.rect(z, Rect2(hx - 4, -110, 8, 4), col(Color("3a3a3a")))
 	var hy := -66.0
-	z.draw_line(Vector2(hx, -106), Vector2(hx, hy), col(Color("2a2a2a")), 0.8)
-	z.draw_arc(Vector2(hx, hy + 2), 2.0, 0.0, PI * 1.5, 6, col(Color("c03020")), 1.2)
+	DrawBatch.line(z, Vector2(hx, -106), Vector2(hx, hy), col(Color("2a2a2a")), 0.8)
+	DrawBatch.arc(z, Vector2(hx, hy + 2), 2.0, 0.0, PI * 1.5, 6, col(Color("c03020")), 1.2)
 	if _beam:
 		var sw := sin(z._time * (2.0 + 10.0 * k)) * (0.08 + 0.2 * k) if winding == "drop" else sin(z._time * 1.5) * 0.05
 		var bc := Vector2(hx, hy + 6)
 		var bd := Vector2.from_angle(sw)
-		z.draw_line(Vector2(hx, hy + 3), bc - bd * 10.0, col(Color("2a2a2a")), 0.6)
-		z.draw_line(Vector2(hx, hy + 3), bc + bd * 10.0, col(Color("2a2a2a")), 0.6)
-		z.draw_line(bc - bd * 16.0, bc + bd * 16.0, col(Color("8a3a2a")), 4.0)   # קורת I
-		z.draw_line(bc - bd * 16.0 + Vector2(0, -2), bc + bd * 16.0 + Vector2(0, -2), col(Color("6a2a1a")), 1.0)
+		DrawBatch.line(z, Vector2(hx, hy + 3), bc - bd * 10.0, col(Color("2a2a2a")), 0.6)
+		DrawBatch.line(z, Vector2(hx, hy + 3), bc + bd * 10.0, col(Color("2a2a2a")), 0.6)
+		DrawBatch.line(z, bc - bd * 16.0, bc + bd * 16.0, col(Color("8a3a2a")), 4.0)   # קורת I
+		DrawBatch.line(z, bc - bd * 16.0 + Vector2(0, -2), bc + bd * 16.0 + Vector2(0, -2), col(Color("6a2a1a")), 1.0)
 	# הגוף
 	z._arm(sh + Vector2(-8, 2), sh + Vector2(-14, -4 - 6.0 * k if winding == "drop" else 4.0), Art.shade(sk, 0.25), Art.shade(vest, 0.3))   # יד על הידיות
-	z.draw_line(sh + Vector2(-14, -4), sh + Vector2(-18, 6), col(Color("3a3a3a")), 2.0)
+	DrawBatch.line(z, sh + Vector2(-14, -4), sh + Vector2(-18, 6), col(Color("3a3a3a")), 2.0)
 	var torso := PackedVector2Array([sh + Vector2(-12, -3), sh + Vector2(12, -2), hip + Vector2(12, 2), hip + Vector2(-12, 2)])
 	Art.fill_shaded(z, torso, vest, 0.12, 0.4)
 	for q in 2:   # פסים זוהרים
-		z.draw_line(sh + Vector2(-11, 8.0 + float(q) * 8.0), sh + Vector2(12, 8.0 + float(q) * 8.0), col(Color("e0e0e0")), 2.0)
-	z.draw_rect(Rect2(hip + Vector2(-12, -2), Vector2(24, 26)), col(z.pants))
+		DrawBatch.line(z, sh + Vector2(-11, 8.0 + float(q) * 8.0), sh + Vector2(12, 8.0 + float(q) * 8.0), col(Color("e0e0e0")), 2.0)
+	DrawBatch.rect(z, Rect2(hip + Vector2(-12, -2), Vector2(24, 26)), col(z.pants))
 	Art.oval_shaded(z, head, 7.0, 7.5, sk, 0.0)
 	if hat > 0:   # קסדה צהובה
-		z.draw_colored_polygon(PackedVector2Array([head + Vector2(-8, -2), head + Vector2(-7, -8), head + Vector2(0, -11), head + Vector2(7, -8), head + Vector2(9, -2)]), col(Color("f0c820")))
-		z.draw_rect(Rect2(head + Vector2(-9, -3), Vector2(20, 2.5)), col(Color("d0a810")))
+		DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-8, -2), head + Vector2(-7, -8), head + Vector2(0, -11), head + Vector2(7, -8), head + Vector2(9, -2)]), col(Color("f0c820")))
+		DrawBatch.rect(z, Rect2(head + Vector2(-9, -3), Vector2(20, 2.5)), col(Color("d0a810")))
 		if hat < HAT_HP:   # שקעים
-			z.draw_line(head + Vector2(-2, -8), head + Vector2(2, -5), col(Color("a08010")), 1.0)
+			DrawBatch.line(z, head + Vector2(-2, -8), head + Vector2(2, -5), col(Color("a08010")), 1.0)
 	else:   # קרחת עם תפרים
-		z.draw_line(head + Vector2(-4, -6), head + Vector2(3, -7), col(Color("4a2a1a")), 1.0)
+		DrawBatch.line(z, head + Vector2(-4, -6), head + Vector2(3, -7), col(Color("4a2a1a")), 1.0)
 	if not z.dead:
-		z.draw_circle(head + Vector2(4.0, -1.0), 1.4, Color(1.0, 0.8, 0.35))
-	z.draw_line(head + Vector2(1, 4), head + Vector2(6, 4.5), col(Color("2a1a10")), 1.4)
+		DrawBatch.circle(z, head + Vector2(4.0, -1.0), 1.4, Color(1.0, 0.8, 0.35))
+	DrawBatch.line(z, head + Vector2(1, 4), head + Vector2(6, 4.5), col(Color("2a1a10")), 1.4)
 	# אקדח מסמרים
 	var hf := sh + Vector2(17, 6)
 	z._arm(sh + Vector2(9, 2), hf, sk, vest)
-	z.draw_rect(Rect2(hf + Vector2(-3, -4), Vector2(12, 6)), col(Color("c02020")))
-	z.draw_rect(Rect2(hf + Vector2(-1, 1), Vector2(4, 6)), col(Color("2a2a2a")))
+	DrawBatch.rect(z, Rect2(hf + Vector2(-3, -4), Vector2(12, 6)), col(Color("c02020")))
+	DrawBatch.rect(z, Rect2(hf + Vector2(-1, 1), Vector2(4, 6)), col(Color("2a2a2a")))
 	if _left > 0 and not z.dead:
 		Art.glow(z, hf + Vector2(11, -1), 5.0, Color(1.0, 0.9, 0.6, 0.6))
 	end_draw()

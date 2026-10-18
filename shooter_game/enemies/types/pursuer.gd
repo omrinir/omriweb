@@ -511,12 +511,12 @@ class Rocket extends Node2D:
 
 	func _draw() -> void:
 		var fl := 6.0 + sin(Time.get_ticks_msec() * 0.05) * 2.0
-		draw_colored_polygon(PackedVector2Array([Vector2(-9, -2.5), Vector2(-9 - fl * 1.6, 0), Vector2(-9, 2.5)]), Color(1.0, 0.65, 0.2, 0.9))
-		draw_colored_polygon(PackedVector2Array([Vector2(-9, -1.3), Vector2(-9 - fl, 0), Vector2(-9, 1.3)]), Color(1.0, 0.95, 0.7))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-9, -2.5), Vector2(-9 - fl * 1.6, 0), Vector2(-9, 2.5)]), Color(1.0, 0.65, 0.2, 0.9))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-9, -1.3), Vector2(-9 - fl, 0), Vector2(-9, 1.3)]), Color(1.0, 0.95, 0.7))
 		Art.fill(self, PackedVector2Array([Vector2(-9, -3), Vector2(6, -3), Vector2(11, 0), Vector2(6, 3), Vector2(-9, 3)]), Color("5a6048"), Art.OUTLINE, 1.0)
-		draw_rect(Rect2(Vector2(3, -3), Vector2(2, 6)), Color("c0a040"))
-		draw_colored_polygon(PackedVector2Array([Vector2(-9, -3), Vector2(-12, -6), Vector2(-6, -3)]), Color("3a3e30"))
-		draw_colored_polygon(PackedVector2Array([Vector2(-9, 3), Vector2(-12, 6), Vector2(-6, 3)]), Color("3a3e30"))
+		DrawBatch.rect(self, Rect2(Vector2(3, -3), Vector2(2, 6)), Color("c0a040"))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-9, -3), Vector2(-12, -6), Vector2(-6, -3)]), Color("3a3e30"))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-9, 3), Vector2(-12, 6), Vector2(-6, 3)]), Color("3a3e30"))
 
 
 # ============================================================
@@ -654,23 +654,23 @@ class BannerPaint extends Node2D:
 		var vs := get_viewport_rect().size
 		var a := clampf(t / 0.25, 0.0, 1.0) * clampf((3.6 - t) / 0.6, 0.0, 1.0)
 		var band_h := 120.0 * a
-		draw_rect(Rect2(0, vs.y * 0.36 - band_h * 0.5, vs.x, band_h), Color(0.0, 0.0, 0.0, 0.55 * a))
-		draw_rect(Rect2(0, vs.y * 0.36 - band_h * 0.5, vs.x, 3), Color(0.8, 0.1, 0.08, 0.8 * a))
-		draw_rect(Rect2(0, vs.y * 0.36 + band_h * 0.5 - 3, vs.x, 3), Color(0.8, 0.1, 0.08, 0.8 * a))
+		DrawBatch.rect(self, Rect2(0, vs.y * 0.36 - band_h * 0.5, vs.x, band_h), Color(0.0, 0.0, 0.0, 0.55 * a))
+		DrawBatch.rect(self, Rect2(0, vs.y * 0.36 - band_h * 0.5, vs.x, 3), Color(0.8, 0.1, 0.08, 0.8 * a))
+		DrawBatch.rect(self, Rect2(0, vs.y * 0.36 + band_h * 0.5 - 3, vs.x, 3), Color(0.8, 0.1, 0.08, 0.8 * a))
 		var txt := "HE WAS SENT FOR YOU"
 		var fs := 64
 		var w := FONT.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		var k := 1.0 + 0.25 * clampf(1.0 - t / 0.2, 0.0, 1.0)
 		var sh := Vector2(sin(t * 50.0), cos(t * 41.0)) * 3.0 * clampf(1.0 - t / 0.6, 0.0, 1.0)
-		draw_set_transform(Vector2(vs.x * 0.5, vs.y * 0.36 + 20.0) + sh, 0.0, Vector2(k, k))
-		draw_string_outline(FONT, Vector2(-w * 0.5, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 10, Color(0, 0, 0, a))
-		draw_string(FONT, Vector2(-w * 0.5, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1.0, 0.22, 0.16, a))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		DrawBatch.set_transform(self, Vector2(vs.x * 0.5, vs.y * 0.36 + 20.0) + sh, 0.0, Vector2(k, k))
+		DrawBatch.string_outline(self, FONT, Vector2(-w * 0.5, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 10, Color(0, 0, 0, a))
+		DrawBatch.string(self, FONT, Vector2(-w * 0.5, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1.0, 0.22, 0.16, a))
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
 		var sub := "THE ARCHITECT KNOWS YOUR NAME"
 		var sw := FONT.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
 		var sa := a * clampf((t - 0.7) / 0.4, 0.0, 1.0)
-		draw_string_outline(FONT, Vector2(vs.x * 0.5 - sw * 0.5, vs.y * 0.36 + 50.0), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 6, Color(0, 0, 0, sa))
-		draw_string(FONT, Vector2(vs.x * 0.5 - sw * 0.5, vs.y * 0.36 + 50.0), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.92, 0.86, 0.78, sa))
+		DrawBatch.string_outline(self, FONT, Vector2(vs.x * 0.5 - sw * 0.5, vs.y * 0.36 + 50.0), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 6, Color(0, 0, 0, sa))
+		DrawBatch.string(self, FONT, Vector2(vs.x * 0.5 - sw * 0.5, vs.y * 0.36 + 50.0), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.92, 0.86, 0.78, sa))
 
 
 # ============================================================
@@ -719,17 +719,17 @@ func draw() -> bool:
 	# גוף: מעיל ארוך עם צווארון מורם
 	var torso := PackedVector2Array([sh + Vector2(-11, -2), sh + Vector2(10, -1), sh + Vector2(11, 10), hip + Vector2(10, 4), hip + Vector2(8.0 + flap * 0.3, 17.0 - kneel * 6.0), hip + Vector2(-8, 17.0 - kneel * 6.0), hip + Vector2(-10, 2)])
 	Art.fill_shaded(z, torso, coat, 0.2, 0.35)
-	z.draw_line(sh + Vector2(-10, -1.5), sh + Vector2(9, -0.5), col(Color(1, 0.95, 0.85, 0.22)), 1.6)   # אור על הכתפיים
-	z.draw_line(sh + Vector2(10.5, 1), hip + Vector2(9, 4), col(Color(1, 0.95, 0.85, 0.14)), 1.2)   # שפת המעיל
-	z.draw_line(sh + Vector2(2, 1), hip + Vector2(3, 15.0 - kneel * 6.0), coat_d, 1.2)   # שוליים
+	DrawBatch.line(z, sh + Vector2(-10, -1.5), sh + Vector2(9, -0.5), col(Color(1, 0.95, 0.85, 0.22)), 1.6)   # אור על הכתפיים
+	DrawBatch.line(z, sh + Vector2(10.5, 1), hip + Vector2(9, 4), col(Color(1, 0.95, 0.85, 0.14)), 1.2)   # שפת המעיל
+	DrawBatch.line(z, sh + Vector2(2, 1), hip + Vector2(3, 15.0 - kneel * 6.0), coat_d, 1.2)   # שוליים
 	for q in 4:   # כפתורים
-		z.draw_circle(sh + Vector2(4, 4.0 + float(q) * 5.0), 0.9, col(Color("6a6a70")))
-	z.draw_rect(Rect2(hip + Vector2(-9, -4), Vector2(19, 3)), col(Color("141418")))   # חגורה
-	z.draw_rect(Rect2(hip + Vector2(1, -4.5), Vector2(4, 4)), col(Color("8a8a90")))
+		DrawBatch.circle(z, sh + Vector2(4, 4.0 + float(q) * 5.0), 0.9, col(Color("6a6a70")))
+	DrawBatch.rect(z, Rect2(hip + Vector2(-9, -4), Vector2(19, 3)), col(Color("141418")))   # חגורה
+	DrawBatch.rect(z, Rect2(hip + Vector2(1, -4.5), Vector2(4, 4)), col(Color("8a8a90")))
 	# תג עם השם: "SENT FOR YOU"
-	z.draw_rect(Rect2(sh + Vector2(-5, 4), Vector2(7, 4)), col(Color("c8c0a8")))
-	z.draw_line(sh + Vector2(-4, 5.5), sh + Vector2(1, 5.5), col(Color("8a2020")), 0.7)
-	z.draw_line(sh + Vector2(-4, 7), sh + Vector2(0, 7), col(Color("2a2a2a")), 0.5)
+	DrawBatch.rect(z, Rect2(sh + Vector2(-5, 4), Vector2(7, 4)), col(Color("c8c0a8")))
+	DrawBatch.line(z, sh + Vector2(-4, 5.5), sh + Vector2(1, 5.5), col(Color("8a2020")), 0.7)
+	DrawBatch.line(z, sh + Vector2(-4, 7), sh + Vector2(0, 7), col(Color("2a2a2a")), 0.5)
 	if armor.body:
 		_plate(sh, hip)
 	# צווארון מורם
@@ -740,19 +740,19 @@ func draw() -> bool:
 		_greave(f[0], hip + Vector2(3, 0), false)
 	# ראש קירח, תפרים, עין עם עדשה אדומה
 	Art.oval_shaded(z, head, 6.2, 6.8, sk, 0.0)
-	z.draw_line(head + Vector2(-5, -3), head + Vector2(3, -6.5), col(Color("4a2a2a")), 1.1)   # תפר על הקרחת
+	DrawBatch.line(z, head + Vector2(-5, -3), head + Vector2(3, -6.5), col(Color("4a2a2a")), 1.1)   # תפר על הקרחת
 	for q in 5:
 		var sp := head + Vector2(-5, -3).lerp(Vector2(3, -6.5), float(q) / 4.0)
-		z.draw_line(sp + Vector2(-0.6, -1.1), sp + Vector2(0.6, 1.1), col(Color("4a2a2a")), 0.7)
-	z.draw_line(head + Vector2(1, 3.8), head + Vector2(6, 3.2), col(Color("1a0a0a")), 1.4)   # פה סגור, שפתיים חתוכות
+		DrawBatch.line(z, sp + Vector2(-0.6, -1.1), sp + Vector2(0.6, 1.1), col(Color("4a2a2a")), 0.7)
+	DrawBatch.line(z, head + Vector2(1, 3.8), head + Vector2(6, 3.2), col(Color("1a0a0a")), 1.4)   # פה סגור, שפתיים חתוכות
 	for q in 3:
-		z.draw_line(head + Vector2(2.0 + float(q) * 1.5, 3.0), head + Vector2(2.0 + float(q) * 1.5, 4.6), col(Color("4a2a2a")), 0.6)
+		DrawBatch.line(z, head + Vector2(2.0 + float(q) * 1.5, 3.0), head + Vector2(2.0 + float(q) * 1.5, 4.6), col(Color("4a2a2a")), 0.6)
 	Art.oval(z, head + Vector2(3.6, -1.0), 1.8, 1.5, col(Color("1a1414")), 0.0, Art.NONE)
 	var eye_on: bool = not z.dead and state != DOWN
 	if eye_on:
 		Art.disc(z, head + Vector2(3.8, -1.0), 1.3, Color(1.0, 0.15, 0.1), Art.NONE)
 		Art.glow(z, head + Vector2(3.8, -1.0), 4.5, Color(1.0, 0.1, 0.05, 0.6))
-	z.draw_rect(Rect2(head + Vector2(-2.5, -2.2), Vector2(3.5, 1.0)), col(Color("6a6a70")))   # מסגרת העדשה
+	DrawBatch.rect(z, Rect2(head + Vector2(-2.5, -2.2), Vector2(3.5, 1.0)), col(Color("6a6a70")))   # מסגרת העדשה
 	if armor.head:
 		_helmet(head)
 	# יד קדמית: מושיטה / מחזיקה / מכה / על הקרקע
@@ -771,30 +771,30 @@ func draw() -> bool:
 			hf = Vector2(12, -1).lerp(sh + Vector2(6, 17), 1.0 - kneel)
 	_arm2(sh + Vector2(5, 1), hf, sk, coat, 5.8, true)
 	Art.disc(z, hf, 3.0, sk)   # אגרוף גדול עם תחבושת
-	z.draw_line(hf + Vector2(-2, -1), hf + Vector2(2, 1), col(Color("c8c0b0")), 1.0)
+	DrawBatch.line(z, hf + Vector2(-2, -1), hf + Vector2(2, 1), col(Color("c8c0b0")), 1.0)
 	end_draw()
 	# הלייזר והנקודה האדומה
 	if state == AIM and not z.dead:
 		var tip: Vector2 = _launcher_tip() - z.global_position
 		var dot: Vector2 = _dot - z.global_position
 		var blink := 0.6 + 0.4 * sin(z._time * 30.0)
-		z.draw_line(tip, dot, Color(1.0, 0.1, 0.05, 0.35), 1.2)
+		DrawBatch.line(z, tip, dot, Color(1.0, 0.1, 0.05, 0.35), 1.2)
 		Art.glow(z, dot, 9.0, Color(1.0, 0.05, 0.05, 0.6 * blink))
-		z.draw_circle(dot, 2.4, Color(1.0, 0.2, 0.15, blink))
+		DrawBatch.circle(z, dot, 2.4, Color(1.0, 0.2, 0.15, blink))
 	# בר חיים + 3 נפילות
 	if not z.dead and Art.on_screen(z, z.global_position):
 		var top := Vector2(-26, -100.0 * z.sc)
 		var frac := clampf(float(_phase_hp()) / float(maxi(_phase_max, 1)), 0.0, 1.0)
 		if state == DOWN or state == RISE or state == ENTER:
 			frac = 0.0
-		z.draw_rect(Rect2(top, Vector2(52, 5)), Color(0, 0, 0, 0.7))
-		z.draw_rect(Rect2(top + Vector2(1, 1), Vector2(50.0 * frac, 3)), Color(0.9, 0.18, 0.12))
+		DrawBatch.rect(z, Rect2(top, Vector2(52, 5)), Color(0, 0, 0, 0.7))
+		DrawBatch.rect(z, Rect2(top + Vector2(1, 1), Vector2(50.0 * frac, 3)), Color(0.9, 0.18, 0.12))
 		for i in 3:
 			var pc := top + Vector2(10.0 + float(i) * 16.0, -6.0)
 			var gone := i < downs
 			Art.disc(z, pc, 3.2, Color(0.25, 0.25, 0.28) if gone else Color(0.95, 0.85, 0.6), Art.OUTLINE, 1.0)
 			if gone:
-				z.draw_line(pc + Vector2(-2.5, -2.5), pc + Vector2(2.5, 2.5), Color(0.9, 0.2, 0.15), 1.2)
+				DrawBatch.line(z, pc + Vector2(-2.5, -2.5), pc + Vector2(2.5, 2.5), Color(0.9, 0.2, 0.15), 1.2)
 	return true
 
 
@@ -822,20 +822,20 @@ func _launcher(sh: Vector2, aim: bool) -> void:
 	var d := (b - a).normalized()
 	var n := d.orthogonal()
 	Art.fill_shaded(z, PackedVector2Array([a - n * 3.0, b - n * 3.0, b + n * 3.0, a + n * 3.0]), col(Color("4a5040")), 0.15, 0.35, Art.OUTLINE, 1.0)
-	z.draw_rect(Rect2(a.lerp(b, 0.45) - Vector2(2, 3.5), Vector2(4, 7)), col(Color("2a2e24")))
+	DrawBatch.rect(z, Rect2(a.lerp(b, 0.45) - Vector2(2, 3.5), Vector2(4, 7)), col(Color("2a2e24")))
 	Art.oval(z, b, 1.4, 3.2, col(Color("1a1a1a")), d.angle(), Art.OUTLINE, 0.8)
-	z.draw_line(a.lerp(b, 0.2) + n * 3.0, a.lerp(b, 0.2) + n * 6.0, col(Color("2a2e24")), 1.4)   # ידית
+	DrawBatch.line(z, a.lerp(b, 0.2) + n * 3.0, a.lerp(b, 0.2) + n * 6.0, col(Color("2a2e24")), 1.4)   # ידית
 	if aim:
-		z.draw_rect(Rect2(a.lerp(b, 0.6) - n * 5.0 - Vector2(1, 1), Vector2(3, 2)), col(Color("c03020")))   # כוונת לייזר
+		DrawBatch.rect(z, Rect2(a.lerp(b, 0.6) - n * 5.0 - Vector2(1, 1), Vector2(3, 2)), col(Color("c03020")))   # כוונת לייזר
 
 
 func _plate(sh: Vector2, hip: Vector2) -> void:
 	var pc := col(Color("5a5a5e"))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, 1), sh + Vector2(9, 1), sh + Vector2(9, 14), hip + Vector2(6, -6), hip + Vector2(-7, -6)]), pc, 0.25, 0.3, Art.OUTLINE, 1.2)
-	z.draw_line(sh + Vector2(-7, 8), sh + Vector2(8, 8), col(Color("3a3a3e")), 1.0)
+	DrawBatch.line(z, sh + Vector2(-7, 8), sh + Vector2(8, 8), col(Color("3a3a3e")), 1.0)
 	for q in 6:
-		z.draw_circle(sh + Vector2(-6.0 + float(q % 3) * 6.5, 3.0 + float(q / 3) * 9.0), 0.8, col(Color("9a9aa0")))
-	z.draw_line(sh + Vector2(-5, 2), hip + Vector2(-4, -7), col(Color(1, 1, 1, 0.15)), 1.2)
+		DrawBatch.circle(z, sh + Vector2(-6.0 + float(q % 3) * 6.5, 3.0 + float(q / 3) * 9.0), 0.8, col(Color("9a9aa0")))
+	DrawBatch.line(z, sh + Vector2(-5, 2), hip + Vector2(-4, -7), col(Color(1, 1, 1, 0.15)), 1.2)
 	if _spark > 0.0:
 		Art.glow(z, sh + Vector2(2, 10), 10.0, Color(1, 0.9, 0.6, 0.5))
 
@@ -843,9 +843,9 @@ func _plate(sh: Vector2, hip: Vector2) -> void:
 func _helmet(head: Vector2) -> void:
 	var hc := col(Color("5a5a5e"))
 	Art.fill_shaded(z, PackedVector2Array([head + Vector2(-7, 1), head + Vector2(-6.5, -5), head + Vector2(-2, -8.5), head + Vector2(4, -8), head + Vector2(7, -4), head + Vector2(7, -2.4), head + Vector2(1, -2.4), head + Vector2(-1, 1)]), hc, 0.25, 0.3, Art.OUTLINE, 1.1)
-	z.draw_line(head + Vector2(-6, -4.5), head + Vector2(6, -4.5), col(Color("3a3a3e")), 0.8)
+	DrawBatch.line(z, head + Vector2(-6, -4.5), head + Vector2(6, -4.5), col(Color("3a3a3e")), 0.8)
 	for q in 4:
-		z.draw_circle(head + Vector2(-5.0 + float(q) * 3.5, -6.0), 0.6, col(Color("9a9aa0")))
+		DrawBatch.circle(z, head + Vector2(-5.0 + float(q) * 3.5, -6.0), 0.6, col(Color("9a9aa0")))
 
 
 func _greave(foot: Vector2, hip: Vector2, back: bool) -> void:
@@ -855,5 +855,5 @@ func _greave(foot: Vector2, hip: Vector2, back: bool) -> void:
 	var d := (ankle - knee).normalized()
 	var n := d.orthogonal()
 	Art.fill_shaded(z, PackedVector2Array([knee - n * 4.0 - d * 1.5, knee + n * 4.0 - d * 1.5, ankle + n * 3.4, ankle - n * 3.4]), c, 0.25, 0.3, Art.OUTLINE, 1.0)
-	z.draw_circle(knee, 2.6, c)
-	z.draw_circle(knee.lerp(ankle, 0.5) + n * 2.0, 0.6, col(Color("9a9aa0")))
+	DrawBatch.circle(z, knee, 2.6, c)
+	DrawBatch.circle(z, knee.lerp(ankle, 0.5) + n * 2.0, 0.6, col(Color("9a9aa0")))

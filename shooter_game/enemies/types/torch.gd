@@ -163,11 +163,11 @@ func draw() -> bool:
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(1, -2), hip + Vector2(-5, 2)]), shirt, 0.12, 0.4)
 	for q in 3:   # סדקים זוהרים בעור
 		var c := sh + Vector2(-3.0 + float(q) * 3.0, 6.0 + float(q) * 3.0)
-		z.draw_line(c, c + Vector2(2, 3), col(Color(1.0, 0.5, 0.15, 0.8)), 1.0)
+		DrawBatch.line(z, c, c + Vector2(2, 3), col(Color(1.0, 0.5, 0.15, 0.8)), 1.0)
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -1.0), 1.1, Color(1.0, 0.85, 0.3))
-		z.draw_line(head + Vector2(1, 3), head + Vector2(5, 3), Color(1.0, 0.5, 0.1), 1.0)   # פה זוהר
+		DrawBatch.circle(z, head + Vector2(3.5, -1.0), 1.1, Color(1.0, 0.85, 0.3))
+		DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(5, 3), Color(1.0, 0.5, 0.1), 1.0)   # פה זוהר
 	# יד קדמית: בזמן WIND מושכת אחורה עם בקבוק דולק, אחרי זריקה קדימה
 	var hand: Vector2
 	if state == WIND:
@@ -178,7 +178,7 @@ func draw() -> bool:
 		hand = sh + Vector2(9.0 + sin(p) * 3.0, 13.0)
 	z._arm(sh + Vector2(3, 1), hand, sk, shirt)
 	if state == WIND:
-		z.draw_colored_polygon(PackedVector2Array([hand + Vector2(-2, 2), hand + Vector2(2, 2), hand + Vector2(2, -6), hand + Vector2(1, -9), hand + Vector2(-1, -9), hand + Vector2(-2, -6)]), col(Color(0.35, 0.55, 0.3)))
+		DrawBatch.colored_polygon(z, PackedVector2Array([hand + Vector2(-2, 2), hand + Vector2(2, 2), hand + Vector2(2, -6), hand + Vector2(1, -9), hand + Vector2(-1, -9), hand + Vector2(-2, -6)]), col(Color(0.35, 0.55, 0.3)))
 		if not z.dead:
 			_flame(hand + Vector2(0, -10), 5.0, 0.0)
 	# להבות על הראש והכתפיים (מונפשות)
@@ -242,10 +242,10 @@ class Bottle extends Node2D:
 	func _draw() -> void:
 		var Fl := preload("res://effects/flame_fx.gd")
 		# בקבוק זכוכית ירוק עם נוזל, סמרטוט בפתח
-		draw_colored_polygon(PackedVector2Array([Vector2(-6, -3), Vector2(3, -3), Vector2(5, -1.5), Vector2(10, -1.2), Vector2(10, 1.2), Vector2(5, 1.5), Vector2(3, 3), Vector2(-6, 3)]), Color(0.22, 0.42, 0.2, 0.95))
-		draw_rect(Rect2(Vector2(-5, 0), Vector2(8, 2.5)), Color(0.75, 0.5, 0.15, 0.8))   # דלק
-		draw_line(Vector2(-4, -2), Vector2(2, -2), Color(1, 1, 1, 0.35), 1.0)   # ברק זכוכית
-		draw_line(Vector2(10, 0), Vector2(13, -1.5), Color("d8c8a0"), 1.8)
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-6, -3), Vector2(3, -3), Vector2(5, -1.5), Vector2(10, -1.2), Vector2(10, 1.2), Vector2(5, 1.5), Vector2(3, 3), Vector2(-6, 3)]), Color(0.22, 0.42, 0.2, 0.95))
+		DrawBatch.rect(self, Rect2(Vector2(-5, 0), Vector2(8, 2.5)), Color(0.75, 0.5, 0.15, 0.8))   # דלק
+		DrawBatch.line(self, Vector2(-4, -2), Vector2(2, -2), Color(1, 1, 1, 0.35), 1.0)   # ברק זכוכית
+		DrawBatch.line(self, Vector2(10, 0), Vector2(13, -1.5), Color("d8c8a0"), 1.8)
 		# הסמרטוט בוער: הלהבה נמשכת אחורה (הפוך לכיוון התנועה)
 		var back := (-velocity.normalized()).rotated(-rotation) if velocity.length() > 1.0 else Vector2.UP
 		var tip := Vector2(14, -2)
@@ -254,4 +254,4 @@ class Bottle extends Node2D:
 			var k := fmod(_t * 6.0 + float(q) / 3.0, 1.0)
 			var c: Color = Fl.PALETTE[q + 1]
 			c.a = 0.95 * (1.0 - k * 0.7)
-			draw_circle(tip + back * (k * 12.0 + float(q)), (4.0 - float(q)) * (1.0 - k * 0.5), c)
+			DrawBatch.circle(self, tip + back * (k * 12.0 + float(q)), (4.0 - float(q)) * (1.0 - k * 0.5), c)

@@ -240,10 +240,10 @@ class Bola extends Node2D:
 		var a := _t * 16.0
 		for q in 3:
 			var p := Vector2.from_angle(a + float(q) * TAU / 3.0) * 12.0
-			draw_line(Vector2.ZERO, p, Color("5a4028"), 1.4)
-			draw_circle(p, 3.4, A.OUTLINE)
-			draw_circle(p, 2.6, Color("8a6a44"))
-		draw_arc(Vector2.ZERO, 12.0, a + 0.5, a + 2.4, 8, Color(1, 1, 1, 0.25), 1.5)
+			DrawBatch.line(self, Vector2.ZERO, p, Color("5a4028"), 1.4)
+			DrawBatch.circle(self, p, 3.4, A.OUTLINE)
+			DrawBatch.circle(self, p, 2.6, Color("8a6a44"))
+		DrawBatch.arc(self, Vector2.ZERO, 12.0, a + 0.5, a + 2.4, 8, Color(1, 1, 1, 0.25), 1.5)
 
 
 # ---- בולאדורס כרוכות על הרגליים של השחקן (player.grabbed_by) ----
@@ -280,12 +280,12 @@ class Tangle extends Node2D:
 		var sw := sin(_t * 20.0) * 1.0
 		for q in 3:   # חבלים כרוכים סביב השוקיים
 			var y := -6.0 - float(q) * 5.0
-			draw_arc(Vector2(sw, y), 9.0, 0.2, PI - 0.2, 10, Color("5a4028"), 1.8)
-			draw_arc(Vector2(-sw, y + 2.0), 9.0, PI + 0.2, TAU - 0.2, 10, Color("4a3420"), 1.4)
+			DrawBatch.arc(self, Vector2(sw, y), 9.0, 0.2, PI - 0.2, 10, Color("5a4028"), 1.8)
+			DrawBatch.arc(self, Vector2(-sw, y + 2.0), 9.0, PI + 0.2, TAU - 0.2, 10, Color("4a3420"), 1.4)
 		for q in 3:
 			var p := Vector2(-10.0 + float(q) * 10.0, -3.0 + absf(sin(_t * 6.0 + float(q))) * -2.0)
-			draw_circle(p, 3.4, A.OUTLINE)
-			draw_circle(p, 2.6, Color("8a6a44"))
+			DrawBatch.circle(self, p, 3.4, A.OUTLINE)
+			DrawBatch.circle(self, p, 2.6, Color("8a6a44"))
 
 
 # ============================================================
@@ -309,17 +309,17 @@ func draw() -> bool:
 	Art.fill_shaded(z, pts, pon, 0.15, 0.35)
 	for q in 3:
 		var yy := sh.y + 5.0 + float(q) * 5.0
-		z.draw_line(Vector2(sh.x - 9.0, yy), Vector2(sh.x + 10.0, yy), col(Color("c89a40") if q == 1 else Color("2a1a12")), 1.2)
-	z.draw_rect(Rect2(hip + Vector2(-8, -2), Vector2(17, 3)), col(Color("8a1a14")))   # פחה אדומה
+		DrawBatch.line(z, Vector2(sh.x - 9.0, yy), Vector2(sh.x + 10.0, yy), col(Color("c89a40") if q == 1 else Color("2a1a12")), 1.2)
+	DrawBatch.rect(z, Rect2(hip + Vector2(-8, -2), Vector2(17, 3)), col(Color("8a1a14")))   # פחה אדומה
 	Art.oval_shaded(z, head, 5.2, 5.6, sk, 0.0)
 	face(head, Vector2(3.2, -0.6))
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.2, -0.5), 0.9, Color(1.0, 0.4, 0.2))
-	z.draw_line(head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a1a14")), 1.4)   # שפם
+		DrawBatch.circle(z, head + Vector2(3.2, -0.5), 0.9, Color(1.0, 0.4, 0.2))
+	DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a1a14")), 1.4)   # שפם
 	# כובע רחב שוליים
 	Art.fill(z, PackedVector2Array([head + Vector2(-10, -3.5), head + Vector2(11, -3.5), head + Vector2(10, -2), head + Vector2(-9, -2)]), col(Color("2a221c")), Art.OUTLINE, 0.8)
 	Art.fill(z, PackedVector2Array([head + Vector2(-5, -4), head + Vector2(5, -4), head + Vector2(4, -9), head + Vector2(-4, -9)]), col(Color("2a221c")), Art.OUTLINE, 0.8)
-	z.draw_line(head + Vector2(-5, -5), head + Vector2(5, -5), col(Color("8a1a14")), 1.0)
+	DrawBatch.line(z, head + Vector2(-5, -5), head + Vector2(5, -5), col(Color("8a1a14")), 1.0)
 	# יד קדמית + הבולאדורס
 	var hf: Vector2
 	if state == SPIN and not z.dead:
@@ -328,16 +328,16 @@ func draw() -> bool:
 		var a: float = z._time * 18.0
 		for q in 3:
 			var bp := c + Vector2(cos(a + float(q) * TAU / 3.0) * 16.0, sin(a + float(q) * TAU / 3.0) * 5.0)
-			z.draw_line(hf, bp, col(Color("5a4028")), 1.0)
-			z.draw_circle(bp, 2.6, Art.OUTLINE)
-			z.draw_circle(bp, 2.0, col(Color("8a6a44")))
-		z.draw_arc(c, 16.0, 0, TAU, 16, Color(1, 1, 1, 0.18), 1.0)
+			DrawBatch.line(z, hf, bp, col(Color("5a4028")), 1.0)
+			DrawBatch.circle(z, bp, 2.6, Art.OUTLINE)
+			DrawBatch.circle(z, bp, 2.0, col(Color("8a6a44")))
+		DrawBatch.arc(z, c, 16.0, 0, TAU, 16, Color(1, 1, 1, 0.18), 1.0)
 	else:
 		hf = sh + Vector2(10.0 + sin(p) * 2.0, 14.0)
 		for q in 3:   # בולאדורס תלויות מהיד
 			var bp2 := hf + Vector2(-3.0 + float(q) * 3.0, 6.0 + float(q % 2) * 3.0)
-			z.draw_line(hf, bp2, col(Color("5a4028")), 0.8)
-			z.draw_circle(bp2, 2.0, col(Color("8a6a44")))
+			DrawBatch.line(z, hf, bp2, col(Color("5a4028")), 0.8)
+			DrawBatch.circle(z, bp2, 2.0, col(Color("8a6a44")))
 	z._arm(sh + Vector2(3, 1), hf, sk, pon)
 	end_draw()
 	return true

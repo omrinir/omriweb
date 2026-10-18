@@ -114,24 +114,24 @@ func draw() -> bool:
 		z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-12, 0), sh + Vector2(-5, 0), sh + Vector2(-5, 14), sh + Vector2(-12, 14)]), col(Color("4a4030")), 0.15, 0.4)   # תיק
 	for q in 2:   # מוקשים בתיק
-		z.draw_circle(sh + Vector2(-8.5, 3.0 + float(q) * 5.0), 2.2, col(Color("3a3e30")))
+		DrawBatch.circle(z, sh + Vector2(-8.5, 3.0 + float(q) * 5.0), 2.2, col(Color("3a3e30")))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 3.0, 14.0), Art.shade(sk, 0.25), Art.shade(vest, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)]), vest, 0.12, 0.4)
 	for q in 4:   # כיסים
-		z.draw_rect(Rect2(sh + Vector2(-4.0 + float(q % 2) * 5.0, 4.0 + float(q / 2) * 5.0), Vector2(4, 3)), col(Color("4a3e2a")))
+		DrawBatch.rect(z, Rect2(sh + Vector2(-4.0 + float(q % 2) * 5.0, 4.0 + float(q / 2) * 5.0), Vector2(4, 3)), col(Color("4a3e2a")))
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	face(head)
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-3, -7), head + Vector2(5, -6), head + Vector2(7, -3), head + Vector2(-5, -1)]), col(Color("7a2a24")), Art.OUTLINE, 0.9)   # כומתה
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
+		DrawBatch.circle(z, head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
 	var hand: Vector2
 	if kneel:
 		hand = hip + Vector2(14, 6 + sin(z._time * 14.0) * 2.0)
 	else:
 		hand = sh + Vector2(9.0 + sin(p) * 3.0, 13.0)
 	z._arm(sh + Vector2(3, 1), hand, sk, vest)
-	z.draw_line(hand, hand + Vector2(0, -8 if not kneel else 4), col(Color("5a4028")), 2.0)   # ידית את
-	z.draw_rect(Rect2(hand + Vector2(-2.5, (-12 if not kneel else 4)), Vector2(5, 4)), col(Color("8a8e90")))
+	DrawBatch.line(z, hand, hand + Vector2(0, -8 if not kneel else 4), col(Color("5a4028")), 2.0)   # ידית את
+	DrawBatch.rect(z, Rect2(hand + Vector2(-2.5, (-12 if not kneel else 4)), Vector2(5, 4)), col(Color("8a8e90")))
 	end_draw()
 	return true
 
@@ -187,11 +187,11 @@ class Mine extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
-		draw_colored_polygon(Art.ellipse(Vector2(0, -1), 11.0, 3.5, 0.0, 14), Color("3a3e30"))
-		draw_rect(Rect2(-3, -5, 6, 3), Color("5a5e50"))
+		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -1), 11.0, 3.5, 0.0, 14), Color("3a3e30"))
+		DrawBatch.rect(self, Rect2(-3, -5, 6, 3), Color("5a5e50"))
 		var on := _click >= 0.0 or fmod(_t, 1.2) < 0.15
-		draw_circle(Vector2(5, -3), 1.4, Color(1.0, 0.15, 0.1) if on else Color(0.35, 0.08, 0.06))
+		DrawBatch.circle(self, Vector2(5, -3), 1.4, Color(1.0, 0.15, 0.1) if on else Color(0.35, 0.08, 0.06))
 		if on:
-			draw_circle(Vector2(5, -3), 4.0, Color(1.0, 0.2, 0.1, 0.35))
+			DrawBatch.circle(self, Vector2(5, -3), 4.0, Color(1.0, 0.2, 0.1, 0.35))
 		for q in 3:   # עפר מעליו
-			draw_line(Vector2(-10.0 + float(q) * 8.0, -1), Vector2(-7.0 + float(q) * 8.0, -3), Color("6a5a44"), 1.5)
+			DrawBatch.line(self, Vector2(-10.0 + float(q) * 8.0, -1), Vector2(-7.0 + float(q) * 8.0, -3), Color("6a5a44"), 1.5)
