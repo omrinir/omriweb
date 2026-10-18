@@ -59,6 +59,9 @@ enum {
 	SHEARER, DRIFTER, TUMBLER,     # שלב 55 (ערבת הרוח - פטגוניה). SHEARER = גם הבוס (THE ESTANCIERO)
 	THAWED, BUOY, SEALER,          # שלב 56 (פיורד הקרח). THAWED = גם הבוס (THE GLACIER)
 	WADDLER, MURMUR, BLUBBER,      # שלב 57 (חוף הפינגווינים). WADDLER = גם הבוס (THE BEACHMASTER)
+	FLENSER, SKUA, BONECRAWLER,    # שלב 58 (בית הקברות של הלווייתנים). FLENSER = גם הבוס (THE BONE KING)
+	CHARRED, ASHMOTH, DAMBUILDER,  # שלב 59 (היער השחור). CHARRED = גם הבוס (THE PYRE)
+	SPECIMEN, BLOOM, WARDEN,       # שלב 60 (מעבדת הקרחון). SPECIMEN = גם הבוס (SUBJECT FOUR)
 }
 
 const FIRST := 20
@@ -228,6 +231,15 @@ const TYPES := {
 	WADDLER: "res://enemies/types/waddler.gd",
 	MURMUR: "res://enemies/types/murmur.gd",
 	BLUBBER: "res://enemies/types/blubber.gd",
+	FLENSER: "res://enemies/types/flenser.gd",
+	SKUA: "res://enemies/types/skua.gd",
+	BONECRAWLER: "res://enemies/types/bonecrawler.gd",
+	CHARRED: "res://enemies/types/charred.gd",
+	ASHMOTH: "res://enemies/types/ashmoth.gd",
+	DAMBUILDER: "res://enemies/types/dambuilder.gd",
+	SPECIMEN: "res://enemies/types/specimen.gd",
+	BLOOM: "res://enemies/types/bloom.gd",
+	WARDEN: "res://enemies/types/warden.gd",
 }
 
 static var _stats_cache := {}

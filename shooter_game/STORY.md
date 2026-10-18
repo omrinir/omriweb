@@ -1,7 +1,7 @@
 # THEY LEARN: the story
 
 This is the story bible for the whole game (levels 1 to 63). It makes the earlier levels fit together and plans the rest.
-Levels 1 to 57 are built, 58 to 60 are being built now, and 61 to 63 are planned.
+Levels 1 to 60 are built, and 61 to 63 are planned.
 
 ## The one-line version
 
@@ -90,46 +90,88 @@ There is no leader any more. The hive thinks as one, and it starts to show it. S
 
 ### 58 WHALE GRAVEYARD: "They learned to wear the dead"
 
-- **Setting.** An abandoned whaling station on a grey beach: whale skeletons, flensing platforms, rusted tryworks and oil tanks.
+- **Setting.** PUERTO HUESO, a whaling station abandoned since 1911, on a grey shingle beach under a low sun. Whale
+  skeletons and rib arches, a flensing platform, rusted oil tanks and try-pots, harpoon cannons, a catcher boat on the
+  slipway and the whalers' cemetery.
 - **Lesson.** The spores carried thousands of headshot deaths, so the hive learned that skulls break and whale bone does not.
-  It also learned that ECHO can grow in any dead thing, not only in people, and the dead here are enormous.
+  So they wear bone. It also learned that ECHO can grow in any dead thing, not only in people, and the dead here are
+  enormous.
 - **New zombies.**
-  - **FLENSER.** A station worker with a flensing knife on a pole and a whale-bone shield. It moves the shield to where you aim.
-    The boss is THE BONE KING, a giant with a whale skull for a helmet.
-  - **SKUA (flyer).** Stitched-on wings of baleen and seal skin. It dives like a seabird and climbs away. Shoot a wing and it spirals
-    down. After a few dives get shot, it starts to feint.
-  - **BONECRAWLER.** Several dead fused inside a whale rib cage, walking it like a giant bone centipede. The ribs stop bullets.
-- **Story.** The station has become an ECHO farm: spore-covered carcasses and hive marks on the tanks. The hive is growing new bodies.
+  - **FLENSER.** A station worker with a flensing knife on a pole and a whale shoulder blade as a shield. You learn to shoot
+    under it, so it learns to move the shield to where you aim. The boss is **THE BONE KING**, a giant with a whale skull
+    for a helmet and a jawbone for a shield. In the fight he learns to guard his back and to read your aim.
+  - **SKUA (flyer).** Stitched-on wings of baleen and seal skin. It soars, folds and stoops like the coast's skuas, then
+    climbs away. Shoot a wing and it spirals down. After a few of them are brought down, the rest feint the dive and come
+    again from the other side.
+  - **BONECRAWLER.** Several dead fused inside a whale rib cage around a glowing ECHO heart, walking it like a bone
+    centipede. Bullets break the ribs one by one before they reach the heart. After a few hearts are destroyed, they turn
+    their armoured end to you and curl up when hurt.
+- **Story (environmental, no scene).** The station has become an ECHO farm.
+  - The whale carcasses breathe, glow with pustules and give birth to BONECRAWLERs.
+  - The hive has written to the hero in glowing fungus on the oil tanks: "WE REMEMBER", "COME HOME / ZERO", "ANY DEAD /
+    WILL DO".
+  - At the boss's throne a sign reads "PLAN No 2 - HE WEARS THEM ALL".
+  - The hero reads it aloud: "Writing on the tanks... they're writing to me." / "They grow in the whales now. Anything
+    dead will do."
+  - Near the end he sees smoke over the mountains to the west: "the forest is burning". That is the Black Forest (59).
+
+---------------------------------------------------------------------------------------------------------------------------
 
 ### 59 BLACK FOREST: "They learned to burn"
 
-- **Setting.** A burnt beech forest in Tierra del Fuego: black trunks, ash, fire lines, smoke, beaver dams.
-- **Lesson.** The hero burned thousands of them, and every burning death breathed out what fire feels like. So they wear ash and
-  charcoal, walk through flames, hide in smoke, and find the hero by the flash of his gun.
+- **Setting.** A burnt lenga forest in Tierra del Fuego after the fire: black trunks, grey ash, smoking stumps, fire
+  lines creeping over the ground, beaver ponds full of drowned trees, a ranger hut and a burning sawmill. The smoke comes
+  and goes; when it rolls in you see only what is near you.
+- **Lesson.** The hero burned thousands of them, and every burning death breathed out what fire feels like: fire eats
+  flesh, not charcoal. So they rolled in the hot ash until they were charcoal themselves. They walk through flames, hide
+  in the smoke, and find the hero by the flash of his gun.
 - **New zombies.**
-  - **CHARRED.** Charcoal crust that fire cannot hurt. Shots crack it, and a cracked one takes much more damage. It rolls in the ash
-    to re-crust. The boss is THE PYRE, a walking bonfire of fused bodies and burning logs.
-  - **ASHMOTH (flyer).** Moth wings of burnt bark and skin. It flies to the hero's muzzle flash and loses him when he stops shooting.
-    It learns to circle the last place it saw the flash.
-  - **DAMBUILDER.** Wears beaver pelts and builds log barricades in front of the hero. It learned cover from him.
-- **Story scene (THE STRANGER, last time).** He admits he is the one who gave the hero LETHE. The hero was the first voice of the
-  hive; if he went home, no one would be left who isn't them. He points to the Glacier Lab, where it started, and fades into
-  the smoke. A linked mind cannot follow where the hero is going.
+  - **CHARRED.** A charcoal crust that bullets only crack and fire cannot hurt; fire heals it ("FIRE DOESN'T WORK NOW").
+    Crack a side and the glowing flesh takes extra damage. It learns to hide its cracked side, then to roll in the ash
+    to re-crust. The boss is **THE PYRE**, a walking bonfire of fused bodies and burning logs that throws burning logs
+    and sends waves of fire along the ground. It learns to read your jump.
+  - **ASHMOTH (flyer).** Moth wings of burnt bark and skin. It flies to the hero's muzzle flash, not to the hero, and loses
+    him when he stops shooting and moves ("THEY FOLLOW YOUR GUNFIRE NOW"). It learns to circle the last place it saw the
+    flash and dive at the next shot.
+  - **DAMBUILDER.** A dead trapper in beaver pelts who builds log walls in front of the hero, hides behind them and lobs
+    embers ("THEY BUILD COVER NOW"). It learned cover from the hero. It learns to build better walls from wet logs.
+- **Story scene (THE STRANGER, last visit).** In the smoke the STRANGER says this is his last visit: where the hero is
+  going, he cannot follow. He confesses: "I did it. I took your memory. LETHE was mine." The hero was the first voice;
+  if he went home, there would be no one left who isn't them. He names the Glacier Lab: "It started there. And it wants
+  you back." Then "A linked mind can't follow you. Goodbye, Zero," and he fades into the smoke.
+
 
 ### 60 GLACIER LAB: "They learned where they came from"
 
-- **Setting.** Project ECHO's station inside the glacier: ice tunnels, labs, broken cryo tanks, blast doors, red alarms. ECHO fungus
-  covers the walls and pulses toward the deep levels (the ROOT).
-- **Lesson.** The hive learned where it was born and now guards its cradle. It learned the lab's own systems (doors, lockdowns)
-  and, from the files, the hero's own combat pattern.
+- **Setting.** Project ECHO's research station, built inside the glacier. There are ice tunnels in blue light, steel corridors,
+  labs with broken cryo tanks, specimen jars and server racks. Blast doors and red alarms seal the wings. ECHO fungus covers the
+  walls and pulses toward the deep levels (the ROOT).
+- **Lesson.** The hive learned where it was born, and it guards its cradle. It learned the lab's own systems: the alarm panels, and
+  that a blast door shuts the hero in. From the files it learned the hero's own combat pattern, so the subjects fight like the
+  soldiers ECHO was built for.
 - **New zombies.**
-  - **SPECIMEN.** Escaped test subjects, some thawing out of cryo tanks as you pass. They copy the hero's last move. The boss is
-    **SUBJECT FOUR**, one of the seven ECHO soldiers, who fights with the hero's own moves.
-  - **BLOOM (flyer).** A floating ECHO colony like a glowing jellyfish. It barely attacks: it **teaches**. Zombies under it learn
-    on the spot. This is the learning made visible in one enemy. Kill it first.
-  - **WARDEN.** Lab security with riot armour and keycards. They lock blast doors behind the hero and run ahead to lock the next.
-- **Story scene (SUBJECT ZERO).** At a terminal the hero finds his own file: original pattern, LETHE administered, "Do not let him
-  go home." The hive answers through the speakers: "Welcome home."
+  - **SPECIMEN.** Escaped test subjects that thaw out of cryo tanks as you pass, some of them behind you. They combat-roll like
+    soldiers, and once they have seen it beaten they copy the hero's last move: his roll, his crouch, his jump. The boss is
+    **SUBJECT FOUR**, one of the seven ECHO soldiers, fused with his rifle. He keeps the hero's favourite distance, rolls when shot
+    at, takes cover, aims where the hero ducks, and calls the last tanks open. On his death the hero says "Four of seven. I'm sorry,
+    brother."
+  - **BLOOM (flyer).** A floating ECHO colony like a glowing jellyfish. It barely attacks: it **teaches**. Glowing threads tie it
+    to the zombies under it, and they learn on the spot. They get faster and duck, and lesson rings fly to them. Shoot its glowing
+    nodes and the lesson breaks. Once it learns, it hides behind its students or rises to the ceiling. This is the learning made
+    visible in one enemy.
+  - **WARDEN.** Lab security in riot armour with a keycard. It runs to the alarm panel and seals the wing's blast doors, including
+    the one behind the hero. You have to kill it for its keycard. Once it learns, it runs ahead and locks the next door before
+    the hero gets there.
+- **Story scene (SUBJECT ZERO).** In the file archive the hero finds his own file on a terminal, with his photo. The terminal reads
+  it in a flat recorded voice:
+  - "Subject Zero. Pattern: original, unmutated."
+  - "Status: LETHE administered."
+  - "If the network reclaims him, every mind becomes one. Do not let him go home."
+  - The hero: "Home...? This is where I came from."
+
+  The fungus swallows the screen and the lights die. In the cryo tank beside him a specimen opens green eyes, and the hive answers
+  through the speakers: "Welcome home." After the scene, the archive tanks break open.
+
 
 ### Planned: 61 to 63
 

@@ -2357,6 +2357,697 @@ lesson from every kill to the nearest zombie. The stage adds nothing on top of i
   - An earlier bot run had a single 309 ms frame at x~3384 (first use of something). It did not happen again on the final run.
   - Godot prints "1 resources still in use at exit" at the end of the headless traps test. This comes from the test harness quitting.
 
+## Stage 58 - "WHALE GRAVEYARD" (THEY LEARNED TO WEAR THE DEAD)
+
+Zone 7 (Patagonia), stage 4. After the CHORUS on the penguin coast (57) the hero follows the coast to PUERTO HUESO, a
+whaling station abandoned since 1911. The spores carried thousands of headshot deaths, so the hive learned that skulls
+break and whale bone does not. So the dead wear the dead. It also learned that ECHO can grow in any dead thing, and the
+dead here are enormous: the station has become an ECHO farm. Carcasses breathe and give birth, and the hive writes to the
+hero on the oil tanks. In the west, over the mountains, a column of smoke: the Black Forest is burning (59).
+
+**Files**
+- `levels/stage_58.gd` - layout, spawns, skua waves, intro hints, the hero's story lines. Sounds `s58_pop`, `s58_gurgle`,
+  `s58_burst`, `s58_crank`, `s58_click`, `s58_harpoon`, `s58_thunk`, `s58_hiss`, `s58_wind`, `s58_gulls` (synthesised; no
+  new files). Music `level1_total_war.mp3`.
+- `effects/s58_decor.gd` - sky + 3 parallax layers, all world objects, traps and screen FX.
+- `enemies/types/flenser.gd` - FLENSER and the boss THE BONE KING.
+- `enemies/types/skua.gd` - SKUA (+ `WingBody`).
+- `enemies/types/bonecrawler.gd` - BONECRAWLER.
+- `map/thumbs/level_58.png` - level card.
+- Death spores need nothing extra: zombie.gd already sends `SporeScript` (SPORE_FROM 55) on every death.
+
+**Background (Backdrop)**
+- `grey_sky`: heavy grey sky, a pale peach band on the horizon, a low sun behind cloud with god-rays, distant rain
+  curtains, gulls and skuas soaring.
+- `far_isle` (0.06): steep snowy mountains with glaciers running into the sea and a low cloud stuck halfway up. In the
+  west, a smoke column with an orange glow: the burning forest of 59.
+- `mid_harbor` (0.28): the grey bay with waves, plus the far shore with:
+  - rusty sheds, oil tanks and a white church with a spire;
+  - a jetty and a half-sunk catcher with a harpoon gun;
+  - a bloated whale carcass floating with gulls and a green glow.
+- `near_bones` (0.6): the dark shingle bank with:
+  - tussock grass, vertebrae and skulls, rib arches;
+  - a rusty try-pot and a slipway rail;
+  - the whalers' cemetery (crooked crosses) and glowing ECHO fungus on the bones.
+- `grey_overlay`: a cold haze behind the figures.
+- `GreyFX` (screen): fine slanted drizzle, drifting fog, and a sea gust every `GUST_EVERY` (`gust()` forces one; the last
+  story line does).
+
+**Layout / upper floors**
+- `ARCH_X` 380: `BoneArch`, two whale jawbones with the sign "PUERTO HUESO / CIA. BALLENERA 1911".
+- `TANKS` (1250, 1560, 6250): `OilTank`s. Each has a roof deck at `TANK_TIER` 170 (invisible `add_floor` + ladder) with
+  AMMO (the second tank has HEALTH). The hive writing on them is glowing fungus letters: "WE REMEMBER", "COME HOME / ZERO",
+  "ANY DEAD / WILL DO". A SKUA perches on tanks 2 and 3.
+- `PLAN_X` 2900: `FlensingPlan`, the flensing platform: a wooden stage on piles at `PLAN_TIER` 140, two ladders, a winch,
+  hooks on chains and a half-flensed whale. A GRENADE and AMMO are up there, guarded by a FLENSER.
+- `CARCASSES` (3880, 6950): `EchoCarcass` traps (below).
+- `BOAT_X` 4900: `CatcherBoat` "TORMENTA" on the slipway rail, with:
+  - the deck at `BOAT_DECK` 120 (2 ladders) and the cab roof at `BOAT_CAB` 215 (ladder from the deck, HEALTH on top);
+  - the crow's nest on the mast (a SKUA perches there);
+  - a `HarpoonGun` on the bow.
+- `GUNS`: the bow gun at 4880 and a gun on a low concrete base at 7900.
+- `POTS` (2150, 5850): `TryPot`s.
+- `ARENA_X` 9240: the boss arena in front of `BoneThrone`, a giant whale skull as a throne with a jawbone fence, an ECHO
+  nest and a "PLAN No 2 / HE WEARS THEM ALL" sign. In the arena:
+  - `ARENA_CASKS` at 9420 and 10120: oil casks; the boss's ram jams on them;
+  - a raised plank at 130 with a GRENADE;
+  - HEALTH and AMMO at the arena entrance.
+- Obstacles come from `custom_gen` as `Decor.Obstacle`: `casks`, `boiler` (rusty boiler on its side), `bones` (bone pile)
+  and `winch` (steam winch).
+- Every world object and placed spawn has a `reserve()`d rect, so generated obstacles never cover them.
+- `extra_spawns`:
+  - FLENSERs at `FLENSERS` plus one on the flensing platform;
+  - BONECRAWLERs at `CRAWLERS` (5300, 8350);
+  - 3 perched skuas;
+  - a regular on every deck;
+  - 2 regulars in the arena.
+- Skua waves (`_waves`): at `SKUA_WAVES` the stage launches 1 skua from the sky (meta `sk_fly`), 2 once skuas have
+  learned ("Two of them... from both sides."). Two limits:
+  - Never more than `SKUA_MAX` 3 in the air.
+  - Waves the player passed by more than 700 px are skipped. A skua farther than 1600 px from the player despawns, so
+    teleports and fast runs never pile them up.
+- `_hints`: the first time each type is near, it gets an intro popup plus a hero line:
+  - FLENSER: "THEY WEAR BONE NOW" / "Skulls break... whale bone doesn't. Shoot UNDER the shield."
+  - SKUA: "THEY DIVE NOW" / "They learned it from the skuas... SHOOT THE WINGS."
+  - BONECRAWLER: "THEY GROW IN ANY DEAD NOW" / "A whale's ribcage... with people inside. Break the ribs."
+- `LINES` (environmental story, the hero talking to himself):
+  - 1120: "Writing on the tanks... they're writing to me."
+  - 3700: "They grow in the whales now. Anything dead will do."
+  - 8050: "Smoke over the mountains... the forest is burning." This one also forces a sea gust.
+
+**Traps** (`s58_decor.gd`)
+- `EchoCarcass` (the womb):
+  - A whale carcass covered in ECHO growths with glowing pustules (`PustuleBody`, `PUS_HP` 8 each).
+  - Walk within `TRIG_R` 420 and it heaves (`WARN_T` 1.1, gurgle). Then it gives BIRTH: the ribs burst, a BONECRAWLER
+    climbs out, and a spore cloud (`CLOUD_R` 280) sways the player's aim for `SWAY_T` 2.2 s.
+  - Pop every pustule before it is triggered and it is "STILLBORN" (no birth, hero line).
+- `HarpoonGun`: a harpoon cannon with a dead gunner grown into it (`GunnerBody`).
+  - While you are in front of it in `RANGE` 780, it aims (`AIM_T` 0.9), locks with a laser line (`LOCK_T` 0.45), and fires
+    a `Harpoon` (`V` 980). The harpoon does `DMG` 2 to the player and skewers every zombie on the way (`DMG_Z` 110,
+    "IMPALED"), so you can bait it into a crowd.
+  - Reloads in `CD` 3.2 s. Shoot the gunner (`GUNNER_HP` 40) and it is silent for good ("GUNNER DOWN").
+- `TryPot`: two iron pots of boiling whale oil over a fire.
+  - Shoot a pot (`PotBody`, `POT_HP` 2 hits) or blast it, and it cracks and spills burning oil: a `FireZone` `SPILL_W` 250
+    wide for `BURN_T` 5 s.
+  - It burns the player and sets zombies on fire.
+- `Harpoon` (projectile, also used by the boss throw):
+  - `thrower` is never impaled by its own harpoon.
+  - `pull` > 0 drags the player toward the thrower and calls `thrower.type_mod.harpoon_hit(pl)`.
+  - `dmg` overrides the gun's damage.
+
+**FLENSER** - a station worker: a thick wool sweater, an oilskin apron soaked in blubber and blood, a watch cap, a beard.
+In one hand a flensing knife on a long pole (a hockey-stick blade); on the other forearm a whale shoulder blade (scapula)
+tied on with rope as a shield, cracked and dotted with spores.
+- **What he learned:** "you shoot the head." Skulls break and whale bone does not, so he wears bone.
+- **The shield:** blocks every front shot in its band (`SHIELD_H` 15 around `shield_y`). Walking, he holds it high
+  (`HIGH_Y` -49, head and chest).
+  - Shoot under it (belly or legs), from behind (x`BACK_MULT` 1.3), or blast it.
+  - Each blocked shot chips the bone ("BONE" popup, chip sound). The chip is the shot's base damage x`CHIP` 0.6, so
+    headshots do not break it faster: about 12 rifle shots break it. A blast chips `BLAST_CHIP` 60.
+  - At 0 `BONE_HP` 85 it shatters ("BONE SHATTERS", bone shards) and he goes into RAGE (x`RAGE` 1.3 speed).
+  - After 4 blocks the hero says "Whale bone stops bullets... shoot UNDER it".
+- **HOOK:** in `HOOK_R` 85..175 he pulls the pole back (`HOOK_WIND` 0.45). The shield drops low, so his head is open. Then
+  he stabs at ankle height (`HOOK_T`): jump it. A hit does `HOOK_DMG` 1, drags you to him ("HOOKED", `HOOK_PULL`) and
+  slows you.
+- **SLASH:** close in (`SLASH_R` 80) he raises the knife over his head (`SLASH_WIND` 0.42). The shield swings aside, so he
+  is open x`OPEN_MULT` 1.25. Then he chops, followed by `RECOVER` 0.55. `CD` 0.5-1.1 s between attacks.
+- **Learns:** front shots that go around the shield count in main meta `fl_around`. After `LEARN_AROUND` 8, the shield
+  tracks the height you aim at (the player's aim line at his x), after `TRACK_DELAY` 0.25 s at `TRACK_V` 80. Caption "IT
+  READS YOUR AIM NOW"; hero: "The bone follows my gun... aim high, then snap low". Counters: flick the aim, roll behind
+  him, grenades.
+
+**THE BONE KING** (boss; `chase_range > 600`, hp 470 base, scale 2.3, no ragdoll) - a giant flenser in a seal-skin cloak
+with:
+- a whale skull as a helmet (the rostrum sticks out like a beak);
+- a bowed whale jawbone as a shield;
+- harpoons stuck in his back and an ECHO growth bulging between his shoulders.
+- **Armour:** x`B_ARMOR` 0.85 everywhere.
+  - The skull helmet: head shots x`SKULL_MULT` 0.3 until it breaks (`SKULL_HP` 150, "SKULL BROKEN", hero: "The skull's
+    off - GO FOR THE HEAD").
+  - The jaw blocks the band in front while raised (`JAW_HP` 320, "JAWBONE", "JAW BROKEN").
+  - The ECHO growth on his back takes x`GROWTH_MULT` 1.6.
+- **SWEEP:** the jaw swings low and wide (`B_SWEEP_R` 250, `B_SWEEP_WIND` 0.55, `B_SWEEP_DMG` 2): jump. Afterwards he is
+  open in front (x`B_OPEN_MULT`).
+- **RAM:** he charges skull first (`RAM_V` 540, `RAM_DMG` 2). If he hits a wall, obstacle or the arena casks he gets stuck
+  (`STUCK_T` 1.7, "STUCK - HIT HIS BACK", back x`STUCK_MULT` 2.0).
+- **THROW:** at range (`THROW_R` 330, every `THROW_CD` 6 s) he throws a roped harpoon. A hit drags you to him ("REELED IN").
+- **CALL:** he bellows and `CALL_N` 2 FLENSERs come in (`CALL_CD` 13 s, at most `CALL_MAX` 2 calls).
+- He turns slowly (`TURN_T` 0.9), so roll behind him. If a wall or cask blocks his walk, he jumps it.
+- **Learns in the fight:**
+  - After `BACK_LEARN` 10 back hits: "IT GUARDS ITS BACK NOW". He turns fast (`TURN_T_LEARN` 0.25) and sweeps backwards.
+    Hero: "He turns faster now... hit him while he's stuck".
+  - Below half hp: "IT READS YOUR AIM NOW". The jaw tracks your aim. Hero: "The jaw follows my aim... feint it, or get
+    behind him".
+- `B_CD` 0.7-1.4 s between attacks; he is never idle for long.
+
+**SKUA** (the flyer) - a dead man who sewed himself wings: baleen plates tied to his forearms like primary feathers, with
+seal skin stitched between them as the membrane. A seal-skin hood and a hooked beak of whale tooth tied over his face.
+- **What it learned:** the coast's skuas hunt like this. They soar high, stoop on prey from behind and climb away; the
+  dead watched it from the beach for years. It does not drift with the wind (DRIFTER, 55) and it is not a flock (MURMUR,
+  57): it is one fast raptor that hits and leaves.
+- **PERCH:** sits on a mast or tank roof with the wings folded like a cloak. You within `PERCH_R` 640 → TAKEOFF.
+- **SOAR:** high (`SOAR_H` 240-320) on your side (`SOAR_OFF` 240) in wide circles (`SOAR_V` 270). It always stoops within
+  `SOAR_T` 1.5-2.7 s. Its shadow on the ground is the hint.
+- **STOOP_W:** it stops in the air, folds its wings and screeches (`STOOP_WIND` 0.38, a "!" over it). That is the warning.
+- **STOOP:** a straight, fast dive (`STOOP_V` 650, `STOOP_MAX` 1.1 s) at where you are (it corrects a little). A rake does
+  `RAKE_DMG` 1 and it carries on past you. Jump or roll under it.
+- **CLIMB:** it climbs heavily on the far side with the wings spread and beating hard (`CLIMB_T` 0.85, `CLIMB_V` 300). This
+  is its biggest target.
+- **Counter - the wings:**
+  - Each wing is a `WingBody` (layer 4, radius 17*sc, `WING_HP` 16). They are hittable only while spread (SOAR, CLIMB,
+    the pull-up of a feint). Folded in the dive, only the small body is open.
+  - One ripped wing ("WING!", feathers and skin scraps) sends it into SPIRAL: it tumbles toward the broken side shedding
+    debris and crashes (`CRASH_DMG` 70, "GROUNDED!", blood).
+  - Fire bullets set a wing on fire ("WING ON FIRE"). An explosion tears both wings.
+- **Learns:** every skua brought down by the wings counts in main meta `sk_downs`. After `LEARN` 3:
+  - "THEY FEINT THE DIVE NOW". In a stoop (`FEINT_CHANCE` 0.65), it pulls up just before it reaches you (`FEINT_R` 210).
+  - It passes over you to the other side and dives again from there after a short wind-up (`FEINT_WIND` 0.16). Hero:
+    "It pulled up - wait for the second dive!".
+  - Counter: do not roll early; wait for the second dive, or shoot it during the pull-up (the wings open).
+  - The stage then sends waves in pairs.
+- Flight `collision_mask` is 1 (it flies through platforms); on death or crash it becomes 1|16 so the body lands on decks.
+- Emits `Game.story "flyer"` on its first stoop (the monologue's flyer line, like the buoy).
+
+**BONECRAWLER** - three or four dead fused inside a whale rib cage, walking it like a giant bone centipede:
+- a spine on top and curved ribs all round;
+- the dead's arms and legs sticking out between the ribs as its legs;
+- one head in front (leading) and one behind;
+- inside, a glowing ECHO heart (the core) that holds them together.
+- **What it learned:** ECHO grows in any dead thing, even other species. The whales died here a century ago and the spores
+  found armour ready made. It is born from the carcasses (`EchoCarcass`) and also roams the station.
+- **The ribs:**
+  - `RIBS` 3 at each end, `RIB_HP` 20 each, about 2 rifle shots per rib. A hit on an end breaks that end's outer rib
+    ("RIB BROKEN", bone debris), and only `LEAK` 0.2 of the damage goes through.
+  - An end with no ribs left exposes the core from that side: x`CORE_MULT` 1.6, "CORE OPEN!", hero: "The ribs are gone -
+    SHOOT THE HEART".
+  - From above it is the spine (x`SPINE_MULT` 0.35). Fire gets between the ribs (x`FIRE_MULT` 1.25). A blast breaks one rib
+    at each end.
+- **REAR → SNAP:** in `REAR_R` 150 the front rears up and the ribs open like jaws (`REAR_T` 0.6). The core is open from the
+  front here, which is the window. Then it lunges (`SNAP_V` 380, `SNAP_T` 0.26, `SNAP_DMG` 2), followed by `RECOVER_T`
+  0.55. `REAR_CD` 1.1-1.9 s.
+- **Learns:** cores destroyed count in main meta `bc_cores` (a kill counts if any core hit landed). After `LEARN` 2: "IT
+  TURNS ITS BONES TO YOU NOW".
+  - It always turns the end with more ribs toward you (`TURN_T` 0.45), walking backwards if it must.
+  - After a burst of damage (`CURL_DMG` 32 within `CURL_WIN` 1 s) it curls into a ball for `CURL_T` 1.6 s (x`CURL_MULT`
+    0.2, "CURLED"), with `CURL_CD` 4.5 s between curls. Hero: "It curls up when I hurt it... get behind it".
+  - Counters: get to the other side (roll or jump over it), grenades, or wait for REAR.
+- No ragdoll. Its corpse draws flat on the ground with folded legs and a dark, burst heart. zombie.gd's corpse rotation
+  (rest angle 90°, +19*sc offset) is meant for upright bodies, so `draw()` sets its own transform when `z.dead`.
+- `_floor()` + an unstick guard: if it ends up more than 6 px below the floor, it snaps back up.
+
+**Tunables** - in each file header.
+- Stage: `ARCH_X`, `TANKS`, `TANK_TIER`, `PLAN_X`, `PLAN_TIER`, `CARCASSES`, `BOAT_X`, `BOAT_DECK`, `BOAT_CAB`, `GUNS`,
+  `POTS`, `FLENSERS`, `CRAWLERS`, `SKUA_WAVES`, `SKUA_MAX`, `LINES`, `ARENA_X`, `ARENA_CASKS`, `HARDER`.
+- `zombie_weights()`: FLENSER 0.04, SKUA 0.02, BONECRAWLER 0.02, regulars 0.57, runners 0.35.
+- Balance was not touched (no god mode, no big ammo piles).
+
+---------------------------------------------------------------------------------------------------------------------------
+
+## Stage 59 - "BLACK FOREST" (THEY LEARNED TO BURN)
+
+Zone 7 (Patagonia), stage 5. A burnt lenga forest in Tierra del Fuego, after the fire: black trunks, grey ash, smoking
+stumps, creeping fire lines, beaver ponds full of drowned trees, and a red sun seen through the smoke. The hero burned
+thousands of them with flamethrowers, molotovs and barrels. Every one that died in fire breathed out the same lesson:
+fire eats flesh, not charcoal. So they rolled in the hot ash until they became charcoal themselves. They walk through
+flames, hide in the smoke and find the hero by his muzzle flash. Here the STRANGER visits for the last time and confesses.
+
+**Files**
+- `levels/stage_59.gd` - the smoke cycle, the muzzle-flash tracker, layout, spawns, moth waves, hints, story hooks. Sounds
+  `s59_crackle`, `s59_flare`, `s59_creak`, `s59_crack`, `s59_thud`, `s59_whoosh`, `s59_hiss`, `s59_splash` (synthesised;
+  no new files). Music `level1_total_war.mp3`. `world_tint` Color(1.04, 0.95, 0.88).
+- `effects/s59_decor.gd` - sky + 3 parallax layers, all world objects, traps, screen FX, and the shared state `U`.
+- `enemies/types/charred.gd` - CHARRED and the boss THE PYRE (+ `Cinders`, `EmberPatch`, `BurningLog`, `FireWave`,
+  `PyreFlash`).
+- `enemies/types/ashmoth.gd` - ASHMOTH (+ `WingBody`).
+- `enemies/types/dambuilder.gd` - DAMBUILDER (+ `Dam`, `Ember`).
+- `story/scenes/l59_stranger.gd` + `sounds/story/l59_stranger/` - the STRANGER's last visit.
+- `map/thumbs/level_59.png` - level card.
+
+**The smoke (the stage mechanic)**
+- `smoke_k()` returns 0..1; `thick()` is `smoke_k() > 0.6`.
+- Cycle (`_smoke_tick`):
+  - CLEAR for `CLEAR_T` 9-13 s (the first one is `FIRST_CLEAR` 14 s);
+  - ROLL for `ROLL_T` 2 s: the smoke rolls in with `s59_whoosh`. The first time, the hero says "Smoke... I can't see
+    them. Can they see me?";
+  - THICK for `THICK_T` 6 s;
+  - THIN for `THIN_T` 2.5 s, back to CLEAR.
+- `force_smoke()` starts the smoke now and `clear_smoke()` thins it now (story scene, tests).
+- What the smoke does:
+  - On screen, `SmokeFX` draws drifting smoke banks and a radial smoke wall around the player (clear inside 190 px, thick
+    from 430 px out), plus a dark top edge. Far things fade into it.
+  - CHARRED further than `SMOKE_R` 230 px fade out. Only their glowing cracks and ember eyes stay visible.
+  - ASHMOTH waves come in pairs while the smoke is over 0.4.
+- **The muzzle flash** (`_flash_tick`): every new `Game.shot_id` with `player._muzzle_flash > 0` is a flash. Arrows,
+  molotovs and the flamethrower have no flash.
+  - It sets `last_flash()` (world position at the muzzle) and `flash_age()` (seconds), which ASHMOTH reads.
+  - It sets `Decor.U.flash` / `U.flash_pos`, so the shot lights up the smoke in a warm glow ("they see that").
+- **Water:** in the beaver ponds `player.in_water` is set (slow walk), and `in_water_at(p)` tells a CHARRED it is in
+  water. The water douses fire and softens the crust.
+- `Decor.U` (static) is updated by the stage every frame: `smoke`, `flash`, `flash_pos`, `pocket` (the player on screen),
+  `sparks_ms`.
+
+**Background (Backdrop)**
+- `forest_sky`: brown-grey above, amber near the horizon, a red coin sun through the smoke, drifting smoke bands, embers
+  rising high, and a condor.
+- `far_range` (0.06): the snowy Martial range (orange-tinted snow), the Beagle Channel, distant slope fires with smoke
+  columns.
+- `mid_burn` (0.28): hills of burnt lenga trunks, an island of living green forest that the fire missed (two-tier trees
+  following the hill), fire fronts on the slope, and smoke.
+- `near_forest` (0.6): thick black trunks with "alligator" charcoal and glowing cracks, beaver-cut pointed stumps,
+  smoking stumps, fallen trunks and ash heaps.
+- `forest_overlay`: warm haze behind the figures plus low smoke bands that get stronger with `U.smoke`.
+
+**Layout / upper floors**
+- `SIGN_X` 300: `ParkSign` (charred park entrance sign) with a fire-danger dial on "PELIGRO DE INCENDIO: EXTREMO".
+- `HUT_X` 1050: `RangerHut` "GUARDAPARQUES", half burnt. Its porch roof is a floor at `HUT_TIER` 150 (invisible
+  `add_floor` + 2 ladders) with AMMO and HEALTH on top.
+- `PONDS` 2420 (w 520) and 7640 (w 480): `BeaverPond` - a flooded clearing with dark ash water, drowned trees and a beaver
+  lodge.
+  - The dam on the right side (`POND_DAM` 0.55 of the width) is a low floor at `DAM_TIER` 56.
+  - HEALTH sits on the second dam.
+  - The water x-range is added to `main._spawn_avoid`.
+- `TOWER_X` 4130: `LookoutTower` (wooden fire lookout), deck at `TOWER_TIER` 220 with a ladder, GRENADE and AMMO.
+- `STORY_X` 4500..6400: the clean story stretch (see Story hooks).
+- `TRUCK_X` 6500: `BurntTruck`, the rangers' burnt pickup. Its bed is a low floor at `TRUCK_TIER` 70 with AMMO.
+- `SAW_X` 9000: the boss arena in front of the burning sawmill `Sawmill` "ASERRADERO LAPATAIA", with a lit, fiery
+  interior so the boss reads against it. Also in the arena:
+  - a log deck at `SAW_DECK` (x+220, w 180), `SAW_TIER` 130, with a ladder and AMMO;
+  - HEALTH at `SAW_X`-110;
+  - log piles and a big saw blade.
+- `Stump`s at `STUMPS` (smoking stumps with embers, decor).
+- Obstacles come from `custom_gen` as `Decor.Obstacle`: `logs` (a pile of burnt logs), `stump` (a giant stump),
+  `boulder` (an erratic boulder with ash) and `rootball` (an upturned root ball). The name `crates` is not used.
+- Every placed spawn, building, trap and the story stretch is `reserve()`d, so generated obstacles never cover them.
+- `extra_spawns`:
+  - CHARRED at `CHARREDS` (1850 and 8470 stand inside a fire line);
+  - DAMBUILDER at `BUILDERS` (near the ponds);
+  - ASHMOTH roosting at `ROOSTS` (hut roof, tower deck, truck bed);
+  - 2 regulars in the arena.
+- Moth waves (`_waves`): at `MOTH_WAVES` the stage launches 1 ASHMOTH 640 px to one side of the player (meta `am_fly`).
+  - It launches 2 when the moths have learned or the smoke is over 0.4 ("More wings in the smoke...").
+  - Waves never land in the story stretch.
+- `_hints`: the first time each type is on screen it shows its intro popup and the hero says one line:
+  - CHARRED: "FIRE DOESN'T WORK NOW" / "They're burnt black... fire won't hurt them anymore. Crack the crust."
+  - ASHMOTH: "THEY FOLLOW YOUR GUNFIRE NOW" / "It came to the flash... stop shooting and it loses me."
+  - DAMBUILDER: "THEY BUILD COVER NOW" / "It's building a wall... it learned cover from me."
+- `zombie_density()` is 1.0 / 1.15 / 1.3 by difficulty (`HARDER`).
+
+**Traps** (`s59_decor.gd`)
+- `FireLine` (`FIRES` 1760, 3300, 6900, 8380; a `Hazard`, group `s59_fires`): a creeping line of fire on the ground.
+  - LOW (`LOW_T` 3.2-4.6 s): embers, safe to cross.
+  - WARN (`WARN_T` 0.85 s): crackle and sparks.
+  - FLARE (`FLARE_T` 2.6 s): tall flames that hurt you (`DMG` 1) and ignite zombies (`zombie_burn` 3).
+  - A CHARRED loves it: it heals and re-crusts inside the flames. A flaring line pulls an ASHMOTH that has no flash to
+    follow, and its wings can catch fire there.
+- `Snag` (`SNAGS` 2200, 3800, 7380, 8720): a burnt standing tree about to fall (a "widow-maker").
+  - Come within `TRIG_R` 300 and it creaks with sparks at the base and a shadow on the road (`WARN_T` 1.1).
+  - Then it falls across the road (`FALL_T` 0.55): `DMG` 2 to you, `DMG_Z` 70 to zombies.
+  - Shoot the glowing base (`SnagBody`) to drop it now, onto them.
+  - It leaves a `FallenLog`: a smoking trunk on the ground, low cover that you can jump.
+- `BeaverPond` water: slows you; a burning zombie that walks in is doused.
+
+**CHARRED** - a dead man burnt to charcoal: a black "alligator skin" crust with glowing orange cracks, ember eyes and
+smoke rising from the shoulders. Some wear the scorched yellow helmet of a forest firefighter (brigadista). Stiff and
+hunched.
+- **What it learned:** "FIRE DOESN'T WORK NOW." Fire eats flesh, not charcoal.
+- **The crust:** two sides, FRONT and BACK, `CRUST_HP` 30 each (a hit counts on the side it came from).
+  - A bullet on a crusted side only chips it: coal chips and sparks fly, and the body takes nothing.
+  - Once a side breaks ("CRACKED") the glowing flesh shows, and hits there do x`CRACK_MULT` 1.6 (head included).
+  - An explosion cracks both sides (`BLAST_CRUST` 40 each).
+  - In pond water the crust is soft (x`WATER_MULT` 2) and the fire goes out ("DOUSED").
+- **Fire feeds it:**
+  - Incendiary bullets and the flamethrower are absorbed. They chip at half (`INC_CHIP`) and set it alight.
+  - While it burns (fire line, molotov, flamethrower) it heals `FIRE_HEAL` 7 hp/s and regrows `REGROW` 12 crust/s. It is
+    STOKED (x`STOKE_SPEED` 1.35 for `STOKE_T` 2.5 s), with the popup "IT DRINKS THE FIRE" and the hero's line "Fire makes
+    them stronger! Keep them out of the flames."
+- **SWIPE:** it raises its glowing claws (`WIND_T` 0.45, the warning), then strikes (`DMG` 1, `SWIPE_R` 46).
+- **In smoke:** beyond `SMOKE_R` it fades out. Only the cracks and eyes stay, and a near shot's flash lights it up.
+- **Death:** it crumbles into a pile of charcoal (`Cinders`, all chips in one draw call, max 280), an ash cloud, and gore
+  per `Quality.gore()`.
+- **Learns** (main meta `ch_cracks`, the number of sides broken):
+  - At `HIDE_LEARN` 2: "IT HIDES ITS CRACKS NOW". A cracked side turns away from you: it walks at you backwards with
+    the intact side forward and turns only to swing. Counter: wait for the swing, get round it, or use a grenade.
+  - At `ROLL_LEARN` 4: "IT ROLLS IN THE ASH NOW". When cracked and not right on you, it drops and rolls in the ash
+    (`ROLL_T` 1.3) and comes up with a thin new crust (`ASHED_HP` 18), up to `ROLL_MAX` 2 times. While it rolls it is
+    open (x`ROLL_MULT` 1.4). Counter: shoot it while it rolls.
+
+**THE PYRE** (boss; `chase_range > 600`, hp 340, scale 2.4) - a walking bonfire: a teepee of burning logs over a mound
+of fused charred bodies. Heads and clawed arms push out of the pile, a big skull sits on top, and flames and sparks pour
+from the apex.
+- **The core:** the front crust is thick (`BOSS_CRUST` 160) and hides a glowing core (x`CORE_MULT` 1.2 when open). The
+  back is thin (`BOSS_BACK` 36). The crust regrows (`BOSS_REGROW`) after `BOSS_QUIET` 3.5 s without hits. Fire heals it.
+- **SWEEP:** up close (`SWEEP_WIND` 0.65) an arm of bodies and logs sweeps `SWEEP_R` 140 (`SWEEP_DMG` 2).
+- **HURL:** it tears off a burning log and throws it in an arc (`BurningLog`, range `HURL_R` 230-900, `HURL_DMG` 1). You
+  can shoot the log in the air. Where it lands it leaves embers (`EmberPatch`, 4 s, hurts you and burns zombies). Below
+  50% hp it throws two.
+- **RING:** below 75%, every `RING_EVERY` 9 s it stomps and two fire waves run along the floor both ways (`FireWave`,
+  `WAVE_V` 360, `RING_DMG` 2). Jump them.
+  - After `JUMP_LEARN` 2 jumps over a wave (main meta `py_jumps`): "IT READS YOUR JUMP". It sends a second pair
+    `RING_GAP` 0.42 s later, which lands where you land.
+- **SHED** at 66% and 33% (`SHED_AT`): it roars and a skin of bodies falls off. The core is bare for a moment, two
+  stoked CHARRED rise from the shed skin, and then the crust grows back (to 75%).
+- **Death:** a roar, a big flash (`PyreFlash`) and camera shake; burning logs fly off, a large charcoal spray, and any
+  thrown logs and fire waves still out are put out.
+
+**ASHMOTH** - a moth of ash: a shrunken charred body (head, hanging arms, dragging legs) hung between two huge wings of
+bark and burnt skin. The wings are grey-brown with ash veins, glowing edges and ember "eye spots". It has feathery
+antennae and a glowing orange belly, and flies in a nervous moth zig-zag, never straight.
+- **What it learned:** "THEY FOLLOW YOUR GUNFIRE NOW." In smoke they see nothing, but everyone who died in the smoke saw
+  the same last thing: the flash of the hero's barrel.
+- **ROOST:** sits on a roof, deck or the ground with its wings slowly opening. A flash within `WAKE_R` 720, or you within
+  `NEAR_R` 200, wakes it.
+- **FLUTTER:** with no flash to follow it flutters at `HOVER` 210. A flaring fire line within `FIRE_PULL` 900 draws it,
+  and there its wings can catch fire.
+- **HOME:** it flies to the **last flash it saw** (not to you) in a zig-zag (`ZIG` 70, `HOME_V` 215). Every new shot
+  within `SENSE_R` 1050 updates the target.
+  - At the target with you near (`STRIKE_R` 130): STRIKE_W (stops, wings back), then STRIKE. It throws itself at you
+    (`DIVE_V` 430): `DMG` 1 and "ASH IN YOUR EYES" (`player.daze` 1 s). Then RECOIL up and back.
+  - At the target with you gone: SEARCH around the spot for `SEARCH_T` 2.4 s, then "LOST YOU" (main meta `am_lost`),
+    and back to FLUTTER.
+- **Counters:** stop shooting and move; use a bow, molotov or flamethrower (no flash); shoot a wing (`WingBody` on layer
+  4, `WING_HP` 14 each - a torn wing means SPIRAL and crash, `CRASH_DMG` 80); shoot the glowing belly (x`GLOW_MULT`
+  1.8). Fire ignites the wings ("MOTH TO A FLAME"); an explosion tears both.
+- **Learns:** after `LEARN` 3 losses: "THEY WAIT WHERE YOU FIRED". New moths do not give up. They circle the last flash
+  spot (CIRCLE, `CIRCLE_R` 95), and the next shot within `CIRCLE_DIVE` 620 makes them dive at once, with no search. The
+  stage then sends waves in pairs. Hero: "It's circling where I shot from... don't fire from the same spot."
+
+**DAMBUILDER** - a dead trapper wrapped in beaver pelts (beavers are the plague of the Fuegian forest; they wrecked it
+before the fire). A beaver skull on his head with huge orange teeth, a flat tail hanging behind, burnt logs on his
+shoulder.
+- **What it learned:** "THEY BUILD COVER NOW." The hero hid behind cars, crates and walls in every level, and everyone
+  who died facing cover breathed out the same thing: whoever is behind a wall lives.
+- **SEEK:** you within `SEE_R` 1000: it picks a spot `BUILD_D` 360 from you (never closer than `MIN_D` 170) and runs
+  there with the logs. `_pick_spot` avoids water, hazards, other cover and the story stretch.
+- **BUILD:** it raises a log dam (`Dam`, `BUILD_T` 1.6 s) in front of you. The wall is solid cover: it stops bullets,
+  you and zombies.
+- **COVER:** crouched behind the wall (small hitbox). Every `LOB_CD` 2-2.8 s it rises (`LOB_WIND` 0.5, head open!) and
+  lobs an ember in an arc (`Ember`, shootable, lands as an `EmberPatch`, `EMBER_DMG` 1).
+- **RELOCATE:** the wall fell, so it grabs more logs (`LOGS` 2) and builds again further back. Out of logs, or you got
+  round it: FIGHT, a tail slap up close (`TAIL_R` 44, `TAIL_DMG` 1).
+- **The wall** (`Dam`, groups `cover`, `blastable`, `db_dams`): `DAM_HP` 90.
+  - Bullets break logs (wood chips).
+  - Fire (incendiary shots, a fire line) makes it burn (`DAM_BURN_T` 4, fast damage) and ignites zombies next to it, which
+    a CHARRED enjoys.
+  - An explosion nearly takes it apart (`DAM_BLAST` 75).
+- **Learns:** after `LEARN` 3 walls broken (main meta `db_broken`): "IT BUILDS BETTER NOW". It uses wet logs from the
+  ponds (they do not burn), builds a taller wall with a firing slit (`WET_H` 62, `WET_HP` 120), builds next to existing
+  cover (an obstacle or a fallen log), and carries one more set of logs. Hero: "Wet logs... fire won't take them. And it
+  builds behind cover."
+
+**Story hooks** (call on `main._stage`)
+- `story_stretch()` returns `Vector2(4500, 6400)`: flat road with no obstacles, traps, placed zombies or moth waves.
+  The STRANGER stands at x 5450.
+- `on_story_beat(id)`:
+  - "smoke_in" - `force_smoke()` (the scene's first line)
+  - "smoke_out" - `clear_smoke()`
+  - "embers" - a gust of sparks (`SmokeFX.sparks()`)
+  - "smoke_veil" - a thick `SmokeVeil` cloud (5.5 s, r 170) rolls over the STRANGER, and he is gone when it thins (last
+    line; the scene ending is "shimmer")
+- `smoke_k()`, `thick()`, `force_smoke()`, `clear_smoke()`, `last_flash()`, `flash_age()`, `in_water_at(p)`.
+
+**Tunables** - in each file header.
+- Stage: `CLEAR_T`, `ROLL_T`, `THICK_T`, `THIN_T`, `FIRST_CLEAR`, `HUT_X`, `TOWER_X`, `TRUCK_X`, `PONDS`, `POND_DAM`,
+  `DAM_TIER`, `FIRES`, `SNAGS`, `STORY_X`, `SAW_X`, `SAW_DECK`, `CHARREDS`, `BUILDERS`, `ROOSTS`, `MOTH_WAVES`, `STUMPS`.
+- `zombie_weights()`: CHARRED 0.045, ASHMOTH 0.015, DAMBUILDER 0.025, regulars 0.56, runners 0.33.
+- Balance was not touched (no new weapons, no ammo piles).
+- Performance: every `_draw` is the DrawBatch wrapper; each zombie is one draw call (`Decor.U` helpers + `U.flush`);
+  `Cinders` keeps all chips in one node; particle counts scale with `Quality.ambient()` / `Quality.gore()`. Things that
+  move (`BurningLog`, `FireWave`, `Ember`) move in `_process`, so there are no MOVERS.
+
+**Tests** (private copy `/home/claude/tp_l59`, outside the repo)
+- Parse check: `PARSED 414 bad 0`.
+- `FROM=59 TO=59 all.sh`: `L59 err=0 reached=1`.
+- Draw calls (`RENDER_TOTAL_DRAW_CALLS_IN_FRAME` under xvfb, auto-fight): 385-497 at the first fire line and pond, 391-465
+  in the boss arena, 387-454 at the truck and fire lines. Same range as stage 57 (394-463) and lower than 55 (446-570).
+  `t_count.gd`: 192 visible canvas items at start (stage 57: 243).
+- `t_hitch.gd 59 1500`: avg 5.0 ms, 2-8 frames over 16.7 ms out of 1440, worst 18.8-27 ms (one-off). Stage 57 on the same
+  run: avg 4.7 ms, 9 over, worst 20 ms.
+- **Behaviour counters (`t59b.gd`, 60 fps):**
+  - charred: 12 kills in 78 shots (~6.5 per kill). The 2nd crack learned HIDE; from the 4th, every one rolled once.
+  - fire: a burning CHARRED went hp 20 → 41 with crust 0 → 30/30 (fed, stoked). Five incendiary hits did 0 damage.
+    A bullet on a cracked side did 21; on a crusted side it did 0. Walking into water doused it.
+  - moth: three times it homed to the flash, struck, then lost the player (am_lost 1, 2, 3). The 4th one circled the
+    spot and dove 6 frames after a new flash.
+  - dam: 3 walls built 360 px in front of the player, each broken, relocating each time; 3 lobs with 2-3 hits. The next
+    builder (learned) built 3 wet walls (h 62, 120 hp).
+  - boss: 2 hurls (1 hit), a ring, 1 jump (py_jumps), 2 sheds with stoked CHARRED, then dead after about 13 s of
+    point-blank fire.
+- **Story:** with the story_db line added in the copy, the scene plays in the clean stretch. Smoke rolls in on the first
+  line, the embers gust on z04, and the STRANGER fades into the veil at the end; the player then walks on.
+- **Fixed during testing:**
+  - `FireWave` was freed on its first frame (its start x was read before the position was set); it now starts at INF.
+  - The boss died in ~43 shots; it now has hp 340 and crust 160, and the crust regrows after SHED.
+  - The smoke was too faint; the radial smoke wall around the player was added.
+  - The boss looked like a box; it was redrawn as a log teepee over fused bodies.
+  - A DAMBUILDER never moved when the player stood exactly at the edge of its range; it now walks toward an alerted
+    player.
+
+---
+
+## Stage 60 - "GLACIER LAB" (THEY LEARNED WHERE THEY CAME FROM)
+
+Zone 7 (Patagonia), stage 6. Project ECHO's research station, built inside the glacier. The level has:
+- ice tunnels in blue light, steel corridors, and labs with broken cryo tanks;
+- specimen jars, server racks, giant blast doors, red emergency lights and alarms;
+- frost on everything, and ECHO fungus on the walls that pulses to the right, toward the deep levels (the ROOT, which is saved for 62).
+
+The hive learned where it was born, and it guards its cradle. It learned the lab's own systems (blast doors, lockdowns), and from the
+files it learned the hero's own combat pattern. In the file archive the hero finds his own file at a terminal (the SUBJECT ZERO scene),
+and the hive answers through the speakers: "Welcome home."
+
+**Files**
+- `levels/stage_60.gd`: layout, wings and the lockdown / keycard system, spawns, the arena, and story hooks. All sounds are synth:
+  `s60_door`, `s60_slam`, `s60_door_open`, `s60_alarm`, `s60_hiss`, `s60_vent`, `s60_shatter`, `s60_card`, `s60_granted`,
+  `s60_beep`, `s60_drone`, `s60_powerdown`.
+- `effects/s60_decor.gd`: sky + 3 parallax layers, all world objects, traps and the screen FX. Shared state is in `U`:
+  `U.alarm`, `U.file_ms`, `U.welcome_ms`, `U.cards`, plus `U.since(ms)`.
+- `enemies/types/specimen.gd`: SPECIMEN, which is also the boss SUBJECT FOUR. Sounds are `sp_*` and `s4_*`.
+- `enemies/types/bloom.gd`: BLOOM. Sounds are `blm_*`. They are not `bl_*` because `bl_pop` already exists in stage 41 and
+  SOUNDS names are global.
+- `enemies/types/warden.gd`: WARDEN. Sounds are `wn_*`.
+- `story/scenes/l60_file.gd` + `sounds/story/l60_file/*.mp3`.
+- `map/thumbs/level_60.png`.
+
+**Background (Backdrop)**
+- `lab_sky`: the depth of the glacier. Dark blue, light cracks, and ice crystals that fall slowly.
+- `far_ice` 0.06: the ice cave wall:
+  - layered blue ice, cracks and trapped rocks;
+  - air bubbles and light shafts;
+  - far steel beams with blue lamps.
+- `mid_lab` 0.28: the lab's back wall:
+  - steel panels, and windows onto the glacier or into lab rooms with tanks;
+  - ECHO veins that pulse to the right (deeper);
+  - signs, and emergency lamps that spin red while `U.alarm` is up.
+- `near_rig` 0.6:
+  - giant frosted pipes with icicles;
+  - cable trays and ceiling vents;
+  - flickering fluorescents and hanging fungus threads;
+  - low machines behind the road.
+- `lab_overlay` is the cold haze behind the actors plus the ceiling shadow. `LabFX` (screen) draws:
+  - frost crystals and cold breath;
+  - the red alarm flash (`U.alarm`) and power flicker;
+  - your keycards in the corner (`U.cards`).
+- Everything is batched into triangle arrays (`U.flush`).
+
+**Layout / upper floor**
+- `LabGround`: perforated steel floor, frost, ice patches and hazard stripes. There is snow at the entrance.
+- `Entrance` (x 0) is the tunnel mouth and the station gate: "ESTACION GLACIAR - PROYECTO ECHO".
+- `DOORS` 1500 / 3200 / 4900 / 6800 / 8500 / 9150 are `BlastDoor`s (labels A-F). Three of the spaces between doors are lockable `WINGS`:
+  - A (cryogenics, 1500-3200);
+  - B (specimen lab, 3200-4900);
+  - D (server hall, 6800-8500).
+  The archive (the story room) is between B and D. The ROOT corridor (thick fungus) is between D and the arena.
+- `TANKS` (23) are `CryoTank`s. Variant 0 has a SPECIMEN inside, 1 is empty, 2 was broken long ago. Each one has a `TankGlass` in front
+  of the actor.
+  - `HOLD_TANKS` 6300 / 6420 are in the archive and thaw only after the story scene. When the scene was already seen or isn't in
+    `story_db`, they thaw by proximity as usual.
+  - 9330 / 9450 are in the arena and thaw only when SUBJECT FOUR calls them.
+- `CATWALKS` (1760, 4060, 7380) are steel walkways hung from the ceiling. Each has an `add_floor`, 2 ladders and AMMO / HEALTH /
+  GRENADE on top, plus a regular zombie up there.
+- Decor:
+  - `JARS` (3300, 4230, 5120) are `JarShelf`s with organs, brains and embryos in cloudy fluid;
+  - `RACKS` (5450, 6560, 6950, 7600, 8330) are `ServerRack` pairs (`count` 2) with blinking LEDs;
+  - `FUNGUS` are `FungusPatch`es on the wall or floor that grow thicker to the right.
+- Obstacles `bench` / `dewar` / `gurney` / `rack` come from `custom_gen`. They are solid cover.
+- `TERMINAL_X` 5790: the archive `Terminal`. `STORY_ACTOR` 6000 is the story tank, which uses `hold_burst`.
+- Arena: `ContainmentArena`, from door F to the end. It has:
+  - a giant containment cell broken from the inside;
+  - an observation window;
+  - a "NIVEL -4" hatch that the fungus flows into.
+  `ARENA_COVER` is a bench at 9420 and dewars at 9850, both in group "cover" for the boss. HEALTH + AMMO sit outside door F.
+
+**Lockdown / keycards** (stage_60.gd)
+- A WARDEN reaches the alarm panel of its wing and calls `lockdown(wi)`. Both doors of the wing slam shut, including the one behind
+  you:
+  - the doors crush zombies under them;
+  - "LOCKDOWN - ALA A" appears;
+  - the wing's frozen tanks thaw one after another;
+  - the red alarm starts.
+  - The hero says "LOCKDOWN - THEY SEALED ME IN. GET HIS KEYCARD!" The first time, the WARDEN shows the popup "THEY LOCK THE DOORS NOW".
+- A dead WARDEN drops a `Keycard` (`drop_card`, kept inside its wing). Walk over it and you get "ACCESS GRANTED" and the wing opens
+  (`open_wing`). A spare card is kept (`U.cards`, shown in the corner). Touch a locked door and the spare opens it at once.
+- Safety net:
+  - A sealed wing with no live WARDEN, no card on the floor and no card in hand gets an "EMERGENCY RELEASE" after `RELEASE_T` 4 s.
+  - Any sealed wing gets one after `RELEASE_MAX` 75 s.
+- Wing states are `W_OPEN`, `W_HALF` (learned early lock: only the far door is shut), `W_SEALED` and `W_CLEAR`.
+- zombie.gd puts zombies more than 1400 px from the player to sleep. A WARDEN that is running to a far panel is driven from the stage's
+  `_physics_process` (`warden.remote(delta)`).
+- Arena: when you pass door F + 180 with the boss alive, door F seals ("CONTAINMENT 4 - SEALED"). It opens when the boss dies.
+
+**Traps**
+- `CoolantVent` (`COOLANT` 2450, 3480, 7900, 8800) is a liquid-nitrogen vent in the floor:
+  - Step close (`TRIG_R`) and it hisses and draws a frost ring (`WARN_T` 0.85).
+  - Then a column of cold fires (`BLAST_T` 1.1, `HGT` 210). It deals `DMG` and slows you (`SLOW_T`).
+  - Zombies in the column freeze (`FREEZE_T` 2.4, they stop) and take `DMG_Z`.
+  - Shoot the valve wheel (`ValveBody`) to fire it when you want. Cooldown is `CD` 3.2.
+- `BlastDoor` slamming (lockdown) crushes zombies under it.
+- `CryoTank`s release SPECIMENs as you pass, some of them behind you.
+
+**SPECIMEN**: an escaped or thawed ECHO test subject:
+- a torn, stained lab gown and blue-grey skin;
+- a shaved head with surgical staples and electrodes;
+- an IV line hanging from the arm and an ID bracelet with a barcode;
+- glowing ECHO growths on the shoulder and back, and frost on the shoulders.
+Its eyes are red, and green while it copies you. Learned from: ECHO was built to let soldiers share combat memory. The subjects here
+got the soldiers' memory, so they fight like soldiers.
+- **TANK:** frozen in a cryo tank.
+  - When you pass (`THAW_R` 150-360, different for each one) the tank thaws (frost cracks, steam) and bursts.
+  - A shot into the tank breaks it at once (x`TANK_MULT` 0.7 through the glass).
+  - `hold` = it waits for the stage.
+- **STIFF:** comes out frozen and stiff (`STIFF_T` 1.5). It is slow and brittle (x`STIFF_MULT` 1.4).
+- **HUNT -> ROLL -> STRIKE:** "THEY ROLL LIKE SOLDIERS NOW".
+  - Inside `ROLL_R` it combat-rolls at you (`ROLL_V`, `ROLL_T`). It is low, so chest-high bullets pass over it.
+  - At the end of the roll it rises into a clawed uppercut (`STRIKE_*`). It sometimes rolls when it sees you fire (`ON_SHOT_CHANCE`).
+  - The hero: "It rolled... like a soldier. Like ME."
+- **SWIPE** is a close claw. **RECOVER:** after a strike or roll it is on one knee (`RECOVER_T`, x`RECOVER_MULT` 1.3). That is your window.
+- Counter: crouch for the roll (or shoot low), roll or jump the uppercut, and shoot it on its knee.
+- **Learns** (main meta `sp_beaten` >= `LEARN_N` 3; it counts strikes you rolled or jumped and kills during a roll or recover):
+  "IT COPIES YOU NOW".
+  - It copies your last move after `COPY_DELAY`:
+    - you roll, it rolls the same way (invulnerable like you, except to blasts);
+    - you crouch, it crouches until you stand;
+    - you jump, it jumps.
+  - Each copy shows a green ring and green eyes. A copy waits up to 0.7 s if the zombie is busy.
+  - The hero: "It's copying me. Every move I make."
+  - Counter: don't repeat the same move. It is always `COPY_DELAY` late, and it kneels after a copied roll.
+- Scene actor: `tank_actor` stands in the story tank (lifted `BASE_H`) with its eyes closed until `wake_actor()`. It has `talking`,
+  `tilt`, `smile` and `t`. Group "s60_specimens".
+
+**SUBJECT FOUR** (boss, `chase_range > 600`): one of the seven ECHO soldiers, fused with his rifle. He fights with the hero's own moves
+(`ai/player_memory.gd`).
+- **Range:** keeps your favourite distance (`PlayerMemory.avg_distance`, clamped to `B_PREF` 220-470, +120 if you use the shotgun a lot).
+- **B_AIM -> B_BURST:** a laser sight (`B_AIM_T`), then a burst of `B_SHOTS` 3 (`B_SHOT_V`, `EnemyShot`), then a reload.
+  - A high laser (`AIM_HIGH` -44) means crouch.
+  - "IT AIMS LOW NOW": after `SEEN_DUCKS` 2 ducked bursts (or `PlayerMemory.crouch` > 0.3) it mixes in a low laser (`AIM_LOW` -16).
+    Jump or roll that one.
+- **B_ROLL:** rolls when you shoot at it (invulnerable except to blasts). Cooldown is `B_ROLL_CD` 1.8, or 1.1 if your precision is
+  above 0.6.
+- **B_COVER:** below 95% / 50% HP or after a roll, it runs to cover (group "cover" in the arena: the bench and the dewars).
+  - It hides there (x`B_COVER_MULT`) and peeks out to fire.
+- **B_MELEE:** a rifle-butt strike when you are close (`B_MELEE_R`). Front armour x`B_ARMOR` 0.85, open after bursts x`B_OPEN_MULT`.
+- Intro: "IT FIGHTS LIKE YOU NOW". The hero: "Subject Four... one of the seven. He fights like me."
+- Below half HP: "IT REMEMBERS EVERYTHING". It calls the SPECIMENs out of the arena tanks (`stage.thaw_arena()`), and bursts become
+  `B_SHOTS2` 5.
+- Death: "Four of seven. I'm sorry, brother." Door F opens.
+
+**BLOOM** (flyer): a floating ECHO colony like a glowing jellyfish. It has:
+- a translucent bell of fungus fibre with a frilled rim;
+- long thread tentacles;
+- `N_NODES` 6 glowing green nodes on the bell.
+It swims in pulses (`PULSE_T`, `PULSE_V`) and sets its position directly (no move_and_slide, collision_mask 0). Learned from: it is the
+learning itself, in one body.
+- **TEACH:** "IT TEACHES THEM NOW". It hovers above zombies (`TEACH_R` 230, up to `MAX_STUDENTS` 6) and ties glowing threads to them.
+  - Zombies under it learn on the spot: x`TEACH_SPEED` 1.35 speed and +`TEACH_DUCK` 0.3 duck.
+  - A lesson ring (`effects/spore_lesson.gd` colour) flies to them every `FLASH_EVERY` 1.6 s.
+  - The lesson stays `LINGER_MS` 2500 after they leave.
+  - Killing it gives "THE LESSON BREAKS": every student goes back to normal.
+- **Hits:** the bell is spongy (x`BELL_MULT` 0.45). The nodes are the weak points (x`NODE_MULT` 1.6). Each shot is traced from its
+  entry point, like MURMUR.
+  - Every `NODE_HP` 13 damage pops a node. With no nodes left it dies.
+  - Blasts do x`BLAST_MULT` 2.
+- **STING:** it barely attacks. Right under it (`STING_R`) the tentacles glow (`STING_TELL` 0.6) and lash down, dealing `STING_DMG`
+  and a slow.
+- Counter: shoot the lights first, then the students.
+- **Learns** (main meta `blm_kills` >= `LEARN_KILLS` 2, rechecked live): "IT HIDES BEHIND THEM NOW". After it loses a node, it drops
+  behind its nearest student (the student is between you and it, `LOW_H`) or rises to the ceiling (`CEIL_H`) for `HIDE_T`, then
+  goes back to teaching.
+- Doors: it never drifts through a closed `BlastDoor` (group `s60_doors`).
+
+**WARDEN**: lab security. It wears black riot armour and a helmet with a cracked visor (green ECHO fog inside, red eyes). It carries:
+- a shoulder flashlight whose beam sweeps;
+- an electric baton;
+- a keycard on a lanyard.
+Learned from: the hive learned the lab's systems. It knows where the alarm panels are, and that a blast door shuts you in.
+- **PATROL** near home. If it sees you (`SEE_R` 620) or is hit, it goes to **ALERT**.
+- **RUN:** "THEY LOCK THE DOORS NOW".
+  - When you are inside its wing it sprints (`SPRINT`) to the nearest panel. It does not attack on the way.
+  - **SLAP** (`SLAP_T`, hand on the panel) triggers `stage.lockdown()`.
+  - Kill it before it gets there. Its back is open (x`BACK_MULT` 1.1).
+- **FIGHT:** a baton swing (`SWING_WIND`, blue sparks) for `SWING_DMG` + a shock slow (`SLOW_T`).
+- **Armour:** the visor takes x`VISOR_MULT` 0.4 for `VISOR_HITS` 2 head hits, then "VISOR CRACKED" and the head is open. The front
+  takes x`FRONT_MULT` 0.65 and fire x`FIRE_MULT` 1.3.
+- Death drops the keycard (`stage.drop_card(pos, wing)`). Group "s60_wardens".
+- **Learns** (main meta `wn_cards` >= `LEARN_CARDS` 2; it counts keycards you picked up): "IT LOCKS THE DOOR AHEAD NOW".
+  - When it sees you coming at a wing from outside (`AHEAD_R` 1250), it runs to the far door's panel first.
+  - It locks that door early (`W_HALF`) and guards it (`GUARD`, `GUARD_R`).
+  - When you walk into the wing, the door behind you slams too. Its card still opens the wing.
+  - The hero: "He's running ahead to lock the next door!"
+
+**Spores** ("they learn", story rule 3): the shared `effects/spore_lesson.gd` carries the lesson of each kill. BLOOM shows the same
+idea openly and for its students only (the lesson rings use the same colour). Nothing else is added on top.
+
+**Story hooks** (call on `main._stage`)
+- `story_stretch()` returns `Vector2(5000, 6750)`, the file archive. It is reserved, so no obstacles, traps or spawns go there.
+  `story/scenes/l60_file.gd` stands its SPECIMEN in the story tank at 6000 (`actor_props {"tank_actor": true}`).
+- `on_story_beat(id)`:
+  - "file_open": the SUBJECT ZERO file appears on the terminal (`U.file_ms`) with the hero's photo, plus a beep.
+  - "welcome": the fungus swallows the screen ("WELCOME HOME", `U.welcome_ms`), the power flickers and drones, the story tank
+    cracks, and the actor opens green eyes (`wake_actor`).
+  - "alarm": a short siren.
+- After the scene the story tank bursts (the actor is gone), the two archive tanks thaw ("the hive answered"), and the hero says
+  "Home. That's what they call this place."
+
+**Tunables**: in each file header.
+- Stage: `DOORS`, `WINGS`, `TANKS`, `HOLD_TANKS`, `CATWALKS`, `COOLANT`, `JARS`, `RACKS`, `FUNGUS`, `BLOOMS`, `WARDENS` ([x, wing]),
+  `ARENA_COVER`, `STORY`, `TERMINAL_X`, `STORY_ACTOR`, `RELEASE_T`, `RELEASE_MAX`.
+- `zombie_weights()`: SPECIMEN 0.035, BLOOM 0.015, WARDEN 0.01, regulars 0.58, runners 0.33. Most SPECIMENs come from the tanks.
+- Decor: `BlastDoor.CLOSE_T` / `OPEN_T`, `CryoTank.THAW_T`, `CoolantVent.*`, `Keycard.PICK_R`.
+
+**Main metas used**:
+- SPECIMEN: `sp_beaten`, `sp_said`, `sp_copy_said`
+- BLOOM: `blm_kills`, `blm_seen`, `blm_said`, `blm_hide_said`
+- WARDEN: `wn_cards`, `wn_lock_said`, `wn_ahead_said`
+
+**Performance**
+- Each zombie is one draw call (DrawBatch begin/_draw_b/end). There are no strings in zombie draws.
+- BLOOM nodes and threads and the boss laser are inside the same batch, with no extra nodes.
+- No MOVERS are needed:
+  - `CoolantVent` uses `_physics_process` but does not move;
+  - `Keycard` falls in `_process`;
+  - boss bullets are `EnemyShot`;
+  - the remote-driven WARDEN is a zombie.
+- Draw calls (xvfb, avg over x 600..9400) are about 400, the same as level 57 (401).
+
+**Tests** (test project `/home/claude/tp_l60`, outside the repo)
+- `t_parse`: 424 parsed, 0 bad. `all.sh FROM=60 TO=60`: `L60 err=0 reached=1`.
+- `t_run` at 2600 / 4300 / 7600 / 9300: no SCRIPT ERROR. There were 49-54 zombies (SPECIMEN about 19, mostly in tanks; BLOOM 4-5;
+  WARDEN 4-7).
+- `t60.gd <mode>`:
+  - **lock:** the WARDEN reaches the panel and wing A seals (lockdowns 1). Killing it drops the card, walking over it opens the wing
+    (opened 1, `wn_cards` 1). There were 0 emergency releases.
+  - **tank:** 1-5 tanks thaw and release by proximity (it varies by run).
+  - **bloom:** taught 4-6 students; they were boosted and then all restored when it died. Once learned it hides (3 hides).
+  - **copy** (learned): it copied the hero's roll, duck and jump; `sp_copy_said` was set.
+  - **boss:** it fired bursts, rolled on shots, took cover (1-11 times), aimed low, called the arena tanks (1), and the arena sealed.
+  - **ahead** (learned): wing D got an early half-lock before entry, then sealed on entry.
+  - **story:** the scene plays, the terminal shows the file then "WELCOME HOME", the story tank breaks, and the archive tanks thaw.
+    The hero is never hurt during the scene.
+  - **hold:** with the scene still due, archive tanks 6300 / 6420 are held. With the scene seen, they are not. Arena tanks are always
+    held.
+- `t_hitch` 1500 frames: lv60 avg 4.27 ms, 4/1440 frames over 16.7 ms, worst 22.1 ms. lv57 avg 4.30 ms, worst 31.5 ms.
+
+---
+
 # Polish pass (2026-10-17)
 
 Six areas were reworked together: gun and kill feel, zombie spawn placement, lighting, zombie art, bot playtest bug fixes, and gun/ability progression. Each section below covers one area.

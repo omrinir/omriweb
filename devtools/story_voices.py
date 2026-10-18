@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Step 2: run story_voices_master.py in the same folder (levels every line to about -18 dB mean like the level 1 scene).
-# Story scene voices (levels 52, 54, 55, 57; pass scene ids as args to render only those): Kokoro TTS + pyworld processing + ffmpeg -> mono 44.1k mp3, ~-18 dB mean.
+# Story scene voices (levels 52, 54, 55, 57, 59, 60; pass scene ids as args to render only those): Kokoro TTS + pyworld processing + ffmpeg -> mono 44.1k mp3, ~-18 dB mean.
 import os, subprocess, sys
 import numpy as np, soundfile as sf, pyworld as pw
 from kokoro_onnx import Kokoro
@@ -16,10 +16,13 @@ STYLE = {
     "Q": ("am_michael", 1.0, 1.04, 0.55, 0.045, "highpass=f=90,lowpass=f=7000,acompressor=threshold=-20dB:ratio=3"),
     # THE CHORUS (57): the hive speaks with many voices at once - see CHORUS below
     "C": ("bm_lewis", 0.9, 0.8, 0.5, 0.0, "highpass=f=60,aecho=0.8:0.6:40|90:0.4|0.25,acompressor=threshold=-20dB:ratio=4"),
+    # ECHO FILE (60): the lab terminal reads the file - flat recorded female voice through a small speaker (MONO below)
+    "T": ("af_sarah", 0.92, 0.97, 0.08, 0.0, "highpass=f=260,lowpass=f=4600,acrusher=bits=12:mode=log:aa=1,aecho=0.7:0.35:14:0.3,acompressor=threshold=-20dB:ratio=4"),
 }
 # chorus layers: (voice, pitch factor, delay s, gain, whisper mix)
 CHORUS = [("bm_lewis", 0.78, 0.0, 1.0, 0.35), ("am_michael", 0.9, 0.035, 0.8, 0.5),
           ("af_bella", 1.0, 0.06, 0.55, 0.6), ("bm_george", 0.7, 0.09, 0.7, 0.7), ("af_nicole", 1.12, 0.12, 0.35, 0.9)]
+MONO = {"T": 0.12}   # f0 flattened toward the line's median (0 = flat, 1 = natural): a recorded / synthetic monotone
 
 SCENES = {
     "l52_quisling": {"P": "P", "Z": "Q", "lines": [
@@ -68,6 +71,23 @@ SCENES = {
         ("P", "p04", "I'm not one of you."),
         ("C", "c06", "You will remember."),
     ]},
+    "l59_stranger": {"P": "P", "Z": "Z", "lines": [
+        ("Z", "z01", "This is my last visit. Where you're going, I can't follow."),
+        ("P", "p01", "Then answer me. What did you do to me?"),
+        ("Z", "z02", "I did it. I took your memory. LETHE was mine."),
+        ("Z", "z03", "You were the first voice. If you went home... there would be no one left who isn't them."),
+        ("P", "p02", "Home. That's what they keep calling it."),
+        ("Z", "z04", "The Glacier Lab. It started there. And it wants you back."),
+        ("Z", "z05", "A linked mind can't follow you. Goodbye, Zero."),
+    ]},
+    "l60_file": {"P": "P", "T": "T", "C": "C", "lines": [
+        ("P", "p01", "Project Echo... This file has my face on it."),
+        ("T", "t01", "Subject Zero. Pattern: original, unmutated."),
+        ("T", "t02", "Status: Lethe administered."),
+        ("T", "t03", "If the network reclaims him, every mind becomes one. Do not let him go home."),
+        ("P", "p02", "Home...? This is where I came from."),
+        ("C", "c01", "Welcome home."),
+    ]},
 }
 
 
@@ -112,6 +132,11 @@ def render(text, style):
     f0 = f0 * pitch
     if trem > 0:   # scared tremble: slow wobble on the pitch
         f0 = f0 * (1 + trem * np.sin(2 * np.pi * 5.5 * t))
+    if style in MONO:   # monotone: squash the melody toward the median pitch
+        v = f0 > 0
+        if v.any():
+            med = np.median(f0[v])
+            f0[v] = med * (f0[v] / med) ** MONO[style]
     voiced = pw.synthesize(f0, sp, ap, sr)
     whisper = pw.synthesize(f0, sp, np.ones_like(ap), sr)   # all-noise excitation = whisper
     n = min(len(voiced), len(whisper))
