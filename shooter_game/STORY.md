@@ -1,7 +1,7 @@
 # THEY LEARN: the story
 
 This is the story bible for the whole game (levels 1 to 63). It makes the earlier levels fit together and plans the rest.
-Levels 1 to 54 are already built, 55 to 57 are being built now, and 58 to 63 are planned.
+Levels 1 to 57 are built, 58 to 60 are being built now, and 61 to 63 are planned.
 
 ## The one-line version
 
@@ -88,13 +88,53 @@ There is no leader any more. The hive thinks as one, and it starts to show it. S
   - **BLUBBER.** A bloated zombie in an elephant-seal hide that charges belly-first along the sand.
 - **Story scene (THE CHORUS).** For the first time the hive speaks: the MURMUR flock talks with many voices at once. "We remember you. You were the first of us. Come home." The hero learns that they are not hunting him to kill him.
 
-### Planned: 58 to 63
+### 58 WHALE GRAVEYARD: "They learned to wear the dead"
 
-- **58 Whale Graveyard:** bones, a whaling station. They learned to use the dead of other species.
-- **59 Black Forest:** burnt lenga forest. The STRANGER's last visit: he admits he gave the hero LETHE.
-- **60 Glacier Lab:** Project ECHO's station. The hero finds his own file, SUBJECT ZERO.
-- **61 End of the World:** Ushuaia. The hive cuts every road.
-- **62 The Hive Mind:** the ROOT.
+- **Setting.** An abandoned whaling station on a grey beach: whale skeletons, flensing platforms, rusted tryworks and oil tanks.
+- **Lesson.** The spores carried thousands of headshot deaths, so the hive learned that skulls break and whale bone does not.
+  It also learned that ECHO can grow in any dead thing, not only in people, and the dead here are enormous.
+- **New zombies.**
+  - **FLENSER.** A station worker with a flensing knife on a pole and a whale-bone shield. It moves the shield to where you aim.
+    The boss is THE BONE KING, a giant with a whale skull for a helmet.
+  - **SKUA (flyer).** Stitched-on wings of baleen and seal skin. It dives like a seabird and climbs away. Shoot a wing and it spirals
+    down. After a few dives get shot, it starts to feint.
+  - **BONECRAWLER.** Several dead fused inside a whale rib cage, walking it like a giant bone centipede. The ribs stop bullets.
+- **Story.** The station has become an ECHO farm: spore-covered carcasses and hive marks on the tanks. The hive is growing new bodies.
+
+### 59 BLACK FOREST: "They learned to burn"
+
+- **Setting.** A burnt beech forest in Tierra del Fuego: black trunks, ash, fire lines, smoke, beaver dams.
+- **Lesson.** The hero burned thousands of them, and every burning death breathed out what fire feels like. So they wear ash and
+  charcoal, walk through flames, hide in smoke, and find the hero by the flash of his gun.
+- **New zombies.**
+  - **CHARRED.** Charcoal crust that fire cannot hurt. Shots crack it, and a cracked one takes much more damage. It rolls in the ash
+    to re-crust. The boss is THE PYRE, a walking bonfire of fused bodies and burning logs.
+  - **ASHMOTH (flyer).** Moth wings of burnt bark and skin. It flies to the hero's muzzle flash and loses him when he stops shooting.
+    It learns to circle the last place it saw the flash.
+  - **DAMBUILDER.** Wears beaver pelts and builds log barricades in front of the hero. It learned cover from him.
+- **Story scene (THE STRANGER, last time).** He admits he is the one who gave the hero LETHE. The hero was the first voice of the
+  hive; if he went home, no one would be left who isn't them. He points to the Glacier Lab, where it started, and fades into
+  the smoke. A linked mind cannot follow where the hero is going.
+
+### 60 GLACIER LAB: "They learned where they came from"
+
+- **Setting.** Project ECHO's station inside the glacier: ice tunnels, labs, broken cryo tanks, blast doors, red alarms. ECHO fungus
+  covers the walls and pulses toward the deep levels (the ROOT).
+- **Lesson.** The hive learned where it was born and now guards its cradle. It learned the lab's own systems (doors, lockdowns)
+  and, from the files, the hero's own combat pattern.
+- **New zombies.**
+  - **SPECIMEN.** Escaped test subjects, some thawing out of cryo tanks as you pass. They copy the hero's last move. The boss is
+    **SUBJECT FOUR**, one of the seven ECHO soldiers, who fights with the hero's own moves.
+  - **BLOOM (flyer).** A floating ECHO colony like a glowing jellyfish. It barely attacks: it **teaches**. Zombies under it learn
+    on the spot. This is the learning made visible in one enemy. Kill it first.
+  - **WARDEN.** Lab security with riot armour and keycards. They lock blast doors behind the hero and run ahead to lock the next.
+- **Story scene (SUBJECT ZERO).** At a terminal the hero finds his own file: original pattern, LETHE administered, "Do not let him
+  go home." The hive answers through the speakers: "Welcome home."
+
+### Planned: 61 to 63
+
+- **61 End of the World:** Ushuaia. The hive cuts every road; the whole region moves as one body toward the lab.
+- **62 The Hive Mind:** the ROOT, under the lab. Everything the hive has learned from the hero, used against him at once.
 - **63 They Learned:** the ending. Does the hero destroy the ROOT, or join it? This is open for the user to decide.
 
 ## How the game shows that they learn (rules for every new zombie)
