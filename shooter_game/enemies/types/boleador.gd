@@ -237,6 +237,11 @@ class Bola extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := _t * 16.0
 		for q in 3:
 			var p := Vector2.from_angle(a + float(q) * TAU / 3.0) * 12.0
@@ -277,6 +282,11 @@ class Tangle extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var sw := sin(_t * 20.0) * 1.0
 		for q in 3:   # חבלים כרוכים סביב השוקיים
 			var y := -6.0 - float(q) * 5.0

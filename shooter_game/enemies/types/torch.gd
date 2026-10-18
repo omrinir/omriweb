@@ -240,6 +240,11 @@ class Bottle extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var Fl := preload("res://effects/flame_fx.gd")
 		# בקבוק זכוכית ירוק עם נוזל, סמרטוט בפתח
 		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-6, -3), Vector2(3, -3), Vector2(5, -1.5), Vector2(10, -1.2), Vector2(10, 1.2), Vector2(5, 1.5), Vector2(3, 3), Vector2(-6, 3)]), Color(0.22, 0.42, 0.2, 0.95))

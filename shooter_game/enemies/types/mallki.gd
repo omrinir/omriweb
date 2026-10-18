@@ -131,6 +131,11 @@ class Cloth extends Node2D:   # רצועת אריג שנקרעת ועפה
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(1.5 - _t, 0.0, 1.0)
 		var w := sin(_t * 14.0) * 3.0
 		DrawBatch.polyline(self, PackedVector2Array([Vector2(-10, 0), Vector2(-4, w), Vector2(3, -w), Vector2(10, w * 0.5)]), Color(col, a), 4.0)

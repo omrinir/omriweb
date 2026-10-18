@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  COLLISION OUTLINES - מסגרת כהה ועבה סביב כל דבר שהשחקן מתנגש בו
 #  (לבנים, מכוניות, מחסומים, ארגזים, שערים, דלתות, קומות, מכונות, מעליות...)
@@ -100,6 +101,11 @@ func _rects_of(b: Node) -> Array:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	if not OUTLINE_ENABLED:
 		return
 	var vp := get_viewport()
@@ -159,6 +165,6 @@ func _seg(horizontal: bool, fixed: float, from: float, to: float, normal: Vector
 		return
 	var off := -normal * h   # הקו בתוך הגוף (לא בולט החוצה)
 	if horizontal:
-		draw_line(Vector2(from, fixed) + off, Vector2(to, fixed) + off, COLOR, WIDTH)
+		DrawBatch.line(self, Vector2(from, fixed) + off, Vector2(to, fixed) + off, COLOR, WIDTH)
 	else:
-		draw_line(Vector2(fixed, from) + off, Vector2(fixed, to) + off, COLOR, WIDTH)
+		DrawBatch.line(self, Vector2(fixed, from) + off, Vector2(fixed, to) + off, COLOR, WIDTH)

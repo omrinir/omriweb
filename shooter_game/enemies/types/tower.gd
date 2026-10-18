@@ -173,6 +173,11 @@ class Hat extends Node2D:   # הקסדה עפה
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-14, 2), Vector2(-12, -8), Vector2(0, -14), Vector2(12, -8), Vector2(14, 2)]), Color("f0c820"))
 		DrawBatch.rect(self, Rect2(-18, 0, 36, 4), Color("d0a810"))
 

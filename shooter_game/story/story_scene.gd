@@ -1,4 +1,5 @@
 extends Node
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  STORY SCENE - סצנת סיפור בתוך השלב (חלק מהמשחק, לא סרטון): השחקן הולך בשלב בעצמו, רואה דמות עומדת מולו
 #  (story/story_trigger.gd), וכשהוא מספיק קרוב - המשחק לוקח שליטה: עוצר, מרים נשק, מתקרב לאט, ושיחה.
@@ -424,27 +425,27 @@ func _on_draw() -> void:
 	var vs := _draw.get_viewport_rect().size
 	var f := _f()
 	var bh := BAR_H * _bars
-	_draw.draw_rect(Rect2(0, 0, vs.x, bh), Color.BLACK)
-	_draw.draw_rect(Rect2(0, vs.y - bh, vs.x, bh), Color.BLACK)
+	DrawBatch.rect(_draw, Rect2(0, 0, vs.x, bh), Color.BLACK)
+	DrawBatch.rect(_draw, Rect2(0, vs.y - bh, vs.x, bh), Color.BLACK)
 	if _black > 0.0:
-		_draw.draw_rect(Rect2(Vector2.ZERO, vs), Color(0, 0, 0, _black))
+		DrawBatch.rect(_draw, Rect2(Vector2.ZERO, vs), Color(0, 0, 0, _black))
 	if _line != "" and _black < 0.5:
 		var name: String = data.get("names", {}).get(_who, "YOU" if _who == "P" else "")
 		var col := Color(0.75, 0.88, 1.0) if _who == "P" else Color(1.0, 0.35, 0.28)
 		if name == "":   # בלי שם: רק הטקסט, באמצע
 			var tw0 := f.get_string_size(_line, HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
 			var p0 := Vector2((vs.x - tw0) * 0.5, vs.y - 30.0)
-			_draw.draw_string_outline(f, p0, _line.substr(0, int(_shown)), HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)
-			_draw.draw_string(f, p0, _line.substr(0, int(_shown)), HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(0.96, 0.95, 0.9))
+			DrawBatch.string_outline(_draw, f, p0, _line.substr(0, int(_shown)), HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)
+			DrawBatch.string(_draw, f, p0, _line.substr(0, int(_shown)), HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(0.96, 0.95, 0.9))
 		else:
 			var txt := _line.substr(0, int(_shown))
 			var y := vs.y - 30.0
 			var w := f.get_string_size(name + "   " + _line, HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
 			var x := (vs.x - w) * 0.5
-			_draw.draw_string_outline(f, Vector2(x, y), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)
-			_draw.draw_string(f, Vector2(x, y), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, col)
+			DrawBatch.string_outline(_draw, f, Vector2(x, y), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)
+			DrawBatch.string(_draw, f, Vector2(x, y), name, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, col)
 			var nx := x + f.get_string_size(name + "   ", HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
-			_draw.draw_string_outline(f, Vector2(nx, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)
-			_draw.draw_string(f, Vector2(nx, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(0.96, 0.95, 0.9))
+			DrawBatch.string_outline(_draw, f, Vector2(nx, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)
+			DrawBatch.string(_draw, f, Vector2(nx, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(0.96, 0.95, 0.9))
 	if not done and _bars > 0.5:
-		_draw.draw_string(f, Vector2(vs.x - 150.0, 50.0), "ENTER  -  SKIP", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, 0.45))
+		DrawBatch.string(_draw, f, Vector2(vs.x - 150.0, 50.0), "ENTER  -  SKIP", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, 0.45))

@@ -181,6 +181,11 @@ class VineyardGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.rect(self, Rect2(0, 0, w, depth), Color("4a3428"))
 		DrawBatch.rect(self, Rect2(0, 0, w, 14), Color("6a4a34"))
 		DrawBatch.rect(self, Rect2(0, 0, w, 3), Color("8a6444"))
@@ -213,6 +218,11 @@ class Pergola extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var t := float(Engine.get_process_frames()) / 60.0
 		for px in range(0, int(w) + 1, 80):   # עמודי עץ
 			var x := minf(float(px), w - 10.0)
@@ -322,6 +332,11 @@ class BarrelStack extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var d := dir
 		# רמפה
 		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-d * 40, -36), Vector2(d * 50, -2), Vector2(d * 50, 0), Vector2(-d * 40, 0)]), Color("5a3e26"))
@@ -408,6 +423,11 @@ class RollingBarrel extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.circle(self, Vector2.ZERO, 15.2, Color("1a1210"))
 		DrawBatch.circle(self, Vector2.ZERO, 14.0, Color("7a5430"))
 		DrawBatch.arc(self, Vector2.ZERO, 12.5, 0.0, TAU, 18, Color("2e2e34"), 2.0)
@@ -532,6 +552,11 @@ class FermentVat extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if _state == 3:   # שרידים
 			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-36, 0), Vector2(-32, -40), Vector2(-20, -24), Vector2(-8, -52), Vector2(6, -30), Vector2(20, -46), Vector2(34, -20), Vector2(36, 0)]), Color("8a8e94"))
 			DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -2), 70.0, 6.0, 0.0, 16), Color(0.35, 0.04, 0.2, 0.75))
@@ -596,6 +621,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := size.x
 		var h := size.y
 		match kind:
@@ -637,6 +667,11 @@ class BodegaGate extends Node2D:
 		z_index = -2
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var t := float(Engine.get_process_frames()) / 60.0
 		DrawBatch.rect(self, Rect2(-180, -230, 50, 230), ADOBE.darkened(0.1))
 		DrawBatch.rect(self, Rect2(130, -230, 50, 230), ADOBE.darkened(0.1))
@@ -692,6 +727,11 @@ class WineSpray extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(2.2 - _t, 0.0, 1.0)
 		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, 0 if wave else 30), (90.0 if wave else 30.0) * minf(_t * 2.0, 1.0), 4.0, 0.0, 14), Color(0.32, 0.03, 0.18, 0.7 * a))
 		for q in _p:
@@ -710,6 +750,11 @@ class HarvestFX extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var n := Quality.scaled(18, Quality.ambient())
 		for i in n:
 			var x := fposmod(float(i) * 83.0 + sin(_t * 0.9 + float(i)) * 50.0 - _t * 18.0, vp.x)

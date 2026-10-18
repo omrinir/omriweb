@@ -273,6 +273,11 @@ class RanchGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.rect(self, Rect2(0, 0, w, depth), DIRT_D)
 		DrawBatch.rect(self, Rect2(0, 0, w, 14.0), DIRT)
 		DrawBatch.rect(self, Rect2(0, 0, w, 3.0), DIRT.lightened(0.12))
@@ -309,6 +314,11 @@ class WaterTower extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for lx in [12.0, w * 0.5 - 4.0, w - 20.0]:   # רגליים
 			DrawBatch.rect(self, Rect2(lx, -tier, 9.0, tier), WOOD_D)
 		for q in 2:   # חיזוקי X
@@ -351,6 +361,11 @@ class Silo extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var h := tier + 190.0
 		var c := Color("b8bcbc")
 		DrawBatch.rect(self, Rect2(0, -h, w, h), c)
@@ -479,6 +494,11 @@ class GrainChute extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		# הצינור: יוצא מהממגורה בזווית ונגמר בפתח עם מכסה
 		var mouth := Vector2(0, -H)
 		DrawBatch.line(self, mouth + Vector2(-90, -70), mouth + Vector2(-6, -10), Color("6a6e70"), 14.0)
@@ -581,6 +601,11 @@ class Chute extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		# מכלאה צרה מקרשים + רמפה + שער
 		var shake := sin(_tt * 50.0) * 2.0 if state == 1 else 0.0
 		for q in 6:
@@ -716,6 +741,11 @@ class Steer extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if not alive():   # שוכב על הצד
 			DrawBatch.set_transform(self, Vector2(0, -10), dir * 0.5 * PI * 0.9, Vector2(dir, 1))
 			draw_steer(self, Vector2(0, 30), 1.0, 1.0, 0.0)
@@ -783,6 +813,11 @@ class Trough extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var hw := w * 0.5
 		DrawBatch.line(self, Vector2(-hw + 8, 0), Vector2(-hw + 12, -10), Color("3a3634"), 3.0)
 		DrawBatch.line(self, Vector2(hw - 8, 0), Vector2(hw - 12, -10), Color("3a3634"), 3.0)
@@ -816,6 +851,11 @@ class AsadoPit extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		# גחלים
 		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -3), 46.0, 7.0, 0.0, 16), Color("2a1a14"))
 		for q in 10:
@@ -854,6 +894,11 @@ class BeeBoxes extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for q in 3:
 			var bx := float(q) * 42.0
 			var st := 2 + q % 2
@@ -883,6 +928,11 @@ class Coop extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.rect(self, Rect2(0, -70, 120, 70), Color("8a6a46"))
 		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-8, -70), Vector2(60, -96), Vector2(128, -70)]), Color("7a7e80"))
 		for q in 6:
@@ -907,6 +957,11 @@ class DomaArena extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var wood := Color("6a4a2e")
 		for q in int(w / 60.0) + 1:   # גדר עגולה של מכלאת האילוף
 			var x := float(q) * 60.0
@@ -953,6 +1008,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := size.x
 		var h := size.y
 		match kind:
@@ -1018,6 +1078,11 @@ class RanchFX extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var n := int(26.0 * clampf(Quality.ambient(), 0.3, 1.0))   # (אבק = לא דם: יורד כשהמשחק איטי)
 		for i in n:
 			var x := fposmod(float(i) * 97.0 - _t * (18.0 + float(i % 5) * 6.0), vp.x)

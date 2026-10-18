@@ -1118,6 +1118,11 @@ class Sheep extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := _k
 		var run := mode != 0
 		var bob := absf(sin(_walk)) * (2.5 if run else 0.8) + _hop * 20.0
@@ -1177,6 +1182,11 @@ class Fleece extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.set_transform(self, Vector2.ZERO, _rot, Vector2(1.0, 0.6 + 0.4 * absf(sin(_rot))))
 		for c: Vector2 in [Vector2(-10, 0), Vector2(-3, -4), Vector2(5, -2), Vector2(11, 1), Vector2(0, 4)]:
 			DrawBatch.circle(self, c, 7.0, Color("cfc5ae"))
@@ -1223,6 +1233,11 @@ class LooseShears extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.set_transform(self, Vector2.ZERO, _rot, Vector2(k, k) * (1.8 if big else 1.0))
 		for s: float in [-1.0, 1.0]:
 			var dv := Vector2.from_angle(s * 0.08)

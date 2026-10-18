@@ -801,6 +801,11 @@ class Bubbles extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(1.3 - _t, 0.0, 1.0)
 		for q in 8:
 			var k := fmod(_t * 3.2 + float(q) / 8.0, 1.0)
@@ -850,6 +855,11 @@ class IceBreak extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var fz := clampf((_t - REFREEZE + 2.0) / 2.0, 0.0, 1.0)   # קופא מחדש
 		var a := 1.0 - fz
 		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, 2), W * 0.7, 6.0, 0.0, 16), Color(0.75, 0.88, 0.96, a))

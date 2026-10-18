@@ -193,6 +193,11 @@ class VolcGround extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s33_decor.gd")
@@ -231,6 +236,11 @@ class LavaPit extends "res://effects/s21_decor.gd".SpikePit:
 				Particles.burst(get_parent(), global_position + Vector2(randf_range(8.0, w - 8.0), depth - 20.0), "fire", Vector2.UP, 3)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s33_decor.gd")
 		DrawBatch.rect(self, Rect2(0, 0, w, depth + 30.0), Color("1a0a06"))
 		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(0, 0), Vector2(9, 0), Vector2(5, depth), Vector2(0, depth)]), S.BASALT)
@@ -293,6 +303,11 @@ class Vent extends "res://environment/hazard.gd":
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s33_decor.gd")
 		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-22, 0), Vector2(-10, -10), Vector2(10, -10), Vector2(22, 0)]), Color("3a3020"))   # פתח עם קרום גופרית
 		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -9), 12.0, 3.5, 0.0, 10), S.SULFUR)
@@ -323,6 +338,11 @@ class Shelter extends Node2D:
 		return p.x > global_position.x + 8.0 and p.x < global_position.x + w - 8.0 and p.y > global_position.y - h and p.y < global_position.y + 6.0
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s33_decor.gd")
@@ -355,6 +375,11 @@ class Hopper extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s33_decor.gd")
 		for x in [10.0, w * 0.5, w - 10.0]:   # רגליים
 			DrawBatch.line(self, Vector2(x, 0), Vector2(x, -tier), Color("4a3424"), 6.0)
@@ -394,6 +419,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s33_decor.gd")
@@ -552,6 +582,11 @@ class AshFX extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s33_decor.gd")
 		var v: Node = S.volcano()
 		var st: int = v.state if v != null else 0

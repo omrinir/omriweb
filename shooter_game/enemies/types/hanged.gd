@@ -263,6 +263,11 @@ class Bough extends Node2D:
 		z_index = 2
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var pts := PackedVector2Array()
 		for p in [Vector2(-300, -420), Vector2(-190, -200), Vector2(-80, -40), Vector2(0, -4), Vector2(70, 2), Vector2(120, -6)]:
 			pts.append(Vector2(p.x * side, p.y))

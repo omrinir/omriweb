@@ -87,6 +87,11 @@ class Crown extends Node2D:   # הכתר-בומרנג
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := t * 14.0
 		var pts := PackedVector2Array()
 		for q in 10:

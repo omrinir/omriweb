@@ -154,6 +154,11 @@ class Package extends StaticBody2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.rect(self, Rect2(-9, -14, 18, 14), Color("b08a5a"))
 		DrawBatch.rect(self, Rect2(-9, -14, 18, 14), Color("5a4026"), false, 1.0)
 		DrawBatch.rect(self, Rect2(-9, -9, 18, 3), Color("d8c8a0"))   # סרט דביק

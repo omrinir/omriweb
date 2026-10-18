@@ -510,6 +510,11 @@ class Rocket extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var fl := 6.0 + sin(Time.get_ticks_msec() * 0.05) * 2.0
 		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-9, -2.5), Vector2(-9 - fl * 1.6, 0), Vector2(-9, 2.5)]), Color(1.0, 0.65, 0.2, 0.9))
 		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-9, -1.3), Vector2(-9 - fl, 0), Vector2(-9, 1.3)]), Color(1.0, 0.95, 0.7))
@@ -650,6 +655,11 @@ class BannerPaint extends Node2D:
 	var owner_b = null
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var t: float = owner_b.t
 		var vs := get_viewport_rect().size
 		var a := clampf(t / 0.25, 0.0, 1.0) * clampf((3.6 - t) / 0.6, 0.0, 1.0)

@@ -130,6 +130,11 @@ class Canister extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.rect(self, Rect2(-4, -7, 8, 14), Color("5a5a3a"))
 		DrawBatch.rect(self, Rect2(-4, -7, 8, 3), Color("c0a020"))
 		DrawBatch.circle(self, Vector2(0, -9), 2.0 + sin(_t * 30.0), Color(0.3, 0.3, 0.3, 0.8))
@@ -161,6 +166,11 @@ class SmokeCloud extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = _seed
 		var grow := clampf(_t / 0.6, 0.0, 1.0)

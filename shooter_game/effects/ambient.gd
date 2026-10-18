@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  AMBIENT - אפקטי סביבה מונפשים לשימוש חוזר (שלבים 5-9)
 #
@@ -120,9 +121,14 @@ class SteamVent extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for pf in _puffs:
 			var k: float = pf[2] / pf[3]
-			draw_circle(pf[0], 4.0 + k * 16.0, Color(0.85, 0.88, 0.9, 0.3 * (1.0 - k)))
+			DrawBatch.circle(self, pf[0], 4.0 + k * 16.0, Color(0.85, 0.88, 0.9, 0.3 * (1.0 - k)))
 
 
 # ---- ניצוצות חשמל מכבל קרוע / מכונה ----
@@ -149,6 +155,11 @@ class SparkEmitter extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if _arc <= 0.0:
 			return
 		var pts := PackedVector2Array([Vector2.ZERO])
@@ -156,7 +167,7 @@ class SparkEmitter extends Node2D:
 		for i in 5:
 			p += Vector2(randf_range(-6, 6), randf_range(3, 8))
 			pts.append(p)
-		draw_polyline(pts, Color(0.7, 0.85, 1.0, 0.9), 1.5)
+		DrawBatch.polyline(self, pts, Color(0.7, 0.85, 1.0, 0.9), 1.5)
 		Art.glow(self, Vector2.ZERO, 14.0, Color(color, 0.6))
 
 
@@ -191,12 +202,17 @@ class Drip extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		Art.oval(self, Vector2(0, fall + 1.0), 14.0, 2.0, Color(0.4, 0.5, 0.6, 0.35), 0.0, Art.NONE)   # שלולית
 		for d in _drops:
-			draw_line(Vector2(0, d[0] - 5.0), Vector2(0, d[0]), Color(0.7, 0.8, 0.95, 0.8), 1.5)
+			DrawBatch.line(self, Vector2(0, d[0] - 5.0), Vector2(0, d[0]), Color(0.7, 0.8, 0.95, 0.8), 1.5)
 		for s in _splash:
 			var k: float = s[0] / 0.4
-			draw_arc(Vector2(0, fall), 3.0 + k * 9.0, PI, TAU, 10, Color(0.75, 0.85, 1.0, 0.6 * (1.0 - k)), 1.0)
+			DrawBatch.arc(self, Vector2(0, fall), 3.0 + k * 9.0, PI, TAU, 10, Color(0.75, 0.85, 1.0, 0.6 * (1.0 - k)), 1.0)
 
 
 # ---- אור מהבהב (נורת פלורסנט / נורה אדומה של חירום) ----
@@ -225,11 +241,16 @@ class FlickerLight extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if tube:
-			draw_rect(Rect2(-14, -2, 28, 4), Color(0.3, 0.3, 0.32))
-			draw_rect(Rect2(-12, 1, 24, 2), Color(color, 0.35 + 0.65 * _on))
+			DrawBatch.rect(self, Rect2(-14, -2, 28, 4), Color(0.3, 0.3, 0.32))
+			DrawBatch.rect(self, Rect2(-12, 1, 24, 2), Color(color, 0.35 + 0.65 * _on))
 		if _on > 0.05:
-			draw_colored_polygon(PackedVector2Array([Vector2(-12, 2), Vector2(12, 2), Vector2(radius * 0.7, radius * 1.6), Vector2(-radius * 0.7, radius * 1.6)]), Color(color, 0.06 * _on))
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-12, 2), Vector2(12, 2), Vector2(radius * 0.7, radius * 1.6), Vector2(-radius * 0.7, radius * 1.6)]), Color(color, 0.06 * _on))
 			Art.glow(self, Vector2(0, 4), radius * 0.35, Color(color, 0.35 * _on))
 
 
@@ -262,10 +283,15 @@ class FallingDebris extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for c in _chunks:
 			var p: Vector2 = c[0]
 			var s: float = c[2]
-			draw_colored_polygon(Transform2D(c[3], p) * PackedVector2Array([Vector2(-s, -s * 0.6), Vector2(s, -s), Vector2(s * 0.7, s), Vector2(-s * 0.8, s * 0.7)]), Color("5a5650"))
+			DrawBatch.colored_polygon(self, Transform2D(c[3], p) * PackedVector2Array([Vector2(-s, -s * 0.6), Vector2(s, -s), Vector2(s * 0.7, s), Vector2(-s * 0.8, s * 0.7)]), Color("5a5650"))
 
 
 # ---- מסך מחשב מהבהב (מעבדה / חדר בקרה) ----
@@ -284,11 +310,16 @@ class Screen extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
-		draw_rect(Rect2(Vector2(-2, -2), size + Vector2(4, 4)), Color(0.12, 0.12, 0.14))
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.rect(self, Rect2(Vector2(-2, -2), size + Vector2(4, 4)), Color(0.12, 0.12, 0.14))
 		var on := 0.25 if fmod(_t * 3.1, 9.0) < 0.3 else 1.0
-		draw_rect(Rect2(Vector2.ZERO, size), Color(color.r * 0.15, color.g * 0.2, color.b * 0.2))
+		DrawBatch.rect(self, Rect2(Vector2.ZERO, size), Color(color.r * 0.15, color.g * 0.2, color.b * 0.2))
 		for i in int(size.y / 4.0):
 			var w := size.x * (0.3 + 0.6 * absf(sin(_t * 0.7 + float(i) * 1.9)))
-			draw_rect(Rect2(3, 2 + i * 4, w - 6, 1.5), Color(color, 0.6 * on))
-		draw_rect(Rect2(0, fmod(_t * 20.0, size.y), size.x, 2), Color(color, 0.25 * on))   # קו סריקה
+			DrawBatch.rect(self, Rect2(3, 2 + i * 4, w - 6, 1.5), Color(color, 0.6 * on))
+		DrawBatch.rect(self, Rect2(0, fmod(_t * 20.0, size.y), size.x, 2), Color(color, 0.25 * on))   # קו סריקה
 		Art.glow(self, size * 0.5, size.x * 0.8, Color(color, 0.12 * on))

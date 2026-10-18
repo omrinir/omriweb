@@ -194,6 +194,11 @@ class Grate extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(_life, 0.0, 1.0)
 		DrawBatch.set_transform(self, Vector2.ZERO, _rot, Vector2.ONE)
 		DrawBatch.rect(self, Rect2(-17, -3, 34, 6), Color(0.16, 0.18, 0.19, a))

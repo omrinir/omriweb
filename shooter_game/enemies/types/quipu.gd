@@ -155,6 +155,11 @@ class KnotMark extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var b := sin(_t * 3.0) * 2.0
 		DrawBatch.line(self, Vector2(-6, b - 4), Vector2(6, b + 4), col.darkened(0.2), 2.5)
 		DrawBatch.line(self, Vector2(-6, b + 4), Vector2(6, b - 4), col.darkened(0.2), 2.5)

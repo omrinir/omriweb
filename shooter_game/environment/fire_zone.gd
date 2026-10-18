@@ -1,4 +1,5 @@
 extends "res://environment/hazard.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  שטח בוער (מבקבוק תבערה / חבית / זומבי TORCH / SUPAY...)
 #  מצית זומבים שנכנסים אליו ופוגע בשחקן שעומד בתוכו.
@@ -129,12 +130,17 @@ func _hazard_tick(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var tt := _t + _seed
 	var I := intensity()
 	var span := _right - _left
 	var cx := (_left + _right) * 0.5
 	# שלולית דלק חרוכה
-	draw_colored_polygon(Art.ellipse(Vector2(cx, 0.5), span * 0.55, 4.5, 0.0, 18), Color(0.06, 0.04, 0.03, 0.55 * clampf(_t * 4.0, 0.0, 1.0)))
+	DrawBatch.colored_polygon(self, Art.ellipse(Vector2(cx, 0.5), span * 0.55, 4.5, 0.0, 18), Color(0.06, 0.04, 0.03, 0.55 * clampf(_t * 4.0, 0.0, 1.0)))
 	# עשן רך (מאחורי הלהבות)
 	var ns := 2 + int(span / 40.0)
 	for i in ns:
@@ -156,8 +162,8 @@ func _draw() -> void:
 	inner.append(Vector2(_right - 4.0, 1.0))
 	var c0: Color = _pal[1]
 	var c1: Color = _pal[2]
-	draw_colored_polygon(bed, Color(c0, 0.92 * minf(I * 1.3, 1.0)))
-	draw_colored_polygon(inner, Color(c1, 0.9 * minf(I * 1.3, 1.0)))
+	DrawBatch.colored_polygon(self, bed, Color(c0, 0.92 * minf(I * 1.3, 1.0)))
+	DrawBatch.colored_polygon(self, inner, Color(c1, 0.9 * minf(I * 1.3, 1.0)))
 	# לשונות האש
 	for L in _licks:
 		var x: float = L[0]
@@ -177,6 +183,11 @@ class _Light extends Node2D:
 	var fz: Node2D
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var I: float = fz.intensity()
 		var tt: float = fz._t + fz._seed
 		var span: float = fz._right - fz._left
@@ -197,4 +208,4 @@ class _Light extends Node2D:
 			var ex: float = fz._left + fmod(float(i) * 37.0, maxf(span, 1.0)) + sin(tt * 3.0 + float(i)) * 6.0
 			var ey := -10.0 - k * (60.0 + 40.0 * I)
 			var ec: Color = pal[2]
-			draw_circle(Vector2(ex, ey), 1.3 * (1.0 - k) + 0.4, Color(ec, (1.0 - k) * minf(I, 1.0)))
+			DrawBatch.circle(self, Vector2(ex, ey), 1.3 * (1.0 - k) + 0.4, Color(ec, (1.0 - k) * minf(I, 1.0)))

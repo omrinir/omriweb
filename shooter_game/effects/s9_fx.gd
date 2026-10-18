@@ -31,6 +31,11 @@ class OrderLinks extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := 1.0 - _t / LIFE
 		var o: Vector2 = from_z.global_position + Vector2(0, -60) - global_position
 		for tz in targets:
@@ -66,6 +71,11 @@ class LightRain extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for d in _drops:
 			var p := Vector2(d[0], d[1])
 			DrawBatch.line(self, p, p + Vector2(-d[3] * 0.3, d[3]), Color(0.75, 0.72, 0.78, 0.22), 1.0)

@@ -136,6 +136,11 @@ class BunkerGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s26_decor.gd")
@@ -178,6 +183,11 @@ class Ceiling extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s26_decor.gd")
 		var top := S.CEIL_Y
 		DrawBatch.rect(self, Rect2(0, top - 900.0, w, 900.0), Color("1c201c"))
@@ -263,6 +273,11 @@ class FuseBox extends Node2D:
 				queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var y := -100.0
 		DrawBatch.line(self, Vector2(0, -60), Vector2(0, 0), Color("2a2e2a"), 3.0)   # צינור חשמל לרצפה
 		Art.fill_shaded(self, PackedVector2Array([Vector2(-18, y), Vector2(18, y), Vector2(18, y + 44), Vector2(-18, y + 44)]), Color("6a7060"), 0.15, 0.4, Art.OUTLINE, 1.4)
@@ -335,6 +350,11 @@ class LaserGate extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var st := state()
 		DrawBatch.rect(self, Rect2(-9, -h - 4, 18, 12), Color("3a3e42"))   # פולט בתקרה
 		DrawBatch.rect(self, Rect2(-9, -8, 18, 8), Color("3a3e42"))        # מקלט ברצפה
@@ -374,6 +394,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := size.x
 		var h := size.y
 		match kind:
@@ -411,6 +436,11 @@ class ExitTunnel extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var c := Color("1a1e1a")
 		DrawBatch.rect(self, Rect2(-20, -260, 280, 260), Color("2a2e2a"))
 		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(10, 0), Vector2(10, -170), Vector2(40, -210), Vector2(190, -210), Vector2(220, -170), Vector2(220, 0)]), Color("060806"))

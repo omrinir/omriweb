@@ -266,5 +266,10 @@ class Slug extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.line(self, Vector2(-34, 0), Vector2(0, 0), Color(1.0, 0.6, 0.25, 0.45), 3.0)
 		DrawBatch.line(self, Vector2(-10, 0), Vector2(3, 0), Color(1.0, 0.92, 0.7), 3.2)

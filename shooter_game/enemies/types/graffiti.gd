@@ -170,6 +170,11 @@ class Puff extends Node2D:   # ענן ספריי
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.circle(self, Vector2.ZERO, 4.0 + _t * 22.0, Color(col, 0.45 * (1.0 - _t / 0.6)))
 
 

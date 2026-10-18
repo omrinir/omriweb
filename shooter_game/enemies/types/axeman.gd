@@ -188,6 +188,11 @@ class Axe extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := _t * 18.0
 		var hd := Vector2.from_angle(a)
 		DrawBatch.line(self, -hd * 12.0, hd * 12.0, Color("5a3a22"), 3.0)   # ידית

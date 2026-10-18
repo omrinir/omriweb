@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  מפת היבשת (אחרי התפריט הראשי).
 #  7 אזורים, לכל אזור צבע משלו. עוברים עם העכבר = האזור נדלק.
@@ -307,16 +308,21 @@ class Backdrop extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var vs := get_viewport_rect().size
-		draw_rect(Rect2(Vector2.ZERO, vs), Color("120c0a"))
+		DrawBatch.rect(self, Rect2(Vector2.ZERO, vs), Color("120c0a"))
 		for i in 12:   # קורות עץ
 			var y := float(i) * 62.0
-			draw_rect(Rect2(0, y, vs.x, 60.0), Color("1c1410").lerp(Color("241a14"), float(i % 3) / 3.0))
-			draw_line(Vector2(0, y + 60.0), Vector2(vs.x, y + 60.0), Color(0, 0, 0, 0.5), 2.0)
+			DrawBatch.rect(self, Rect2(0, y, vs.x, 60.0), Color("1c1410").lerp(Color("241a14"), float(i % 3) / 3.0))
+			DrawBatch.line(self, Vector2(0, y + 60.0), Vector2(vs.x, y + 60.0), Color(0, 0, 0, 0.5), 2.0)
 		for i in 14:   # וינייטה
-			draw_rect(Rect2(Vector2.ZERO, vs).grow(-float(i) * 6.0), Color(0, 0, 0, 0.05), false, 12.0)
+			DrawBatch.rect(self, Rect2(Vector2.ZERO, vs).grow(-float(i) * 6.0), Color(0, 0, 0, 0.05), false, 12.0)
 		for p in _dust:
-			draw_circle(Vector2(p[0], p[1]), 1.2, Color(1.0, 0.85, 0.6, 0.25))
+			DrawBatch.circle(self, Vector2(p[0], p[1]), 1.2, Color(1.0, 0.85, 0.6, 0.25))
 
 
 # ============================================================
@@ -326,12 +332,17 @@ class MapOverlay extends Node2D:
 	var map: Node
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var f := ThemeDB.fallback_font
 		var t: float = map._t
 		# צל למפה
 		var rr: Rect2 = map._rect
 		for i in 6:
-			draw_rect(rr.grow(4.0 + float(i) * 3.0), Color(0, 0, 0, 0.12), false, 3.0)
+			DrawBatch.rect(self, rr.grow(4.0 + float(i) * 3.0), Color(0, 0, 0, 0.12), false, 3.0)
 		# ---- תג לכל אזור ----
 		for r in Game.REGIONS.size():
 			var reg: Dictionary = Game.REGIONS[r]
@@ -343,17 +354,17 @@ class MapOverlay extends Node2D:
 			var done := Game.region_done(r)
 			var hov: bool = map._hover == r + 1
 			var rad := 15.0 + (3.0 + sin(t * 6.0) * 1.0 if hov else 0.0)
-			draw_circle(c, rad + 3.0, Color(0, 0, 0, 0.55))
-			draw_circle(c, rad, Color(0.1, 0.08, 0.07, 0.92))
+			DrawBatch.circle(self, c, rad + 3.0, Color(0, 0, 0, 0.55))
+			DrawBatch.circle(self, c, rad, Color(0.1, 0.08, 0.07, 0.92))
 			if open:
-				draw_arc(c, rad, -PI / 2.0, -PI / 2.0 + TAU, 32, Color(col, 0.25), 3.0, true)
+				DrawBatch.arc(self, c, rad, -PI / 2.0, -PI / 2.0 + TAU, 32, Color(col, 0.25), 3.0, true)
 				if done > 0:
-					draw_arc(c, rad, -PI / 2.0, -PI / 2.0 + TAU * float(done) / 9.0, 32, col, 3.5, true)
-				draw_string(f, c + Vector2(-20, 5), "%d/9" % done, HORIZONTAL_ALIGNMENT_CENTER, 40, 11, Color.WHITE)
+					DrawBatch.arc(self, c, rad, -PI / 2.0, -PI / 2.0 + TAU * float(done) / 9.0, 32, col, 3.5, true)
+				DrawBatch.string(self, f, c + Vector2(-20, 5), "%d/9" % done, HORIZONTAL_ALIGNMENT_CENTER, 40, 11, Color.WHITE)
 			else:   # מנעול
-				draw_arc(c + Vector2(0, -3), 5.0, PI, TAU, 10, Color(0.75, 0.7, 0.65), 2.0, true)
-				draw_rect(Rect2(c + Vector2(-6.5, -3.0), Vector2(13, 10)), Color(0.75, 0.7, 0.65))
-				draw_circle(c + Vector2(0, 1.5), 1.5, Color(0.1, 0.08, 0.07))
+				DrawBatch.arc(self, c + Vector2(0, -3), 5.0, PI, TAU, 10, Color(0.75, 0.7, 0.65), 2.0, true)
+				DrawBatch.rect(self, Rect2(c + Vector2(-6.5, -3.0), Vector2(13, 10)), Color(0.75, 0.7, 0.65))
+				DrawBatch.circle(self, c + Vector2(0, 1.5), 1.5, Color(0.1, 0.08, 0.07))
 		# ---- "התחל כאן": חץ קופץ מעל האזור הבא שצריך לשחק ----
 		var target := -1
 		for r in Game.REGIONS.size():
@@ -362,8 +373,8 @@ class MapOverlay extends Node2D:
 		if target >= 0:
 			var p: Vector2 = map.label_pos(target) + Vector2(0, -6.0 - absf(sin(t * 3.0)) * 10.0)
 			var col: Color = Game.REGIONS[target].color
-			draw_colored_polygon(PackedVector2Array([p + Vector2(-9, -16), p + Vector2(9, -16), p]), col)
-			draw_polyline(PackedVector2Array([p + Vector2(-9, -16), p + Vector2(9, -16), p, p + Vector2(-9, -16)]), Color(0, 0, 0, 0.8), 1.5, true)
+			DrawBatch.colored_polygon(self, PackedVector2Array([p + Vector2(-9, -16), p + Vector2(9, -16), p]), col)
+			DrawBatch.polyline(self, PackedVector2Array([p + Vector2(-9, -16), p + Vector2(9, -16), p, p + Vector2(-9, -16)]), Color(0, 0, 0, 0.8), 1.5, true)
 		# ---- פאנל מידע מימין ----
 		var px: float = rr.end.x + 50.0
 		var pw := 456.0
@@ -373,8 +384,8 @@ class MapOverlay extends Node2D:
 		for r in Game.REGIONS.size():
 			total += Game.region_done(r)
 		var all: int = Game.REGIONS.size() * Game.LEVELS_PER_REGION
-		draw_rect(Rect2(px, 100, pw, 10), Color(0, 0, 0, 0.6))
-		draw_rect(Rect2(px, 100, pw * float(total) / float(all), 10), Color(0.85, 0.15, 0.1))
+		DrawBatch.rect(self, Rect2(px, 100, pw, 10), Color(0, 0, 0, 0.6))
+		DrawBatch.rect(self, Rect2(px, 100, pw * float(total) / float(all), 10), Color(0.85, 0.15, 0.1))
 		_txt(f, Vector2(px, 130), "PROGRESS  %d / %d" % [total, all], 15, Color(1, 1, 1, 0.75))
 		var show: int = map._hover - 1
 		if show < 0:
@@ -387,7 +398,7 @@ class MapOverlay extends Node2D:
 		sb.border_color = Color(col, 0.8)
 		sb.set_border_width_all(2)
 		sb.set_corner_radius_all(10)
-		draw_style_box(sb, Rect2(px - 14, y - 34, pw + 28, 330))
+		DrawBatch.style_box(self, sb, Rect2(px - 14, y - 34, pw + 28, 330))
 		_txt(f, Vector2(px, y), "%d. %s" % [show + 1, reg.name], 28, col)
 		var lines := _wrap(f, reg.desc, 16, pw)
 		for i in lines.size():
@@ -401,16 +412,16 @@ class MapOverlay extends Node2D:
 			var lv: int = show * 9 + i + 1
 			var cc := Vector2(px + 14.0 + float(i) * 50.0, y + 130.0)
 			var st: int = Game.completed.get(lv, 0)
-			draw_circle(cc, 15.0, Color(0, 0, 0, 0.6))
+			DrawBatch.circle(self, cc, 15.0, Color(0, 0, 0, 0.6))
 			if st > 0:
-				draw_circle(cc, 13.0, col)
-				draw_string(f, cc + Vector2(-20, 5), "★".repeat(st), HORIZONTAL_ALIGNMENT_CENTER, 40, 10, Color(0.1, 0.05, 0.02))
+				DrawBatch.circle(self, cc, 13.0, col)
+				DrawBatch.string(self, f, cc + Vector2(-20, 5), "★".repeat(st), HORIZONTAL_ALIGNMENT_CENTER, 40, 10, Color(0.1, 0.05, 0.02))
 			elif Game.level_playable(lv):
-				draw_circle(cc, 13.0, Color(col, 0.35 + 0.25 * sin(t * 4.0)))
-				draw_string(f, cc + Vector2(-20, 5), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 40, 13, Color.WHITE)
+				DrawBatch.circle(self, cc, 13.0, Color(col, 0.35 + 0.25 * sin(t * 4.0)))
+				DrawBatch.string(self, f, cc + Vector2(-20, 5), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 40, 13, Color.WHITE)
 			else:
-				draw_arc(cc, 13.0, 0.0, TAU, 20, Color(1, 1, 1, 0.2), 1.5, true)
-				draw_string(f, cc + Vector2(-20, 5), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 40, 12, Color(1, 1, 1, 0.3))
+				DrawBatch.arc(self, cc, 13.0, 0.0, TAU, 20, Color(1, 1, 1, 0.2), 1.5, true)
+				DrawBatch.string(self, f, cc + Vector2(-20, 5), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 40, 12, Color(1, 1, 1, 0.3))
 		var hint := "CLICK TO OPEN" if open else ("FINISH %s TO UNLOCK" % Game.REGIONS[show - 1].name if show > 0 else "")
 		_txt(f, Vector2(px, y + 182), hint, 15, Color(1, 1, 1, 0.55 + 0.25 * sin(t * 3.0)))
 		var nxt := ""
@@ -425,12 +436,12 @@ class MapOverlay extends Node2D:
 		if map._msg_t > 0.0:
 			var a := clampf(map._msg_t, 0.0, 1.0)
 			var vs := get_viewport_rect().size
-			draw_rect(Rect2(0, vs.y * 0.5 - 24, vs.x, 48), Color(0, 0, 0, 0.7 * a))
-			draw_string(f, Vector2(0, vs.y * 0.5 + 8), map._msg, HORIZONTAL_ALIGNMENT_CENTER, vs.x, 22, Color(1.0, 0.9, 0.7, a))
+			DrawBatch.rect(self, Rect2(0, vs.y * 0.5 - 24, vs.x, 48), Color(0, 0, 0, 0.7 * a))
+			DrawBatch.string(self, f, Vector2(0, vs.y * 0.5 + 8), map._msg, HORIZONTAL_ALIGNMENT_CENTER, vs.x, 22, Color(1.0, 0.9, 0.7, a))
 
 	func _txt(f: Font, p: Vector2, s: String, size: int, col: Color) -> void:
-		draw_string_outline(f, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 4, Color(0, 0, 0, 0.7 * col.a))
-		draw_string(f, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
+		DrawBatch.string_outline(self, f, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 4, Color(0, 0, 0, 0.7 * col.a))
+		DrawBatch.string(self, f, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
 
 	func _wrap(f: Font, s: String, size: int, w: float) -> Array:
 		var out := []
@@ -497,16 +508,21 @@ class LevelSelect extends Control:
 			get_viewport().set_input_as_handled()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var vs := get_viewport_rect().size
 		var a := clampf(_t / 0.3, 0.0, 1.0)
 		var col: Color = Game.REGIONS[region].color
-		draw_rect(Rect2(Vector2.ZERO, vs), Color(0.03, 0.02, 0.02, 0.88 * a))
+		DrawBatch.rect(self, Rect2(Vector2.ZERO, vs), Color(0.03, 0.02, 0.02, 0.88 * a))
 		for i in 8:
-			draw_rect(Rect2(0, 0, vs.x, 120.0 - float(i) * 12.0), Color(col, 0.025 * a))
+			DrawBatch.rect(self, Rect2(0, 0, vs.x, 120.0 - float(i) * 12.0), Color(col, 0.025 * a))
 		var f := ThemeDB.fallback_font
-		draw_string_outline(f, Vector2(0, 74), "%d. %s" % [region + 1, Game.REGIONS[region].name], HORIZONTAL_ALIGNMENT_CENTER, vs.x, 40, 6, Color(0, 0, 0, a))
-		draw_string(f, Vector2(0, 74), "%d. %s" % [region + 1, Game.REGIONS[region].name], HORIZONTAL_ALIGNMENT_CENTER, vs.x, 40, Color(col, a))
-		draw_string(f, Vector2(0, 108), Game.REGIONS[region].desc, HORIZONTAL_ALIGNMENT_CENTER, vs.x, 17, Color(0.9, 0.85, 0.78, a))
+		DrawBatch.string_outline(self, f, Vector2(0, 74), "%d. %s" % [region + 1, Game.REGIONS[region].name], HORIZONTAL_ALIGNMENT_CENTER, vs.x, 40, 6, Color(0, 0, 0, a))
+		DrawBatch.string(self, f, Vector2(0, 74), "%d. %s" % [region + 1, Game.REGIONS[region].name], HORIZONTAL_ALIGNMENT_CENTER, vs.x, 40, Color(col, a))
+		DrawBatch.string(self, f, Vector2(0, 108), Game.REGIONS[region].desc, HORIZONTAL_ALIGNMENT_CENTER, vs.x, 17, Color(0.9, 0.85, 0.78, a))
 
 
 class LevelCard extends Control:
@@ -557,6 +573,11 @@ class LevelCard extends Control:
 				Sfx.play("empty", null, 3.0)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var f := ThemeDB.fallback_font
 		var playable := Game.level_playable(lv)
 		var unlocked := Game.level_unlocked(lv)
@@ -572,21 +593,21 @@ class LevelCard extends Control:
 		sb.set_border_width_all(3 if _hov > 0.5 and playable else 2)
 		sb.shadow_color = Color(col, 0.35 * _hov) if playable else Color(0, 0, 0, 0)
 		sb.shadow_size = int(14.0 * _hov)
-		draw_style_box(sb, r)
+		DrawBatch.style_box(self, sb, r)
 		var a := 1.0 if playable else 0.45
-		draw_circle(Vector2(36, 36), 22.0, Color(col, 0.9 * a) if unlocked else Color(0.3, 0.3, 0.3))
-		draw_string(f, Vector2(14, 44), str(idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 44, 22, Color(0.08, 0.05, 0.04))
-		draw_string(f, Vector2(70, 34), Game.level_name(lv).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, size.x - 80.0, 18, Color(1, 1, 1, a))
+		DrawBatch.circle(self, Vector2(36, 36), 22.0, Color(col, 0.9 * a) if unlocked else Color(0.3, 0.3, 0.3))
+		DrawBatch.string(self, f, Vector2(14, 44), str(idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 44, 22, Color(0.08, 0.05, 0.04))
+		DrawBatch.string(self, f, Vector2(70, 34), Game.level_name(lv).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, size.x - 80.0, 18, Color(1, 1, 1, a))
 		var sub := ""
 		if lv <= Game.IMPLEMENTED:
 			sub = Game.LEVEL_TITLES[(lv - 1) % Game.LEVEL_TITLES.size()][0]
-		draw_string(f, Vector2(70, 56), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.9, 0.2, 0.15, a))
+		DrawBatch.string(self, f, Vector2(70, 56), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.9, 0.2, 0.15, a))
 		if not unlocked:   # מנעול
 			var c := Vector2(size.x * 0.5, 92)
-			draw_arc(c + Vector2(0, -6), 7.0, PI, TAU, 12, Color(1, 1, 1, 0.4), 2.5, true)
-			draw_rect(Rect2(c + Vector2(-9, -6), Vector2(18, 14)), Color(1, 1, 1, 0.4))
+			DrawBatch.arc(self, c + Vector2(0, -6), 7.0, PI, TAU, 12, Color(1, 1, 1, 0.4), 2.5, true)
+			DrawBatch.rect(self, Rect2(c + Vector2(-9, -6), Vector2(18, 14)), Color(1, 1, 1, 0.4))
 		elif lv > Game.IMPLEMENTED:
-			draw_string(f, Vector2(0, 98), "COMING SOON", HORIZONTAL_ALIGNMENT_CENTER, size.x, 16, Color(1, 1, 1, 0.45))
+			DrawBatch.string(self, f, Vector2(0, 98), "COMING SOON", HORIZONTAL_ALIGNMENT_CENTER, size.x, 16, Color(1, 1, 1, 0.45))
 		else:
 			for s in 3:   # כוכבים
 				var sc := Vector2(size.x * 0.5 - 30.0 + float(s) * 30.0, 92)
@@ -595,18 +616,18 @@ class LevelCard extends Control:
 				for k in 10:
 					var ang := -PI / 2.0 + float(k) * PI / 5.0
 					pts.append(sc + Vector2.from_angle(ang) * (11.0 if k % 2 == 0 else 4.6))
-				draw_colored_polygon(pts, Color(1.0, 0.82, 0.25) if on else Color(1, 1, 1, 0.12))
+				DrawBatch.colored_polygon(self, pts, Color(1.0, 0.82, 0.25) if on else Color(1, 1, 1, 0.12))
 			if stars == 0:
-				draw_string(f, Vector2(0, 122), "PLAY", HORIZONTAL_ALIGNMENT_CENTER, size.x, 13, Color(col, 0.6 + 0.4 * sin(_t * 4.0)))
+				DrawBatch.string(self, f, Vector2(0, 122), "PLAY", HORIZONTAL_ALIGNMENT_CENTER, size.x, 13, Color(col, 0.6 + 0.4 * sin(_t * 4.0)))
 			elif Game.level_best.has(lv):
-				draw_string(f, Vector2(0, 122), "BEST %d" % Game.level_best[lv], HORIZONTAL_ALIGNMENT_CENTER, size.x, 12, Color(1, 1, 1, 0.5))
+				DrawBatch.string(self, f, Vector2(0, 122), "BEST %d" % Game.level_best[lv], HORIZONTAL_ALIGNMENT_CENTER, size.x, 12, Color(1, 1, 1, 0.5))
 
 	# כרטיס עם תמונה: הצילום של השלב, מסגרת בצבע האזור, מספר + שם + כותרת משמאל, כוכבים למטה
 	func _draw_thumb(f: Font, playable: bool, unlocked: bool, stars: int, r: Rect2) -> void:
 		var bright := 0.78 + 0.22 * _hov if playable else 0.32
 		if playable and stars == 0:   # שלב חדש שעוד לא שוחק: מהבהב קצת
 			bright += 0.05 * sin(_t * 4.0)
-		draw_texture_rect(_thumb, r, false, Color(bright, bright, bright, 1.0) if unlocked else Color(0.3, 0.3, 0.32, 1.0))
+		DrawBatch.texture_rect(self, _thumb, r, false, Color(bright, bright, bright, 1.0) if unlocked else Color(0.3, 0.3, 0.32, 1.0))
 		var sb := StyleBoxFlat.new()
 		sb.set_corner_radius_all(12)
 		sb.draw_center = false
@@ -614,21 +635,21 @@ class LevelCard extends Control:
 		sb.set_border_width_all(3 if _hov > 0.5 and playable else 2)
 		sb.shadow_color = Color(col, 0.4 * _hov) if playable else Color(0, 0, 0, 0)
 		sb.shadow_size = int(16.0 * _hov)
-		draw_style_box(sb, r)
+		DrawBatch.style_box(self, sb, r)
 		var a := 1.0 if playable else 0.55
-		draw_circle(Vector2(30, 30), 19.0, Color(col, 0.95 * a) if unlocked else Color(0.3, 0.3, 0.3))
-		draw_string(f, Vector2(10, 37), str(idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 40, 20, Color(0.08, 0.05, 0.04))
+		DrawBatch.circle(self, Vector2(30, 30), 19.0, Color(col, 0.95 * a) if unlocked else Color(0.3, 0.3, 0.3))
+		DrawBatch.string(self, f, Vector2(10, 37), str(idx + 1), HORIZONTAL_ALIGNMENT_CENTER, 40, 20, Color(0.08, 0.05, 0.04))
 		var name := Game.level_name(lv).to_upper()
-		draw_string_outline(f, Vector2(58, 30), name, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 19, 5, Color(0, 0, 0, 0.8 * a))
-		draw_string(f, Vector2(58, 30), name, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 19, Color(1, 1, 1, a))
+		DrawBatch.string_outline(self, f, Vector2(58, 30), name, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 19, 5, Color(0, 0, 0, 0.8 * a))
+		DrawBatch.string(self, f, Vector2(58, 30), name, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 19, Color(1, 1, 1, a))
 		var sub: String = Game.LEVEL_TITLES[(lv - 1) % Game.LEVEL_TITLES.size()][0]
-		draw_string_outline(f, Vector2(58, 50), sub, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 13, 4, Color(0, 0, 0, 0.8 * a))
-		draw_string(f, Vector2(58, 50), sub, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 13, Color(1.0, 0.3, 0.22, a))
+		DrawBatch.string_outline(self, f, Vector2(58, 50), sub, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 13, 4, Color(0, 0, 0, 0.8 * a))
+		DrawBatch.string(self, f, Vector2(58, 50), sub, HORIZONTAL_ALIGNMENT_LEFT, size.x - 66.0, 13, Color(1.0, 0.3, 0.22, a))
 		if not unlocked:   # מנעול באמצע
 			var c := Vector2(size.x * 0.5, size.y * 0.55)
-			draw_circle(c, 24.0, Color(0, 0, 0, 0.55))
-			draw_arc(c + Vector2(0, -6), 7.0, PI, TAU, 12, Color(1, 1, 1, 0.75), 2.5, true)
-			draw_rect(Rect2(c + Vector2(-9, -6), Vector2(18, 14)), Color(1, 1, 1, 0.75))
+			DrawBatch.circle(self, c, 24.0, Color(0, 0, 0, 0.55))
+			DrawBatch.arc(self, c + Vector2(0, -6), 7.0, PI, TAU, 12, Color(1, 1, 1, 0.75), 2.5, true)
+			DrawBatch.rect(self, Rect2(c + Vector2(-9, -6), Vector2(18, 14)), Color(1, 1, 1, 0.75))
 			return
 		for s in 3:   # כוכבים למטה
 			var sc := Vector2(size.x * 0.5 - 26.0 + float(s) * 26.0, size.y - 22.0)
@@ -637,12 +658,12 @@ class LevelCard extends Control:
 				var ang := -PI / 2.0 + float(k) * PI / 5.0
 				pts.append(sc + Vector2.from_angle(ang) * (10.0 if k % 2 == 0 else 4.2))
 			if s < stars:
-				draw_colored_polygon(pts, Color(1.0, 0.82, 0.25))
+				DrawBatch.colored_polygon(self, pts, Color(1.0, 0.82, 0.25))
 			else:
-				draw_polyline(pts + PackedVector2Array([pts[0]]), Color(1, 1, 1, 0.45), 1.3, true)
+				DrawBatch.polyline(self, pts + PackedVector2Array([pts[0]]), Color(1, 1, 1, 0.45), 1.3, true)
 		if stars == 0 and playable:
-			draw_string_outline(f, Vector2(size.x - 70.0, size.y - 15.0), "PLAY", HORIZONTAL_ALIGNMENT_RIGHT, 60, 15, 4, Color(0, 0, 0, 0.8))
-			draw_string(f, Vector2(size.x - 70.0, size.y - 15.0), "PLAY", HORIZONTAL_ALIGNMENT_RIGHT, 60, 15, Color(col, 0.7 + 0.3 * sin(_t * 4.0)))
+			DrawBatch.string_outline(self, f, Vector2(size.x - 70.0, size.y - 15.0), "PLAY", HORIZONTAL_ALIGNMENT_RIGHT, 60, 15, 4, Color(0, 0, 0, 0.8))
+			DrawBatch.string(self, f, Vector2(size.x - 70.0, size.y - 15.0), "PLAY", HORIZONTAL_ALIGNMENT_RIGHT, 60, 15, Color(col, 0.7 + 0.3 * sin(_t * 4.0)))
 		elif Game.level_best.has(lv):
-			draw_string_outline(f, Vector2(size.x - 130.0, size.y - 15.0), "BEST %d" % Game.level_best[lv], HORIZONTAL_ALIGNMENT_RIGHT, 120, 12, 4, Color(0, 0, 0, 0.8))
-			draw_string(f, Vector2(size.x - 130.0, size.y - 15.0), "BEST %d" % Game.level_best[lv], HORIZONTAL_ALIGNMENT_RIGHT, 120, 12, Color(1, 1, 1, 0.75))
+			DrawBatch.string_outline(self, f, Vector2(size.x - 130.0, size.y - 15.0), "BEST %d" % Game.level_best[lv], HORIZONTAL_ALIGNMENT_RIGHT, 120, 12, 4, Color(0, 0, 0, 0.8))
+			DrawBatch.string(self, f, Vector2(size.x - 130.0, size.y - 15.0), "BEST %d" % Game.level_best[lv], HORIZONTAL_ALIGNMENT_RIGHT, 120, 12, Color(1, 1, 1, 0.75))

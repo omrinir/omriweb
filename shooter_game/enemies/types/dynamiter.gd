@@ -221,6 +221,11 @@ class Stick extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.set_transform(self, Vector2.ZERO, _rot, Vector2.ONE)
 		var n := 3 if bundle else 1
 		for i in n:

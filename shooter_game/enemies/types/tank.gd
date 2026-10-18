@@ -300,6 +300,11 @@ class Shock extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := _t / 0.45
 		for s in [-1.0, 1.0]:
 			var x: float = s * k * 150.0

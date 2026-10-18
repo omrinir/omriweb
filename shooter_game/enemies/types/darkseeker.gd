@@ -386,6 +386,11 @@ class Rock extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.rect(self, Rect2(-3, -2, 6, 4), Color("4a4a50"))
 		DrawBatch.rect(self, Rect2(-3, -2, 6, 1.2), Color("8a8a90"))
 

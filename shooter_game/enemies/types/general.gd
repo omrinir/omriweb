@@ -364,6 +364,11 @@ class Shell extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := clampf(_t / delay, 0.0, 1.0)
 		var blink := fmod(_t * 8.0, 1.0) < 0.6
 		DrawBatch.colored_polygon(self, preload("res://art.gd").ellipse(Vector2.ZERO, radius, radius * 0.2, 0.0, 20), Color(1.0, 0.4, 0.1, 0.12 + 0.18 * k))

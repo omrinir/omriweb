@@ -270,6 +270,11 @@ class Rocket extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.rect(self, Rect2(-8, -2.5, 14, 5), Color("c02a2a") if not blue else Color("2a6ac0"))
 		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(6, -3), Vector2(11, 0), Vector2(6, 3)]), Color("e0c040"))
 		DrawBatch.line(self, Vector2(-8, 0), Vector2(-20, 0), Color("8a6a3a"), 1.2)

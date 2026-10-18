@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  PASS BARRIER - "אי אפשר לברוח מהם"
 #  שחקן שרץ קדימה ומשאיר מאחוריו 4+ זומבים ערים (שכבר ראו אותו) -> מופיע מולו קיר אנרגיה שקוף.
@@ -174,6 +175,11 @@ func _open(p: Node) -> void:
 
 # קיר אנרגיה אדום שקוף: פסים שזורמים למעלה, קצוות מהבהבים, ומונה של מי שנשאר
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	if _wall == null or _up <= 0.0:
 		return
 	var p := get_tree().get_first_node_in_group("player")
@@ -183,19 +189,19 @@ func _draw() -> void:
 	var top: float = foot - h
 	var flick := 0.85 + 0.15 * sin(_t * 23.0)
 	var w := 22.0
-	draw_rect(Rect2(Vector2(base.x - w, top), Vector2(w * 2.0, h)), Color(COL, 0.10 * flick))
-	draw_rect(Rect2(Vector2(base.x - w * 0.45, top), Vector2(w * 0.9, h)), Color(COL, 0.13 * flick))
+	DrawBatch.rect(self, Rect2(Vector2(base.x - w, top), Vector2(w * 2.0, h)), Color(COL, 0.10 * flick))
+	DrawBatch.rect(self, Rect2(Vector2(base.x - w * 0.45, top), Vector2(w * 0.9, h)), Color(COL, 0.13 * flick))
 	for s in [-1.0, 1.0]:   # קצוות בוהקים
-		draw_line(Vector2(base.x + s * w, top), Vector2(base.x + s * w, foot), Color(1.0, 0.45, 0.35, 0.55 * flick), 1.5)
+		DrawBatch.line(self, Vector2(base.x + s * w, top), Vector2(base.x + s * w, foot), Color(1.0, 0.45, 0.35, 0.55 * flick), 1.5)
 	for i in 14:   # פסים שעולים
 		var ly: float = foot - fposmod(_t * 160.0 + float(i) * 64.0, h)
 		var a: float = 0.35 * (1.0 - (foot - ly) / h)
-		draw_line(Vector2(base.x - w, ly), Vector2(base.x + w, ly), Color(1.0, 0.5, 0.4, a), 1.2)
-	draw_rect(Rect2(Vector2(base.x - w - 6.0, foot - 4.0), Vector2((w + 6.0) * 2.0, 4.0)), Color(1.0, 0.3, 0.2, 0.6 * flick))   # בסיס זוהר
+		DrawBatch.line(self, Vector2(base.x - w, ly), Vector2(base.x + w, ly), Color(1.0, 0.5, 0.4, a), 1.2)
+	DrawBatch.rect(self, Rect2(Vector2(base.x - w - 6.0, foot - 4.0), Vector2((w + 6.0) * 2.0, 4.0)), Color(1.0, 0.3, 0.2, 0.6 * flick))   # בסיס זוהר
 	if not _fade:
 		var f := ThemeDB.fallback_font
 		var txt := "KILL THEM  %d" % _locked.size()
 		var tp := Vector2(base.x - 70.0, foot - 118.0)
-		draw_string_outline(f, tp, txt, HORIZONTAL_ALIGNMENT_CENTER, 140.0, 14, 4, Color(0, 0, 0, 0.75 * _up))
-		draw_string(f, tp, txt, HORIZONTAL_ALIGNMENT_CENTER, 140.0, 14, Color(1.0, 0.45, 0.38, _up))
-		draw_string(f, tp + Vector2(0, 16), "<<", HORIZONTAL_ALIGNMENT_CENTER, 140.0, 13, Color(1.0, 0.45, 0.38, 0.6 * _up * flick))
+		DrawBatch.string_outline(self, f, tp, txt, HORIZONTAL_ALIGNMENT_CENTER, 140.0, 14, 4, Color(0, 0, 0, 0.75 * _up))
+		DrawBatch.string(self, f, tp, txt, HORIZONTAL_ALIGNMENT_CENTER, 140.0, 14, Color(1.0, 0.45, 0.38, _up))
+		DrawBatch.string(self, f, tp + Vector2(0, 16), "<<", HORIZONTAL_ALIGNMENT_CENTER, 140.0, 13, Color(1.0, 0.45, 0.38, 0.6 * _up * flick))

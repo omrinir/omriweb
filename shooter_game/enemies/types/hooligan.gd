@@ -128,6 +128,11 @@ class Flare extends Node2D:   # הזיקוק באוויר -> אש על הקרק�
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.line(self, Vector2(-5, 0), Vector2(5, 0), Color("c03020"), 3.0)
 		DrawBatch.circle(self, Vector2(5, 0), 3.0, Color(1.0, 0.7, 0.5))
 		DrawBatch.circle(self, Vector2(5, 0), 7.0, Color(1.0, 0.3, 0.2, 0.35))
@@ -168,6 +173,11 @@ class FlareFire extends Node2D:   # אש סינליזדור על הקרקע
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf((T - _t) / 1.0, 0.0, 1.0)
 		Art.glow(self, Vector2(0, -12), 50.0, Color(1.0, 0.25, 0.15, 0.35 * a))
 		for q in 5:   # לשונות אש אדומות

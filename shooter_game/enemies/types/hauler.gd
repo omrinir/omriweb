@@ -1174,6 +1174,11 @@ class Wreck extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf((14.0 - _t) / 2.0, 0.0, 1.0)
 		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(side * k, k))
 		var rust := Color(0.42, 0.26, 0.15, a)
@@ -1219,6 +1224,11 @@ class Rupture extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := _t / FUSE
 		DrawBatch.circle(self, Vector2.ZERO, 6.0 + k * 6.0, Color(1.0, 0.35, 0.1, 0.25 + 0.45 * k * (0.5 + 0.5 * sin(_t * 40.0))))
 		for q in 5:

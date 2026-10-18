@@ -141,6 +141,11 @@ class HillGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s25_decor.gd")
@@ -220,6 +225,11 @@ class Puddle extends Node2D:
 			preload("res://particles.gd").burst(get_parent(), global_position + Vector2(0, -6), "spark", Vector2.UP, 14)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var ph := _phase()
 		var t := float(Engine.get_physics_frames()) / 60.0
 		var pts := Art.ellipse(Vector2(0, 0), w * 0.5, 4.5, 0.0, 18)
@@ -277,6 +287,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := size.x
 		var h := size.y
 		match kind:
@@ -362,6 +377,11 @@ class StormFX extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for d in _drops:
 			DrawBatch.line(self, Vector2(d.x, d.y), Vector2(d.x + 5.0, d.y - 16.0 * d.z), Color(0.7, 0.8, 0.95, 0.35), 1.0)
 		if _flash > 0.0:

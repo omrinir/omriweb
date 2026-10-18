@@ -1,4 +1,5 @@
 extends CharacterBody2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 const TouchAPI := preload("res://ui/touch_api.gd")   # שליטה במגע בטלפון (ui/touch_controls.gd)
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
@@ -948,10 +949,10 @@ func _draw_aim_guide() -> void:
 		var t := flow
 		while t < length:
 			var k := t / maxf(length, 1.0)
-			draw_circle(from + d * t, 1.2, Color(col, 0.5 * (1.0 - k * 0.7)))
+			DrawBatch.circle(self, from + d * t, 1.2, Color(col, 0.5 * (1.0 - k * 0.7)))
 			t += 10.0
 	if dirs.size() == 1:
-		draw_circle(to, 2.0, Color(col, 0.6))
+		DrawBatch.circle(self, to, 2.0, Color(col, 0.6))
 
 
 func _can_stand() -> bool:
@@ -1649,6 +1650,11 @@ func hurt(amount: int, knock_dir: Vector2) -> void:
 #  מציירים תמיד כאילו הדמות פונה ימינה, ומשקפים לפי הצורך.
 # ============================================================
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var face := _face()
 	if dead:
 		var k := clampf(_dead_t / 0.45, 0.0, 1.0)
@@ -1657,9 +1663,9 @@ func _draw() -> void:
 		if pool > 0.0:   # שלולית דם
 			Art.oval(self, Vector2(-face * 22.0, -1.0), 26.0 * pool, 3.0 * pool, Color("6a0a0a"), 0.0, Art.NONE)
 		_base_xf = Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2.ZERO)
-		draw_set_transform_matrix(_base_xf)
+		DrawBatch.set_transform_matrix(self, _base_xf)
 		_draw_hero(Vector2.RIGHT)
-		draw_set_transform_matrix(Transform2D.IDENTITY)
+		DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 		return
 
 	var la := Vector2(_aim.x * face, _aim.y)   # כיוון הנשק במרחב המקומי (תמיד ימינה)
@@ -1671,7 +1677,7 @@ func _draw() -> void:
 	if _roll_t > 0.0:   # גלגול: הגוף מסתובב סביב המרכז
 		var ang := (1.0 - _roll_t / 0.35) * TAU * _roll_dir * face
 		_base_xf = Transform2D(ang, Vector2(0, -16)) * Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2(0, 16))
-	draw_set_transform_matrix(_base_xf)
+	DrawBatch.set_transform_matrix(self, _base_xf)
 	if jetpack != null:   # על הגב, מאחורי הגוף
 		jetpack.draw_pack(self)
 	_draw_hero(la)
@@ -1683,26 +1689,26 @@ func _draw() -> void:
 		_draw_beam(tgt, _device_tip, clampf(_drain_t / DRAIN_TIME, 0.0, 1.0))
 	if shield_hits > 0:   # מגן: טבעת תכלת
 		var sp := 0.7 + 0.3 * sin(_time * 6.0)
-		draw_arc(Vector2(0, -27), 30.0, 0.0, TAU, 32, Color(0.25, 0.9, 0.95, 0.55 * sp), 2.0, true)
-		draw_arc(Vector2(0, -27), 33.0, 0.0, TAU, 32, Color(0.25, 0.9, 0.95, 0.2 * sp), 4.0, true)
+		DrawBatch.arc(self, Vector2(0, -27), 30.0, 0.0, TAU, 32, Color(0.25, 0.9, 0.95, 0.55 * sp), 2.0, true)
+		DrawBatch.arc(self, Vector2(0, -27), 33.0, 0.0, TAU, 32, Color(0.25, 0.9, 0.95, 0.2 * sp), 4.0, true)
 	if boosts.has(PickupScript.ADRENALINE):   # אדרנלין: קווי מהירות אדומים
 		for i in 4:
 			var y := -10.0 - float(i) * 11.0
 			var ln := 10.0 + 8.0 * absf(sin(_time * 9.0 + float(i)))
-			draw_line(Vector2(-14.0, y), Vector2(-14.0 - ln, y), Color(1.0, 0.3, 0.2, 0.55), 1.5, true)
+			DrawBatch.line(self, Vector2(-14.0, y), Vector2(-14.0 - ln, y), Color(1.0, 0.3, 0.2, 0.55), 1.5, true)
 	if _heal_flash > 0.0:   # הילה ירוקה אחרי שקיבלנו חיים
 		Art.glow(self, Vector2(0, -28), 34.0 * (1.5 - _heal_flash * 0.5), Color(0.45, 1.0, 0.75, 0.6 * _heal_flash))
 	if _melee_t > 0.0:   # קו תנועה של המכה
 		var mk := 1.0 - _melee_t / MELEE_TIME
-		draw_arc(Vector2(10, -24), 22.0, -0.9 + mk * 0.6, 0.5 + mk * 0.6, 10, Color(1, 1, 1, 0.5 * sin(mk * PI)), 3.0, true)
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+		DrawBatch.arc(self, Vector2(10, -24), 22.0, -0.9 + mk * 0.6, 0.5 + mk * 0.6, 10, Color(1, 1, 1, 0.5 * sin(mk * PI)), 3.0, true)
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 	for d in _dust:   # אבק ריצה
 		var dk: float = d[2] / d[3]
-		draw_circle(d[0] - global_position, d[4], Color(0.62, 0.57, 0.5, 0.35 * (1.0 - dk)))
+		DrawBatch.circle(self, d[0] - global_position, d[4], Color(0.62, 0.57, 0.5, 0.35 * (1.0 - dk)))
 	if _daze_t > 0.0:   # מסונוור: נקודות אור מסתובבות מעל הראש
 		for i in 3:
 			var a := _time * 6.0 + float(i) * TAU / 3.0
-			draw_circle(Vector2(cos(a) * 10.0, -60.0 + sin(a) * 3.0), 2.0, Color(1.0, 0.92, 0.6, minf(_daze_t * 2.0, 1.0)))
+			DrawBatch.circle(self, Vector2(cos(a) * 10.0, -60.0 + sin(a) * 3.0), 2.0, Color(1.0, 0.92, 0.6, minf(_daze_t * 2.0, 1.0)))
 	# חלקיקי קסם (עדינים מאוד)
 	for m in _magic:
 		var k: float = m[2] / m[3]
@@ -1714,8 +1720,8 @@ func _draw() -> void:
 			a = minf(a * 2.8, 0.95)
 			sz *= 1.5
 		var p: Vector2 = m[0] - global_position
-		draw_circle(p, sz * 3.2, Color(c, a * (0.3 if health == 1 else 0.18)))
-		draw_circle(p, sz, Color(c.lerp(Color.WHITE, 0.15 if health == 1 else 0.4), a))
+		DrawBatch.circle(self, p, sz * 3.2, Color(c, a * (0.3 if health == 1 else 0.18)))
+		DrawBatch.circle(self, p, sz, Color(c.lerp(Color.WHITE, 0.15 if health == 1 else 0.4), a))
 	# לייזר (שדרוג)
 	# קשת: קו נקודות שמראה לאן החץ יעוף
 	if weapon == GUN and gun == BOW and controllable and _drain_target == null and not dead:
@@ -1724,7 +1730,7 @@ func _draw() -> void:
 		for i in 14:
 			var tt := 0.045 * float(i + 1)
 			var pt := p0 + v * tt + Vector2(0.0, 450.0 * tt * tt)
-			draw_circle(pt, 1.6, Color(0.6, 0.9, 0.5, 0.55 * (1.0 - float(i) / 14.0)))
+			DrawBatch.circle(self, pt, 1.6, Color(0.6, 0.9, 0.5, 0.55 * (1.0 - float(i) / 14.0)))
 	# טייזר: ברקים
 	for b in _bolts:
 		var pts: PackedVector2Array = b[0]
@@ -1735,19 +1741,19 @@ func _draw() -> void:
 			for j in range(1, 6):
 				line.append(a.lerp(c, float(j) / 6.0) + Vector2(randf_range(-6, 6), randf_range(-6, 6)))
 			line.append(c)
-			draw_polyline(line, Color(0.75, 0.55, 1.0, 0.85), 3.0, true)
-			draw_polyline(line, Color(1, 1, 1, 0.95), 1.0, true)
+			DrawBatch.polyline(self, line, Color(0.75, 0.55, 1.0, 0.85), 3.0, true)
+			DrawBatch.polyline(self, line, Color(1, 1, 1, 0.95), 1.0, true)
 	_draw_aim_guide()
 	if (Upgrades.perk("laser_sight") > 0 or _scoping) and controllable and _drain_target == null and weapon == GUN:
 		var from := _front_shoulder() + _aim * 30.0
 		var to := _laser_end - global_position
-		draw_line(from, to, Color(1.0, 0.1, 0.1, 0.35), 1.0, true)
-		draw_circle(to, 2.0, Color(1.0, 0.2, 0.2, 0.9))
+		DrawBatch.line(self, from, to, Color(1.0, 0.1, 0.1, 0.35), 1.0, true)
+		DrawBatch.circle(self, to, 2.0, Color(1.0, 0.2, 0.2, 0.9))
 
 
 # הגוף מצויר צר יותר (רזה), הידיים והנשק ברוחב רגיל
 func _slim(on: bool) -> void:
-	draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(slim, 1.0), 0.0, Vector2.ZERO) if on else _base_xf)
+	DrawBatch.set_transform_matrix(self, _base_xf * Transform2D(0.0, Vector2(slim, 1.0), 0.0, Vector2.ZERO) if on else _base_xf)
 
 
 # ============================================================
@@ -1797,24 +1803,24 @@ func _hero_frame() -> Array:
 func _draw_flames() -> void:
 	if _flames.is_empty() and not god_mode():
 		return
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 	if god_mode():
 		var left: float = boosts[PickupScript.GOD]
 		var fade := clampf(left / 1.5, 0.0, 1.0)   # בשנייה וחצי האחרונות דועך (מהבהב)
 		if left < 3.0 and int(left * 8.0) % 2 == 0:
 			fade *= 0.4
 		var pulse := 0.8 + 0.2 * sin(_time * 9.0)
-		draw_circle(Vector2(0, -27), 30.0, Color(1.0, 0.08, 0.04, 0.10 * pulse * fade))
-		draw_circle(Vector2(0, -27), 20.0, Color(1.0, 0.15, 0.05, 0.10 * pulse * fade))
+		DrawBatch.circle(self, Vector2(0, -27), 30.0, Color(1.0, 0.08, 0.04, 0.10 * pulse * fade))
+		DrawBatch.circle(self, Vector2(0, -27), 20.0, Color(1.0, 0.15, 0.05, 0.10 * pulse * fade))
 	for f in _flames:
 		var k: float = f[2] / f[3]
 		var p: Vector2 = f[0] - global_position
 		var c := Color(1.0, 0.9, 0.55).lerp(Color(1.0, 0.15, 0.06), minf(k * 2.2, 1.0)).lerp(Color(0.35, 0.02, 0.02), maxf(k * 2.0 - 1.0, 0.0))
 		var r: float = f[4] * (1.0 - k * 0.55)
 		if int(f[4] * 100.0) % 2 == 0:   # הילה רק לחצי מהלהבות (חוסך ציור)
-			draw_circle(p, r * 2.4, Color(1.0, 0.1, 0.04, 0.14 * (1.0 - k)))
-		draw_circle(p, r, Color(c, 0.9 * (1.0 - k * k)))
-	draw_set_transform_matrix(_base_xf)
+			DrawBatch.circle(self, p, r * 2.4, Color(1.0, 0.1, 0.04, 0.14 * (1.0 - k)))
+		DrawBatch.circle(self, p, r, Color(c, 0.9 * (1.0 - k * k)))
+	DrawBatch.set_transform_matrix(self, _base_xf)
 
 
 func _land_squash() -> float:
@@ -1839,16 +1845,16 @@ func _draw_hero(la: Vector2) -> void:
 	_fr_ay = fr[5]
 	var s := SPRITE_SCALE
 	if HeroAnim.FLIP.has(fi[0]):   # פריים שמצויר בדף לכיוון השני
-		draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(-1.0, 1.0), 0.0, Vector2.ZERO))
+		DrawBatch.set_transform_matrix(self, _base_xf * Transform2D(0.0, Vector2(-1.0, 1.0), 0.0, Vector2.ZERO))
 	if _is_dark():   # שלב חשוך: הילה קרה מאחורי הספרייט = קו מתאר בהיר סביב הצללית (זול: 3+2 עיגולים)
 		var hy := -float(fr[5]) * s * 0.5
 		Art.glow(self, Vector2(0.0, hy + 2.0), 30.0, RIM_COL)
 		Art.glow(self, Vector2(0.0, hy - 12.0), 16.0, Color(RIM_COL, RIM_COL.a * 0.8))
 	var sq := _land_squash()
 	if sq > 0.0:   # נחיתה: נמעך מעט סביב כפות הרגליים וחוזר
-		draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(1.0 + sq * 0.5, 1.0 - sq), 0.0, Vector2.ZERO))
-	draw_texture_rect_region(HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s), Rect2(fr[0], fr[1], fr[2], fr[3]))
-	draw_set_transform_matrix(_base_xf)
+		DrawBatch.set_transform_matrix(self, _base_xf * Transform2D(0.0, Vector2(1.0 + sq * 0.5, 1.0 - sq), 0.0, Vector2.ZERO))
+	DrawBatch.texture_rect_region(self, HERO_TEX, Rect2(-float(fr[4]) * s, -float(fr[5]) * s, float(fr[2]) * s, float(fr[3]) * s), Rect2(fr[0], fr[1], fr[2], fr[3]))
+	DrawBatch.set_transform_matrix(self, _base_xf)
 	if dead or _melee_t > 0.0 or _roll_t > 0.0 or _slide_t > 0.0 or unarmed:
 		return
 	# ידיים + נשק מעל הספרייט (מכוונים לעכבר)
@@ -1859,7 +1865,7 @@ func _draw_hero(la: Vector2) -> void:
 	sh.y *= 1.0 - _land_squash()
 	# הנשק והידיים קטנים יותר (מתאים לדמות הרזה מהספרייט), סביב הכתף
 	var ws := 0.72
-	draw_set_transform_matrix(_base_xf * Transform2D(0.0, Vector2(ws, ws), 0.0, sh * (1.0 - ws)))
+	DrawBatch.set_transform_matrix(self, _base_xf * Transform2D(0.0, Vector2(ws, ws), 0.0, sh * (1.0 - ws)))
 	if _anim == "run":   # ריצה: הגוף בפריימים נוטה קדימה - הידיים איתו
 		sh += Vector2(2.0, 3.0)
 	elif _anim == "hurt":
@@ -1868,7 +1874,7 @@ func _draw_hero(la: Vector2) -> void:
 	if _drain_target != null:
 		_draw_device(hand, la)
 		_arm(sh, hand, false)
-		draw_set_transform_matrix(_base_xf)
+		DrawBatch.set_transform_matrix(self, _base_xf)
 		return
 	if weapon == GUN or _special_weapon() >= 0:   # נשק, או פריט שהוא נשק (מולוטוב / משגרים)
 		var rp := _reload_pose(hand, la, sh) if weapon == GUN else {"la": la, "hand": hand, "support": hand + la * 9.0 + la.rotated(PI / 2.0) * 2.0, "held": ""}
@@ -1890,9 +1896,9 @@ func _draw_hero(la: Vector2) -> void:
 	else:
 		var g := hand + la * 3.0
 		Art.disc(self, g, 4.3, Color("4a5a2c"))
-		draw_line(g + Vector2(-1.5, -4.0), g + Vector2(2.5, -5.0), Color("9a9a9a"), 1.4, true)
+		DrawBatch.line(self, g + Vector2(-1.5, -4.0), g + Vector2(2.5, -5.0), Color("9a9a9a"), 1.4, true)
 	_arm(sh + Vector2(1.0, 1.5), hand, false)
-	draw_set_transform_matrix(_base_xf)
+	DrawBatch.set_transform_matrix(self, _base_xf)
 
 
 func _draw_body(la: Vector2, limp: bool) -> void:
@@ -1973,9 +1979,9 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	Art.fill(self, tail, coat_color, Art.OUTLINE, 1.4)
 	# בטנה אפורה + קפלים
 	Art.fill_shaded(self, PackedVector2Array([tail[0], tail[1], tail[2], Vector2(hip.x - 5.0 - flow * 4.0, hip.y + 6.0)]), coat_lining, 0.1, 0.4, Art.NONE)
-	draw_line(Vector2(hip.x - 5.0 - flow * 5.0, hip.y + 8.0), Vector2(hip.x - 8.0 - flow * 9.0, -6.0 - flow * 2.0 + wv), Color(1, 1, 1, 0.12), 1.0, true)
-	draw_line(Vector2(hip.x - 8.0 - flow * 6.0, hip.y + 4.0), Vector2(hip.x - 12.0 - flow * 13.0, -6.0 - flow * 7.0 + wv * 1.5), Color(1, 1, 1, 0.1), 1.0, true)
-	draw_polyline(PackedVector2Array([tail[0], tail[1], tail[2]]), rim_color, 1.0, true)
+	DrawBatch.line(self, Vector2(hip.x - 5.0 - flow * 5.0, hip.y + 8.0), Vector2(hip.x - 8.0 - flow * 9.0, -6.0 - flow * 2.0 + wv), Color(1, 1, 1, 0.12), 1.0, true)
+	DrawBatch.line(self, Vector2(hip.x - 8.0 - flow * 6.0, hip.y + 4.0), Vector2(hip.x - 12.0 - flow * 13.0, -6.0 - flow * 7.0 + wv * 1.5), Color(1, 1, 1, 0.1), 1.0, true)
+	DrawBatch.polyline(self, PackedVector2Array([tail[0], tail[1], tail[2]]), rim_color, 1.0, true)
 
 	# ---- רגליים ----
 	_leg(hip + Vector2(-1.5, 0.0), f_back, true)
@@ -1988,10 +1994,10 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	])
 	Art.fill_shaded(self, torso, coat_color, 0.1, 0.3, Art.OUTLINE, 1.5)
 	# הארה לבנה בצד הקדמי (כמו במנגה)
-	draw_polyline(PackedVector2Array([sh + Vector2(7.5, -1.0), sh + Vector2(9.0, 4.0), hip + Vector2(8.0, -1.5)]), rim_color, 1.1, true)
-	draw_polyline(PackedVector2Array([sh + Vector2(2.0, 0.0), hip + Vector2(3.0, -2.0)]), coat_lining, 1.0, true)   # פתח המעיל
-	draw_polyline(PackedVector2Array([sh + Vector2(-5.0, 4.0), sh + Vector2(-3.0, 9.0), sh + Vector2(-5.0, 12.0)]), Color(1, 1, 1, 0.1), 1.0, true)
-	draw_line(hip + Vector2(-8.5, -2.5), hip + Vector2(8.5, -2.5), Color("050507"), 2.4, true)   # חגורה
+	DrawBatch.polyline(self, PackedVector2Array([sh + Vector2(7.5, -1.0), sh + Vector2(9.0, 4.0), hip + Vector2(8.0, -1.5)]), rim_color, 1.1, true)
+	DrawBatch.polyline(self, PackedVector2Array([sh + Vector2(2.0, 0.0), hip + Vector2(3.0, -2.0)]), coat_lining, 1.0, true)   # פתח המעיל
+	DrawBatch.polyline(self, PackedVector2Array([sh + Vector2(-5.0, 4.0), sh + Vector2(-3.0, 9.0), sh + Vector2(-5.0, 12.0)]), Color(1, 1, 1, 0.1), 1.0, true)
+	DrawBatch.line(self, hip + Vector2(-8.5, -2.5), hip + Vector2(8.5, -2.5), Color("050507"), 2.4, true)   # חגורה
 
 	# ---- הפאנל הקדמי של המעיל (עם חריץ שרואים דרכו את הרגליים) ----
 	var front := PackedVector2Array([
@@ -2002,12 +2008,12 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 		hip + Vector2(0.0, 6.0),
 	])
 	Art.fill_shaded(self, front, coat_color, 0.08, 0.3, Art.OUTLINE, 1.3)
-	draw_polyline(PackedVector2Array([front[1], front[2]]), rim_color, 1.0, true)
-	draw_line(hip + Vector2(4.0, 2.0), Vector2(hip.x + 6.0 - flow * 2.0, -6.0), Color(1, 1, 1, 0.1), 0.9, true)
+	DrawBatch.polyline(self, PackedVector2Array([front[1], front[2]]), rim_color, 1.0, true)
+	DrawBatch.line(self, hip + Vector2(4.0, 2.0), Vector2(hip.x + 6.0 - flow * 2.0, -6.0), Color(1, 1, 1, 0.1), 0.9, true)
 
 	# ---- צווארון גבוה (אחורי) ----
 	Art.fill(self, PackedVector2Array([sh + Vector2(-7.0, 1.0), sh + Vector2(-10.0, -10.0), sh + Vector2(-2.0, -3.0)]), coat_color, Art.OUTLINE, 1.2)
-	draw_line(sh + Vector2(-9.5, -9.0), sh + Vector2(-3.0, -3.5), Color(1, 1, 1, 0.25), 0.9, true)
+	DrawBatch.line(self, sh + Vector2(-9.5, -9.0), sh + Vector2(-3.0, -3.5), Color(1, 1, 1, 0.25), 0.9, true)
 
 	# ---- ברדס: הפנים חבויות בחושך ----
 	var hood := PackedVector2Array([
@@ -2022,16 +2028,16 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	])
 	Art.fill(self, face, Color("000000"), Art.NONE)
 	# קצה לבן של הברדס
-	draw_polyline(PackedVector2Array([head + Vector2(-0.5, -12.0), head + Vector2(3.5, -9.5), head + Vector2(7.0, -4.0), head + Vector2(7.8, 3.0)]), rim_color, 1.2, true)
-	draw_polyline(PackedVector2Array([head + Vector2(0.5, -6.5), head + Vector2(0.0, 2.0), head + Vector2(3.0, 5.5)]), Color(1, 1, 1, 0.35), 0.8, true)
-	draw_line(head + Vector2(-3.0, -9.5), head + Vector2(-6.5, -3.0), Color(1, 1, 1, 0.12), 1.0, true)
+	DrawBatch.polyline(self, PackedVector2Array([head + Vector2(-0.5, -12.0), head + Vector2(3.5, -9.5), head + Vector2(7.0, -4.0), head + Vector2(7.8, 3.0)]), rim_color, 1.2, true)
+	DrawBatch.polyline(self, PackedVector2Array([head + Vector2(0.5, -6.5), head + Vector2(0.0, 2.0), head + Vector2(3.0, 5.5)]), Color(1, 1, 1, 0.35), 0.8, true)
+	DrawBatch.line(self, head + Vector2(-3.0, -9.5), head + Vector2(-6.5, -3.0), Color(1, 1, 1, 0.12), 1.0, true)
 	if glowing_eyes:
 		Art.glow(self, head + Vector2(5.0, -1.5), 2.6, Color(eye_color, 0.8))
-		draw_line(head + Vector2(3.8, -1.6), head + Vector2(5.8, -1.3), eye_color, 1.0, true)
+		DrawBatch.line(self, head + Vector2(3.8, -1.6), head + Vector2(5.8, -1.3), eye_color, 1.0, true)
 
 	# ---- צווארון גבוה (קדמי) ----
 	Art.fill(self, PackedVector2Array([sh + Vector2(3.0, -1.0), sh + Vector2(10.0, -9.5), sh + Vector2(8.0, 2.0)]), coat_color, Art.OUTLINE, 1.2)
-	draw_polyline(PackedVector2Array([sh + Vector2(3.5, -1.5), sh + Vector2(10.0, -9.5), sh + Vector2(8.0, 2.0)]), rim_color, 1.0, true)
+	DrawBatch.polyline(self, PackedVector2Array([sh + Vector2(3.5, -1.5), sh + Vector2(10.0, -9.5), sh + Vector2(8.0, 2.0)]), rim_color, 1.0, true)
 
 	# ---- נשק + יד קדמית ----
 	_slim(false)
@@ -2058,7 +2064,7 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 	else:
 		var g := hand + la * 3.0
 		Art.disc(self, g, 4.3, Color("4a5a2c"))
-		draw_line(g + Vector2(-1.5, -4.0), g + Vector2(2.5, -5.0), Color("9a9a9a"), 1.4, true)
+		DrawBatch.line(self, g + Vector2(-1.5, -4.0), g + Vector2(2.5, -5.0), Color("9a9a9a"), 1.4, true)
 	_arm(fs, hand, false)
 
 
@@ -2067,7 +2073,7 @@ func _arm(shoulder: Vector2, hand: Vector2, back: bool) -> void:
 	var col := Art.shade(coat_color, -0.05) if back else coat_color
 	Art.limb(self, PackedVector2Array([shoulder, elbow, hand]), 4.6, col)
 	if not back:   # הארה לבנה על השרוול
-		draw_polyline(PackedVector2Array([shoulder + Vector2(0.0, -2.6), elbow + (elbow - shoulder).orthogonal().normalized() * 2.6]), Color(rim_color, 0.7), 0.9, true)
+		DrawBatch.polyline(self, PackedVector2Array([shoulder + Vector2(0.0, -2.6), elbow + (elbow - shoulder).orthogonal().normalized() * 2.6]), Color(rim_color, 0.7), 0.9, true)
 	# שרוול רחב ליד כף היד
 	var d := (hand - elbow).normalized()
 	var n := d.orthogonal()
@@ -2091,7 +2097,7 @@ func _leg(hip: Vector2, foot: Vector2, back: bool) -> void:
 		foot + Vector2(3.0, -4.0), ankle + n * 3.4,
 	]), boot, Art.OUTLINE, 1.1)
 	if not back:
-		draw_polyline(PackedVector2Array([top + n * 4.0 - d * 1.2, ankle + n * 3.2, foot + Vector2(3.0, -4.0), foot + Vector2(7.5, -2.0)]), Color(rim_color, 0.6), 0.9, true)
+		DrawBatch.polyline(self, PackedVector2Array([top + n * 4.0 - d * 1.2, ankle + n * 3.2, foot + Vector2(3.0, -4.0), foot + Vector2(7.5, -2.0)]), Color(rim_color, 0.6), 0.9, true)
 
 
 # המכשיר: גוש מתכת עם ליבה זוהרת ושלושה שיניים
@@ -2121,11 +2127,11 @@ func _draw_beam(from: Vector2, to: Vector2, k: float) -> void:
 			var t := float(i) / 16.0
 			var w := sin(t * 12.0 - _time * 20.0 + float(layer) * 2.0) * amp * sin(t * PI)
 			pts.append(from + d * t + n * w)
-		draw_polyline(pts, Color(col, 0.25 if layer == 0 else 0.7), 5.0 if layer == 0 else 1.6, true)
+		DrawBatch.polyline(self, pts, Color(col, 0.25 if layer == 0 else 0.7), 5.0 if layer == 0 else 1.6, true)
 	for i in 10:   # חלקיקים של כוח חיים
 		var t := fmod(float(i) / 10.0 + _time * 1.6, 1.0)
 		var p := from + d * t + n * sin(t * 9.0 + float(i)) * amp
-		draw_circle(p, 1.8 * (1.0 - t * 0.5), Color(0.8, 1.0, 0.95, 0.9))
+		DrawBatch.circle(self, p, 1.8 * (1.0 - t * 0.5), Color(0.8, 1.0, 0.95, 0.9))
 	Art.glow(self, from, 10.0, Color(col, 0.6))
 
 
@@ -2279,18 +2285,18 @@ func _draw_held(at: Vector2, la: Vector2, what: String) -> void:
 	match what:
 		"mag":
 			Art.fill(self, PackedVector2Array([at - la * 1.6 - n * 1.0, at + la * 1.6 - n * 1.0, at + la * 2.2 + n * 7.0, at - la * 1.2 + n * 7.0]), Color("3a3a44"), Art.OUTLINE, 0.9)
-			draw_line(at + la * 1.6 - n * 1.0, at + la * 2.2 + n * 7.0, Color(rim_color, 0.8), 0.8, true)
-			draw_line(at - la * 1.0 - n * 1.2, at + la * 1.0 - n * 1.2, Color("e0b848"), 1.2)
+			DrawBatch.line(self, at + la * 1.6 - n * 1.0, at + la * 2.2 + n * 7.0, Color(rim_color, 0.8), 0.8, true)
+			DrawBatch.line(self, at - la * 1.0 - n * 1.2, at + la * 1.0 - n * 1.2, Color("e0b848"), 1.2)
 		"shell":
 			Art.fill(self, PackedVector2Array([at - la * 1.4 - n * 3.0, at + la * 1.4 - n * 3.0, at + la * 1.4 + n * 1.0, at - la * 1.4 + n * 1.0]), Color("c03a2a"), Art.OUTLINE, 0.8)
-			draw_line(at - la * 1.4 + n * 1.6, at + la * 1.4 + n * 1.6, Color("d8b048"), 1.4)
+			DrawBatch.line(self, at - la * 1.4 + n * 1.6, at + la * 1.4 + n * 1.6, Color("d8b048"), 1.4)
 		"grenade":
 			Art.disc(self, at + n * -1.0, 2.6, Color("5a6a3a"), Art.OUTLINE, 0.9)
-			draw_line(at - la * 1.6 - n * 1.0, at + la * 1.6 - n * 1.0, Color("d8b048"), 0.9)
+			DrawBatch.line(self, at - la * 1.6 - n * 1.0, at + la * 1.6 - n * 1.0, Color("d8b048"), 0.9)
 		"rocket":
 			var b := at - n * 1.3
 			Art.fill(self, PackedVector2Array([b - la * 8.0 - n * 2.4, b + la * 4.0 - n * 2.4, b + la * 4.0 + n * 2.4, b - la * 8.0 + n * 2.4]), Color("4a5a3a"), Art.OUTLINE, 0.9)
-			draw_line(b - la * 7.0 - n * 1.6, b + la * 3.0 - n * 1.6, Color(1, 1, 1, 0.25), 0.8, true)
+			DrawBatch.line(self, b - la * 7.0 - n * 1.6, b + la * 3.0 - n * 1.6, Color(1, 1, 1, 0.25), 0.8, true)
 			Art.fill(self, PackedVector2Array([b + la * 4.0 - n * 2.4, b + la * 9.0, b + la * 4.0 + n * 2.4]), Color("c03a2a"), Art.OUTLINE, 0.9)
 
 
@@ -2315,24 +2321,24 @@ func _draw_muzzle(m: Vector2, la: Vector2, n: Vector2, style: String) -> void:
 		if i % 2 == 0:
 			r = rng.randf_range(6.5, 10.5) * s * (1.9 if i == 0 else 1.0)   # הקרן הקדמית ארוכה
 		pts.append(c + (la * d.x + n * d.y) * r)
-	draw_colored_polygon(pts, Color(pal[1], 0.95 * k))
+	DrawBatch.colored_polygon(self, pts, Color(pal[1], 0.95 * k))
 	var ln: float = float(MUZZLE_CONE.get(style, 15.0)) * s
-	draw_colored_polygon(PackedVector2Array([m + n * -2.6 * s, m + la * ln, m + n * 2.6 * s]), Color(pal[2], k))
-	draw_circle(m + la * 3.0 * s, 2.8 * s, Color(pal[3], k))
+	DrawBatch.colored_polygon(self, PackedVector2Array([m + n * -2.6 * s, m + la * ln, m + n * 2.6 * s]), Color(pal[2], k))
+	DrawBatch.circle(self, m + la * 3.0 * s, 2.8 * s, Color(pal[3], k))
 	if style in MUZZLE_JETS:   # בולם לוע: סילונים לצדדים (אנטי-חומרי: גם זוג אחורי)
 		var jc := Color(pal[1].lightened(0.2), 0.8 * k)
 		for sd in [-1.0, 1.0]:   # סילון מחודד (משולש), לא קו עבה
 			var b0 := m + la * 2.0 * s
-			draw_colored_polygon(PackedVector2Array([b0 - la * 1.3 * s, b0 + la * 1.3 * s, b0 + la * 3.0 * s + n * sd * 9.0 * s]), jc)
+			DrawBatch.colored_polygon(self, PackedVector2Array([b0 - la * 1.3 * s, b0 + la * 1.3 * s, b0 + la * 3.0 * s + n * sd * 9.0 * s]), jc)
 			if style == "hsniper":   # בולם כפול: עוד זוג קטן מאחור
 				var b1 := m - la * 1.5 * s
-				draw_colored_polygon(PackedVector2Array([b1 - la * 1.0 * s, b1 + la * 1.0 * s, b1 + la * 1.5 * s + n * sd * 7.0 * s]), Color(jc, 0.6 * k))
+				DrawBatch.colored_polygon(self, PackedVector2Array([b1 - la * 1.0 * s, b1 + la * 1.0 * s, b1 + la * 1.5 * s + n * sd * 7.0 * s]), Color(jc, 0.6 * k))
 	if style == "rail":   # רייל: טבעת חשמל + קשתות קטנות
-		draw_arc(m + la * 2.0 * s, 7.0 * s * (1.6 - k * 0.6), 0.0, TAU, 18, Color(0.6, 0.9, 1.0, 0.7 * k), 1.6 * s, true)
+		DrawBatch.arc(self, m + la * 2.0 * s, 7.0 * s * (1.6 - k * 0.6), 0.0, TAU, 18, Color(0.6, 0.9, 1.0, 0.7 * k), 1.6 * s, true)
 		for i in 3:
 			var a := rng.randf_range(-1.2, 1.2)
 			var e := m + (la * cos(a) + n * sin(a)) * rng.randf_range(10.0, 16.0) * s
-			draw_polyline(PackedVector2Array([m, m.lerp(e, 0.5) + n * rng.randf_range(-3.0, 3.0) * s, e]), Color(0.75, 0.95, 1.0, 0.85 * k), 1.0, true)
+			DrawBatch.polyline(self, PackedVector2Array([m, m.lerp(e, 0.5) + n * rng.randf_range(-3.0, 3.0) * s, e]), Color(0.75, 0.95, 1.0, 0.85 * k), 1.0, true)
 
 
 func _draw_rifle(hand: Vector2, la: Vector2) -> void:
@@ -2346,24 +2352,24 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 		for k in 9:
 			var a := -1.25 + 2.5 * float(k) / 8.0
 			bow.append(g.call(3.0 + cos(a) * 6.0, sin(a) * 16.0))
-		draw_polyline(bow, Color("6a4424"), 2.6, true)
-		draw_polyline(bow, Color("9a6a3a"), 1.2, true)
+		DrawBatch.polyline(self, bow, Color("6a4424"), 2.6, true)
+		DrawBatch.polyline(self, bow, Color("9a6a3a"), 1.2, true)
 		var pull := 3.0 if _cooldown <= 0.0 else 0.0
-		draw_polyline(PackedVector2Array([bow[0], g.call(-pull, 0.0), bow[8]]), Color(0.9, 0.9, 0.85, 0.8), 0.8, true)
+		DrawBatch.polyline(self, PackedVector2Array([bow[0], g.call(-pull, 0.0), bow[8]]), Color(0.9, 0.9, 0.85, 0.8), 0.8, true)
 		if _cooldown <= 0.0 and ammo > 0:
-			draw_line(g.call(-pull, 0.0), g.call(20.0, 0.0), Color("8a6a40"), 1.4, true)
-			draw_colored_polygon(PackedVector2Array([g.call(20.0, -2.0), g.call(25.0, 0.0), g.call(20.0, 2.0)]), Color("b8b8c0"))
+			DrawBatch.line(self, g.call(-pull, 0.0), g.call(20.0, 0.0), Color("8a6a40"), 1.4, true)
+			DrawBatch.colored_polygon(self, PackedVector2Array([g.call(20.0, -2.0), g.call(25.0, 0.0), g.call(20.0, 2.0)]), Color("b8b8c0"))
 		return
 	if dg == MOLOTOV:   # בקבוק עם סמרטוט בוער
 		Art.fill(self, PackedVector2Array([g.call(-2.0, -3.0), g.call(7.0, -3.0), g.call(9.0, -1.5), g.call(14.0, -1.2), g.call(14.0, 1.2), g.call(9.0, 1.5), g.call(7.0, 3.0), g.call(-2.0, 3.0)]), Color(0.35, 0.55, 0.3, 0.9), Art.OUTLINE, 0.9)
 		Art.fill(self, PackedVector2Array([g.call(-1.0, 0.4), g.call(6.0, 0.4), g.call(6.0, 2.6), g.call(-1.0, 2.6)]), Color(0.9, 0.55, 0.15, 0.8), Art.NONE)
-		draw_line(g.call(14.0, 0.0), g.call(17.0, -1.5), Color("d8c8a0"), 1.6)
+		DrawBatch.line(self, g.call(14.0, 0.0), g.call(17.0, -1.5), Color("d8c8a0"), 1.6)
 		if ammo > 0 or _draw_id >= 0:
 			Art.glow(self, g.call(18.0, -2.5), 5.0 + sin(_time * 25.0), Color(1.0, 0.6, 0.15, 0.8))
 		return
 	if dg == ROCKET_LAUNCHER:   # משגר טילים: צינור ירוק על הכתף, ידית, כוונת, ראש נפץ אדום כשטעון
 		Art.fill(self, PackedVector2Array([g.call(-14.0, -4.6), g.call(30.0, -4.6), g.call(30.0, 2.0), g.call(-14.0, 2.0)]), Color("4a5a3a"), Art.OUTLINE, 1.1)
-		draw_line(g.call(-12.0, -3.4), g.call(28.0, -3.4), Color(1, 1, 1, 0.14), 1.0, true)
+		DrawBatch.line(self, g.call(-12.0, -3.4), g.call(28.0, -3.4), Color(1, 1, 1, 0.14), 1.0, true)
 		Art.fill(self, PackedVector2Array([g.call(-17.0, -6.0), g.call(-13.0, -6.0), g.call(-13.0, 3.4), g.call(-17.0, 3.4)]), Color("2a2c26"), Art.OUTLINE, 0.9)
 		Art.fill(self, PackedVector2Array([g.call(26.0, -5.6), g.call(31.0, -5.6), g.call(31.0, 3.0), g.call(26.0, 3.0)]), Color("2a2c26"), Art.OUTLINE, 0.9)
 		Art.fill(self, PackedVector2Array([g.call(1.0, 2.0), g.call(4.5, 2.0), g.call(3.5, 8.0), g.call(0.0, 8.0)]), Color("1e1e22"), Art.OUTLINE, 0.9)
@@ -2376,7 +2382,7 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 		return
 	if dg == PISTOL:   # אקדח: קטן, ביד אחת
 		Art.fill(self, PackedVector2Array([g.call(-1.0, -1.8), g.call(13.0, -1.8), g.call(13.0, 1.4), g.call(3.5, 1.4), g.call(2.5, 7.0), g.call(-1.5, 6.5), g.call(-1.0, 1.4)]), Color("1d1d23"), Art.OUTLINE, 1.0)
-		draw_line(g.call(0.0, -1.0), g.call(12.0, -1.0), Color(1, 1, 1, 0.15), 0.8, true)
+		DrawBatch.line(self, g.call(0.0, -1.0), g.call(12.0, -1.0), Color(1, 1, 1, 0.15), 0.8, true)
 		_draw_muzzle(g.call(14.0, -0.2), la, n, "pistol")
 		return
 	var xs := str(WeaponDB.val(dg, "style", ""))
@@ -2400,21 +2406,21 @@ func _draw_rifle(hand: Vector2, la: Vector2) -> void:
 				Art.disc(self, g.call(4.0, 6.0), 3.6, Color("3a3a42"), Art.OUTLINE, 0.9)
 		"sniper":   # צלף: כוונת טלסקופית
 			Art.fill(self, PackedVector2Array([g.call(0.0, -3.4), g.call(11.0, -3.4), g.call(11.0, -6.4), g.call(0.0, -6.4)]), Color("16161a"), Art.OUTLINE, 0.9)
-			draw_circle(g.call(11.2, -4.9), 1.2, Color(0.5, 0.8, 1.0, 0.8))
+			DrawBatch.circle(self, g.call(11.2, -4.9), 1.2, Color(0.5, 0.8, 1.0, 0.8))
 		"taser":   # טייזר: סליל סגול זוהר
 			for k in 3:
-				draw_circle(g.call(16.0 + float(k) * 2.0, -0.4), 2.2, Color(0.7, 0.5, 1.0, 0.5 + 0.3 * sin(_time * 20.0 + float(k))))
-			draw_circle(g.call(bl, -0.4), 1.8, Color(0.85, 0.75, 1.0))
+				DrawBatch.circle(self, g.call(16.0 + float(k) * 2.0, -0.4), 2.2, Color(0.7, 0.5, 1.0, 0.5 + 0.3 * sin(_time * 20.0 + float(k))))
+			DrawBatch.circle(self, g.call(bl, -0.4), 1.8, Color(0.85, 0.75, 1.0))
 		"smg":   # SMG: מחסנית ארוכה ישרה
 			if not _mag_out:
 				Art.fill(self, PackedVector2Array([g.call(6.0, 1.6), g.call(9.0, 1.6), g.call(9.0, 11.0), g.call(6.0, 11.0)]), Color("18181c"), Art.OUTLINE, 0.9)
 		"ar":   # רובה סער: מחסנית מעוקלת + ידית נשיאה
 			if not _mag_out:
 				Art.fill(self, PackedVector2Array([g.call(5.0, 1.6), g.call(9.0, 1.6), g.call(11.0, 9.0), g.call(7.0, 10.0)]), Color("18181c"), Art.OUTLINE, 0.9)
-			draw_line(g.call(18.0, -1.4), g.call(18.0, -4.0), Color("2c2c34"), 1.4)
+			DrawBatch.line(self, g.call(18.0, -1.4), g.call(18.0, -4.0), Color("2c2c34"), 1.4)
 		"launcher":   # משגר: קנה עבה ותוף
 			Art.disc(self, g.call(6.0, 3.0), 4.6, Color("4a5a3a"), Art.OUTLINE, 0.9)
 			Art.disc(self, g.call(6.0, 3.0), 1.4, Color("1a1a1a"), Art.NONE)
 	Art.fill(self, PackedVector2Array([g.call(1.0, -1.6), g.call(9.0, -1.6), g.call(9.0, -3.8), g.call(1.0, -3.8)]), Color("101014"), Art.OUTLINE, 0.9)   # כוונת
-	draw_line(g.call(-1.0, -1.0), g.call(13.0, -1.0), Color(1, 1, 1, 0.12), 0.8, true)
+	DrawBatch.line(self, g.call(-1.0, -1.0), g.call(13.0, -1.0), Color(1, 1, 1, 0.12), 0.8, true)
 	_draw_muzzle(g.call(bl + 1.0, -0.4), la, n, style)

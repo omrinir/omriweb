@@ -230,6 +230,11 @@ class Rock extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var A := preload("res://art.gd")
 		DrawBatch.circle(self, Vector2(2, 2), radius, Color(0, 0, 0, 0.25))
 		A.oval_shaded(self, Vector2.ZERO, radius, radius * 0.92, Color("8a8070"), _ang)

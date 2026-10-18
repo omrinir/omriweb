@@ -186,6 +186,11 @@ class FieldGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s24_decor.gd")
@@ -223,6 +228,11 @@ class Scarecrow extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s24_decor.gd")
 		S.scarecrow_post(self)
 		DrawBatch.set_transform(self, Vector2(0, -S.POST_H), 0.0, Vector2(-1.0 if seed_v % 2 == 0 else 1.0, 1.0))
@@ -343,6 +353,11 @@ class BearTrap extends Node2D:
 			z._popup("TRAPPED!", Color("ffb070"), 14, -70.0)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var metal := Color("6a6a6e")
 		var dk := Color("3a3a3e")
 		DrawBatch.line(self, Vector2(-W * 0.5 - 8, -1), Vector2(W * 0.5 + 8, -1), Color("2a2420"), 2.0)   # שרשרת / יתד
@@ -397,6 +412,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s24_decor.gd")
@@ -461,6 +481,11 @@ class FieldFX extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for e in _e:
 			var hot: bool = e.z > 1.0
 			DrawBatch.circle(self, Vector2(e.x, e.y), 1.3 * e.z, Color(1.0, 0.5 + 0.2 * sin(_t * 9.0 + e.x), 0.15, 0.75) if hot else Color(0.35, 0.3, 0.3, 0.5))

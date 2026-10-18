@@ -419,6 +419,11 @@ class Wave extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := 1.0 - _d / RANGE
 		var x := dir * _d
 		for q in 5:

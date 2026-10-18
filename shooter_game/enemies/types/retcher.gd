@@ -303,6 +303,11 @@ class Bile extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := 3.6 if big else 2.8
 		var tail := -velocity.normalized() * 7.0
 		DrawBatch.line(self, Vector2.ZERO, tail, Color(0.72, 0.76, 0.24, 0.6), r * 1.3, true)

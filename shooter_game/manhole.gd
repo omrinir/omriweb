@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  מכסה ביוב (תפאורה בלבד). יוצאים ממנו אדים.
@@ -104,31 +105,36 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	# החור (רואים אותו כשהמכסה למעלה) + אור ירקרק מבפנים
-	draw_set_transform(Vector2(0.0, 1.0), 0.0, Vector2(1.0, 0.22))
-	draw_circle(Vector2.ZERO, lid_r + 2.0, Color("141416"))
-	draw_circle(Vector2.ZERO, lid_r - 2.0, Color(0.15, 0.3, 0.12, 0.6))
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform(self, Vector2(0.0, 1.0), 0.0, Vector2(1.0, 0.22))
+	DrawBatch.circle(self, Vector2.ZERO, lid_r + 2.0, Color("141416"))
+	DrawBatch.circle(self, Vector2.ZERO, lid_r - 2.0, Color(0.15, 0.3, 0.12, 0.6))
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 	# המכסה (פרספקטיבה: אליפסה שטוחה). מסתובב כשהוא עף
 	var sq := absf(cos(_rot)) * 0.22 + 0.06
-	draw_set_transform(_lid + Vector2(0.0, -1.0), 0.0, Vector2(1.0, sq))
-	draw_circle(Vector2(0.0, 4.0 / sq * 0.25), lid_r, Color("1c1c20"))   # עובי
-	draw_circle(Vector2.ZERO, lid_r, Color("4a4a52"))
-	draw_arc(Vector2.ZERO, lid_r - 3.0, 0.0, TAU, 20, Color("2e2e34"), 2.0)
+	DrawBatch.set_transform(self, _lid + Vector2(0.0, -1.0), 0.0, Vector2(1.0, sq))
+	DrawBatch.circle(self, Vector2(0.0, 4.0 / sq * 0.25), lid_r, Color("1c1c20"))   # עובי
+	DrawBatch.circle(self, Vector2.ZERO, lid_r, Color("4a4a52"))
+	DrawBatch.arc(self, Vector2.ZERO, lid_r - 3.0, 0.0, TAU, 20, Color("2e2e34"), 2.0)
 	for i in 3:   # חריצים
 		var yy := -6.0 + 6.0 * float(i)
-		draw_line(Vector2(-lid_r + 6.0, yy), Vector2(lid_r - 6.0, yy), Color("2e2e34"), 2.0)
-	draw_arc(Vector2.ZERO, lid_r, PI, TAU, 16, Color(1, 1, 1, 0.18), 1.5)   # ברק
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+		DrawBatch.line(self, Vector2(-lid_r + 6.0, yy), Vector2(lid_r - 6.0, yy), Color("2e2e34"), 2.0)
+	DrawBatch.arc(self, Vector2.ZERO, lid_r, PI, TAU, 16, Color(1, 1, 1, 0.18), 1.5)   # ברק
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 	# אור חם מתחת לאדים
-	draw_set_transform(Vector2(0.0, -6.0), 0.0, Vector2(1.0, 0.5))
-	draw_circle(Vector2.ZERO, lid_r + 8.0, Color(0.85, 0.9, 0.85, 0.05))
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform(self, Vector2(0.0, -6.0), 0.0, Vector2(1.0, 0.5))
+	DrawBatch.circle(self, Vector2.ZERO, lid_r + 8.0, Color(0.85, 0.9, 0.85, 0.05))
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 	# אדים: כל חלקיק קטן גדל, מתבהר ונעלם. רך בשוליים (2 שכבות)
 	for p in _puffs:
 		var k: float = p[2] / p[3]
 		var a := 0.4 * minf(k * 8.0, 1.0) * (1.0 - k) * (1.0 - k)
 		var r: float = p[4] + k * 5.5
 		var sh: float = p[5]
-		draw_circle(p[0], r * 1.7, Color(sh, sh + 0.03, sh, a * 0.3))
-		draw_circle(p[0], r, Color(sh, sh + 0.03, sh, a))
+		DrawBatch.circle(self, p[0], r * 1.7, Color(sh, sh + 0.03, sh, a * 0.3))
+		DrawBatch.circle(self, p[0], r, Color(sh, sh + 0.03, sh, a))

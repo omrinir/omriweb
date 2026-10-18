@@ -479,6 +479,11 @@ class ArmPiece extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(face * sc, sc))
 		Art.limb(self, PackedVector2Array([Vector2(-10, 0), Vector2(-3, 0)]), 5.0, Color("6a6e74"))
 		if kind == "rocket":

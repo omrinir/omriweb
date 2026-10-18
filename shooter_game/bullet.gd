@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 const VIS_SCALE := 0.45   # גודל הקליע על המסך (רק ויזואלי)
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 const FlameFx := preload("res://effects/flame_fx.gd")   # להבות הלהביור (לשון אש + הילה רכה)
@@ -210,19 +211,24 @@ func _god_burst(at: Vector2) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	if god:   # שובל אש אדום (בקואורדינטות העולם -> מקומי)
 		for e in _embers:
 			var k: float = e[2] / e[3]
 			var p := to_local(e[0])
 			var c := Color(1.0, 0.85, 0.5).lerp(Color(1.0, 0.12, 0.08), minf(k * 2.0, 1.0))
-			draw_circle(p, e[4] * 2.2 * (1.0 - k), Color(1.0, 0.1, 0.05, 0.18 * (1.0 - k)))
-			draw_circle(p, e[4] * (1.0 - k * 0.6), Color(c, 1.0 - k))
+			DrawBatch.circle(self, p, e[4] * 2.2 * (1.0 - k), Color(1.0, 0.1, 0.05, 0.18 * (1.0 - k)))
+			DrawBatch.circle(self, p, e[4] * (1.0 - k * 0.6), Color(c, 1.0 - k))
 	if flame:   # FLAMETHROWER: כדור אש שגדל, מצהוב-לבן לכתום לאדום כהה ועשן
 		var k := clampf(_age / maxf(_life0, 0.01), 0.0, 1.0)
 		var r := 5.0 + 21.0 * k
 		var a := 1.0 - k * k
 		# (עבר "weapons": במקום עיגולים קשים - הילה רכה + לשון אש שעולה למעלה בעולם, ובסוף עשן רך)
-		draw_set_transform(Vector2.ZERO, -rotation, Vector2.ONE)   # הלשון עולה למעלה גם כשיורים באלכסון
+		DrawBatch.set_transform(self, Vector2.ZERO, -rotation, Vector2.ONE)   # הלשון עולה למעלה גם כשיורים באלכסון
 		var ph := float(get_instance_id() % 97)
 		FlameFx.glow(self, Vector2.ZERO, Vector2(r * 1.9, r * 1.5), Color(1.0, 0.38, 0.06, 0.26 * a))
 		if k < 0.75:
@@ -232,13 +238,13 @@ func _draw() -> void:
 			FlameFx.glow(self, Vector2(0.0, -r * 0.3), Vector2(r, r), Color(0.22, 0.18, 0.17, 0.5 * a))
 		if k < 0.3:   # ליבה לבנה-חמה ליד הלוע
 			FlameFx.glow(self, Vector2.ZERO, Vector2(r * 0.8, r * 0.8), Color(1.0, 0.95, 0.7, 0.8 * (1.0 - k / 0.3)))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
 		return
 	if arrow:   # חץ: מוט עץ, ראש מתכת ונוצות
-		draw_line(Vector2(-22.0, 0.0), Vector2(4.0, 0.0), Color("8a6a40"), 1.6, true)
-		draw_colored_polygon(PackedVector2Array([Vector2(4, -2.5), Vector2(10, 0), Vector2(4, 2.5)]), Color("b8b8c0"))
-		draw_colored_polygon(PackedVector2Array([Vector2(-22, 0), Vector2(-17, -3.5), Vector2(-14, -3.5), Vector2(-18, 0)]), Color("d04030"))
-		draw_colored_polygon(PackedVector2Array([Vector2(-22, 0), Vector2(-17, 3.5), Vector2(-14, 3.5), Vector2(-18, 0)]), Color("d04030"))
+		DrawBatch.line(self, Vector2(-22.0, 0.0), Vector2(4.0, 0.0), Color("8a6a40"), 1.6, true)
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(4, -2.5), Vector2(10, 0), Vector2(4, 2.5)]), Color("b8b8c0"))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-22, 0), Vector2(-17, -3.5), Vector2(-14, -3.5), Vector2(-18, 0)]), Color("d04030"))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-22, 0), Vector2(-17, 3.5), Vector2(-14, 3.5), Vector2(-18, 0)]), Color("d04030"))
 		return
 	# שובל נותב (tracer): פס אור דק מאחורי הקליע, באורך מה שהוא עובר בפריים - רואים לאן יורים
 	var tl := minf(clampf(velocity.length() * TRACER_K, 24.0, 80.0), _dist)
@@ -250,13 +256,13 @@ func _draw() -> void:
 			tc = Color(1.0, 0.3, 0.2)
 		elif incendiary:
 			tc = Color(1.0, 0.6, 0.2)
-		draw_polyline_colors(PackedVector2Array([Vector2(-tl, 0.0), Vector2(-tl * 0.45, 0.0), Vector2.ZERO]),
+		DrawBatch.polyline_colors(self, PackedVector2Array([Vector2(-tl, 0.0), Vector2(-tl * 0.45, 0.0), Vector2.ZERO]),
 			PackedColorArray([Color(tc, 0.0), Color(tc, 0.22), Color(tc, 0.6)]), 1.6)
 	# הציור בלבד קטן יותר (VIS_SCALE) - ההתנגשות נשארת באותו גודל (קל לפגוע)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(VIS_SCALE, VIS_SCALE))
+	DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(VIS_SCALE, VIS_SCALE))
 	# שובל אוויר דק ושקוף (כדי שיהיה אפשר לראות את הקליע זז)
-	draw_line(Vector2(-34.0, 0.0), Vector2(-6.0, 0.0), Color(0.9, 0.9, 0.95, 0.12), 2.0, true)
-	draw_line(Vector2(-18.0, 0.0), Vector2(-6.0, 0.0), Color(0.9, 0.9, 0.95, 0.22), 1.2, true)
+	DrawBatch.line(self, Vector2(-34.0, 0.0), Vector2(-6.0, 0.0), Color(0.9, 0.9, 0.95, 0.12), 2.0, true)
+	DrawBatch.line(self, Vector2(-18.0, 0.0), Vector2(-6.0, 0.0), Color(0.9, 0.9, 0.95, 0.22), 1.2, true)
 	# הקליע: גוף נחושת עם חוד מעוגל
 	var body := PackedVector2Array([
 		Vector2(-6.0, -1.6), Vector2(1.0, -1.6), Vector2(3.5, -1.2), Vector2(5.2, -0.5), Vector2(5.6, 0.0),
@@ -265,27 +271,27 @@ func _draw() -> void:
 	var light := Color("e0a060")
 	var dark := Color("8a4a20")
 	if sniper:   # צלף: שובל ארוך ובהיר
-		draw_line(Vector2(-90.0, 0.0), Vector2(-6.0, 0.0), Color(0.6, 0.85, 1.0, 0.35), 2.0, true)
+		DrawBatch.line(self, Vector2(-90.0, 0.0), Vector2(-6.0, 0.0), Color(0.6, 0.85, 1.0, 0.35), 2.0, true)
 	if pierce > 0:   # קליע חודר - כחול
 		light = Color("90c8ff")
 		dark = Color("2a5a9a")
-		draw_line(Vector2(-40.0, 0.0), Vector2(-6.0, 0.0), Color(0.4, 0.7, 1.0, 0.35), 3.0, true)
+		DrawBatch.line(self, Vector2(-40.0, 0.0), Vector2(-6.0, 0.0), Color(0.4, 0.7, 1.0, 0.35), 3.0, true)
 	elif god:  # GOD MODE - אדום בוער
 		light = Color("ff6a50")
 		dark = Color("a00a0a")
-		draw_line(Vector2(-44.0, 0.0), Vector2(-6.0, 0.0), Color(1.0, 0.15, 0.08, 0.5), 4.0, true)
-		draw_circle(Vector2(1.0, 0.0), 7.0, Color(1.0, 0.2, 0.1, 0.35))
+		DrawBatch.line(self, Vector2(-44.0, 0.0), Vector2(-6.0, 0.0), Color(1.0, 0.15, 0.08, 0.5), 4.0, true)
+		DrawBatch.circle(self, Vector2(1.0, 0.0), 7.0, Color(1.0, 0.2, 0.1, 0.35))
 	elif incendiary:  # קליע אש - כתום
 		light = Color("ffc060")
 		dark = Color("c04010")
-		draw_line(Vector2(-30.0, 0.0), Vector2(-6.0, 0.0), Color(1.0, 0.5, 0.1, 0.4), 3.0, true)
-	draw_polygon(body, PackedColorArray([dark, light, light, light, light, dark, dark, dark, dark]))
+		DrawBatch.line(self, Vector2(-30.0, 0.0), Vector2(-6.0, 0.0), Color(1.0, 0.5, 0.1, 0.4), 3.0, true)
+	DrawBatch.polygon(self, body, PackedColorArray([dark, light, light, light, light, dark, dark, dark, dark]))
 	var closed := PackedVector2Array(body)
 	closed.append(body[0])
-	draw_polyline(closed, Color(0.15, 0.08, 0.04, 0.9), 0.8, true)
-	draw_line(Vector2(-5.0, -0.7), Vector2(2.5, -0.7), Color(1.0, 0.9, 0.7, 0.7), 0.6, true)   # ברק של מתכת
-	draw_line(Vector2(-6.0, -1.6), Vector2(-6.0, 1.6), Color(0.25, 0.15, 0.1), 1.0)              # בסיס
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.polyline(self, closed, Color(0.15, 0.08, 0.04, 0.9), 0.8, true)
+	DrawBatch.line(self, Vector2(-5.0, -0.7), Vector2(2.5, -0.7), Color(1.0, 0.9, 0.7, 0.7), 0.6, true)   # ברק של מתכת
+	DrawBatch.line(self, Vector2(-6.0, -1.6), Vector2(-6.0, 1.6), Color(0.25, 0.15, 0.1), 1.0)              # בסיס
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 
 
 # ---- ניצוצות כשהקליע פוגע ----
@@ -306,9 +312,14 @@ class Impact extends Node2D:
 			queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := t / duration
 		for d in dirs:
-			draw_circle(d * t, 2.2 * (1.0 - k), Color(1.0, 0.8, 0.3, 1.0 - k))
+			DrawBatch.circle(self, d * t, 2.2 * (1.0 - k), Color(1.0, 0.8, 0.3, 1.0 - k))
 
 
 # ---- הבזק פגיעה בזומבי ----
@@ -335,13 +346,18 @@ class FleshHit extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := t / DUR
 		var a := 1.0 - k
-		draw_circle(Vector2(6.0 + 10.0 * k, 0.0), 4.0 + 9.0 * k, Color(0.75, 0.05, 0.04, 0.4 * a))   # ענן דם (יוצא מהצד השני)
+		DrawBatch.circle(self, Vector2(6.0 + 10.0 * k, 0.0), 4.0 + 9.0 * k, Color(0.75, 0.05, 0.04, 0.4 * a))   # ענן דם (יוצא מהצד השני)
 		for r in [[-2.6, 13.0], [2.6, 13.0], [PI, 9.0], [0.0, 16.0]]:   # קרניים: חזרה לכיוון היורה, לצדדים ולפנים
 			var d := Vector2.from_angle(float(r[0]))
-			draw_line(d * 2.0, d * float(r[1]) * (0.6 + 0.6 * k), Color(1.0, 0.92, 0.7, 0.9 * a), 1.6 * a + 0.4)
-		draw_circle(Vector2.ZERO, 4.5 * (1.0 - k * 0.7), Color(1.0, 0.97, 0.85, a))
+			DrawBatch.line(self, d * 2.0, d * float(r[1]) * (0.6 + 0.6 * k), Color(1.0, 0.92, 0.7, 0.9 * a), 1.6 * a + 0.4)
+		DrawBatch.circle(self, Vector2.ZERO, 4.5 * (1.0 - k * 0.7), Color(1.0, 0.97, 0.85, a))
 
 
 # ---- GOD MODE: פיצוץ קטן של חלקיקים אדומים בנקודת הפגיעה ----
@@ -362,9 +378,14 @@ class GodBurst extends Node2D:
 			queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := t / DUR
-		draw_circle(Vector2.ZERO, 6.0 + 22.0 * k, Color(1.0, 0.15, 0.08, 0.35 * (1.0 - k)))   # הבזק
-		draw_arc(Vector2.ZERO, 4.0 + 26.0 * k, 0.0, TAU, 20, Color(1.0, 0.45, 0.3, 0.6 * (1.0 - k)), 1.5, true)
+		DrawBatch.circle(self, Vector2.ZERO, 6.0 + 22.0 * k, Color(1.0, 0.15, 0.08, 0.35 * (1.0 - k)))   # הבזק
+		DrawBatch.arc(self, Vector2.ZERO, 4.0 + 26.0 * k, 0.0, TAU, 20, Color(1.0, 0.45, 0.3, 0.6 * (1.0 - k)), 1.5, true)
 		for pr in parts:
 			var pk: float = t / float(pr[2])
 			if pk >= 1.0:
@@ -372,4 +393,4 @@ class GodBurst extends Node2D:
 			var v: Vector2 = pr[0]
 			var pos := v * t * (1.0 - 0.45 * pk) + Vector2(0.0, 60.0 * t * t)
 			var c := Color(1.0, 0.8, 0.45).lerp(Color(0.9, 0.08, 0.05), pk)
-			draw_circle(pos, float(pr[1]) * (1.0 - pk * 0.7), Color(c, 1.0 - pk))
+			DrawBatch.circle(self, pos, float(pr[1]) * (1.0 - pk * 0.7), Color(c, 1.0 - pk))

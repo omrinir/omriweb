@@ -1,4 +1,5 @@
 extends CanvasLayer
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  תפריט השהיה (ESC) ומסך GAME OVER, עם אותם כפתורים מונפשים.
 # ============================================================
@@ -140,11 +141,16 @@ class TitleText extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var f := ThemeDB.fallback_font
 		var vp := get_viewport_rect().size
 		var p := Vector2(0, 230.0 + sin(_t * 2.0) * 3.0)
-		draw_string_outline(f, p, text, HORIZONTAL_ALIGNMENT_CENTER, vp.x, 64, 10, Color(0, 0, 0, 0.9))
-		draw_string(f, p, text, HORIZONTAL_ALIGNMENT_CENTER, vp.x, 64, Color(0.75, 0.06, 0.08))
+		DrawBatch.string_outline(self, f, p, text, HORIZONTAL_ALIGNMENT_CENTER, vp.x, 64, 10, Color(0, 0, 0, 0.9))
+		DrawBatch.string(self, f, p, text, HORIZONTAL_ALIGNMENT_CENTER, vp.x, 64, Color(0.75, 0.06, 0.08))
 		var d := "DIFFICULTY: " + Settings.difficulty_name()
-		draw_string_outline(f, p + Vector2(0, 40), d, HORIZONTAL_ALIGNMENT_CENTER, vp.x, 20, 5, Color(0, 0, 0, 0.9))
-		draw_string(f, p + Vector2(0, 40), d, HORIZONTAL_ALIGNMENT_CENTER, vp.x, 20, Settings.COLORS[Settings.difficulty])
+		DrawBatch.string_outline(self, f, p + Vector2(0, 40), d, HORIZONTAL_ALIGNMENT_CENTER, vp.x, 20, 5, Color(0, 0, 0, 0.9))
+		DrawBatch.string(self, f, p + Vector2(0, 40), d, HORIZONTAL_ALIGNMENT_CENTER, vp.x, 20, Settings.COLORS[Settings.difficulty])

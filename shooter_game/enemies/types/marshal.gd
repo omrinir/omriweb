@@ -84,6 +84,11 @@ class Marker extends Node2D:   # עשן אדום שמסמן את המטח
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := 1.0 - clampf(t / MARK_T, 0.0, 1.0)
 		for q in 4:   # עמוד עשן אדום
 			DrawBatch.circle(self, Vector2(sin(float(q) * 2.0 + t * 3.0) * 4.0, -8.0 - float(q) * 14.0 - k * 10.0), 8.0 + float(q) * 3.0, Color(0.9, 0.12, 0.08, 0.35 - float(q) * 0.06))

@@ -164,6 +164,11 @@ class Slide extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if _t < WARN + 0.35:
 			var k := clampf(_t / WARN, 0.0, 1.0)
 			DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -2), W * 0.5 * (0.5 + 0.5 * k), 6.0, 0.0, 16), Color(0.1, 0.2, 0.4, 0.15 + 0.3 * k))   # צל

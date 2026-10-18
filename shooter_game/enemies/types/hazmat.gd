@@ -245,6 +245,11 @@ class GasCloud extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(minf(_t / 0.3, (life - _t) / 0.8), 0.0, 1.0)
 		for i in 5:
 			var o := Vector2(sin(_seed + float(i) * 1.7 + _t * 0.8), cos(_seed + float(i) * 2.3 + _t * 0.6)) * radius * 0.45

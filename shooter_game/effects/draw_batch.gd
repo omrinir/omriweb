@@ -346,3 +346,59 @@ static func string_outline(ci: CanvasItem, font: Font, pos: Vector2, text: Strin
 	_pass(ci)
 	ci.draw_string_outline(font, pos, text, alignment, width, font_size, size, modulate, justification_flags, direction, orientation)
 	_unpass(ci)
+
+
+static func multiline_string(ci: CanvasItem, font: Font, pos: Vector2, text: String, alignment := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, font_size := 16, max_lines := -1, modulate := Color.WHITE, brk_flags := 3, justification_flags := 3, direction := 0, orientation := 0) -> void:
+	_pass(ci)
+	ci.draw_multiline_string(font, pos, text, alignment, width, font_size, max_lines, modulate, brk_flags, justification_flags, direction, orientation)
+	_unpass(ci)
+
+
+static func multiline_string_outline(ci: CanvasItem, font: Font, pos: Vector2, text: String, alignment := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, font_size := 16, max_lines := -1, size := 1, modulate := Color.WHITE, brk_flags := 3, justification_flags := 3, direction := 0, orientation := 0) -> void:
+	_pass(ci)
+	ci.draw_multiline_string_outline(font, pos, text, alignment, width, font_size, max_lines, size, modulate, brk_flags, justification_flags, direction, orientation)
+	_unpass(ci)
+
+
+static func style_box(ci: CanvasItem, sb: StyleBox, r: Rect2) -> void:
+	_pass(ci)
+	ci.draw_style_box(sb, r)
+	_unpass(ci)
+
+
+static func texture(ci: CanvasItem, tex: Texture2D, pos: Vector2, modulate := Color.WHITE) -> void:
+	_pass(ci)
+	ci.draw_texture(tex, pos, modulate)
+	_unpass(ci)
+
+
+# קווים נפרדים: כל זוג נקודות = קו
+static func multiline(ci: CanvasItem, points: PackedVector2Array, color: Color, width := -1.0) -> void:
+	if not _on(ci):
+		ci.draw_multiline(points, color, width)
+		return
+	for i in range(0, points.size() - 1, 2):
+		line(ci, points[i], points[i + 1], color, width)
+
+
+static func polyline_colors(ci: CanvasItem, points: PackedVector2Array, colors: PackedColorArray, width := -1.0, antialiased := false) -> void:
+	_pass(ci)
+	ci.draw_polyline_colors(points, colors, width, antialiased)
+	_unpass(ci)
+
+
+# משולשים מוכנים (כמו RenderingServer.canvas_item_add_triangle_array): נכנסים ל-batch עם הטרנספורם הנוכחי
+static func tris(ci: CanvasItem, pts: PackedVector2Array, cols: PackedColorArray) -> void:
+	if not _on(ci):
+		RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), PackedInt32Array(), pts, cols)
+		return
+	if cols.size() == pts.size():
+		_pts.append_array(_xf * pts)
+		_cols.append_array(cols)
+	elif cols.size() == 1:
+		_add(_xf * pts, cols[0])
+	else:
+		_flush()
+		ci.draw_set_transform_matrix(_xf)
+		RenderingServer.canvas_item_add_triangle_array(_rid, PackedInt32Array(), pts, cols)
+		ci.draw_set_transform_matrix(Transform2D.IDENTITY)

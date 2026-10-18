@@ -274,6 +274,11 @@ class Spear extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var m := _muzzle() - global_position
 		var mid := m * 0.5 + Vector2(0, 8.0 if _phase != 2 else 2.0)
 		var rope := PackedVector2Array([Vector2.ZERO, mid, m])

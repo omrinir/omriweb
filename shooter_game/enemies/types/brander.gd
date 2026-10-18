@@ -263,6 +263,11 @@ class Brand extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := 0.6 + 0.4 * sin(_tt * 8.0)
 		var fade := clampf(t / 2.0, 0.2, 1.0)
 		Art.glow(self, Vector2.ZERO, 16.0 + 6.0 * k, Color(1.0, 0.4, 0.1, 0.35 * fade))

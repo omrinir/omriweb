@@ -1,4 +1,5 @@
 extends StaticBody2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  חפצים בעולם ההרוס. נקודת ה-(0,0) = הפינה השמאלית התחתונה (על הריצפה).
 #    CAR      - מכונית הרוסה. אפשר לעמוד עליה. אחרי 6 קליעים היא נדלקת ומתפוצצת.
@@ -217,12 +218,17 @@ func _chips(pos: Vector2, normal: Vector2, n: int, col := Color.BLACK) -> void:
 #  ציור
 # ============================================================
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	match kind:
 		CAR:
 			if upside_down:
-				draw_set_transform(Vector2(0, -50), 0.0, Vector2(1, -1))
+				DrawBatch.set_transform(self, Vector2(0, -50), 0.0, Vector2(1, -1))
 				_draw_car()
-				draw_set_transform_matrix(Transform2D.IDENTITY)
+				DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 			else:
 				_draw_car()
 		BUS:
@@ -251,17 +257,17 @@ func _draw_container() -> void:
 	Art.fill_shaded(self, PackedVector2Array([Vector2(0, 0), Vector2(0, -h), Vector2(w, -h), Vector2(w, 0)]), c, 0.12, 0.35, Art.OUTLINE, 1.8)
 	var x := 6.0
 	while x < w - 4.0:   # פח גלי
-		draw_line(Vector2(x, -h + 4), Vector2(x, -4), Color(0, 0, 0, 0.25), 2.0)
-		draw_line(Vector2(x + 2, -h + 4), Vector2(x + 2, -4), Color(1, 1, 1, 0.06), 1.0)
+		DrawBatch.line(self, Vector2(x, -h + 4), Vector2(x, -4), Color(0, 0, 0, 0.25), 2.0)
+		DrawBatch.line(self, Vector2(x + 2, -h + 4), Vector2(x + 2, -4), Color(1, 1, 1, 0.06), 1.0)
 		x += 8.0
-	draw_rect(Rect2(0, -h, w, 5), Art.shade(c, 0.3))
-	draw_rect(Rect2(0, -5, w, 5), Art.shade(c, 0.3))
+	DrawBatch.rect(self, Rect2(0, -h, w, 5), Art.shade(c, 0.3))
+	DrawBatch.rect(self, Rect2(0, -5, w, 5), Art.shade(c, 0.3))
 	for dx in [w - 26.0, w - 14.0]:   # מוטות נעילה
-		draw_line(Vector2(dx, -h + 6), Vector2(dx, -6), Color("2a2a2a"), 2.0)
+		DrawBatch.line(self, Vector2(dx, -h + 6), Vector2(dx, -6), Color("2a2a2a"), 2.0)
 	for i in 4:   # חלודה
 		var p := Vector2(rng.randf_range(10.0, w - 10.0), rng.randf_range(-h + 8.0, -8.0))
 		Art.oval(self, p, rng.randf_range(6.0, 16.0), rng.randf_range(3.0, 8.0), Color(0.45, 0.22, 0.1, 0.5), 0.0, Art.NONE)
-	draw_string(ThemeDB.fallback_font, Vector2(14, -h * 0.45), "Z-CORP", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.35))
+	DrawBatch.string(self, ThemeDB.fallback_font, Vector2(14, -h * 0.45), "Z-CORP", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.35))
 
 
 func _draw_train() -> void:
@@ -271,19 +277,19 @@ func _draw_train() -> void:
 	var h := size.y
 	var body := PackedVector2Array([Vector2(0, -4), Vector2(0, -h + 8), Vector2(8, -h), Vector2(w - 8, -h), Vector2(w, -h + 8), Vector2(w, -4)])
 	Art.fill_shaded(self, body, Color("8a8e94"), 0.15, 0.35, Art.OUTLINE, 1.8)
-	draw_rect(Rect2(2, -h * 0.42, w - 4, 7), Color("2a5aa0"))   # פס כחול
+	DrawBatch.rect(self, Rect2(2, -h * 0.42, w - 4, 7), Color("2a5aa0"))   # פס כחול
 	var x := 18.0
 	while x < w - 30.0:   # חלונות חשוכים, חלקם עם אור עמום
 		var lit := rng.randf() < 0.25
 		Art.fill(self, PackedVector2Array([Vector2(x, -h + 10), Vector2(x + 30, -h + 10), Vector2(x + 30, -h + 30), Vector2(x, -h + 30)]), Color(0.7, 0.85, 0.6, 0.5) if lit else Color("101214"), Art.OUTLINE, 1.0)
 		x += 42.0
 	for dx in [w * 0.33, w * 0.66]:   # דלתות
-		draw_rect(Rect2(dx - 12, -h + 8, 24, h - 12), Color("6a6e74"))
-		draw_line(Vector2(dx, -h + 8), Vector2(dx, -4), Color(0, 0, 0, 0.6), 1.5)
+		DrawBatch.rect(self, Rect2(dx - 12, -h + 8, 24, h - 12), Color("6a6e74"))
+		DrawBatch.line(self, Vector2(dx, -h + 8), Vector2(dx, -4), Color(0, 0, 0, 0.6), 1.5)
 	for i in 3:   # גרפיטי
 		var gx := rng.randf_range(10.0, w - 60.0)
-		draw_line(Vector2(gx, -14), Vector2(gx + rng.randf_range(20, 50), -h * 0.3), Color.from_hsv(rng.randf(), 0.7, 0.8, 0.6), 3.0, true)
-	draw_rect(Rect2(0, -4, w, 4), Color("1a1a1c"))
+		DrawBatch.line(self, Vector2(gx, -14), Vector2(gx + rng.randf_range(20, 50), -h * 0.3), Color.from_hsv(rng.randf(), 0.7, 0.8, 0.6), 3.0, true)
+	DrawBatch.rect(self, Rect2(0, -4, w, 4), Color("1a1a1c"))
 
 
 func _draw_car() -> void:
@@ -301,7 +307,7 @@ func _draw_car() -> void:
 		Art.oval(self, p, rng.randf_range(4.0, 10.0), rng.randf_range(2.0, 4.0), Color(0.42, 0.2, 0.08, 0.55) if not wrecked else Color(0.05, 0.04, 0.04, 0.6), rng.randf_range(-0.4, 0.4), Art.NONE)
 	if wrecked:   # גחלים
 		for i in 5:
-			draw_circle(Vector2(rng.randf_range(10.0, 120.0), rng.randf_range(-28.0, -10.0)), 1.3, Color(1.0, 0.45, 0.1, 0.8))
+			DrawBatch.circle(self, Vector2(rng.randf_range(10.0, 120.0), rng.randf_range(-28.0, -10.0)), 1.3, Color(1.0, 0.45, 0.1, 0.8))
 	# חלונות שבורים
 	var glass := Color("14181e")
 	Art.fill(self, PackedVector2Array([Vector2(47, -47), Vector2(64, -47), Vector2(64, -34), Vector2(38, -34)]), glass, Art.OUTLINE, 1.0)
@@ -309,12 +315,12 @@ func _draw_car() -> void:
 	for i in 4:   # סדקים בזכוכית
 		var c := Vector2(rng.randf_range(44.0, 92.0), rng.randf_range(-45.0, -36.0))
 		for j in 3:
-			draw_line(c, c + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(3.0, 7.0), Color(0.8, 0.85, 0.9, 0.35), 0.7, true)
+			DrawBatch.line(self, c, c + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(3.0, 7.0), Color(0.8, 0.85, 0.9, 0.35), 0.7, true)
 	# דלתות, ידיות, פגושים, פנסים
-	draw_line(Vector2(66, -31), Vector2(66, -10), Color(0, 0, 0, 0.5), 1.0, true)
-	draw_line(Vector2(36, -31), Vector2(38, -10), Color(0, 0, 0, 0.5), 1.0, true)
-	draw_line(Vector2(56, -26), Vector2(61, -26), Color(0.7, 0.7, 0.7, 0.6), 1.5, true)
-	draw_line(Vector2(84, -26), Vector2(89, -26), Color(0.7, 0.7, 0.7, 0.6), 1.5, true)
+	DrawBatch.line(self, Vector2(66, -31), Vector2(66, -10), Color(0, 0, 0, 0.5), 1.0, true)
+	DrawBatch.line(self, Vector2(36, -31), Vector2(38, -10), Color(0, 0, 0, 0.5), 1.0, true)
+	DrawBatch.line(self, Vector2(56, -26), Vector2(61, -26), Color(0.7, 0.7, 0.7, 0.6), 1.5, true)
+	DrawBatch.line(self, Vector2(84, -26), Vector2(89, -26), Color(0.7, 0.7, 0.7, 0.6), 1.5, true)
 	Art.fill(self, PackedVector2Array([Vector2(122, -14), Vector2(130, -14), Vector2(130, -8), Vector2(120, -8)]), Color("55555a"), Art.OUTLINE, 1.0)
 	Art.fill(self, PackedVector2Array([Vector2(-2, -14), Vector2(6, -14), Vector2(8, -8), Vector2(-2, -8)]), Color("55555a"), Art.OUTLINE, 1.0)
 	Art.fill(self, PackedVector2Array([Vector2(122, -27), Vector2(127, -26), Vector2(127, -21), Vector2(121, -21)]), Color("6a6a50"), Art.OUTLINE, 0.8)
@@ -328,7 +334,7 @@ func _draw_car() -> void:
 		Art.fill(self, arc, Color("0c0a0a"), Art.NONE)
 	Art.oval(self, Vector2(24, -4), 11.0, 4.0, Color("1a1a1c"), 0.0, Art.OUTLINE, 1.0)   # צמיג שטוח
 	# הארה על הגג
-	draw_line(Vector2(46, -49), Vector2(86, -49), Color(1, 1, 1, 0.12), 1.2, true)
+	DrawBatch.line(self, Vector2(46, -49), Vector2(86, -49), Color(1, 1, 1, 0.12), 1.2, true)
 	if _trunk_open:   # מכסה תא המטען פתוח
 		Art.fill(self, PackedVector2Array([Vector2(4, -30), Vector2(-6, -46), Vector2(-2, -48), Vector2(10, -31)]), body.darkened(0.15), Art.OUTLINE, 1.2)
 		Art.fill(self, PackedVector2Array([Vector2(4, -30), Vector2(30, -31), Vector2(30, -27), Vector2(4, -26)]), Color("0c0a0a"), Art.NONE)
@@ -351,7 +357,7 @@ func _draw_bus() -> void:
 		var dark := Color("0e0c0c") if rng.randf() < 0.7 else Color(0.9, 0.4, 0.15, 0.7)
 		Art.fill(self, PackedVector2Array([Vector2(x, -h + 10), Vector2(x + 22, -h + 10), Vector2(x + 22, -h + 30), Vector2(x, -h + 30)]), dark, Art.OUTLINE, 1.0)
 		if rng.randf() < 0.5:
-			draw_line(Vector2(x + 3, -h + 12), Vector2(x + 18, -h + 27), Color(0.7, 0.7, 0.75, 0.3), 0.8, true)
+			DrawBatch.line(self, Vector2(x + 3, -h + 12), Vector2(x + 18, -h + 27), Color(0.7, 0.7, 0.75, 0.3), 0.8, true)
 		x += 28.0
 	# דלת וחזית
 	Art.fill(self, PackedVector2Array([Vector2(w - 30, -h + 10), Vector2(w - 6, -h + 12), Vector2(w - 6, -8), Vector2(w - 30, -8)]), Color("141010"), Art.OUTLINE, 1.0)
@@ -359,7 +365,7 @@ func _draw_bus() -> void:
 	for i in 5:
 		var p := Vector2(rng.randf_range(10.0, w - 10.0), -h + rng.randf_range(6.0, 20.0))
 		Art.oval(self, p, rng.randf_range(12.0, 30.0), rng.randf_range(5.0, 10.0), Color(0.04, 0.03, 0.03, 0.6), 0.0, Art.NONE)
-	draw_line(Vector2(0, -h * 0.45), Vector2(w, -h * 0.45), Color(0, 0, 0, 0.5), 1.5, true)
+	DrawBatch.line(self, Vector2(0, -h * 0.45), Vector2(w, -h * 0.45), Color(0, 0, 0, 0.5), 1.5, true)
 	for wx in [36.0, w - 50.0]:
 		var arc := PackedVector2Array()
 		for i in 9:
@@ -377,9 +383,9 @@ func _draw_barrier() -> void:
 		var x := 14.0 + float(i) * 10.0
 		Art.fill(self, PackedVector2Array([Vector2(x, -30), Vector2(x + 5, -30), Vector2(x + 1, -22), Vector2(x - 4, -22)]), Color(0.7, 0.15, 0.12, 0.7), Art.NONE)
 	# סדקים וחתיכות חסרות
-	draw_polyline(PackedVector2Array([Vector2(30, -32), Vector2(33, -24), Vector2(29, -17), Vector2(34, -9)]), Color(0, 0, 0, 0.5), 1.0, true)
+	DrawBatch.polyline(self, PackedVector2Array([Vector2(30, -32), Vector2(33, -24), Vector2(29, -17), Vector2(34, -9)]), Color(0, 0, 0, 0.5), 1.0, true)
 	Art.fill(self, PackedVector2Array([Vector2(48, -32), Vector2(52, -32), Vector2(53, -27)]), Color("5a5853"), Art.NONE)
-	draw_line(Vector2(12, -16), Vector2(52, -14), Color(0.2, 0.6, 0.3, 0.5), 1.5, true)   # גרפיטי
+	DrawBatch.line(self, Vector2(12, -16), Vector2(52, -14), Color(0.2, 0.6, 0.3, 0.5), 1.5, true)   # גרפיטי
 
 
 func _draw_barrel() -> void:
@@ -387,11 +393,11 @@ func _draw_barrel() -> void:
 	var pts := PackedVector2Array([Vector2(1, 0), Vector2(0, -2), Vector2(0, -28), Vector2(1, -30), Vector2(21, -30), Vector2(22, -28), Vector2(22, -2), Vector2(21, 0)])
 	Art.fill(self, pts, red, Art.OUTLINE, 1.4)
 	# הצללה של גליל: כהה בצדדים, בהיר באמצע
-	draw_rect(Rect2(1, -29, 4, 28), Color(0, 0, 0, 0.25))
-	draw_rect(Rect2(17, -29, 4, 28), Color(0, 0, 0, 0.3))
-	draw_rect(Rect2(7, -29, 3, 28), Color(1, 1, 1, 0.15))
+	DrawBatch.rect(self, Rect2(1, -29, 4, 28), Color(0, 0, 0, 0.25))
+	DrawBatch.rect(self, Rect2(17, -29, 4, 28), Color(0, 0, 0, 0.3))
+	DrawBatch.rect(self, Rect2(7, -29, 3, 28), Color(1, 1, 1, 0.15))
 	for y in [-22.0, -9.0]:   # טבעות
-		draw_line(Vector2(0, y), Vector2(22, y), Color(0, 0, 0, 0.45), 1.5, true)
+		DrawBatch.line(self, Vector2(0, y), Vector2(22, y), Color(0, 0, 0, 0.45), 1.5, true)
 	# סמל אש צהוב
 	Art.fill(self, PackedVector2Array([Vector2(11, -20), Vector2(15, -15.5), Vector2(11, -11), Vector2(7, -15.5)]), Color("e8c030"), Art.OUTLINE, 0.8)
 	Art.fill(self, PackedVector2Array([Vector2(11, -18), Vector2(12.5, -15), Vector2(11, -13), Vector2(9.5, -15)]), Color("a52a1e"), Art.NONE)
@@ -406,7 +412,7 @@ func _draw_tires() -> void:
 		Art.oval(self, Vector2(x, y - 1.0), 8.0, 2.4, Color("0a0a0b"), 0.0, Art.NONE)
 		for j in 6:   # חריצי צמיג
 			var tx := x - 14.0 + float(j) * 5.6
-			draw_line(Vector2(tx, y + 2.0), Vector2(tx + 2.0, y + 5.0), Color(0.3, 0.3, 0.32, 0.6), 1.0, true)
+			DrawBatch.line(self, Vector2(tx, y + 2.0), Vector2(tx + 2.0, y + 5.0), Color(0.3, 0.3, 0.32, 0.6), 1.0, true)
 
 
 func _draw_sandbags() -> void:
@@ -418,4 +424,4 @@ func _draw_sandbags() -> void:
 		for i in n:
 			var c := Vector2(off + 9.0 + float(i) * 18.0, y)
 			Art.oval_shaded(self, c, 9.5, 6.5, col.darkened(0.05 * float((i + row) % 3)), 0.0, Art.OUTLINE, 1.2)
-			draw_line(c + Vector2(-5, -1), c + Vector2(5, -2), Color(0, 0, 0, 0.2), 0.8, true)
+			DrawBatch.line(self, c + Vector2(-5, -1), c + Vector2(5, -2), Color(0, 0, 0, 0.2), 0.8, true)

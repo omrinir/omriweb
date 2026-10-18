@@ -341,6 +341,11 @@ class Chunk extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(life, 0.0, 1.0)
 		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(face * sc, sc))
 		var blood := Color(0.42, 0.04, 0.04, a)

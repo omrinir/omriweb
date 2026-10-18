@@ -248,6 +248,11 @@ class Crack extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(1.0 - (_t - 1.5), 0.0, 1.0)
 		var s := 1.6 if big else 1.0
 		var c := Color(0.05, 0.03, 0.03, 0.85 * a)
@@ -291,6 +296,11 @@ class Shockwave extends Node2D:
 				Particles.burst(get_parent(), global_position + Vector2(0, -4), "smoke", Vector2(-dir, -1.0), 1)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(1.0 - _d / 520.0, 0.2, 1.0)
 		for q in 4:
 			var x := -dir * float(q) * 9.0

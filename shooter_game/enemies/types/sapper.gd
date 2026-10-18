@@ -187,6 +187,11 @@ class Mine extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -1), 11.0, 3.5, 0.0, 14), Color("3a3e30"))
 		DrawBatch.rect(self, Rect2(-3, -5, 6, 3), Color("5a5e50"))
 		var on := _click >= 0.0 or fmod(_t, 1.2) < 0.15

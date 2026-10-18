@@ -204,6 +204,11 @@ class PlazaGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s32_decor.gd")
@@ -243,6 +248,11 @@ class Arch extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var pl := preload("res://effects/s32_decor.gd").pulse()
@@ -283,6 +293,11 @@ class Facade extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var c: Color = [Color("c08a6a"), Color("7a8ab0"), Color("a0b080"), Color("d0b070"), Color("b07a9a")][r.randi() % 5].darkened(0.25)
@@ -375,6 +390,11 @@ class Castillo extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var wood := Color("6a4a2e") if not spent else Color("2a2018")
 		DrawBatch.line(self, Vector2(-22, 0), Vector2(-6, -H), wood, 4.0)   # מגדל עץ
 		DrawBatch.line(self, Vector2(22, 0), Vector2(6, -H), wood, 4.0)
@@ -468,6 +488,11 @@ class Firecrackers extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var done := w * (1.0 - _t) if popped else 0.0
 		DrawBatch.line(self, Vector2(0, -2), Vector2(w, -2), Color("6a5a3a"), 1.0)
 		var n := int(w / 6.0)
@@ -514,6 +539,11 @@ class Obstacle extends Node2D:
 			Particles.burst(get_parent(), global_position + Vector2(size.x * 0.4 + randf_range(-6, 6), -size.y - 4.0), "smoke", Vector2(0.1, -1.0), 1)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var w := size.x
@@ -620,6 +650,11 @@ class CarnivalFX extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s32_decor.gd")
 		for e in _c:   # (בלי טרנספורם לכל פיסה - זול)
 			var p: Vector2 = e[0]

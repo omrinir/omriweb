@@ -528,6 +528,11 @@ class Cascade extends Node2D:
 		Particles.burst(m, hp, "spark", Vector2.UP, 4)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for s in _snaps:
 			var a: float = clampf(s[1] / 0.35, 0.0, 1.0)
 			var to: Vector2 = s[0]
@@ -563,6 +568,11 @@ class ThreadLayer extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var o = owner_t
 		var zz = o.z
 		var bp: Vector2 = o.brow()
@@ -597,7 +607,7 @@ class ThreadLayer extends Node2D:
 				for q in 6:
 					cols.append(Color(0.92, 0.98, 1.0, 0.95))
 		if not pts.is_empty():
-			RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), PackedInt32Array(), pts, cols)
+			DrawBatch.tris(self, pts, cols)
 		if zz.dead:
 			return
 		Art.glow(self, bp, 14.0 + 12.0 * hot, Color(0.6, 0.88, 1.0, 0.22 + 0.25 * hot))

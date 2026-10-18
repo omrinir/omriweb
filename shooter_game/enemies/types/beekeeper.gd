@@ -367,6 +367,11 @@ class Swarm extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := 1.0 if alive() else maxf(0.0, 1.0 - _dying / 1.2)
 		var spread := 1.0 if alive() else 1.0 + _dying * 3.0
 		var n := int((22.0 if not angry else 30.0) * clampf(float(hp) / float(SWARM_HP), 0.35, 1.5))
@@ -407,6 +412,11 @@ class HoneyPuddle extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := minf(1.0, _t * 3.0)
 		var w := W * 0.5 * k
 		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -1), w, 4.0, 0.0, 16), Color(0.85, 0.55, 0.08, 0.85))

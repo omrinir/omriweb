@@ -80,6 +80,11 @@ class Flare extends Node2D:   # זיקוק תאורה: עף בקשת, נוחת �
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := clampf(life / 1.0, 0.0, 1.0)
 		var fl := 0.85 + 0.15 * sin(_t * 40.0)
 		A.glow(self, Vector2(0, -4), FLARE_R * 0.7 * fl, Color(1.0, 0.25, 0.2, 0.12 * k))

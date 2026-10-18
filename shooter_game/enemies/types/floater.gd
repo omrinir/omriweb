@@ -343,6 +343,11 @@ class GasCloud extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := _t / life
 		var grow := minf(_t * 3.0, 1.0)
 		var a := (1.0 - k) * minf(_t * 4.0, 1.0)
@@ -402,6 +407,11 @@ class GasBubble extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := 1.0 + sin(_t * 18.0) * 0.08
 		DrawBatch.colored_polygon(self, preload("res://art.gd").ellipse(Vector2.ZERO, 11.0 * w, 11.0 / w, 0.0, 14), Color(0.6, 0.75, 0.25, 0.55))
 		DrawBatch.arc(self, Vector2.ZERO, 11.0, 0.0, TAU, 14, Color(0.85, 0.95, 0.5, 0.8), 1.5)

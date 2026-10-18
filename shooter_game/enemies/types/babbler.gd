@@ -313,6 +313,11 @@ class WordRing extends Node2D:
 			src.on_sick()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(1.0 - r / RING_R, 0.0, 1.0)
 		var hot := Color(1.0, 0.32, 0.22)
 		DrawBatch.arc(self, Vector2.ZERO, r, 0.0, TAU, 72, Color(hot, 0.5 * a), 3.0)
@@ -381,6 +386,11 @@ class Painter extends Node2D:
 		return out
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var vs := get_viewport_rect().size
 		var k := clampf((owner_s.t + 0.25) / 0.45, 0.0, 1.0) * clampf((owner_s.total - owner_s.t) / 0.12 + 0.3, 0.0, 1.0)
 		var fr := int(Time.get_ticks_msec() / 70)
@@ -437,6 +447,11 @@ class Letters extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf((1.3 - t) / 0.5, 0.0, 1.0)
 		for i in word.length():
 			var p: Vector2 = Vector2(float(i) * 11.0 - float(word.length()) * 5.5, 0) + _v[i] * t * 0.5

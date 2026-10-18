@@ -227,6 +227,11 @@ class CemeteryGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.rect(self, Rect2(0, 0, w, depth), Color("2a2a32"))
 		var x := 0.0
 		var i := 0
@@ -254,6 +259,11 @@ class Mausoleum extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var c := MARBLE.darkened(0.25)
 		DrawBatch.rect(self, Rect2(0, -tier, w, tier), c)
 		for q in int(w / 30.0):   # אבני שיש
@@ -400,6 +410,11 @@ class AngelStatue extends Node2D:
 			_base.queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		# הכן
 		var c := MARBLE.darkened(0.15)
 		if state < 3:
@@ -503,6 +518,11 @@ class CryptDoor extends Node2D:
 					nz.velocity = Vector2((-1.0 if i == 0 else 1.0) * 120.0, -200.0)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var c := MARBLE.darkened(0.3)
 		# בית הקריפטה הקטן
 		DrawBatch.rect(self, Rect2(-70, -130, 140, 130), c)
@@ -542,6 +562,11 @@ class RecoletaGate extends Node2D:
 		z_index = -2
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var c := MARBLE.darkened(0.2)
 		DrawBatch.rect(self, Rect2(-260, -300, 520, 300), c.darkened(0.15))
 		# פרונטון יווני
@@ -597,6 +622,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := size.x
 		var h := size.y
 		var c := MARBLE.darkened(0.3 + 0.05 * float(seed_v % 3))
@@ -701,6 +731,11 @@ class MoonFX extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := S50.moon_k
 		# חושך כשהירח מכוסה, אור כסוף כשהוא מלא
 		DrawBatch.rect(self, Rect2(0, 0, vp.x, vp.y), Color(0.03, 0.04, 0.12, 0.2 * (1.0 - k)))

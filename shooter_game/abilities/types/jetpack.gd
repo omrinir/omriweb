@@ -105,15 +105,15 @@ func draw_pack(ci: CanvasItem) -> void:
 	for x: float in [-4.0, 2.0]:   # שני מכלים + נחירים
 		Art.oval_shaded(ci, b + Vector2(x, 7), 3.0, 8.0, Color("8a3a2a"))
 		Art.fill(ci, PackedVector2Array([b + Vector2(x - 2.5, 19), b + Vector2(x + 2.5, 19), b + Vector2(x + 3.5, 24), b + Vector2(x - 3.5, 24)]), Color("2a2a2e"))
-	ci.draw_line(b + Vector2(4, 3), b + Vector2(12, 4), Color("2a2a2e"), 2.0)   # רצועה
+	DrawBatch.line(ci, b + Vector2(4, 3), b + Vector2(12, 4), Color("2a2a2e"), 2.0)   # רצועה
 	var k := fuel / maxf(duration(), 0.01)
-	ci.draw_rect(Rect2(b.x - 7.0, b.y + 2.0, 2.0, 16.0), Color(0, 0, 0, 0.6))   # מד דלק על הצד
-	ci.draw_rect(Rect2(b.x - 7.0, b.y + 18.0 - 16.0 * k, 2.0, 16.0 * k), Color(1.0, 0.75, 0.2) if k > 0.25 else Color(1.0, 0.3, 0.2))
+	DrawBatch.rect(ci, Rect2(b.x - 7.0, b.y + 2.0, 2.0, 16.0), Color(0, 0, 0, 0.6))   # מד דלק על הצד
+	DrawBatch.rect(ci, Rect2(b.x - 7.0, b.y + 18.0 - 16.0 * k, 2.0, 16.0 * k), Color(1.0, 0.75, 0.2) if k > 0.25 else Color(1.0, 0.3, 0.2))
 	if player.is_on_floor() and not thrusting:
 		return
 	for x: float in [-4.0, 2.0]:   # להבות
 		var len := (16.0 if thrusting else 7.0) + sin(_t * 60.0 + x) * 3.0
 		var tip := b + Vector2(x, 24.0 + len)
-		ci.draw_colored_polygon(PackedVector2Array([b + Vector2(x - 3, 24), b + Vector2(x + 3, 24), tip]), Color(1.0, 0.55, 0.15, 0.85))
-		ci.draw_colored_polygon(PackedVector2Array([b + Vector2(x - 1.5, 24), b + Vector2(x + 1.5, 24), b + Vector2(x, 24.0 + len * 0.55)]), Color(1.0, 0.95, 0.6))
+		DrawBatch.colored_polygon(ci, PackedVector2Array([b + Vector2(x - 3, 24), b + Vector2(x + 3, 24), tip]), Color(1.0, 0.55, 0.15, 0.85))
+		DrawBatch.colored_polygon(ci, PackedVector2Array([b + Vector2(x - 1.5, 24), b + Vector2(x + 1.5, 24), b + Vector2(x, 24.0 + len * 0.55)]), Color(1.0, 0.95, 0.6))
 		Art.glow(ci, b + Vector2(x, 28), 8.0 if thrusting else 5.0, Color(1.0, 0.6, 0.2, 0.5))

@@ -1,4 +1,5 @@
 extends Node
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  מצב המשחק (Autoload בשם Game - זמין מכל מקום):
 #  * ניקוד, קומבו (מכפיל), סטטיסטיקות של השלב
@@ -878,6 +879,11 @@ class TrophyBanner extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if _t < 0.0:
 			return
 		var vp := get_viewport_rect().size
@@ -886,21 +892,21 @@ class TrophyBanner extends Node2D:
 		var w := 420.0
 		var h := 70.0
 		var pos := Vector2((vp.x - w) / 2.0, -h + (h + 14.0) * k)
-		draw_rect(Rect2(pos + Vector2(4, 5), Vector2(w, h)), Color(0, 0, 0, 0.5))
-		draw_rect(Rect2(pos, Vector2(w, h)), Color(0.08, 0.06, 0.05, 0.95))
-		draw_rect(Rect2(pos, Vector2(w, h)), Color("d8a033"), false, 2.0)
+		DrawBatch.rect(self, Rect2(pos + Vector2(4, 5), Vector2(w, h)), Color(0, 0, 0, 0.5))
+		DrawBatch.rect(self, Rect2(pos, Vector2(w, h)), Color(0.08, 0.06, 0.05, 0.95))
+		DrawBatch.rect(self, Rect2(pos, Vector2(w, h)), Color("d8a033"), false, 2.0)
 		_cup(pos + Vector2(38, 36))
 		var f := ThemeDB.fallback_font
-		draw_string(f, pos + Vector2(72, 26), "TROPHY UNLOCKED", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("d8a033"))
-		draw_string_outline(f, pos + Vector2(72, 48), _name, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 4, Color(0, 0, 0, 0.8))
-		draw_string(f, pos + Vector2(72, 48), _name, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
-		draw_string(f, pos + Vector2(72, 64), _desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.8, 0.78, 0.75))
+		DrawBatch.string(self, f, pos + Vector2(72, 26), "TROPHY UNLOCKED", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("d8a033"))
+		DrawBatch.string_outline(self, f, pos + Vector2(72, 48), _name, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 4, Color(0, 0, 0, 0.8))
+		DrawBatch.string(self, f, pos + Vector2(72, 48), _name, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
+		DrawBatch.string(self, f, pos + Vector2(72, 64), _desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.8, 0.78, 0.75))
 
 	func _cup(c: Vector2) -> void:
 		var gold := Color("e0b040")
-		draw_colored_polygon(PackedVector2Array([c + Vector2(-13, -16), c + Vector2(13, -16), c + Vector2(9, 0), c + Vector2(3, 4), c + Vector2(-3, 4), c + Vector2(-9, 0)]), gold)
-		draw_arc(c + Vector2(-13, -9), 6.0, PI * 0.5, PI * 1.5, 10, gold, 2.5, true)
-		draw_arc(c + Vector2(13, -9), 6.0, -PI * 0.5, PI * 0.5, 10, gold, 2.5, true)
-		draw_rect(Rect2(c + Vector2(-2, 4), Vector2(4, 7)), gold)
-		draw_rect(Rect2(c + Vector2(-9, 11), Vector2(18, 4)), gold.darkened(0.2))
-		draw_line(c + Vector2(-8, -13), c + Vector2(-5, -3), Color(1, 1, 1, 0.5), 2.0, true)
+		DrawBatch.colored_polygon(self, PackedVector2Array([c + Vector2(-13, -16), c + Vector2(13, -16), c + Vector2(9, 0), c + Vector2(3, 4), c + Vector2(-3, 4), c + Vector2(-9, 0)]), gold)
+		DrawBatch.arc(self, c + Vector2(-13, -9), 6.0, PI * 0.5, PI * 1.5, 10, gold, 2.5, true)
+		DrawBatch.arc(self, c + Vector2(13, -9), 6.0, -PI * 0.5, PI * 0.5, 10, gold, 2.5, true)
+		DrawBatch.rect(self, Rect2(c + Vector2(-2, 4), Vector2(4, 7)), gold)
+		DrawBatch.rect(self, Rect2(c + Vector2(-9, 11), Vector2(18, 4)), gold.darkened(0.2))
+		DrawBatch.line(self, c + Vector2(-8, -13), c + Vector2(-5, -3), Color(1, 1, 1, 0.5), 2.0, true)

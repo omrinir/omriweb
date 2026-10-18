@@ -733,7 +733,7 @@ func draw() -> bool:
 		FX.bird(pts, cols, bp[i] + o, BIRD_S * (0.85 + 0.3 * h), flap, dir, h, tint, fl)
 	if hp_heart:
 		FX.bird(pts, cols, hpos, BIRD_S * 1.35, _t * 18.0, _face, bh[heart], Color(0, 0, 0, 0), flash and (hpos - o).distance_squared_to(_flash_lp) < 900.0, true)
-	RenderingServer.canvas_item_add_triangle_array(z.get_canvas_item(), PackedInt32Array(), pts, cols)
+	DrawBatch.tris(z, pts, cols)
 	# הלב זוהר (חזק יותר לפני צלילה)
 	if hp_heart and not flash:
 		var g := 0.35 + 0.2 * sin(_t * 7.0) + (0.4 if state == WIND else 0.0)
@@ -912,6 +912,11 @@ class FX extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var pts := PackedVector2Array()
 		var cols := PackedColorArray()
 		for it in items:
@@ -954,4 +959,4 @@ class FX extends Node2D:
 					pts.append_array(tmp)
 					cols.append_array(tc)
 		if not pts.is_empty():
-			RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), PackedInt32Array(), pts, cols)
+			DrawBatch.tris(self, pts, cols)

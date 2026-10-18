@@ -726,6 +726,11 @@ class PopFx extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := clampf(_t / 0.12, 0.0, 1.0)
 		if _t < 0.18:
 			DrawBatch.arc(self, Vector2.ZERO, r * (0.8 + k * 1.2), 0.0, TAU, 20, Color(1, 1, 1, 0.8 * (1.0 - k)), 2.0)
@@ -764,6 +769,11 @@ class Ascend extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if tm == null:
 			return
 		var a := clampf(9.0 - _t, 0.0, 1.0)

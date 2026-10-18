@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  SPORE LESSON (פטגוניה, משלב 55) - "THEY LEARN" רואים את זה: כשזומבי מת, ענן נבגים זוהר קטן
 #  יוצא מהגופה, מרחף לזומבי החי הכי קרוב ונבלע בו - והוא מהבהב בטבעת ("הוא למד").
@@ -86,15 +87,20 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var fly_end := RISE_T + FLY_T
 	if _t < fly_end:
 		var shrink := 1.0 - clampf((_t - RISE_T) / FLY_T, 0.0, 1.0) * 0.6
 		for d in _dots:
 			var p: Vector2 = Vector2(cos(d[0]), sin(d[0])) * float(d[1]) * shrink
-			draw_circle(p, d[3] * 2.2, Color(COL, 0.18))
-			draw_circle(p, d[3], Color(COL, 0.85))
+			DrawBatch.circle(self, p, d[3] * 2.2, Color(COL, 0.18))
+			DrawBatch.circle(self, p, d[3], Color(COL, 0.85))
 	else:   # טבעת "למד": מתרחבת ונעלמת
 		var k := (_t - fly_end) / FLASH_T
 		var r := lerpf(10.0, 46.0, k)
-		draw_arc(Vector2.ZERO, r, 0.0, TAU, 24, Color(COL, 0.9 * (1.0 - k)), 3.0 * (1.0 - k) + 1.0)
-		draw_circle(Vector2.ZERO, 7.0 * (1.0 - k), Color(1.0, 1.0, 0.85, 0.8 * (1.0 - k)))
+		DrawBatch.arc(self, Vector2.ZERO, r, 0.0, TAU, 24, Color(COL, 0.9 * (1.0 - k)), 3.0 * (1.0 - k) + 1.0)
+		DrawBatch.circle(self, Vector2.ZERO, 7.0 * (1.0 - k), Color(1.0, 1.0, 0.85, 0.8 * (1.0 - k)))

@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  פרטיקלים פשוטים: פיצוץ קטן של נקודות שעפות לצדדים ונעלמות.
 #  Particles.burst(parent, pos, סוג, כיוון)  סוגים: "hit", "fire", "smoke"
@@ -111,6 +112,11 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var vis := Rect2()
 	if is_layer:   # רק מה שעל המסך
 		var vp := get_viewport()
@@ -126,4 +132,4 @@ func _draw() -> void:
 		var gr: float = q[7] if is_layer else grow
 		if gr > 0.0:
 			a *= 0.5
-		draw_circle(q[0], q[4] + gr * k, Color(c, a))
+		DrawBatch.circle(self, q[0], q[4] + gr * k, Color(c, a))

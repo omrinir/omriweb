@@ -221,5 +221,10 @@ class Tracer extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := _t / 0.2
 		DrawBatch.line(self, a - global_position, b - global_position, Color(1.0, 0.9, 0.6, 0.8 * k), 2.0)

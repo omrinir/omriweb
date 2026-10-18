@@ -1,4 +1,5 @@
 extends CharacterBody2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 const SIZE := 0.78   # גודל הניצולה (קצת נמוכה מהדמות הראשית)
 # ============================================================
 #  ניצולה (אישה, לא זומבי). כשהשחקן מתקרב היא רצה אליו ומבקשת עזרה.
@@ -211,11 +212,16 @@ func chest() -> Vector2:
 #  ציור
 # ============================================================
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	if state == DEAD:
 		var outer := Transform2D(_angle, Vector2(0, -8))
-		draw_set_transform_matrix(outer * Transform2D(0.0, Vector2(_dir * SIZE, SIZE), 0.0, Vector2(0, 26.0 * SIZE)))
+		DrawBatch.set_transform_matrix(self, outer * Transform2D(0.0, Vector2(_dir * SIZE, SIZE), 0.0, Vector2(0, 26.0 * SIZE)))
 		_draw_woman(0.0)
-		draw_set_transform_matrix(Transform2D.IDENTITY)
+		DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 		return
 	if is_on_floor():
 		Art.ground_shadow(self, Vector2.ZERO, 11.0 * SIZE)
@@ -225,23 +231,23 @@ func _draw() -> void:
 	if state == DRAINED and _burn_t < 0.0:
 		lift = -6.0 * sin(_drain_k * PI * 0.5)
 		shake = Vector2(randf_range(-1.0, 1.0), randf_range(-0.6, 0.6)) * (0.5 + 1.5 * _drain_k)
-	draw_set_transform(Vector2(0, lift) + shake, 0.0, Vector2(_dir * SIZE, SIZE))
+	DrawBatch.set_transform(self, Vector2(0, lift) + shake, 0.0, Vector2(_dir * SIZE, SIZE))
 	_draw_woman(1.0)
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 	if state == WAIT:   # כמה זמן נשאר להחליט (שאיבה או רחמים)
 		var left := 1.0 - _wait_t / mercy_time
-		draw_arc(Vector2(0, -68), 14.0, -PI / 2.0, -PI / 2.0 + TAU * left, 24, Color(1, 1, 1, 0.35), 2.0, true)
+		DrawBatch.arc(self, Vector2(0, -68), 14.0, -PI / 2.0, -PI / 2.0 + TAU * left, 24, Color(1, 1, 1, 0.35), 2.0, true)
 	# סימן: אפשר להפעיל את המכשיר עכשיו
 	if not scripted and _player != null and is_instance_valid(_player) and can_drain(_player) and not _player.dead:
 		var pulse := 0.5 + 0.5 * sin(_t * 8.0)
 		var c := Vector2(0, -68)
-		draw_arc(c, 9.0 + pulse * 3.0, 0.0, TAU, 24, Color(0.45, 1.0, 0.85, 0.5 + 0.5 * pulse), 2.0, true)
-		draw_circle(c, 3.0, Color(0.45, 1.0, 0.85))
+		DrawBatch.arc(self, c, 9.0 + pulse * 3.0, 0.0, TAU, 24, Color(0.45, 1.0, 0.85, 0.5 + 0.5 * pulse), 2.0, true)
+		DrawBatch.circle(self, c, 3.0, Color(0.45, 1.0, 0.85))
 		var f := ThemeDB.fallback_font
 		var txt := "DRAIN"
 		var w := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-		draw_string_outline(f, c + Vector2(-w / 2.0, -16), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(0, 0, 0, 0.8))
-		draw_string(f, c + Vector2(-w / 2.0, -16), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.45, 1.0, 0.85))
+		DrawBatch.string_outline(self, f, c + Vector2(-w / 2.0, -16), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(0, 0, 0, 0.8))
+		DrawBatch.string(self, f, c + Vector2(-w / 2.0, -16), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.45, 1.0, 0.85))
 
 
 func _draw_woman(alive: float) -> void:
@@ -324,7 +330,7 @@ func _draw_woman(alive: float) -> void:
 		var tip := sh + Vector2(-4.5 - lean * 0.8 + sway * 0.4, 9.0)
 		Art.fill(self, PackedVector2Array([head + Vector2(-1.0, -6.6), head + Vector2(-6.4, -2.0), head + Vector2(-6.8, 4.0), tip + Vector2(-1.4, 0.0),
 			tip + Vector2(2.6, 0.6), sh + Vector2(-0.5, 2.0), head + Vector2(0.0, 4.5), head + Vector2(2.0, -2.0)]), Art.shade(hair, 0.1), Art.OUTLINE, 0.8)
-		draw_polyline(PackedVector2Array([head + Vector2(-4.6, -1.0), head + Vector2(-5.0, 4.0), tip + Vector2(0.4, -2.0)]), Color(hair.lightened(0.3), 0.55), 0.6, true)   # ברק בשיער
+		DrawBatch.polyline(self, PackedVector2Array([head + Vector2(-4.6, -1.0), head + Vector2(-5.0, 4.0), tip + Vector2(0.4, -2.0)]), Color(hair.lightened(0.3), 0.55), 0.6, true)   # ברק בשיער
 	_arm(bs, bh, Art.shade(skin, 0.15), Art.shade(top, 0.15), burned)
 	_leg(hip + Vector2(-1.5, 0), f2, Art.shade(pants, 0.2), Art.shade(boots, 0.2), burned)
 	_leg(hip + Vector2(1.5, 0), f1, pants, boots, burned)
@@ -336,8 +342,8 @@ func _draw_woman(alive: float) -> void:
 	Art.fill_shaded(self, body, top, 0.15, 0.3, Art.OUTLINE, 0.9)
 	if not burned:
 		Art.fill(self, PackedVector2Array([sh + Vector2(0.0, -0.2), sh + Vector2(3.4, -0.1), sh + Vector2(1.8, 2.6)]), skin, Art.NONE)   # מחשוף קטן
-		draw_polyline(PackedVector2Array([sh + Vector2(4.4, 0.6), sh + Vector2(4.9, 4.0), hip + Vector2(3.2, -6.5)]), Color(top.lightened(0.35), 0.6), 0.7, true)   # אור על הקצה
-	draw_line(hip + Vector2(-4.6, -1.0), hip + Vector2(4.6, -1.0), Art.shade(pants, 0.3), 1.4, true)   # חגורה
+		DrawBatch.polyline(self, PackedVector2Array([sh + Vector2(4.4, 0.6), sh + Vector2(4.9, 4.0), hip + Vector2(3.2, -6.5)]), Color(top.lightened(0.35), 0.6), 0.7, true)   # אור על הקצה
+	DrawBatch.line(self, hip + Vector2(-4.6, -1.0), hip + Vector2(4.6, -1.0), Art.shade(pants, 0.3), 1.4, true)   # חגורה
 	# צוואר + ראש
 	Art.limb(self, PackedVector2Array([sh + Vector2(1.0, 0.0), head + Vector2(-0.5, 4.0)]), 2.4, skin)
 	if burned:
@@ -348,24 +354,24 @@ func _draw_woman(alive: float) -> void:
 		Art.oval(self, head + Vector2(-1.4, -1.6), 6.0, 6.3, hair)   # שיער מאחורי הראש
 		# פנים: אליפסה קטנה יותר + סנטר עדין קדימה
 		Art.oval_shaded(self, head, 4.9, 5.8, skin, 0.0, Art.OUTLINE, 0.9)
-		draw_line(head + Vector2(4.7, -0.2), head + Vector2(5.4, 1.4), Art.shade(skin, 0.2), 0.6, true)   # אף
+		DrawBatch.line(self, head + Vector2(4.7, -0.2), head + Vector2(5.4, 1.4), Art.shade(skin, 0.2), 0.6, true)   # אף
 		Art.oval(self, head + Vector2(1.2, 1.0), 1.0, 0.6, Color(0.95, 0.45, 0.45, 0.15), 0.0, Art.NONE)   # סומק עדין על הלחי
 		# פוני ושיער בצד
 		Art.fill(self, PackedVector2Array([head + Vector2(-5.4, -1.0), head + Vector2(-4.6, -5.6), head + Vector2(0.0, -6.9), head + Vector2(5.0, -4.6), head + Vector2(4.2, -2.6), head + Vector2(1.0, -3.8), head + Vector2(-2.6, 0.6)]), hair, Art.OUTLINE, 0.8)
-		draw_line(head + Vector2(-2.0, -5.6), head + Vector2(2.5, -5.0), Color(hair.lightened(0.35), 0.6), 0.6, true)   # ברק
+		DrawBatch.line(self, head + Vector2(-2.0, -5.6), head + Vector2(2.5, -5.0), Color(hair.lightened(0.35), 0.6), 0.6, true)   # ברק
 		# עין: לבן + אישון + ריסים + גבה
 		var eye := head + Vector2(2.7, -0.6)
 		var closed := dk > 0.3
 		var ink := Color("1a1010")
 		if closed:
-			draw_line(eye + Vector2(-1.1, 0.3), eye + Vector2(1.1, 0.3), ink, 0.7, true)
+			DrawBatch.line(self, eye + Vector2(-1.1, 0.3), eye + Vector2(1.1, 0.3), ink, 0.7, true)
 		else:
 			Art.oval(self, eye, 1.15, 0.85, Color(0.96, 0.94, 0.92), 0.0, Art.NONE)
 			Art.oval(self, eye + Vector2(0.35, 0.05), 0.6, 0.75, Color("3a2a22") if variant != 1 else Color("3a5a6a"), 0.0, Art.NONE)
-			draw_line(eye + Vector2(-1.2, -0.7), eye + Vector2(1.3, -0.9), ink, 0.7, true)   # ריסים
-		draw_line(eye + Vector2(-1.0, -2.0), eye + Vector2(1.4, -2.2), Art.shade(hair, 0.15), 0.6, true)   # גבה
-		draw_line(head + Vector2(3.2, 3.2), head + Vector2(3.9, 3.1), skin.lerp(Color("a85060"), 0.45).lerp(gray, dk), 0.5, true)   # שפתיים: קו קטן ועדין
-		draw_circle(head + Vector2(-0.8, 2.0), 0.5, Color("d8c070"))   # עגיל
+			DrawBatch.line(self, eye + Vector2(-1.2, -0.7), eye + Vector2(1.3, -0.9), ink, 0.7, true)   # ריסים
+		DrawBatch.line(self, eye + Vector2(-1.0, -2.0), eye + Vector2(1.4, -2.2), Art.shade(hair, 0.15), 0.6, true)   # גבה
+		DrawBatch.line(self, head + Vector2(3.2, 3.2), head + Vector2(3.9, 3.1), skin.lerp(Color("a85060"), 0.45).lerp(gray, dk), 0.5, true)   # שפתיים: קו קטן ועדין
+		DrawBatch.circle(self, head + Vector2(-0.8, 2.0), 0.5, Color("d8c070"))   # עגיל
 		if dk > 0.0:   # זוהר של כוח החיים שיוצא ממנה
 			Art.glow(self, sh + Vector2(1.0, 6.0), 14.0 + 8.0 * dk, Color(0.45, 1.0, 0.85, 0.5 * sin(dk * PI) + 0.1))
 	_arm(fs, fh, skin, top, burned)
@@ -398,11 +404,11 @@ func _embers(body: PackedVector2Array, head: Vector2) -> void:
 			var a := body[rng.randi() % body.size()].lerp(body[rng.randi() % body.size()], rng.randf())
 			var b := a + Vector2(rng.randf_range(-4.0, 4.0), rng.randf_range(-4.0, 4.0))
 			var flick := 0.6 + 0.4 * sin(_t * 9.0 + float(i))
-			draw_line(a, b, Color(1.0, 0.45, 0.1, glow * flick), 1.0, true)
-		draw_line(head + Vector2(-3, -2), head + Vector2(1, 2), Color(1.0, 0.45, 0.1, glow * 0.8), 0.8, true)
+			DrawBatch.line(self, a, b, Color(1.0, 0.45, 0.1, glow * flick), 1.0, true)
+		DrawBatch.line(self, head + Vector2(-3, -2), head + Vector2(1, 2), Color(1.0, 0.45, 0.1, glow * 0.8), 0.8, true)
 	var smoke := clampf(1.0 - _burn_t / 8.0, 0.0, 1.0)
 	if smoke > 0.0:
 		for i in 5:
 			var k := fmod(float(i) / 5.0 + _t * 0.3, 1.0)
 			var p := head + Vector2(sin(k * 6.0 + float(i)) * 3.0 - k * 6.0, -6.0 - k * 40.0)
-			draw_circle(p, 3.0 + k * 9.0, Color(0.2, 0.18, 0.18, 0.35 * (1.0 - k) * smoke))
+			DrawBatch.circle(self, p, 3.0 + k * 9.0, Color(0.2, 0.18, 0.18, 0.35 * (1.0 - k) * smoke))

@@ -213,6 +213,11 @@ class Net extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var c := Color(0.85, 0.82, 0.7, 0.9)
 		if caught == null:   # רשת פרושה באוויר
 			var r := 16.0 + minf(_t * 30.0, 10.0)

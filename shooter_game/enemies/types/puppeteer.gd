@@ -459,6 +459,11 @@ class StringLayer extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var o = owner_t
 		var zz = o.z
 		var bp: Vector2 = o.bar_point()

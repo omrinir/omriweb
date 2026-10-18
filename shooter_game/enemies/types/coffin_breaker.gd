@@ -357,6 +357,11 @@ class LidShot extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		CoffinBox.lid_shape(self, Vector2.ZERO, 1.0)
 
 
@@ -393,6 +398,11 @@ class Chips extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(1.6 - _t * 1.8, 0.0, 1.0)
 		for q in _p:
 			var d: Vector2 = Vector2.from_angle(q[2]) * q[3]
@@ -421,6 +431,11 @@ class CoffinBox extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		box_shape(self, Vector2.ZERO, true)
 
 	# ארון מתומן שוכב (צורה קלאסית: רחב בכתפיים). open = בלי מכסה, רואים בטנה אדומה בפנים

@@ -1,4 +1,5 @@
 extends CanvasLayer
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  מסך סיום שלב: כוכבים, סטטיסטיקות, ניקוד, ו"חנות" שדרוגים
 #  שקונים בנקודות SCRAP. משם ממשיכים לשלב הבא.
@@ -131,15 +132,20 @@ class ResultsPanel extends Node2D:
 
 	func _txt(p: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0) -> void:
 		var f := ThemeDB.fallback_font
-		draw_string_outline(f, p, t, align, w, size, 5, Color(0, 0, 0, 0.85))
-		draw_string(f, p, t, align, w, size, col)
+		DrawBatch.string_outline(self, f, p, t, align, w, size, 5, Color(0, 0, 0, 0.85))
+		DrawBatch.string(self, f, p, t, align, w, size, col)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var vp := get_viewport_rect().size
 		var pw := 640.0
 		var px := (vp.x - pw) / 2.0
-		draw_rect(Rect2(Vector2(px, 60), Vector2(pw, 480)), Color(0.07, 0.06, 0.07, 0.94))
-		draw_rect(Rect2(Vector2(px, 60), Vector2(pw, 480)), Color("8a1a1a"), false, 2.0)
+		DrawBatch.rect(self, Rect2(Vector2(px, 60), Vector2(pw, 480)), Color(0.07, 0.06, 0.07, 0.94))
+		DrawBatch.rect(self, Rect2(Vector2(px, 60), Vector2(pw, 480)), Color("8a1a1a"), false, 2.0)
 		_results(vp, px, pw)
 
 	func _results(vp: Vector2, px: float, pw: float) -> void:
@@ -193,7 +199,7 @@ class ResultsPanel extends Node2D:
 			var a := -PI / 2.0 + TAU * float(i) / 10.0
 			var rr := r_ if i % 2 == 0 else r_ * 0.45
 			pts.append(c + Vector2(cos(a), sin(a)) * rr)
-		draw_colored_polygon(pts, col)
+		DrawBatch.colored_polygon(self, pts, col)
 		var closed := PackedVector2Array(pts)
 		closed.append(pts[0])
-		draw_polyline(closed, Color(0, 0, 0, 0.8), 2.0, true)
+		DrawBatch.polyline(self, closed, Color(0, 0, 0, 0.8), 2.0, true)

@@ -321,6 +321,11 @@ class Sickle extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var hand_l := Vector2.ZERO
 		if not _drop and _owner_ok():
 			hand_l = to_local(owner_t.hand())

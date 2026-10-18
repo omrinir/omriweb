@@ -165,6 +165,11 @@ class PlatformGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.rect(self, Rect2(0, 0, w, depth), Color("3a3c42"))
 		DrawBatch.rect(self, Rect2(0, 0, w, 6.0), Color("d8b830"))   # פס בטיחות צהוב
 		var x := 0.0
@@ -188,6 +193,11 @@ class Mezzanine extends Node2D:   # גשר הולכי רגל (הקומה עצמ�
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.rect(self, Rect2(0, -tier, w, 12.0), Color("4a4e58"))
 		DrawBatch.rect(self, Rect2(0, -tier + 12.0, w, 4.0), Color("2a2c32"))
 		for q in int(w / 16.0) + 1:   # מעקה
@@ -327,6 +337,11 @@ class MGNest extends StaticBody2D:
 			gunner._popup("MAN THE GUN!", Color("ff8060"), 13, -85.0)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var sb := Color("8a7a58")
 		for row in 3:   # שקי חול
 			var n := 5 - row
@@ -433,6 +448,11 @@ class Tripwire extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if state == 2:
 			if disarmed:
 				DrawBatch.line(self, Vector2(0, -6), Vector2(W * 0.4, -2), Color(0.7, 0.7, 0.7, 0.6), 1.0)
@@ -495,6 +515,11 @@ class FirePatch extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if delay > 0.0:   # מיכל נפאלם נופל
 			var y := -delay * 520.0
 			DrawBatch.rect(self, Rect2(-4, y - 10, 8, 14), Color("6a3a1a"))
@@ -579,6 +604,11 @@ class Sandbags extends StaticBody2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var rows := int(ceil(built * 3.0))
 		var bw := SIZE.x / 4.0
 		var dmg := 1.0 - float(hp) / float(max_hp)
@@ -620,6 +650,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := size.x
 		var h := size.y
 		match kind:
@@ -655,6 +690,11 @@ class MetroFX extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for i in 22:
 			var x := fposmod(float(i) * 97.0 + sin(_t * 0.4 + float(i)) * 30.0 + _t * 6.0, vp.x)
 			var y := fposmod(float(i) * 61.0 + sin(_t * 0.3 + float(i) * 2.0) * 20.0, vp.y * 0.85)

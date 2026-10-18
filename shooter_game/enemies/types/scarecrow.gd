@@ -249,6 +249,11 @@ class Post extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		preload("res://effects/s24_decor.gd").scarecrow_post(self)
 		if empty:   # קש שנשאר על הקורה
 			for q in 4:

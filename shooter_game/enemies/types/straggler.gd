@@ -265,6 +265,11 @@ class BehindEye extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(1.0 - _t / 0.9, 0.0, 1.0) * clampf(_t * 8.0, 0.0, 1.0)
 		var open := clampf(_t * 6.0, 0.0, 1.0)
 		var w := 9.0

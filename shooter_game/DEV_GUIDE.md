@@ -1016,10 +1016,17 @@ all triangles and send them in ONE `RenderingServer.canvas_item_add_triangle_arr
   `.colored_polygon`, `.polygon`, `.polyline`, `.arc`, `.line`, `.rect`, `.set_transform` take the same parameters as Godot's
   `draw_*` (plus the canvas item first) and are only recorded. Outside a begin/end they just call the normal `draw_*`.
 * Textures and text (`.texture_rect`, `.string`, `.string_outline`) can't go in the batch: they flush, draw natively, carry on.
-* zombie.gd, enemies/types/*, stationary_boss, art.gd, ragdoll, flesh/flame/s9 fx and the newer decor files already use it.
-  New zombie art: write `DrawBatch.circle(self, ...)`, not `draw_circle(...)`. `DrawBatch.ENABLED = false` switches it off.
+* EVERY script now does this: `func _draw()` is a 3-line wrapper (begin, `_draw_b()`, end) and the real drawing is in
+  `_draw_b()`. All `draw_*` calls go through `DrawBatch.*` (same parameters, canvas item first). Ready-made triangle arrays:
+  `DrawBatch.tris(ci, pts, cols)` (not `RenderingServer.canvas_item_add_triangle_array`, which would draw out of order).
+  New code: write `func _draw_b()` + the wrapper, and `DrawBatch.circle(self, ...)`, never a bare `draw_circle(...)`
+  inside a batched `_draw` (it would land under everything). `DrawBatch.ENABLED = false` switches batching off.
+* Not batched on purpose: hud.gd, weapon_wheel.gd, rain.gd (rects / text / thin lines that Godot already merges; batching
+  them only cost CPU). Result: ~300 draw calls per frame on every level (was 650-2,140).
 * Antialiased polylines get a 1 px fading edge strip (`FEATHER`); `Art.disc`/`oval` draw a soft outline ring the same way.
-* Level decor is still ~1,270 draw calls per frame; it can be batched the same way if a level is slow.
+* Redraw less: the parallax backdrop redraws every 2nd frame even at full quality (sky every 4th; `Quality.BG_EVERY`),
+  the HUD and the weapon bar every 2nd frame unless something is animating. The backdrop is still the biggest CPU cost
+  (~1.7 ms per frame); caching its layers would be the next step.
 
 ### No stutter on kills
 * **Text never animates its font size.** Every new (font size, outline) pair makes Godot rasterize new glyphs and upload a texture

@@ -195,6 +195,11 @@ class Chunk extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := 1.0
 		if _smear != Vector2.INF:
 			var sl := to_local(_smear)

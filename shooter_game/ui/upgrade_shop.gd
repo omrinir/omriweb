@@ -1,4 +1,5 @@
 extends Control
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  UPGRADE SHOP - החנות שאחרי כל שלב. קונים בגרוטאות (SCRAP).
 #  3 לשוניות: WEAPONS / ABILITIES / PERKS. רשימה עם דפים (7 בכל דף) - מוכן ל-35 נשקים
@@ -225,15 +226,20 @@ func _process(delta: float) -> void:
 
 func _txt(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
 	var f := ThemeDB.fallback_font
-	_ci.draw_string_outline(f, pos, t, align, width, size, 4, Color(0, 0, 0, 0.75))
-	_ci.draw_string(f, pos, t, align, width, size, col)
+	DrawBatch.string_outline(_ci, f, pos, t, align, width, size, 4, Color(0, 0, 0, 0.75))
+	DrawBatch.string(_ci, f, pos, t, align, width, size, col)
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var vp := get_viewport_rect().size
 	var x0 := vp.x * 0.5 - 520.0
-	draw_rect(Rect2(x0, 90, 1040, 480), Color(0.05, 0.05, 0.07, 0.92))
-	draw_rect(Rect2(x0, 90, 1040, 480), Color(TAB_COLS[_tab], 0.5), false, 2.0)
+	DrawBatch.rect(self, Rect2(x0, 90, 1040, 480), Color(0.05, 0.05, 0.07, 0.92))
+	DrawBatch.rect(self, Rect2(x0, 90, 1040, 480), Color(TAB_COLS[_tab], 0.5), false, 2.0)
 	_txt(Vector2(x0, 128), "UPGRADES", 34, Color("d8a033"), HORIZONTAL_ALIGNMENT_CENTER, 1040)
 	_txt(Vector2(x0 + 700, 128), "SCRAP: %d" % Game.scrap, 22, Color(1, 1, 1).lerp(Color("ffd34a"), _flash), HORIZONTAL_ALIGNMENT_RIGHT, 320)
 
@@ -256,7 +262,7 @@ func _draw_detail_body() -> void:
 		return
 	var it: Dictionary = items[_sel]
 	var px := x0 + 360.0
-	_ci.draw_rect(Rect2(px, 196, 660, 360), Color(1, 1, 1, 0.03))
+	DrawBatch.rect(_ci, Rect2(px, 196, 660, 360), Color(1, 1, 1, 0.03))
 	# אייקון + שם + תיאור
 	var ic := Vector2(px + 60, 240)
 	if it.locked:
@@ -269,7 +275,7 @@ func _draw_detail_body() -> void:
 		"a":
 			AbilityDB.draw_icon(_ci, ic, it.id, 1.6)
 		"p":
-			_ci.draw_circle(ic, 14, Color(0.35, 0.8, 0.5, 0.8))
+			DrawBatch.circle(_ci, ic, 14, Color(0.35, 0.8, 0.5, 0.8))
 	_txt(Vector2(px + 120, 230), str(it.name), 24, it.color)
 	var desc := ""
 	if it.kind == "a":
@@ -290,5 +296,5 @@ func _draw_detail_body() -> void:
 		var lvl := Upgrades.level_of(t[0])
 		for k in int(t[5]):
 			var c := Vector2(px + 330 + float(k) * 22.0, y - 4.0)
-			_ci.draw_circle(c, 7.0, Color(0, 0, 0, 0.6))
-			_ci.draw_circle(c, 5.5, Color("d8a033") if k < lvl else Color(0.25, 0.22, 0.2))
+			DrawBatch.circle(_ci, c, 7.0, Color(0, 0, 0, 0.6))
+			DrawBatch.circle(_ci, c, 5.5, Color("d8a033") if k < lvl else Color(0.25, 0.22, 0.2))

@@ -934,6 +934,11 @@ class Rock extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if not _done:   # צל
 			var hgt := maxf(0.0, ground_y - global_position.y)
 			var k := clampf(1.0 - hgt / 360.0, 0.2, 1.0)
@@ -986,6 +991,11 @@ class LooseCanopy extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.set_transform(self, Vector2.ZERO, _rot, Vector2(k, k))
 		var n := 8
 		var top := PackedVector2Array()

@@ -71,7 +71,7 @@ class U:
 
 	static func flush(ci: CanvasItem, pts: PackedVector2Array, cols: PackedColorArray) -> void:
 		if not pts.is_empty():
-			RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), PackedInt32Array(), pts, cols)
+			DrawBatch.tris(ci, pts, cols)
 
 	static func quad(pts: PackedVector2Array, cols: PackedColorArray, a: Vector2, b: Vector2, c: Vector2, d: Vector2, ca: Color, cb: Color, cc: Color, cd: Color) -> void:
 		pts.append_array([a, b, c, a, c, d])
@@ -484,6 +484,11 @@ class BeachGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.rect(self, Rect2(0, 0, w, depth), Color("2e2a26"))
 		DrawBatch.rect(self, Rect2(0, 0, w, 14.0), SAND)
 		DrawBatch.rect(self, Rect2(0, 10.0, w, 6.0), SAND_D)
@@ -799,6 +804,11 @@ class Colony extends Node2D:
 				p[0].x = clampf(p[0].x, -WANDER - 420.0, WANDER + 420.0)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var pts := PackedVector2Array()
 		var cols := PackedColorArray()
 		if state == HUDDLE:   # צל של הצפיפות
@@ -894,6 +904,11 @@ class Lighthouse extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var g := gallery_tier
 		var hx0 := house.x
 		var hx1 := house.y
@@ -978,6 +993,11 @@ class Tank extends Node2D:
 		z_index = -2
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var bands := 10
@@ -1022,6 +1042,11 @@ class Gantry extends Node2D:
 		z_index = -2
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var c := Color("4a3026")
 		var hi := Color("9a5a3a")
 		for lx: float in [10.0, w - 10.0]:   # רגליים בצורת A
@@ -1057,6 +1082,11 @@ class WhaleSkeleton extends Node2D:
 		return -tier - sin(clampf(x / w, 0.0, 1.0) * PI) * 16.0
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var pts := PackedVector2Array()
 		var cols := PackedColorArray()
 		# צלעות מאחור (כהות) ומלפנים (בהירות)
@@ -1165,6 +1195,11 @@ class OilBurst extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.line(self, Vector2(-22, 0), Vector2(-18, -18), Color("3a2a22"), 4.0)   # רגליים
 		DrawBatch.line(self, Vector2(22, 0), Vector2(18, -18), Color("3a2a22"), 4.0)
 		var body := Rect2(-26, -76, 52, 60)
@@ -1289,6 +1324,11 @@ class Slick extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var hw := cur_w() * 0.5
 		if hw < 1.0:
 			return
@@ -1432,6 +1472,11 @@ class GantryHook extends Node2D:
 					z._popup("HOOKED", Color("e0a070"), 16, -90.0)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var an := anchor()
 		var hp := hook_pos()
 		# הגלגלת
@@ -1572,6 +1617,11 @@ class WaveSurge extends Node2D:
 			_back.queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var pts := PackedVector2Array()
 		var cols := PackedColorArray()
 		# קו קצף רגיל שזז על החול הרטוב (תמיד)
@@ -1599,6 +1649,11 @@ class WaveBack extends Node2D:
 	var wave = null
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if wave == null:
 			return
 		var h := 0.0
@@ -1658,6 +1713,11 @@ class SlickRocks extends Node2D:
 					_seen.erase(z)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var pts := PackedVector2Array()
@@ -1702,6 +1762,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := size.x
 		var h := size.y
 		var rim := Color(0.9, 0.92, 0.9, 0.5)
@@ -1759,6 +1824,11 @@ class BossBeach extends Node2D:
 		z_index = -3
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		# ערימות סלעים מעוגלים ורטובים מאחור (צל, גוף, אור מלמעלה, ברק רטוב, בלוטי ים, אצות)
 		var pts := PackedVector2Array()
 		var cols := PackedColorArray()
@@ -1831,6 +1901,11 @@ class CoastFX extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var g := 0.0 if _gust < 0.0 else sin(clampf(_gust / 3.0, 0.0, 1.0) * PI)
 		var q := clampf(Quality.ambient(), 0.3, 1.0)
 		var pts := PackedVector2Array()

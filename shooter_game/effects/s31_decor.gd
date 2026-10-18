@@ -176,6 +176,11 @@ class LakeGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s31_decor.gd")
@@ -204,6 +209,11 @@ class WaterFront extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s31_decor.gd")
 		DrawBatch.rect(self, Rect2(0, -S.WATER_Y, w, S.WATER_Y + 3.0), Color(0.16, 0.36, 0.44, 0.5))
 		var pts := PackedVector2Array()
@@ -273,6 +283,11 @@ class Island extends Node2D:
 			Particles.burst(get_parent(), global_position + Vector2(w * 0.25 + randf_range(-3, 3), -preload("res://effects/s31_decor.gd").ISL_H - 30.0), "smoke", Vector2(0.15, -1.0), 1)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s31_decor.gd")
@@ -406,6 +421,11 @@ class RottenPatch extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s31_decor.gd")
 		var H := S.ISL_H
 		var r := RandomNumberGenerator.new()
@@ -477,6 +497,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var w := size.x
@@ -519,6 +544,11 @@ class LakeFX extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for i in 5:   # רצועות ערפל נמוכות שזזות לאט
 			var y := vp.y * (0.7 + 0.05 * float(i))
 			var x := fposmod(_t * (10.0 + float(i) * 4.0) + float(i) * 300.0, vp.x + 700.0) - 350.0

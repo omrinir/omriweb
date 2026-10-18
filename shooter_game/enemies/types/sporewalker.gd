@@ -208,6 +208,11 @@ class SporeCloud extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := _t / life
 		var grow := minf(_t * 3.5, 1.0)
 		var a := (1.0 - k) * minf(_t * 5.0, 1.0)
@@ -366,6 +371,11 @@ class Stalk extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var Ar := preload("res://art.gd")
 		var k := clampf(_t / grow_t, 0.0, 1.0)
 		var h := 8.0 + 36.0 * k

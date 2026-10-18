@@ -1,4 +1,5 @@
 extends StaticBody2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  רהיט מוצק (שלב 6): שולחן משרדי, ארון מגירות, ספה, מחסום מאולתר, מכונת משקאות.
 #  * מוצק (שכבה 1): חוסם קליעים וקו ראייה -> זומבי STALKER מתחבא מאחוריו
@@ -94,6 +95,11 @@ func _break() -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var w := size.x
 	var h := size.y
 	var r := RandomNumberGenerator.new()
@@ -105,32 +111,32 @@ func _draw() -> void:
 			Art.fill_shaded(self, PackedVector2Array([Vector2(0, -h), Vector2(w, -h), Vector2(w, -h + 6), Vector2(0, -h + 6)]), top, 0.2, 0.3)
 			Art.fill_shaded(self, PackedVector2Array([Vector2(4, -h + 6), Vector2(w - 4, -h + 6), Vector2(w - 4, 0), Vector2(4, 0)]), Color("4a3a2e"), 0.1, 0.35)
 			for i in 3:   # מגירות
-				draw_rect(Rect2(w - 30, -h + 10 + i * 10, 22, 8), Color("3a2e24"))
-				draw_line(Vector2(w - 22, -h + 14 + i * 10), Vector2(w - 16, -h + 14 + i * 10), Color("9a9080"), 1.5)
-			draw_rect(Rect2(10, -h + 12, 30, 20), Color(0.1, 0.08, 0.07, 0.5))   # חלל לרגליים
+				DrawBatch.rect(self, Rect2(w - 30, -h + 10 + i * 10, 22, 8), Color("3a2e24"))
+				DrawBatch.line(self, Vector2(w - 22, -h + 14 + i * 10), Vector2(w - 16, -h + 14 + i * 10), Color("9a9080"), 1.5)
+			DrawBatch.rect(self, Rect2(10, -h + 12, 30, 20), Color(0.1, 0.08, 0.07, 0.5))   # חלל לרגליים
 			# מחשב שבור על השולחן
-			draw_rect(Rect2(14, -h - 18, 24, 17), Color("1c1e22"))
-			draw_rect(Rect2(16, -h - 16, 20, 13), Color("101418"))
-			draw_line(Vector2(18, -h - 15), Vector2(30, -h - 6), Color(0.6, 0.7, 0.8, 0.35), 1.0)
-			draw_rect(Rect2(24, -h - 2, 5, 2), Color("1c1e22"))
-			draw_rect(Rect2(48, -h - 4, 18, 4), Color("2a2a2e"))   # מקלדת
+			DrawBatch.rect(self, Rect2(14, -h - 18, 24, 17), Color("1c1e22"))
+			DrawBatch.rect(self, Rect2(16, -h - 16, 20, 13), Color("101418"))
+			DrawBatch.line(self, Vector2(18, -h - 15), Vector2(30, -h - 6), Color(0.6, 0.7, 0.8, 0.35), 1.0)
+			DrawBatch.rect(self, Rect2(24, -h - 2, 5, 2), Color("1c1e22"))
+			DrawBatch.rect(self, Rect2(48, -h - 4, 18, 4), Color("2a2a2e"))   # מקלדת
 			if r.randf() < 0.6:   # ערימת ניירות
-				draw_rect(Rect2(w - 18, -h - 5, 12, 5), Color("a8a49a"))
+				DrawBatch.rect(self, Rect2(w - 18, -h - 5, 12, 5), Color("a8a49a"))
 		"cabinet":   # ארון מגירות מתכת, אחת פתוחה
 			Art.fill_shaded(self, PackedVector2Array([Vector2(0, -h), Vector2(w, -h), Vector2(w, 0), Vector2(0, 0)]), Color("5c6268"), 0.2, 0.35)
 			for i in 4:
 				var y := -h + 4 + i * 14
-				draw_rect(Rect2(3, y, w - 6, 12), Color("4a5056"))
-				draw_rect(Rect2(w * 0.5 - 5, y + 4, 10, 3), Color("9aa0a6"))
-			draw_rect(Rect2(-6, -h + 32, w - 4, 10), Color("40464c"))   # מגירה פתוחה
-			draw_rect(Rect2(-4, -h + 29, 14, 4), Color("b8b4a8"))   # תיקיות
+				DrawBatch.rect(self, Rect2(3, y, w - 6, 12), Color("4a5056"))
+				DrawBatch.rect(self, Rect2(w * 0.5 - 5, y + 4, 10, 3), Color("9aa0a6"))
+			DrawBatch.rect(self, Rect2(-6, -h + 32, w - 4, 10), Color("40464c"))   # מגירה פתוחה
+			DrawBatch.rect(self, Rect2(-4, -h + 29, 14, 4), Color("b8b4a8"))   # תיקיות
 		"sofa":
 			var c := Color("5a3434") if r.randf() < 0.5 else Color("3a4a5a")
 			Art.fill_shaded(self, PackedVector2Array([Vector2(0, -h + 6), Vector2(10, -h), Vector2(w - 10, -h), Vector2(w, -h + 6), Vector2(w, -4), Vector2(0, -4)]), c, 0.2, 0.35)
-			draw_rect(Rect2(8, -h + 14, w - 16, 10), c.darkened(0.2))
-			draw_line(Vector2(w * 0.5, -h + 14), Vector2(w * 0.5, -6), c.darkened(0.4), 1.0)
-			draw_rect(Rect2(4, -4, 6, 4), Color("1a1410"))
-			draw_rect(Rect2(w - 10, -4, 6, 4), Color("1a1410"))
+			DrawBatch.rect(self, Rect2(8, -h + 14, w - 16, 10), c.darkened(0.2))
+			DrawBatch.line(self, Vector2(w * 0.5, -h + 14), Vector2(w * 0.5, -6), c.darkened(0.4), 1.0)
+			DrawBatch.rect(self, Rect2(4, -4, 6, 4), Color("1a1410"))
+			DrawBatch.rect(self, Rect2(w - 10, -4, 6, 4), Color("1a1410"))
 			# קרע עם ספוג
 			Art.fill(self, PackedVector2Array([Vector2(20, -h + 4), Vector2(34, -h + 6), Vector2(28, -h + 12)]), Color("c8b888"), Art.NONE)
 		"barricade":   # מחסום שניצולים בנו: שולחנות, כיסאות, קרשים
@@ -145,26 +151,26 @@ func _draw() -> void:
 				var nv := Vector2(-dv.y, dv.x) * 3.0
 				var p0 := Vector2(x0, y0)
 				Art.fill(self, PackedVector2Array([p0 - nv, p0 + dv * ln - nv, p0 + dv * ln + nv, p0 + nv]), pc, Art.OUTLINE, 1.0)
-				draw_circle(p0 + dv * 4.0, 1.0, Color("2a2a2a"))
+				DrawBatch.circle(self, p0 + dv * 4.0, 1.0, Color("2a2a2a"))
 			# רגל כיסא בולטת + שלט
-			draw_line(Vector2(30, -h), Vector2(22, -h - 14), Color("2a2a2e"), 2.5)
-			draw_line(Vector2(40, -h + 2), Vector2(44, -h - 12), Color("2a2a2e"), 2.5)
-			draw_rect(Rect2(w * 0.35, -h * 0.55, 30, 14), Color("b8b0a0"))
-			draw_string(ThemeDB.fallback_font, Vector2(w * 0.35 + 2, -h * 0.55 + 11), "KEEP OUT", HORIZONTAL_ALIGNMENT_LEFT, 28, 7, Color("8a1a14"))
+			DrawBatch.line(self, Vector2(30, -h), Vector2(22, -h - 14), Color("2a2a2e"), 2.5)
+			DrawBatch.line(self, Vector2(40, -h + 2), Vector2(44, -h - 12), Color("2a2a2e"), 2.5)
+			DrawBatch.rect(self, Rect2(w * 0.35, -h * 0.55, 30, 14), Color("b8b0a0"))
+			DrawBatch.string(self, ThemeDB.fallback_font, Vector2(w * 0.35 + 2, -h * 0.55 + 11), "KEEP OUT", HORIZONTAL_ALIGNMENT_LEFT, 28, 7, Color("8a1a14"))
 		"vending":   # מכונת משקאות עם זכוכית שבורה ונורה מהבהבת
 			Art.fill_shaded(self, PackedVector2Array([Vector2(0, -h), Vector2(w, -h), Vector2(w, 0), Vector2(0, 0)]), Color("7a2424"), 0.2, 0.35)
-			draw_rect(Rect2(4, -h + 6, w - 16, h - 22), Color("16181c"))
+			DrawBatch.rect(self, Rect2(4, -h + 6, w - 16, h - 22), Color("16181c"))
 			for i in 4:
 				for j in 3:
-					draw_rect(Rect2(7 + j * 7, -h + 9 + i * 10, 5, 7), Color.from_hsv(r.randf(), 0.5, 0.5))
-			draw_line(Vector2(6, -h + 10), Vector2(18, -h + 30), Color(0.8, 0.9, 1.0, 0.4), 1.0)
-			draw_rect(Rect2(w - 10, -h + 10, 6, 14), Color("2a2a2a"))
-			draw_rect(Rect2(6, -12, w - 12, 6), Color("101010"))
-			draw_rect(Rect2(2, -h + 2, w - 4, 3), Color(1.0, 0.8, 0.6, 0.5))
+					DrawBatch.rect(self, Rect2(7 + j * 7, -h + 9 + i * 10, 5, 7), Color.from_hsv(r.randf(), 0.5, 0.5))
+			DrawBatch.line(self, Vector2(6, -h + 10), Vector2(18, -h + 30), Color(0.8, 0.9, 1.0, 0.4), 1.0)
+			DrawBatch.rect(self, Rect2(w - 10, -h + 10, 6, 14), Color("2a2a2a"))
+			DrawBatch.rect(self, Rect2(6, -12, w - 12, 6), Color("101010"))
+			DrawBatch.rect(self, Rect2(2, -h + 2, w - 4, 3), Color(1.0, 0.8, 0.6, 0.5))
 		"copier":
 			Art.fill_shaded(self, PackedVector2Array([Vector2(0, -h), Vector2(w, -h), Vector2(w, 0), Vector2(0, 0)]), Color("8a8a84"), 0.2, 0.35)
-			draw_rect(Rect2(4, -h - 4, w - 8, 4), Color("5a5a56"))
-			draw_rect(Rect2(6, -h + 10, w - 12, 6), Color("4a4a46"))
-			draw_rect(Rect2(w - 12, -h + 4, 6, 3), Color(0.3, 1.0, 0.4, 0.8))
+			DrawBatch.rect(self, Rect2(4, -h - 4, w - 8, 4), Color("5a5a56"))
+			DrawBatch.rect(self, Rect2(6, -h + 10, w - 12, 6), Color("4a4a46"))
+			DrawBatch.rect(self, Rect2(w - 12, -h + 4, 6, 3), Color(0.3, 1.0, 0.4, 0.8))
 	for dpt in _dents:   # חורי קליעים
-		draw_circle(dpt, 1.5, Color(0.05, 0.04, 0.04, 0.8))
+		DrawBatch.circle(self, dpt, 1.5, Color(0.05, 0.04, 0.04, 0.8))

@@ -290,6 +290,11 @@ class HeadShot extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(life / 0.5, 0.0, 1.0)
 		var jaw := absf(sin(_t * 18.0)) * 2.0 if _ground else 1.0
 		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(face, 1.0))

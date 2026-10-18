@@ -136,6 +136,11 @@ class SnowGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s30_decor.gd")
@@ -175,6 +180,11 @@ class House extends Node2D:
 			preload("res://particles.gd").burst(get_parent(), global_position + Vector2(w * 0.8 + 8.0, -h - 40.0), "smoke", Vector2(0.4, -1.0), 2)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s30_decor.gd")
@@ -230,6 +240,11 @@ class BellTower extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s30_decor.gd")
 		var white := Color("e0dcd4")
 		DrawBatch.rect(self, Rect2(0, -h, w, h), white)
@@ -329,6 +344,11 @@ class ThinIce extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = _seed
 		if _broken > 0.0:   # מים פתוחים עם גושי קרח
@@ -379,6 +399,11 @@ class Brazier extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		Art.fill_shaded(self, PackedVector2Array([Vector2(-14, 0), Vector2(14, 0), Vector2(15, -40), Vector2(-15, -40)]), Color("4a4448"), 0.15, 0.4, Art.OUTLINE, 1.4)
 		for q in 3:
 			DrawBatch.circle(self, Vector2(-6.0 + float(q) * 6.0, -24), 2.5, Color(1.0, 0.5, 0.15, 0.6 + 0.3 * sin(_t * 8.0 + float(q))))   # חורים זוהרים
@@ -412,6 +437,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s30_decor.gd")
@@ -481,6 +511,11 @@ class BlizzardFX extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for e in _f:
 			DrawBatch.line(self, Vector2(e.x, e.y), Vector2(e.x + 4.0 * e.z, e.y - 3.0 * e.z), Color(1, 1, 1, 0.8), 1.4 * e.z)
 		var base := 0.08 + 0.04 * sin(_t * 0.5)

@@ -1,4 +1,5 @@
 extends "res://levels/stage_base.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  STAGE 11 - "SUN-BLEACHED TOWN" (אזור צפון-מזרח, שלב 2) - "THEY HUNGER TOGETHER"
 #  עיירת סרטאו (המדבר-למחצה של צפון-מזרח ברזיל) בלילה של חג סאו ז'ואאו:
@@ -87,7 +88,7 @@ func build_background(layer: CanvasLayer) -> Node:
 		var sh := fmod(t, 11.0)   # כוכב נופל
 		if sh < 0.6:
 			var a := Vector2(v.x * 0.7 - sh * 500.0, 60.0 + sh * 160.0)
-			ci.draw_line(a, a + Vector2(60, -20), Color(1, 1, 1, 0.6 * (1.0 - sh / 0.6)), 1.5)
+			DrawBatch.line(ci, a, a + Vector2(60, -20), Color(1, 1, 1, 0.6 * (1.0 - sh / 0.6)), 1.5)
 	# שכבה 1: שפאדה (הרים שטוחים) + משאבות-רוח רחוקות
 	bg.add_layer(0.10, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
 		var period := 1400.0
@@ -100,7 +101,7 @@ func build_background(layer: CanvasLayer) -> Node:
 			Decor.mesa(ci, x + 650.0, 520.0, r.randf_range(400.0, 600.0), r.randf_range(60.0, 100.0), Color("1e2038"))
 			for q in 3:
 				Decor.windpump(ci, Vector2(x + 200.0 + float(q) * 420.0, 530.0), 70.0, t, float(q + k), Color(0.12, 0.12, 0.2, 0.9))
-		ci.draw_rect(Rect2(0, 520, v.x, 60), Color("1a1a2e")))
+		DrawBatch.rect(ci, Rect2(0, 520, v.x, 60), Color("1a1a2e")))
 	# שכבה 2: הכנסייה, שורת בתים עם חלונות מוארים, עצי ז'ואזיירו
 	bg.add_layer(0.30, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
 		var period := 1200.0
@@ -120,9 +121,9 @@ func build_background(layer: CanvasLayer) -> Node:
 				hx += w + r.randf_range(10.0, 60.0)
 			for q in 3:   # עץ ז'ואזיירו (צמרת עגולה)
 				var tx := x + r.randf_range(0.0, period)
-				ci.draw_line(Vector2(tx, 590), Vector2(tx, 545), Color("1c1c2c"), 4.0)
+				DrawBatch.line(ci, Vector2(tx, 590), Vector2(tx, 545), Color("1c1c2c"), 4.0)
 				for c in 4:
-					ci.draw_circle(Vector2(tx - 14.0 + float(c) * 9.0, 535.0 - float(c % 2) * 8.0), 14.0, Color("1c2230"))
+					DrawBatch.circle(ci, Vector2(tx - 14.0 + float(c) * 9.0, 535.0 - float(c % 2) * 8.0), 14.0, Color("1c2230"))
 		Kit.ground_fade(ci, v, 585.0))
 	# שכבה 3: קקטוסים, גדרות מקלות, עמודי חשמל עם דגלונים רחוקים
 	bg.add_layer(0.60, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
@@ -137,10 +138,10 @@ func build_background(layer: CanvasLayer) -> Node:
 				S10Decor.mandacaru(ci, Vector2(x + r.randf_range(0.0, period), 640.0), r.randf_range(90.0, 160.0), dark)
 			for q in 14:   # גדר מקלות
 				var fx := x + 300.0 + float(q) * 14.0
-				ci.draw_line(Vector2(fx, 640), Vector2(fx + r.randf_range(-2, 2), 600.0 + r.randf_range(-6, 4)), dark, 2.5)
-			ci.draw_line(Vector2(x + 300, 615), Vector2(x + 496, 618), dark, 1.5)
+				DrawBatch.line(ci, Vector2(fx, 640), Vector2(fx + r.randf_range(-2, 2), 600.0 + r.randf_range(-6, 4)), dark, 2.5)
+			DrawBatch.line(ci, Vector2(x + 300, 615), Vector2(x + 496, 618), dark, 1.5)
 			var px := x + 700.0
-			ci.draw_rect(Rect2(px, 420, 5, 220), dark)
+			DrawBatch.rect(ci, Rect2(px, 420, 5, 220), dark)
 			Decor.bunting_line(ci, Vector2(px + 2, 430), Vector2(px + 380, 440), t, 30.0, k, 0.55)
 		Kit.ground_fade(ci, v, 580.0))
 	layer.add_child(bg)

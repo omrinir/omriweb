@@ -345,6 +345,11 @@ class Shimmer extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := t / 0.55
 		for i in 5:
 			var y := (-8.0 - float(i) * 10.0) * sc
@@ -403,6 +408,11 @@ class Dissolve extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var fade := clampf((LIFE - t) / 0.45, 0.0, 1.0)
 		for i in 3:   # גל חום קצר במקום הדמות
 			var k := clampf(t / 0.35, 0.0, 1.0)

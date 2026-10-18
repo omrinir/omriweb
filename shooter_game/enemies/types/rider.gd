@@ -707,6 +707,11 @@ class Lasso extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var h := to_local(_hand())
 		var mid := h.lerp(Vector2.ZERO, 0.5) + Vector2(0, 14.0 if not caught else 4.0)
 		var pts := PackedVector2Array()
@@ -739,6 +744,11 @@ class HorseCorpse extends Node2D:
 			set_process(false)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := clampf(_t / 0.45, 0.0, 1.0)
 		k = k * k
 		Art.ground_shadow(self, Vector2.ZERO, 34.0 * s)

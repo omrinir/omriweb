@@ -318,6 +318,11 @@ class Javelin extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.line(self, Vector2(-30, 0), Vector2(30, 0), Color("101214"), 4.0)
 		DrawBatch.line(self, Vector2(-30, 0), Vector2(30, 0), Color("6a6e74"), 2.4)
 		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(30, -3), Vector2(40, 0), Vector2(30, 3)]), Color("d88a40"))
@@ -453,6 +458,11 @@ class PlantedRod extends Node2D:
 				z.take_damage(Z_DMG, z.global_position + Vector2(0, -20), Vector2.UP, true, {"source": "hazard", "fixed": Z_DMG})
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var tp := top()
 		if warning():
 			var k := clampf(1.0 - _wait / (CHARGE_T if phase == 0 else 1.0), 0.0, 1.0)
@@ -503,6 +513,11 @@ class SelfBolt extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := 1.0 - _t / 0.35
 		DrawBatch.polyline(self, _pts, Color(0.55, 0.8, 1.0, 0.45 * a), 9.0)
 		DrawBatch.polyline(self, _pts, Color(1, 1, 1, a), 3.0)

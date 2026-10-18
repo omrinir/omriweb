@@ -230,6 +230,11 @@ class Strike extends Node2D:
 				z.take_damage(30, z.global_position + Vector2(0, -20), Vector2.UP, true, {"source": "hazard", "fixed": 30})
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if not _done:   # עיגול אזהרה שמתכווץ
 			var k := clampf(_t / delay, 0.0, 1.0)
 			var blink := fmod(_t * 8.0, 1.0) < 0.6

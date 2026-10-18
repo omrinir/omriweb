@@ -200,6 +200,11 @@ class Scrap extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var A := ArtS
 		var paint := Color("e2a224")
 		var burnt := Color("5a4630")

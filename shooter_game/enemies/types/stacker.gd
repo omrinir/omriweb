@@ -625,6 +625,11 @@ class Tower extends Node2D:
 
 	# חבלים ובשר מאוחה בין הגופות (מאחורי הזומבים)
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if members.size() < 2:
 			return
 		for i in members.size() - 1:
@@ -667,6 +672,11 @@ class HitPop extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var f := ThemeDB.fallback_font
 		var k := 1.0 + 0.5 * clampf(1.0 - t / 0.15, 0.0, 1.0)
 		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(k, k))

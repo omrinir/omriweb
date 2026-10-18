@@ -211,6 +211,11 @@ class ReviveAura extends Node2D:
 			Particles.burst(zz.get_parent(), global_position + Vector2(randf_range(-12, 12), randf_range(-50, -10)) * Vector2(1.0, float(zz.sc)), "spark", Vector2.UP, 1)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var zz := get_parent()
 		var sc: float = float(zz.sc) if zz != null else 1.0
 		var c := Vector2(0, -30.0 * sc)

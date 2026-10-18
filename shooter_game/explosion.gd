@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  פיצוץ משותף: רימון, חביות נפץ ומכוניות משתמשים באותו פיצוץ.
@@ -100,12 +101,17 @@ class Explosion extends Node2D:
 			queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := clampf(t / duration, 0.0, 1.0)
 		var ease := 1.0 - pow(1.0 - clampf(t / 0.18, 0.0, 1.0), 3.0)   # מתפרץ מהר ומאט
 		var fade := 1.0 - k
 		# הבזק לבן
 		if t < 0.1:
-			draw_circle(Vector2.ZERO, radius * 1.3, Color(1.0, 0.95, 0.8, 0.5 * (1.0 - t / 0.1)))
+			DrawBatch.circle(self, Vector2.ZERO, radius * 1.3, Color(1.0, 0.95, 0.8, 0.5 * (1.0 - t / 0.1)))
 		if k < 1.0:
 			# רסיסי אש: משולשים ארוכים מצהוב-לבן במרכז לחום בקצה
 			for sp in _spikes:
@@ -125,24 +131,24 @@ class Explosion extends Node2D:
 					Color(1.0, 0.95, 0.7, a), Color(1.0, 0.55, 0.15, a), Color(0.45, 0.25, 0.15, a * 0.6),
 					Color(1.0, 0.55, 0.15, a), Color(1.0, 0.95, 0.7, a),
 				])
-				draw_polygon(pts, cols)
+				DrawBatch.polygon(self, pts, cols)
 			# כדור אש: כתום מבחוץ, צהוב-לבן במרכז
 			for b in _blobs:
 				var r: float = b[1] * (0.6 + ease * 0.7) * (1.0 - k * 0.5)
-				draw_circle(b[0] * (0.5 + ease), r, Color(0.95, 0.4, 0.1, 0.75 * fade))
+				DrawBatch.circle(self, b[0] * (0.5 + ease), r, Color(0.95, 0.4, 0.1, 0.75 * fade))
 			for b in _blobs:
 				var r: float = b[1] * (0.4 + ease * 0.5) * (1.0 - k * 0.7)
-				draw_circle(b[0] * (0.4 + ease * 0.8), r, Color(1.0, 0.7, 0.2, 0.85 * fade))
-			draw_circle(Vector2.ZERO, radius * 0.28 * (1.0 - k), Color(1.0, 0.97, 0.85, fade))
+				DrawBatch.circle(self, b[0] * (0.4 + ease * 0.8), r, Color(1.0, 0.7, 0.2, 0.85 * fade))
+			DrawBatch.circle(self, Vector2.ZERO, radius * 0.28 * (1.0 - k), Color(1.0, 0.97, 0.85, fade))
 		# ניצוצות ואדמה
 		for p in _parts:
 			if p[2] <= 0.0:
 				continue
 			var al := clampf(p[2] * 2.0, 0.0, 1.0)
 			if p[3]:
-				draw_circle(p[0], 2.2, Color(0.3, 0.2, 0.12, al))
+				DrawBatch.circle(self, p[0], 2.2, Color(0.3, 0.2, 0.12, al))
 			else:
-				draw_line(p[0], p[0] - p[1] * 0.03, Color(1.0, 0.75, 0.3, al), 2.0, true)
+				DrawBatch.line(self, p[0], p[0] - p[1] * 0.03, Color(1.0, 0.75, 0.3, al), 2.0, true)
 
 
 # ---- עשן שנשאר אחרי הפיצוץ, עולה למעלה ומתפזר ----
@@ -171,6 +177,11 @@ class Smoke extends Node2D:
 			queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for p in _puffs:
 			var lt: float = t - p[3]
 			if lt <= 0.0:
@@ -180,5 +191,5 @@ class Smoke extends Node2D:
 			var a := 0.55 * (1.0 - k) * clampf(lt / 0.15, 0.0, 1.0)
 			# בהתחלה העשן מואר בכתום מהאש, ואז נהיה אפור
 			var col := Color(0.55, 0.3, 0.15).lerp(Color(p[4], p[4], p[4] + 0.02), clampf(lt / 0.5, 0.0, 1.0))
-			draw_circle(p[0], r, Color(col, a))
-			draw_circle(p[0] + Vector2(-r * 0.25, -r * 0.25), r * 0.6, Color(col.lightened(0.15), a * 0.6))
+			DrawBatch.circle(self, p[0], r, Color(col, a))
+			DrawBatch.circle(self, p[0] + Vector2(-r * 0.25, -r * 0.25), r * 0.6, Color(col.lightened(0.15), a * 0.6))

@@ -945,6 +945,11 @@ class IceShards extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if _s.is_empty():
 			return
 		var pts := PackedVector2Array()
@@ -960,7 +965,7 @@ class IceShards extends Node2D:
 			var p3 := p + Vector2.from_angle(a + 3.9) * r * 0.8
 			pts.append_array([p1, p2, p3])
 			cols.append_array([c, c.darkened(0.25), c])
-		RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), PackedInt32Array(), pts, cols)
+		DrawBatch.tris(self, pts, cols)
 
 
 # ---- גוש קרח שהבוס זורק: אפשר לירות בו באוויר ----
@@ -1049,6 +1054,11 @@ class IceBlock extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.set_transform(self, Vector2.ZERO, _rot, Vector2.ONE)
 		var blk := PackedVector2Array([Vector2(-16, -12), Vector2(14, -14), Vector2(17, 11), Vector2(-14, 13)])
 		DrawBatch.colored_polygon(self, blk, Color("b8e0f4"))
@@ -1081,6 +1091,11 @@ class Shockwave extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := _t / 0.6
 		var rr := r * minf(1.0, k * 2.0)
 		for s in [-1.0, 1.0]:
@@ -1109,6 +1124,11 @@ class ShatterFlash extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := _t / 0.9
 		Art.glow(self, Vector2.ZERO, 60.0 + k * 220.0, Color(0.85, 0.95, 1.0, 0.7 * (1.0 - k)))
 		for q in 10:

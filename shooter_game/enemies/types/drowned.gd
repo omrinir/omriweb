@@ -410,6 +410,11 @@ class Wave extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s31_decor.gd")
 		var k := clampf(1.0 - _dist / 1000.0, 0.3, 1.0)
 		var hgt := 54.0 * k

@@ -223,6 +223,11 @@ class Ball extends CharacterBody2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(_fade, 0.0, 1.0)
 		DrawBatch.circle(self, Vector2.ZERO, R + 0.5, Color(0.1, 0.1, 0.1, a))
 		DrawBatch.circle(self, Vector2.ZERO, R - 0.5, Color(0.97, 0.97, 0.97, a))

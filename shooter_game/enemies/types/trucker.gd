@@ -292,6 +292,11 @@ class Tire extends Node2D:
 		return false
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.circle(self, Vector2.ZERO, R + 1.5, Color("0e0e0e"))
 		DrawBatch.circle(self, Vector2.ZERO, R, Color("262628"))
 		DrawBatch.circle(self, Vector2.ZERO, R * 0.5, Color("5a5a5e"))

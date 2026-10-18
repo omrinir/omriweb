@@ -387,6 +387,11 @@ class Worm extends Node2D:
 		return false
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var pts := PackedVector2Array()
 		var n := 7
 		for q in n:

@@ -172,6 +172,11 @@ class SummitGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		DrawBatch.rect(self, Rect2(0, 0, w, depth), Color("2e2a2c"))
@@ -200,6 +205,11 @@ class Terrace extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s36_decor.gd")
@@ -283,6 +293,11 @@ class Crumble extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s36_decor.gd")
 		if _gone > 0.0:
 			if _drop < 1.2:   # אבנים נופלות
@@ -358,6 +373,11 @@ class Strike extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s36_decor.gd")
 		if _t < warn:   # אזהרה: עיגול כחול-לבן פועם על הקרקע + קו דק לשמיים
 			var k := _t / warn
@@ -441,6 +461,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var w := size.x
@@ -505,6 +530,11 @@ class StormFX extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for i in 40:
 			var x := fposmod(float(i) * 83.0 - _t * (220.0 + float(i % 5) * 40.0), vp.x + 80.0) - 40.0
 			var y := fposmod(float(i) * 57.0 + _t * (120.0 + float(i % 3) * 30.0), vp.y)

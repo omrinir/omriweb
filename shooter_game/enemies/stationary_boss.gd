@@ -332,6 +332,11 @@ class Shot extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		match kind:
 			"nail", "bolt":
 				DrawBatch.line(self, Vector2(-r * 1.6, 0), Vector2(r * 0.6, 0), Color(col, 0.5), r * 0.6)
@@ -408,6 +413,11 @@ class Lob extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		match kind:
 			"ice":
 				var pts := PackedVector2Array()

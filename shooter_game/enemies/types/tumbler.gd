@@ -609,7 +609,7 @@ func _draw_ball() -> bool:
 		var p := c + Vector2(cos(a), sin(a) * squash) * R * float(th[1])
 		_seg(pts, cols, p, p + Vector2(cos(a), sin(a)) * float(th[2]), 0.9, thc)
 	if not pts.is_empty():
-		RenderingServer.canvas_item_add_triangle_array(z.get_canvas_item(), PackedInt32Array(), pts, cols)
+		DrawBatch.tris(z, pts, cols)
 	if state == SNAG:   # נתקע בתיל
 		DrawBatch.line(z, c + Vector2(-R - 4, -4), c + Vector2(R + 4, 2), Color("3a3634"), 1.4)
 	DrawBatch.set_transform_matrix(z, Transform2D.IDENTITY)
@@ -670,7 +670,7 @@ func _draw_body() -> void:
 				var p1 := bc + Vector2(cos(float(tw[0])) * 15.0 * float(tw[1]), sin(float(tw[0])) * 19.0 * float(tw[1]))
 				var p2 := bc + Vector2(cos(float(tw[2])) * 15.0 * float(tw[3]), sin(float(tw[2])) * 19.0 * float(tw[3]))
 				_seg(pts, cols, p1, p2, float(tw[4]) * 1.1, col(base.lightened(float(tw[5]))))
-		RenderingServer.canvas_item_add_triangle_array(z.get_canvas_item(), PackedInt32Array(), pts, cols)
+		DrawBatch.tris(z, pts, cols)
 	# רגליים + יד אחורית עם ענף קוצני כרוך
 	z._leg(hip + Vector2(-3, 0), f[1], col(Art.shade(z.pants, 0.25)), skd, col(z.shoe))
 	z._leg(hip + Vector2(3, 0), f[0], col(z.pants), sk, col(z.shoe))

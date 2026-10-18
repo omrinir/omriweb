@@ -84,6 +84,11 @@ class Reflect extends Node2D:   # הכדור שחוזר
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var d := velocity.normalized()
 		DrawBatch.line(self, -d * 14.0, Vector2.ZERO, Color(0.7, 0.9, 1.0, 0.5), 3.0)
 		DrawBatch.line(self, -d * 8.0, Vector2.ZERO, Color(1, 1, 1), 1.5)

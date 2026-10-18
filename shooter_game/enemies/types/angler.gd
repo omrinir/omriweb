@@ -288,6 +288,11 @@ class Lure extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var o = owner_t
 		var on: bool = o.lit
 		var t := float(Engine.get_physics_frames()) / 60.0

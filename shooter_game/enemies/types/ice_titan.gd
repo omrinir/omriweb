@@ -210,6 +210,11 @@ class IceSpikes extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for s in _spikes:
 			var age: float = _t - float(s[1])
 			var x: float = dir * float(s[0])

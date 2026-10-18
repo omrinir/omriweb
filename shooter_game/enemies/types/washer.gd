@@ -136,6 +136,11 @@ class Soap extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(0, -1), w * 0.5, 4.0, 0.0, 16), Color(0.85, 0.92, 1.0, 0.55))
 		for q in 7:   # בועות
 			var bx := (fposmod(float(q) * 37.0, w) - w * 0.5)
