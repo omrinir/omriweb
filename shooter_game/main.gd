@@ -15,6 +15,7 @@ const LeavesScript := preload("res://leaves.gd")
 const ZombieScene := preload("res://zombie.tscn")
 const HudScript := preload("res://hud.gd")
 const CameraScript := preload("res://shake_camera.gd")
+const SmoothMotion := preload("res://effects/smooth_motion.gd")
 const LevelClock := preload("res://progression/level_clock.gd")
 const PropScript := preload("res://prop.gd")
 const StreetPropScript := preload("res://street_prop.gd")
@@ -108,8 +109,13 @@ var _finished := false
 var _gens: Array = GENERATORS
 
 
+func _on_node_added(n: Node) -> void:
+	SmoothMotion.on_node_added(n)
+
+
 func _ready() -> void:
 	get_tree().paused = false
+	get_tree().node_added.connect(_on_node_added)   # תנועה חלקה (effects/smooth_motion.gd)
 	Sfx.warm_up()   # מייצר את כל הצלילים פעם אחת
 	# רמת הקושי מהתפריט
 	var diff: Dictionary = Settings.preset()

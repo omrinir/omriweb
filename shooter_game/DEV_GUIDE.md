@@ -1035,6 +1035,22 @@ all triangles and send them in ONE `RenderingServer.canvas_item_add_triangle_arr
 * **Blood spray shader warms up at level start.** The first CPUParticles2D spray compiled a GPU shader (~0.2 s freeze on the first
   kill). main.gd calls `FleshFx.prewarm()`: 0.4 s in, three almost invisible sprays in the middle of the screen.
 
+### Smooth motion on fast monitors (`effects/smooth_motion.gd`)
+Physics runs 60 times a second. On a 120/144 Hz screen there are 2-3 frames per physics step, so the player, zombies and bullets
+jumped every 2nd-3rd frame and the camera (following the player) scrolled unevenly. `physics/common/physics_interpolation` is on
+(project.godot, jitter fix 0): Godot draws those objects between their last two physics positions every frame.
+* Only things that move in `_physics_process` are interpolated: `SmoothMotion.MOVERS` (player, zombie + Orb/EnemyShot, survivor,
+  bullet, grenade, rocket, molotov, debris, severed leg, blood drop, acid, pickup). The root window is OFF (game_state.gd), so
+  everything else (UI, decor, effects moved in `_process`) draws exactly as before. Children of a mover are OFF too (they still
+  follow the parent's smoothed position); Light2D children keep the parent's setting.
+* main.gd connects `SceneTree.node_added` -> `SmoothMotion.on_node_added`, which sets the mode and calls
+  `reset_physics_interpolation` deferred (after the spawner set the position, so nothing streaks in from (0,0)).
+* The camera follows the smoothed player: player.gd `_process` passes the offset to `shake_camera.follow_smooth()`
+  (player processes before its child camera, so the scroll uses this frame's offset). Jumps over 200 px are not smoothed.
+* Something new that moves in `_physics_process`? Add its script to `MOVERS`. Something you teleport? Call
+  `reset_physics_interpolation()` after moving it.
+* Measured (headless, 144 FPS, level 1 running right): frame-to-frame change of the scroll step 0.31 px -> 0.05 px.
+
 ## Fire (effects/flame_fx.gd)
 Shared flame drawing for every fire: `tongue()` (teardrop flame tongue, 3-4 colour layers, swaying tip), `puff()` (a bit of flame
 that breaks off and rises), `glow()` (soft radial texture - no hard-edged discs), `additive()` (light blend for glow children),

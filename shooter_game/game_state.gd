@@ -104,6 +104,7 @@ var _banner: Node2D
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # רק מה שזז בפיזיקה מוחלק (effects/smooth_motion.gd)
 	_load()
 	_migrate_old_upgrades()
 	var layer := CanvasLayer.new()

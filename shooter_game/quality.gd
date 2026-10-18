@@ -10,7 +10,7 @@ extends Node
 #  רגדולים (גופות) ופצעים לא משתנים.
 #  רק מראה - לא משנה את המוח של הזומבים, את המהירות או את הנזק.
 #  Settings.quality_mode: AUTO (ברירת מחדל) / HIGH (תמיד 0) / LOW (תמיד MAX_LEVEL). בתפריט ההשהיה (ESC).
-#  F3 = מונה FPS + רמה נוכחית בפינה.
+#  F3 = מונה FPS + הפריים הכי איטי בשנייה + קצב המסך + רמה נוכחית בפינה.
 #  לשנות: DROP_FPS, RAISE_FPS, RAISE_WAIT, הטבלאות למטה (אינדקס = רמה).
 # ============================================================
 
@@ -49,6 +49,8 @@ var _raise_wait := RAISE_WAIT
 var _since_raise := 999.0
 var _scene: Node = null
 var _label: Label = null
+var _worst := 0.0
+var worst_ms := 0.0             # הפריים הכי ארוך בשנייה האחרונה (F3) - גמגום נראה כאן גם כשה-FPS גבוה
 
 
 func _ready() -> void:
@@ -97,6 +99,7 @@ func _process(_delta: float) -> void:
 		return
 	_win_t += dt
 	_win_frames += 1
+	_worst = maxf(_worst, dt)
 	if dt > SPIKE_K / minf(60.0, _refresh()):
 		_slow_frames += 1
 		if _slow_frames >= SPIKE_N and level < MAX_LEVEL and int(Settings.quality_mode) == Settings.Q_AUTO:   # קפיצה: מורידים עכשיו
@@ -108,6 +111,8 @@ func _process(_delta: float) -> void:
 	if _win_t < 1.0:
 		return
 	fps = float(_win_frames) / _win_t
+	worst_ms = _worst * 1000.0
+	_worst = 0.0
 	_win_t = 0.0
 	_win_frames = 0
 	_slow_frames = 0
@@ -164,7 +169,7 @@ func _input(event: InputEvent) -> void:
 func _update_label() -> void:
 	if _label == null or not show_fps:
 		return
-	_label.text = "FPS %d   EFFECTS %s (level %d)" % [roundi(fps), Settings.QUALITY_NAMES[int(Settings.quality_mode)], level]
+	_label.text = "FPS %d   SLOWEST FRAME %d ms   SCREEN %d Hz   EFFECTS %s (level %d)" % [roundi(fps), roundi(worst_ms), roundi(_refresh()), Settings.QUALITY_NAMES[int(Settings.quality_mode)], level]
 
 
 # ---- מה כל מערכת שואלת ----

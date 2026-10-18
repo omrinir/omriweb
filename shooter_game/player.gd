@@ -94,6 +94,8 @@ const Arsenal := preload("res://progression/arsenal.gd")
 const Upgrades := preload("res://progression/upgrade_db.gd")        # שדרוגים שנקנו בחנות (נשקים / יכולות / PERKS)
 const AbilityRunnerScript := preload("res://abilities/ability_runner.gd")
 const GunArt := preload("res://weapons/gun_art.gd")   # ציור נשקי ההתקדמות ביד
+var _ip_from := Vector2.ZERO     # תנועה חלקה: איפה צעד הפיזיקה האחרון התחיל (effects/smooth_motion.gd)
+var _ip_cam: Camera2D = null
 var abilities: Node = null       # היכולות (C = הפעלה, 6-0 = בחירה)
 var jetpack: RefCounted = null   # abilities/types/jetpack.gd כשהוא דולק
 enum { RIFLE, SHOTGUN, BOW, SNIPER, TASER, PISTOL, SMG, ASSAULT_RIFLE, MOLOTOV, GRENADE_LAUNCHER, ASSAULT_SHOTGUN, ROCKET_LAUNCHER }
@@ -340,7 +342,24 @@ func _front_shoulder() -> Vector2:
 	return Vector2((3.0 * c + 1.0) * _face(), -37.0 + 15.0 * c)
 
 
+# תנועה חלקה: Godot מצייר את השחקן בין שני צעדי הפיזיקה האחרונים (physics interpolation), והמצלמה עוקבת
+# אחרי אותו מיקום מוחלק. בלי זה, במסך 144Hz העולם "קופץ" כל 2-3 פריימים (effects/smooth_motion.gd)
+func _process(_delta: float) -> void:
+	if _ip_cam == null:
+		var c := get_viewport().get_camera_2d()
+		if c == null or c.get_parent() != self or not c.has_method("follow_smooth"):
+			return
+		_ip_cam = c
+	var off := Vector2.ZERO
+	if is_physics_interpolated_and_enabled():
+		off = (_ip_from - global_position) * (1.0 - Engine.get_physics_interpolation_fraction())
+		if off.length_squared() > 40000.0:   # קפיצה (נקודת ביקורת וכו') - בלי החלקה
+			off = Vector2.ZERO
+	_ip_cam.follow_smooth(off)
+
+
 func _physics_process(delta: float) -> void:
+	_ip_from = global_position
 	# BULLET TIME: העולם איטי, אבל השחקן ממשיך במהירות רגילה
 	_rt = 1.0 / maxf(Engine.time_scale, 0.05)
 	delta *= _rt

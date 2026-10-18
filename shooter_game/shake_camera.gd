@@ -48,11 +48,19 @@ var _kick := Vector2.ZERO         # בעיטת ירייה: הזזה נוכחית
 var _kick_v := Vector2.ZERO
 var _hs_until := 0                # עצירת פגיעה: עד מתי (ms, זמן אמיתי)
 var _hs_next := 0                 # לא לפני (ms)
+var _base_pos := Vector2.ZERO      # המיקום הקבוע ביחס לשחקן (main.gd), בלי תיקון התנועה החלקה
 
 
 func _ready() -> void:
 	add_to_group("camera")
 	_base_zoom = zoom
+	_base_pos = position
+
+
+# תנועה חלקה: player.gd קורא לזה כל פריים עם ההפרש בין המיקום המוחלק של השחקן (בין שני צעדי פיזיקה) למיקום האמיתי.
+# כך המצלמה זזה רציף גם במסך 144Hz, ולא בקפיצות של 60 פעם בשנייה (effects/smooth_motion.gd)
+func follow_smooth(off: Vector2) -> void:
+	position = _base_pos + off
 
 
 # amount = כמה זום להוסיף (0.03 = 3%). זום חזק יותר דורס חלש יותר
