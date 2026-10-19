@@ -62,6 +62,9 @@ enum {
 	FLENSER, SKUA, BONECRAWLER,    # שלב 58 (בית הקברות של הלווייתנים). FLENSER = גם הבוס (THE BONE KING)
 	CHARRED, ASHMOTH, DAMBUILDER,  # שלב 59 (היער השחור). CHARRED = גם הבוס (THE PYRE)
 	SPECIMEN, BLOOM, WARDEN,       # שלב 60 (מעבדת הקרחון). SPECIMEN = גם הבוס (SUBJECT FOUR)
+	BONESIDE, CONDOR, THRONG,      # שלב 61 (סוף העולם - אושואיה). BONESIDE = גם הבוס
+	SEEPER, SYNAPSE, REMNANT,      # שלב 62 (מוח הכוורת - ה-ROOT). SEEPER = גם הבוס
+	HOLLOW, PILGRIM, ROOT,         # שלב 63 (הסוף). ROOT = הבוס האחרון של המשחק
 }
 
 const FIRST := 20
@@ -240,6 +243,15 @@ const TYPES := {
 	SPECIMEN: "res://enemies/types/specimen.gd",
 	BLOOM: "res://enemies/types/bloom.gd",
 	WARDEN: "res://enemies/types/warden.gd",
+	BONESIDE: "res://enemies/types/boneside.gd",
+	CONDOR: "res://enemies/types/condor.gd",
+	THRONG: "res://enemies/types/throng.gd",
+	SEEPER: "res://enemies/types/seeper.gd",
+	SYNAPSE: "res://enemies/types/synapse.gd",
+	REMNANT: "res://enemies/types/remnant.gd",
+	HOLLOW: "res://enemies/types/hollow.gd",
+	PILGRIM: "res://enemies/types/pilgrim.gd",
+	ROOT: "res://enemies/types/root.gd",
 }
 
 static var _stats_cache := {}

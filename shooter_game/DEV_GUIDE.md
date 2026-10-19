@@ -3048,6 +3048,590 @@ idea openly and for its students only (the lesson rings use the same colour). No
 
 ---
 
+## Stage 61 - "END OF THE WORLD" (THEY LEARNED TO MOVE AS ONE)
+
+Zone 8 (Ushuaia), stage 1. The Glacier Lab (60) ended with "Welcome home", but the ROOT is not in the lab any more. It
+went down the glacier with the meltwater into the Beagle Channel and grew under USHUAIA, the city at the end of the world,
+under the old prison (the PRESIDIO). The whole region walks into the city as one body, in step. They are not attacking
+the city: they are walking home. The hero walks with them through the streets, past the old prisoners' train and the
+rusted cruise ship in the port, to the prison gate that goes down (62).
+
+**Files**
+- `levels/stage_61.gd` - layout, spawns, THRONG schools, condor waves, `updrafts()`, intro hints, the hero's story lines.
+  Sounds `s61_valve`, `s61_steam`, `s61_snap`, `s61_creak`, `s61_crash`, `s61_wind`, `s61_march`, `s61_bell`
+  (synthesised; no new files). Music `level1_total_war.mp3`.
+- `effects/s61_decor.gd` - sky + 3 parallax layers, all world objects, the 2 traps and screen FX.
+- `enemies/types/boneside.gd` - BONESIDE and the boss THE FERRYMAN (+ `BoneShard`, moved in `_process`).
+- `enemies/types/condor.gd` - CONDOR (+ `WingBody`, `RiderBody`).
+- `enemies/types/throng.gd` - THRONG (+ the shared `School`, `spawn_school()`).
+- `map/thumbs/level_61.png` - level card.
+- Death spores need nothing extra (zombie.gd sends them from 55 on).
+
+**Background (Backdrop)**
+- `end_sky`: cold dusk. Violet-blue above, pink-peach on the horizon where the sun went down behind the mountains, first
+  stars, lenticular "flying saucer" clouds with pink rims (Patagonia), a faint green "aurora" (spores rising from the
+  city), and far condors soaring in circles without a wingbeat.
+- `far_peaks` (0.06): the Martial range and Monte Olivia (the sharp pyramid) with alpenglow-pink snow, the Martial
+  glacier between the ridges with its meltwater stream (a thin green line runs down it: the way the ROOT came down), low
+  cloud, and the Beagle Channel with Navarino's islands and pink glints.
+- `mid_city` (0.28): the city on the slope: 3 rows of tin houses with red/blue/green roofs and snow, lit windows (some
+  glow green: they stand at home waiting for the beat), chimneys, a church with a white spire, port cranes, and the
+  procession: a road down the slope with dozens of tiny figures walking down in step (`BEAT`, the same tempo as THRONG).
+- `near_street` (0.6): lenga "flag trees" bent east by the wind, a wooden fence, sodium street lamps, an abandoned car in
+  snow, and a line of walkers behind the fence, all in step, walking right (toward the prison).
+- `end_overlay`: cold violet haze behind the figures.
+- Performance: each layer skips whole periods that are off screen (and `mid_city` skips houses left of the screen while
+  keeping the same hash order), and the soft shapes (`soft_ellipse` / `soft_glow` / `soft_smoke`, each one its own draw
+  call) are kept few: 12 + 8 in the sky, 3 chimney smokes of 4 puffs. Before the culling `mid_city` cost ~7 ms per redraw,
+  after it ~3 ms (the same range as other levels' heaviest layer).
+- `EndFX` (screen): light snow drifting at a slant; a wind gust every `GUST_EVERY` 14-22 s (`gust()`; the port line
+  forces one).
+
+**Layout / upper floors**
+- Ground: `StreetGround` (asphalt with slush, kerb, pavement, puddles reflecting the pink sky, and footprints in the snow:
+  every pair the same distance apart - they walk in step). In the port (`PIER` 4720-6460) it is a wooden pier on piles
+  over dark water (`style "pier"`).
+- `SIGN_X` 360: `FinSign`, the wooden sign "USHUAIA / FIN DEL MUNDO / THE END OF THE WORLD". Under it the hive wrote in
+  glowing fungus "...Y EL PRINCIPIO / AND THE BEGINNING".
+- `HOUSES` (860, 1190, 3720, 6720, 7640, 8000): `TinHouse`s. Coloured corrugated two-storey houses with a wooden balcony
+  (the deck, at 130-150; invisible `add_floor` + ladder on the left) and AMMO / HEALTH / GRENADE on it, an upper storey,
+  a snowy roof with icicles, a chimney, figures waiting at some windows with green eyes. Hive writing on 4 of them:
+  "WALK / WITH US", "ONE STEP / ONE BODY", "ZERO / COME HOME", "UNO".
+- `TRAIN_X` 2300: `EndTrain`, the End of the World train (it used to carry prisoners to the Presidio): 2 red wooden
+  coaches full of seated dead nodding to the beat (roofs = deck at 112, ladder, AMMO), and a black-and-red steam engine
+  "Nº 2" (cab roof deck with HEALTH). The `SteamValve` trap sits at the engine's front.
+- `SHIP_X` 4980: `CruiseShip` "PAMPA SERENA" moored at the pier: a rusted navy hull with portholes, white decks, bridge,
+  funnel, mast, ECHO growth and roots hanging into the water, and the hive writing "WE ARE ALL / GOING HOME". The
+  promenade deck (at `SHIP_DECK` 170, two ladders, GRENADE / AMMO / HEALTH) runs the whole ship. A BONESIDE walks it.
+  `LIFEBOATS` (5260, 5720) hang from davits over the pier.
+- `UPDRAFTS` (1950, 3520, 4500, 6560, 7380, 8420): `Pyre`s, street bonfires of furniture with a tall column of hot air,
+  sparks and ash spiralling up. These are the thermals the CONDORs climb (`stage.updrafts()`).
+- `ARENA_X` 9000: the yard of the old prison, `Presidio`: the stone facade "CARCEL DE USHUAIA / PRESIDIO 1902" with
+  barred arched windows (green eyes behind some bars), the clock tower, barbed wire, and the gatehouse at the level's end.
+  Its arch is open on dark stairs going down; ECHO roots pour out of it and dive into the ground with pulses of light
+  running down them; "BAJEN" / "COME DOWN, ZERO" is written above it. The exit (`level_w - 230`) is inside the arch.
+  In the yard: one cover (`ARENA_COVER`, drums), a raised walkway at 130 with a GRENADE, HEALTH and AMMO at the entrance.
+- Obstacles (`custom_gen`, names prefixed `s61_` so main.gd does not take them as its own "car" / "crates" /
+  "container"): `car` (small rusted car with snow), `traps` (stacked king-crab traps), `drums`, `crates` (plastic fish
+  crates), `container` (only on the pier; off the pier it becomes drums; cars on the pier become fish crates).
+- Every world object, trap path (the steam jet, the ground under the lifeboats) and pyre has a `reserve()`d rect.
+- `extra_spawns`: BONESIDEs at `BONESIDES` (8) + 1 on the ship's deck; THRONG schools at `SCHOOLS` (5 schools, 31
+  members) via `ThrongT.spawn_school(self, x, n)`; a regular on every second deck; 2 regulars in the yard.
+- Density: `zombie_density()` 0.85 (the schools come on top of the normal scatter).
+- Condor waves (`_waves`): at `CONDOR_WAVES` the stage launches 1 condor gliding in from ahead (meta `cd_fly`); 2 once
+  condors have learned (one from each side). Never more than `CONDOR_MAX` 2 near the player; waves passed by more than
+  700 px are skipped. A condor more than `FAR_GONE` 2200 px from the player despawns.
+- `_hints`: the first time each type is near, an intro popup + a hero line (what they learned, and from what):
+  - BONESIDE: "THEY TURN THE BONE TO YOU NOW" / "Every bullet I fired hit flesh... so the side that faces me rotted to
+    bone. Get BEHIND it!"
+  - CONDOR: "THEY CARRY EACH OTHER NOW" / "I hold the line... so they fly OVER it. Shoot the one it's carrying - or the
+    wing!" (sets main meta `cd_pick_said` so the condor's own first-pick line does not repeat it)
+  - THRONG: "THEY MOVE AS ONE NOW" / "I picked them off one at a time... so now there is no 'one'. Break the school!"
+- `LINES` (environmental story, the hero talking to himself), one per tick:
+  - 160: "Ushuaia. The end of the world... and every one of them is walking here."
+  - 1420: "They're walking in step. All of them... like one body."
+  - 2240: "The prisoners' train. It carried them to the prison... now they walk there by themselves."
+  - 2700: "The engine's still got steam. Shoot the valve when they march in front of it."
+  - 4760: "The meltwater from the lab runs into this bay. The fungus came down the glacier with it." (+ a gust)
+  - 5150: "Lifeboats over the pier... cut the ropes when they walk under."
+  - 6620: "They're not attacking the city... they're walking home."
+  - 8480: "The roots... all of them go to the old prison."
+  - 8900: "The ROOT isn't in the lab any more. It grew down here - under the whole city."
+  - After the boss is dead and you are within 760 px of the end: a far bell, and "Down there. That's where they're all
+    walking... home."
+- Ambience: every 10-16 s `s61_march`, the far thump of thousands of feet in the same step.
+
+**Traps** (`s61_decor.gd`)
+- `SteamValve` (on the engine's front, jet to the right): the red valve wheel (`ValveBody`, layer 4) glows when charged.
+  Shoot it (or blast it) → the pressure gauge climbs (`WARN_T` 0.45, "!") → a scalding steam jet along the ground,
+  `JET_W` 330 x `JET_H` 86 for `JET_T` 1.5 s. Every zombie in it once: `DMG_Z` 70 ("SCALDED", stagger 0.7; the boss
+  would take 25). The player in it: `DMG` 1 ("Scalding steam!"). Recharges in `CD` 6 s. The point: wait for a THRONG
+  school to march into the jet. No proximity trigger - only your shot sets it off. Moves nothing.
+- `Lifeboat` (x2): an orange lifeboat hanging from two davits on ropes (`RopeBody` x2, layer 4) over the pier, its
+  bottom at `hang` 128 (zombies walk under). Shoot either rope (or blast) → the boat falls (`G` 1500, moved in
+  `_process`) and crushes every zombie its box touches during the fall and on landing (`DMG_Z` 160, "CRUSHED", 60 to a
+  boss) and the player (`DMG` 2). Smoke, planks, shake. It stays broken on the pier.
+- `Pyre`: decoration only (the thermal you can see); it does not burn.
+
+**BONESIDE** (main type, enemies/types/boneside.gd) - THE USER'S HALF BONE / HALF FLESH ZOMBIE. Split down the middle
+from crown to crotch along a seam of torn meat and blood. The front half (the side that faces you: face, chest, the
+reaching arm) is bare skeleton: a lipless skull half, an empty rib cage, arm and leg bones. The back half (the nape, the
+back, the rear arm) is living, swollen flesh with hair, an ear and rags.
+- **What it learned:** the spores carried thousands of "bullet in the flesh" deaths. The hive learned that flesh is what
+  bullets hit, so it let the shot side rot to the bone, and keeps the bone side toward you. It is built exactly the way
+  it was shot: from the front.
+- **Damage:**
+  - Bone side (shots from the front): a chest shot passes between the ribs (`RIB_GAP` 45%, "THROUGH THE RIBS"; the
+    bullet's `pierce` is raised so it flies on into the zombie behind!). Otherwise it chips bone (x`BONE_MULT` 0.25,
+    head x`SKULL_MULT` 0.2; white bone chips). After 5 bone hits the hero says "Bullets go right through the bone... get
+    behind it - hit the FLESH!".
+  - Flesh side (shots from behind): x`FLESH_MULT` 1.35, blood and meat (FleshFx), wounds that show bone under them.
+  - Fire eats flesh: x`FIRE_MULT` 1.5. Blasts x1 (they smash both halves).
+- **It turns late:** it turns toward you after `TURN_DELAY` 0.55 s and does not walk while it is turned away. Jump or
+  roll over it and shoot its back.
+- **CLUB:** close (`CLUB_R` 72) it turns its BACK to you and raises the heavy flesh arm (`CLUB_WIND` 0.5; drawn
+  mirrored: the flesh side faces you, x`OPEN_MULT` 1.2), then backhands you (`CLUB_DMG` 1, knockback).
+- **LUNGE:** at mid range (`LUNGE_R` 140-270) it crouches bone-shoulder first (`LUNGE_WIND` 0.38) and charges (`LUNGE_V`
+  400). It cannot turn mid-charge: jump over and it passes you, flesh to you (`RECOVER` 0.65). `CD` 0.6-1.2 s.
+- **Learns** (main meta `bs_flesh` >= `LEARN` 10, back flesh hits): "IT TURNS WITH YOU NOW" + hero "It turns as I
+  jump... wait for the swing - it shows the flesh to swing." It turns almost at once (`TURN_FAST` 0.07), pivots under
+  you when you jump over it (reads where you will land), and aborts the lunge when you jump. Counter: bait the CLUB (it
+  must show the flesh to swing), grenades, fire.
+- **Death:** it tears in two along the seam: the bone half and the flesh half lie apart (`_draw_dead`), bones fly from
+  one side, blood from the other.
+
+**THE FERRYMAN** (boss; `chase_range > 600`, hp 520 (+400 from level 5), scale 2.4, no ragdoll) - the ferryman of the
+Beagle Channel's dead: a giant BONESIDE with a ferry oar in the bone hand, an ECHO lantern on a chain in the flesh hand,
+an old captain's cap; his rib cage opens like doors over a glowing ECHO heart.
+- **Armour:** the bone side x`B_ARMOR` 0.3 (rib passes too). The flesh (back) x`ROT_MULT`. The heart x`HEART_MULT` 2.4,
+  only open while the ribs are open (ly -44..-20).
+- **SWEEP:** the oar low and wide (`B_SWEEP_R` 260, `B_SWEEP_WIND` 0.55, `B_SWEEP_DMG` 2): jump.
+- **FERRY:** the rib cage opens (`RIB_WIND` 0.7, the heart shows) and he lunges (`RIB_V` 520) to swallow you. Caught
+  ("ALL ABOARD", hero: "He's carrying me DOWN - shoot the HEART!"): he walks you toward the gate, squeezing (1 damage
+  every `FERRY_SQUEEZE` 1.1 s) for up to `FERRY_MAX` 3.2 s, then throws you. Every shot while inside hits the heart
+  (`FERRY_HEART` 3 → you are free), or mash A/D (player grab). Missed lunge: he stands with the ribs open for a moment.
+- **SHED:** when you are far (`SHED_R` 380, every `SHED_CD` 5.5 s) he shakes `SHED_N` 5 bone shards at you in a fan
+  (`BoneShard`, 1 damage, moved in `_process`).
+- **TOLL:** he rings the lantern (`TOLL_CD` 15 s, `TOLL_T` 1.3): a THRONG school of `TOLL_N` 4 marches into the yard from
+  behind you ("ALL ABOARD"), at most `TOLL_MAX` 2 schools alive.
+- He turns slowly (`TURN_T` 0.75): roll behind him. Keeps to the yard (`ARENA_W` 1150). `B_CD` 0.4-0.95 s.
+- **Learns in the fight:**
+  - After `BACK_LEARN` 10 back hits: "IT TURNS WITH YOU NOW" - turns fast (`TURN_T_LEARN` 0.2) and sweeps backwards.
+    Hero: "He turns faster now... make him open the ribs."
+  - Every `ROT_EVERY` 180 hp lost: "IT ROTS THE FLESH NOW" - the flesh rots to bone (`ROT_MULT` 1.4 → 1.15 → 0.9 → 0.7),
+    so the back pays less and less and the heart is the way to finish him. Hero: "The flesh is rotting to bone where I
+    hit it... shoot the HEART when the ribs open!"
+- Death: his schools die with him, he bellows, the bell rings, and he bursts into bone and meat.
+
+**CONDOR** (the flyer, enemies/types/condor.gd) - a dead Andean condor, huge (the wingspan of one and a half men): black
+body, white ruff, bald grey-pink head with a comb, hooked beak, and the spread "fingers" of its primaries. Feathers are
+gone in places and show ribs and membrane. A green ECHO eye. In its talons hangs a zombie (the RIDER), kicking.
+- **What it learned:** the hero stops them at a line - they walk at him from the front and die in a row. So the hive
+  learned to go over the line: "THEY CARRY EACH OTHER NOW". The condor does not attack itself. It carries.
+- **How it flies (not like any earlier flyer):** it almost never flaps. It rides the city's thermals (`stage.updrafts()`,
+  the pyres): it circles up in one (`CLIMB_V` 90) to `THERMAL_TOP` 400, glides at you (`GLIDE_V` 200), sinking slowly
+  (`SINK_V` 26). Too low (`MIN_H` 175) → back to the nearest thermal. Its line is predictable - that is how you shoot it.
+- **Cycle:** THERMAL → GLIDE → RUN (over you, the rider screams) → DROP (lets the rider go on you: a real zombie falls;
+  landing on you = "LANDED ON YOU", `DROP_DMG` 1) → LEAVE (a few heavy wingbeats, empty) → PICK: it dives and grabs a
+  regular / runner / THRONG from the ground ahead (`PICK_R` 650) to carry it too. Nobody to pick? It fetches one from
+  outside (`RIDERS` 2), then flies away to sea (AWAY, despawns).
+- **Counters:**
+  - Shoot the rider (`RiderBody`, `RIDER_HP` 26): it dies in the talons and falls as a corpse ("CARGO DOWN"). Counts in
+    main meta `cd_shot`.
+  - Shoot a wing (`WingBody` x2, layer 4, `WING_HP` 34): it spirals down and crashes (`CRASH_DMG` 90, "WING!",
+    "GROUNDED!"); the rider falls alive.
+  - A blast rips both wings (and kills the rider).
+- **Learns** (main meta `cd_shot` >= `LEARN` 3 riders shot down): "THEY DROP THEM BEHIND YOU NOW" + hero "Behind me - it's
+  dropping them BEHIND me!". It flies higher (`HIGH_LEARN` +90), comes from behind, and at the last moment swoops low
+  (`SWOOP_H` 150) to drop the rider behind your back (on the side you are not facing, `BEHIND` 120). Counter: turn, keep
+  your back to a wall.
+
+**THRONG** (enemies/types/throng.gd) - the crowd of Ushuaia: townspeople, fishermen, dockers, cruise tourists in bright
+puffer coats, beanies with pompoms, boots. Alone each is weak (a shot or two). But they are not alone: they are a
+`School`, one body made of many, like a school of fish. A glowing ECHO thread ties nape to nape, the eyes pulse together,
+and they march in exactly the same step (`BEAT` 0.5 s, one global phase for every crowd in the level and the background).
+- **What they learned:** one body can be shot. Thousands of dead who were shot alone taught the hive that the single one
+  dies, so it stopped moving single ones. It moves one body made of many: "THEY MOVE AS ONE NOW".
+- **The School** (shared by all members; the first live member updates it once per physics frame):
+  - MARCH: the school's anchor (`ax`) steps toward you on the beat (`MARCH_V` 84); every member runs to its slot (`GAP`
+    26). If you are on a deck above them, they all jump together on the beat.
+  - SURGE: the front within `SURGE_R` 150 → on the next beat the whole school lunges with arms out (`SURGE_V` 270,
+    `SURGE_T` 0.42). One bite per school every `BITE_CD` 0.9 s (not 8 bites at once - fair).
+  - FLINCH: a member is hit → the whole school steps back together.
+  - SCATTER: a blast, or `SCATTER_DEATHS` 3 deaths within `SCATTER_WIN` 1.4 s → they scatter in all directions in leaps
+    ("SCATTERED!", `SCATTER_T` 1.25), then REGROUP back into formation. That is the window to reap them.
+  - A lone THRONG from the normal scatter (or dropped by a condor) joins a school within `JOIN_R` 420 or starts one.
+- **Learns** (main meta `thr_broken` >= `LEARN` 2 schools scattered or wiped): "THEY FLANK NOW" + hero "They split around
+  me... like a school of fish!". When the school reaches you (`SPLIT_R` 250) it splits like fish around a predator: the
+  back half leaps over you in one synchronised arc (`SPLIT_T` 0.72) and lands behind you as a new school; both halves
+  close in. Counter: shoot them in the air during the leap (they hang there together), a grenade in the middle, or back
+  off before they arrive.
+
+
+## Stage 62 - "THE HIVE MIND" (THEY LEARNED TO THINK AS ONE)
+
+Zone 7 (Patagonia), stage 8. Under Ushuaia, beneath the old End of the World prison (the Presidio), the ROOT has grown into a living cave:
+- walls of brain tissue and fungus;
+- nerve threads that carry pulses of light toward the heart;
+- cocoons with bodies inside;
+- glowing memory pools that replay the hero's old fights.
+
+The hive writes to him in fungus on the walls ("WE ARE ONE", "EVERY LESSON CAME HOME", "TEACHER", "COME DOWN / ZERO"). Here it speaks to him for the first time in one voice and tells him THE WHY. The level ends at the shaft that goes down to the heart (63).
+
+**Files**
+- `levels/stage_62.gd` covers layout, spawns, memory pools, SYNAPSE groups, intro hints, hero lines (through a queue: `_say`, `SAY_GAP`) and story hooks.
+  - Sounds: `s62_squish`, `s62_sever`, `s62_charge`, `s62_sync`, `s62_gurgle`, `s62_chomp`, `s62_maw_die`, `s62_rise`, `s62_heart`, `s62_drone`, `s62_replay`. All are synthesised; there are no new sound files except the story voices.
+  - Music: `level2_suspense.mp3`.
+- `effects/s62_decor.gd` holds the sky, 3 parallax layers, all world objects, traps and screen FX.
+  - It has a shared static state `U`:
+    - `U.voice_ms`, `replay_ms` and `face_ms` are set by the scene;
+    - `U.sync_ms` is set by a ganglion;
+    - `U.heart` is 0..1 and gets stronger near the arena.
+  - The `U` helpers (`quad/oval/halo/nerve/taper/figure...` + `flush`) are also used by the three zombie types, so each zombie is one draw call.
+- `enemies/types/seeper.gd` - SEEPER and the boss THE FLOOD.
+- `enemies/types/synapse.gd` - SYNAPSE. `make_group()` is static and is called by the stage.
+- `enemies/types/remnant.gd` - REMNANT. `set_memory(i, rising)` is called by the stage and the pools.
+- `story/scenes/l62_hive.gd` + `sounds/story/l62_hive/` - the story scene (the hive's one voice).
+- `map/thumbs/level_62.png` - level card.
+
+**Background (Backdrop)**
+- `hive_sky`: the black-purple dark of the cave, a deep green glow from below (the heart) and glowing spores that rise slowly.
+- `far_cavern` (0.06): a huge dome with:
+  - flesh stalactites and flesh hills;
+  - giant nerve trunks with pulses;
+  - distant glowing mushrooms.
+- `mid_wall` (0.28): the brain-tissue wall with:
+  - folds (gyri);
+  - cocoons with bodies in them, bones and blisters;
+  - nerve threads with glowing beads;
+  - the hive's fungus writing (`WRITING`).
+- `near_roots` (0.6) has:
+  - thick roots from the ceiling and fungus curtains;
+  - a horizontal nerve rope with pulses running right;
+  - glowing mushrooms and bones.
+- `hive_overlay`: a green haze behind the figures, ceiling shadow and floor mist.
+- `HiveFX` (screen) adds:
+  - drifting spores;
+  - a heartbeat vignette at the screen edges (`U.heart`);
+  - a green ripple while the hive speaks;
+  - a red flash when a ganglion fires.
+
+**Layout**
+- 0-760: `Cellar`. The prison cellar with stone stairs going down, bars, and the sign "PRESIDIO DE USHUAIA / NIVEL INFERIOR - NO PASAR". Fungus breaks through the cracks. The floor (`HiveGround.stone`) is prison stone that turns into flesh by x 2000.
+- `POOLS` (1500 THE FIRST, 3420 SUBJECT FOUR, 6350 THE SPITTER, 7150 THE HOUND, 8180 THE FIRST):
+  - each is a `MemoryPool` replaying an old fight: a flickering hero silhouette shooting the remembered enemy, with scanlines and "MEMORY: X" under it;
+  - when the player comes within `POOL_R` 430, a REMNANT of that memory rises out of it;
+  - once REMNANTs have learned (`rmn_kills >= 4`), the pool releases two.
+- `PILLARS` (2620, 4260, 7920): flesh columns from floor to ceiling, wrapped in nerves.
+- `SHELVES` (2160, 3130, 6480, 8240): bracket mushrooms on the wall. Each is an invisible `add_floor` at tier 120 (one jump, no ladder) with a pickup on top. Every second one has a zombie on it.
+- `OBST`: fixed cover (`Obstacle` "pod", "bones", "root", "stalk"). The road generators use the same 4 kinds.
+- `STORY` 4500-5940: the chamber of the one voice (`HiveChamber`):
+  - a giant brain arch;
+  - 14 nerve threads converging on the big pool (`MemoryPool.big`) at `STORY_ACTOR` 5300;
+  - glowing memory cocoons on the sides;
+  - a face in the wall that appears when the hive speaks.
+- `ARENA_X` 9050 to the end is `FloodArena`:
+  - a flooded basin (thin green liquid with ripples) and the heart wall with arteries;
+  - at the far end, "EL CORAZON", a huge flesh sphincter: the shaft down to the heart, glowing red and green and beating with `U.heart`;
+  - two arena shelves (`ARENA_SHELVES` 9300, 9760) to get above the boss's wave;
+  - HEALTH + AMMO before the arena.
+
+**Traps**
+- `Ganglion` (`GANGLIA` 2950, 3780, 6820, 8560). A nerve knot on a flesh column (`KNOT_Y` 150).
+  - Trigger: when the hero comes within `TRIG_R` 540, a red pulse starts down the thread from the ceiling (`WARN_T` 2.1 s, "!" over the knot, sound `s62_charge`).
+  - If the pulse arrives, "THEY THINK AS ONE": every zombie within `RANGE` 1000 gets `_alert_t`, `rush(hero)` and the `drum_t` meta (x1.3 speed, the same as the level-41 drum) for `SYNC_T` 5 s. There is a screen flash and the `s62_sync` chord. Cooldown `CD` 11.
+  - Counter: shoot the knot (`GangBody` on layer 4, `HP` 34; blasts kill it) and it is "SEVERED" forever.
+  - The first time one fires, the hero says "A signal in the nerve - SHOOT THE KNOT before it gets there!".
+- `Maw` (`MAWS` 1960, 4060, 7600). A flesh sphincter in the floor.
+  - Anyone standing on it (also zombies, not bosses) sets it off: the lips tremble and drool (`WARN_T` 0.6), then jaws of teeth rise from the floor and close (`BITE_T`).
+  - The hero takes `DMG` 1 and is held (`HOLD_T` slow).
+  - Zombies are "DEVOURED" (`DMG_Z` 140, so it eats its own).
+  - Counter: shoot the eye on the stalk (`HP` 46) and it reads "MAW DEAD". It is in the `hazards` group (`world_rect` / `danger_at`) and the `blastable` group.
+
+**New zombies**
+
+SEEPER (main type, kind 197). Bright toxic green and translucent: a liquid body in the shape of a man, the skeleton of whoever he was floating inside, and a glowing CORE swimming in the chest.
+- **What it learned:** "a body can be shot - a puddle can't". Intro: "THEY MELT NOW" and the hero says "They learned a body can be shot... a puddle can't. Hit the glowing CORE!".
+- **Melting:**
+  - A hit that would kill it (predicted with `hit_damage()` x `MARGIN_HEAD` 2.2 / `MARGIN_BODY` 1.3) is blocked, and instead it MELTS (`MELT_T` 0.45, "MELTS").
+  - The puddle takes no bullet damage ("SPLASH", green splash, `GooSplash`). After 6 splashes the hero says "Bullets just splash. Wait for it to RISE - then the core!".
+  - The puddle flows to the hero (`FLOW_V` 210) with a leading bulge, ripples, bubbles and two floating eyes. It is sticky underfoot (`STICK` slow).
+  - After 1.6-2.2 s it REFORMS: a rising column with slime strands (`REFORM_T` 1.15). If the hero stands on it, he takes a SURGE (1 damage).
+  - It comes back with `REFORM_HP` 0.65 of max hp.
+- **How to really kill it:**
+  - the CORE, with a ray test from the hit (`CORE_R`): x`CORE_MULT` 1.8 and it can kill ("CORE BURST");
+  - while it reforms, the core is big and exposed (x`REFORM_CORE` 2.6) and its hp is still low, so one good shot does it. Body hits during the reform do x`SOFT` 0.5 and never kill;
+  - fire or blasts evaporate it: on the body x1.5 / x1.4 and lethal; on the puddle, instant death ("EVAPORATED");
+  - after `MAX_REFORMS` 3 it can't hold together ("IT CAN'T HOLD") and dies normally.
+- **Attack:** ENGULF. Close up, it swells (`ENGULF_WIND` 0.45) and throws itself on the hero: 1 damage + slow ("ENGULFED").
+- **Learns:** meta `sep_beaten` counts core kills and evaporations.
+  - At 3 or more: "IT RISES BEHIND YOU NOW". The puddle flows under the hero and reforms `BEHIND` 120 px past him, then attacks at once.
+  - At 5 or more: "IT SPLITS NOW". When it melts it splits into two mini puddles (scale 0.78, 55% hp) that reform on both sides of the hero.
+- **Placement:** `SEEPERS` lists walkers and `lurk` puddles. A lurk puddle waits on the floor until the hero is within `LURK_R` 230, then "!!", and it flows and rises. SEEPERs also come from the road spawns (weight 0.04).
+- **Other code:**
+  - `start_puddle(wait, flow_to)` and `make_mini()` are used by split, by the boss and by the stage.
+  - Dead: the liquid spreads on the floor and soaks in (drawn at the death spot).
+  - Scene actor mode: `speaker` (the mouth moves while it talks), `scene_melt` (it melts into the pool), and on `U.face_ms` its features take on the hero's face.
+
+THE FLOOD (SEEPER boss, `chase_range > 600`). A giant SEEPER made of many bodies (several skulls float inside it) with a crown of drips.
+- **Hit model:** core x2.0, body x0.8, fire x1.4, blast x1.3. The HUD name is "THE FLOOD".
+- **Attacks:**
+  - SLAM (`B_SLAM_R` 170, wind 0.6, 2 damage);
+  - SPIT: 3 goo globs (`acid.gd`, they leave acid pools). Every second spit sheds a mini SEEPER puddle that flows at the hero (`MINI_MAX` 3).
+- **Waves:** at `GATES` 70% and 40% hp it breaks ("THE FLOOD BREAKS"), melts and becomes a WAVE.
+  - The wave runs across the whole arena to the far wall (`WAVE_V` 430, `WAVE_H` 72, 2 damage + slow). Bullets only splash it.
+  - The counter is to jump it (one jump clears 72) or stand on an arena shelf. The hero says "It's coming as a WAVE - jump it or get up high!".
+  - After the wave it pools, then reforms on the other side (`B_REFORM_T` 1.7) with the core exposed (x`B_REFORM_CORE` 3.0).
+- **Learns in the fight:**
+  - After the first wave, "IT RISES WHERE YOU STAND NOW". GEYSER: a bubbling ring under the hero (`GEY_WARN` 0.95), then a 210 px column of goo (1 damage, knock up). It works on shelves too, so standing still is punished.
+  - Below half hp, "IT SPLITS NOW": every reform sheds two mini SEEPERs.
+- **Death:** "THE FLOOD DRAINS"; the minis evaporate. The hero then says "The heart is down there. I can hear it beating.".
+
+SYNAPSE (flyer, kind 198). Flying nerve cells: a translucent cell body, a glowing nucleus, writhing dendrites with glowing tips, and an axon tail.
+- **They never fly alone.** `SynapseT.make_group(main, x, ground, n)` makes a pair or a trio joined by a current. The stage makes the `SYN_GROUPS` when the hero comes within 1000 px, so a late group already knows what was learned.
+- **What they learned:** the hero dodges anything thrown at him, so the hive stretches a wall of current across his path. Intro: "THEY LINK NOW" and the hero says "They learned I dodge. So they made a wall. Shoot ONE knot - the link breaks!".
+- **How it differs from DRIFTER / BUOY / MURMUR / BLOOM:**
+  - new flight: SACCADE, like an eye. The group hangs frozen (`HOLD_T`), then snaps (`SNAP_T` 0.17) to a new centre in front of or over the hero, at a height where the rotating bar or triangle cuts through him;
+  - new weakness: any one node (`NODE_HP` 14, blast x2) breaks the link;
+  - new learned trick: the spare (below).
+- **Current cycle:**
+  - REST (`REST_T` 1.4): a limp nerve fibre, safe to pass;
+  - CHARGE (`CHARGE_T` 0.55): sparks run along it and it flickers;
+  - LIVE (`LIVE_T` 2.2): a double lightning bolt with a glow. It hurts on contact (1 damage + slow), rotates faster, and the centre creeps toward the hero (`CREEP`);
+  - zombies that touch a LIVE link are "FRIED" (`DMG_Z` 30).
+- **After a break:** "LINK BROKEN". A lone node becomes a STRAY: it flies at the hero in short saccades, crackles (`STRAY_TELL` 0.5) and sparks at close range.
+- **Learns:** meta `syn_breaks` 3 or more gives "THEY KEEP A SPARE NOW". New groups come with a spare node hovering behind the group. It flies in to replace the one that fell ("RELINKED", `RELINK_T` 0.8), and the groups spread wider (x`WIDE` 1.4).
+- **Code:** the group is a shared Dictionary. The leader (the first live member) runs the group and draws the links in its own batch. Nodes are positioned directly (`collision_mask` 0, like BLOOM). Dead nodes fall.
+
+REMNANT (kind 199). An echo of an old fight that the hive kept. A translucent body in memory light (`Decor.MEM`) with scanlines, a glitch that jumps it sideways for a moment, and an afterimage when it moves fast.
+- **What they learned:** the hive kept not only that the hero won, but HOW they fought him. Intro: "THEY REMEMBER YOUR FIGHTS NOW" and the hero says "I killed that one years ago. They kept the memory - and the trick.".
+- **Memories** (`Decor.MEMORIES`, set by the pool):
+  - 0 THE FIRST: a giant with a car door that blocks bullets from the front in its band (`DOOR_Y` / `DOOR_H`). SLAM: it lifts the door overhead (front open, x1.4) and slams.
+  - 1 THE SPITTER: keeps its distance (`SPIT_R`) and lobs acid (`acid.gd`).
+  - 2 SUBJECT FOUR: ROLLs at the hero ("PHASED": bullets pass through), then an UPPERCUT. Open afterwards.
+  - 3 THE HOUND: four legs. Crouches (`POUNCE_WIND`) and makes a long leap. Open after landing.
+- **Other moves:** everyone else has a short SWIPE. It RISES out of the pool and can't be hurt until it is whole ("NOT YET").
+- **Learns:** meta `rmn_kills` 4 or more gives "THEY USE IT ALL AT ONCE NOW". Each new REMNANT gets a second trick from another memory (THE FIRST that also spits, a hound that also rolls...), +12 hp, and the pools release pairs.
+- **Death:** "MEMORY FADES", and the body comes apart into rising shards of light.
+
+**Story (environmental + scene)**
+- Hero lines (`LINES`, queued so they never overlap):
+  - 560: "The prison goes down further than any map said."
+  - 1020: "That's me... in the water. They're replaying my fights."
+  - 2860: "The whole cave is thinking. I can feel it."
+  - 6240: "Every fight I ever had... they kept all of it."
+  - 8950: "Something big is moving in the water."
+  - Arena entry: "THE FLOOD" + "All of them... melted into ONE. Find the core!"
+  - After the boss: "The heart is down there. I can hear it beating."
+- Scene `l62_hive` (actor SEEPER, `actor_props {"speaker": true}`, `dist` 250, ending "vanish"). Its actions go to `on_story_beat`:
+  - "speak" pulses the walls, nerves and the face in the wall;
+  - "replay" flashes every memory pool and plays `s62_replay`;
+  - "mirror" turns the face in the wall, and the speaker's face, into the hero's;
+  - "melt" melts the speaker into the pool.
+  - After the scene, the big pool releases two memories (THE FIRST, THE HOUND) and the hero says "Teacher. That's what I am to them.".
+
+**Performance**
+- Every `_draw` is the DrawBatch wrapper. Each zombie is one draw call (`Decor.U` helpers + `U.flush`; no strings in zombie draws). The SYNAPSE links and THE FLOOD's wave and geyser are inside the owner's batch.
+- Decor redraws every 3-8 frames when on screen.
+- `GooSplash` keeps at most `MAX_LIVE` 10 and moves in `_process`. Particles scale with `Quality`.
+- No MOVERS needed: `Ganglion` / `Maw` use `_physics_process` but do not move, and the SYNAPSE are zombies.
+- Draw calls (xvfb, holding fire, +6..8 extra SEEPER/REMNANT): 426-482 average. The same tool on level 58 gives 462-467. Without extras: 398 / 437.
+
+
+## Stage 63 - "THE HEART" (THEY LEARNED YOU)
+
+Zone 7 (Patagonia), stage 9, **the last level of the game**. At the bottom of the shaft under Ushuaia's old prison
+(62) the hero reaches the heart of the ROOT. Every lesson the hive ever learned from him, from every region and every
+kill, ended up here, and the hive has built him a museum: statues of him in every pose he ever fought in, wombs that
+grow HOLLOWs (copies of him), and arteries that carry lessons home. The heart beats faster the closer he gets. At the
+end the ROOT speaks and asks him to come home. He chooses: **DESTROY** or **JOIN**.
+
+**Files**
+- `levels/stage_63.gd` - layout, spawns, the heartbeat, PILGRIM waves, lesson bookkeeping, the hall and arena locks,
+  intro hints, the hero's lines, the hand-off to the ending. Sounds `s63_beat`, `s63_squelch`, `s63_burst`,
+  `s63_membrane`, `s63_gurgle`, `s63_geyser`, `s63_creak`, `s63_grip`, `s63_home`, `s63_lost` (synthesised).
+- `effects/s63_decor.gd` - backdrop + all world objects, traps and screen FX. Also the shared state `Decor.U`
+  (`beat`, `beats`, `heart_k`, `lessons`, `life`, `note`, `say()`), `CAT_COL` / `CAT_NAME` and the weapon-category
+  helpers `cat_of_weapon(id)` / `cat_of_src(src)` ("auto", "shotgun", "precision", "explosive", "other").
+- `effects/s63_ending.gd` - the ending (below). Text and voices: `story/scenes/l63_ending.gd`,
+  `sounds/story/l63_ending/`.
+- `enemies/types/hollow.gd` - HOLLOW and the mid-boss SUBJECT ZERO (+ `SporeLob`).
+- `enemies/types/pilgrim.gd` - PILGRIM (+ `LooseLesson`).
+- `enemies/types/root.gd` - THE ROOT.
+- `map/thumbs/level_63.png` - level card.
+
+**The idea: the level learns your gun.** `stage_63._track_shots` counts every shot by weapon category
+(`Game.shot_id` + `player.gun`, `Decor.cat_of_weapon`). `fav_cat(rank)` = the category you use most (rank 0) / second
+most (rank 1). HOLLOWs switch to it, SUBJECT ZERO and the ROOT's face fire it at you. Every PILGRIM that gets home is a
+lesson on the category that killed its body, and the ROOT resists that category more.
+
+**The heartbeat** (`_process`): a beat every `BEAT_T` 1.25 s at the entrance down to 0.62 s near the heart
+(`U.heart_k` = how far in you are). In the arena it also speeds up as the ROOT loses hp. Each beat sets `U.beat` = 1
+(every decor piece and PILGRIM wing reads it), plays `s63_beat` (louder near the heart) and ticks the valves. It stops
+when the ROOT dies.
+
+**Background (Backdrop)**
+- `heart_sky`: the inside of a giant body: dark red vault, glowing ECHO veins, slow pulse.
+- `far_vault` (0.06): ribbed cave walls of flesh with arteries and hanging roots.
+- `mid_memory` (0.28): the "memory wall": fungus flesh with grown, half-melted remnants of memories from every
+  region (8 kinds), and nerve threads.
+- `near_flesh` (0.6): hanging root curtains, ganglia, rib arches, spore sacs that pulse with the heart.
+- `heart_overlay`: warm haze behind the figures and the ceiling's shadow.
+- `HeartFX` (screen): floating spores, the beat pulsing at the screen edges (stronger near the heart), the
+  "LESSONS HOME" counter (right, under the style meter: one coloured dot per category with a count; appears after the
+  first PILGRIM is seen) and notes (`U.notify`, under the boss bar). `Decor.U.say(pl, text, col)` queues hero lines
+  2.3 s apart so two lines never overlap (dropped if more than 5 s late).
+
+**Layout**
+- `Threshold` (start): the prison gate swallowed by fungus, a rotten "PRESIDIO DE USH..." sign, chains, and a flesh
+  mound carved "WELCOME HOME / ZERO".
+- `FleshGround`: floor tiles of flesh with veins (one draw call per tile, redraw every 6 frames on screen).
+- **Gallery of memory** (to 3500):
+  - `STATUES` (13): fungus `Statue`s of the hero in 4 poses (aiming, rolling, kneeling, jumping). Some hold a sleeping HOLLOW
+    (`[x, pose, true]`): it cracks out when you come within `WAKE_R` 240 or shoot it.
+  - `PODS` (8): `HollowPod` wombs. A HOLLOW grows inside; when you come near it ripens (`RIPE_T` 0.9, the sac
+    swells) and bursts. Shoot it before: the glass takes x`POD_MULT` 0.7 and the HOLLOW comes out hurt.
+  - `SHELVES` (5): `RootShelf` root ledges (`add_floor` + 2 ladders) with loot: AMMO / HEALTH / GRENADE, some with
+    a walker on top.
+  - `MOUTHS` (7): `VeinMouth`s, artery mouths high on the wall (`MOUTH_H` 470) that PILGRIM waves fly out of.
+- **Hall of mirrors** `HALL` (3500-4400): `MirrorHall` back wall (a glossy membrane with hundreds of hero silhouettes
+  and "SUBJECT ZERO" carved in). Two `Membrane`s close behind and ahead of you when you step in ("SEALED IN"): solid
+  walls of flesh (layer 1, they push you and zombies out of the wall's width). `HALL_COVER`: bones + barrels.
+  `HALL_PODS` (2) burst when SUBJECT ZERO reaches phase 2. When ZERO dies: "THE HALL OPENS" and the hero says "It had
+  my face... but not my memories."
+- **Nerve road** (4400-8300): the checkpoint (main.gd, at half the level), more statues, pods, shelves, valves, snares
+  and the denser PILGRIM waves.
+- **Heart chamber** `ARENA_X0` 8300: the third membrane closes behind you. `HeartChamber` back wall with curved
+  arteries running to the heart. `ARENA_SHELVES` (2 ledges), `ARENA_COVER` (bones, a car), `ARENA_PODS` (2, the ROOT
+  calls them in phase III), `ARENA_MOUTHS` (2). HEALTH + AMMO at the entrance. A wall at `ROOT_X`-30 that blocks only
+  the player (layer 512), so you can never walk into the ROOT.
+- The exit never opens on a boss death: `_first_tick` removes the exit from `level_exit`. The ending calls
+  `main._level_complete()` itself.
+- Generated obstacles come from `custom_gen` as `Decor.Obstacle` (`s63_car`, `s63_barrels`, `s63_sandbags`,
+  `s63_bones`; the `s63_` prefix stops main.gd from placing its own cars/barrels). None in the hall or the arena. All
+  `Obstacle`s are in group `cover` with `cover_rect()` (HOLLOWs hide behind them).
+- `zombie_weights()`: HOLLOW 0.07, regulars 0.56, runners 0.37. Most HOLLOWs come from statues and pods.
+- `extra_spawns`: statue HOLLOWs, pod HOLLOWs (hall + arena pods held until called), SUBJECT ZERO at `HALL_BOSS_X`
+  4160 (`chase_range` 650), walkers on the ledges.
+- **PILGRIM waves** (`_wave`): every `WAVE_T` 8.5-12.5 s (x0.8 past half way) the nearest artery mouth ahead of you
+  pulses and launches one PILGRIM (`MAX_PILGRIMS` 3 alive). Not while the hall is sealed. Plus: every HOLLOW you kill
+  has a 60% chance to release a PILGRIM from its body 0.7 s later, carrying the lesson of the weapon that killed it.
+- `_hints`: first time near:
+  - a statue: "Statues of me. Every pose I ever fought in."
+  - HOLLOW: "THEY FIGHT LIKE YOU NOW" / "That's... me. My coat, my roll. They GREW me."
+  - PILGRIM: "THEY CARRY YOUR LESSONS HOME NOW" / "It's carrying something home. Shoot the sac before it gets there!"
+  - at the start (not when starting from the checkpoint): "The heart. I can hear it from here... and it can hear me."
+- Lessons: `lesson_home(cat, pos)` -> `U.lessons[cat]` +1, "A LESSON REACHED THE ROOT - <CAT>" note, `s63_home`, the
+  hero: "One got through. The heart just learned my <cat>." `lesson_lost(cat)` -> main meta `pg_lost` +1.
+- `drop_supply(kind)`: each ROOT phase change drops a pickup from above near you: AMMO (HEALTH before phase IV).
+
+**Traps** (`s63_decor.gd`)
+- `HeartValve` (`VALVES` 7): a valve in the floor. It swells on one beat (the warning: it bulges and glows,
+  `WARN_T` 0.55) and erupts on the next (every `EVERY` 3rd beat, offset per valve): a geyser `HALF_W` 46 x `HGT` 190
+  for `BLAST_T` 0.7 s. It does `DMG` 1 to you and throws you up (`LAUNCH` 620), and does `DMG_Z` 26 + launch to
+  zombies (bait them). Shoot the valve and it erupts right away (to blow up a group). First hit: "The floor beats with the heart... watch the valves swell."
+- `RootSnare` (`SNARES` 6): a root hidden in the floor with a small bulb next to it. Step on it (`TRIG_R` 34) and it
+  creaks (`TELL_T` 0.32) then grips your legs: `DMG` 1 and slow (`SLOW_T` 1.4). It also grips zombies that walk over
+  it (`HOLD_T` 2 s, meta `s63_held`, the stage holds them in place). Shoot the bulb (ValveBody, layer 4) and the
+  snare is dead. `CD` 3.5 s between grips. First grip: "ROOTED - shoot the bulb next to it!"
+
+**HOLLOW** - a copy of the hero grown by the hive: his long torn coat and hood, and instead of a face a black hollow
+with two green slits. ECHO veins glow in the coat, the hands are pale fungus, the rifle is wrapped in roots.
+- **What it learned:** the hive was built to learn SUBJECT ZERO, and here it grows him again. "THEY FIGHT LIKE YOU
+  NOW". It keeps your favourite distance (`PlayerMemory.avg_distance`), fires telegraphed bursts (a glow at the
+  muzzle, `MODES[mode].tell`), rolls when shot at (`ON_SHOT_CHANCE` 0.35, `ROLL_CD` 2.2; while rolling it can only be
+  hurt by blasts - like you), jumps and fires in the air (`JUMP_CHANCE` 0.22), runs to cover when hurt
+  (`COVER_CHANCE` 0.3, group `cover`), and clubs you up close (`MELEE_R` 70). It aims chest high (`AIM_HIGH`) so a
+  crouch dodges, and once it has seen you crouch it sometimes aims low (`AIM_LOW`).
+- At most `MAX_SHOOTERS` 2 (non-boss) HOLLOWs aim/fire at once.
+- Where: `STATUE` (cracks out), `POD` (bursts out), or plain spawns.
+- **Learns:** HOLLOW kills count in main meta `ho_kills`. After `LEARN_N` 4: "THEY USE YOUR <CAT> NOW" and every
+  HOLLOW switches to your favourite weapon category (stage `fav_cat(0)`; main meta `ho_mode`):
+  - BURSTS (auto): a 4-round burst;
+  - SHOTGUN: rushes to 130-220 px and fires 5 pellets;
+  - AIM (precision): a long laser tell and one fast shot (1250 px/s) from far;
+  - BLASTS (explosive): lobs a `SporeLob` in an arc with a landing mark (pops for 1 within `LOB_R` 74);
+  - rifle (before it learns, or "other"): 2 shots.
+  Hero line per category ("They learned my shotgun..." etc.).
+- On death the stage may release a PILGRIM carrying the lesson of what killed it.
+
+**SUBJECT ZERO** (mid-boss in the hall; `chase_range` > 600; hp 200 (+400 boss), scale 1.3) - the first HOLLOW, the
+hive's best copy, bigger, coat full of roots.
+- Waits until you are within 600: "IT IS YOU NOW", "Subject Zero. They grew ME. With my gun." Then the membranes close.
+- Fires your favourite category from the start, rolls on 70% of the shots aimed at him (`B_ROLL_CD` 1.1 s), uses
+  `HALL_COVER` (35% of attacks), `B_CD` 0.6-1.1 s between attacks, armour x`B_ARMOR` 0.9, open x`B_OPEN_MULT` 1.35
+  while recovering or calling.
+- At 50%: "IT REMEMBERS YOUR LAST FIGHT" (`zero_call` roar): alternates your first and second favourite categories,
+  attacks faster (`B_CD2`, `B_ROLL_CD2` 0.8), **copies your rolls and jumps** (`B_COPY_DELAY` 0.16 s after you) and
+  bursts the two hall pods.
+- Never leaves the hall.
+
+**PILGRIM** (the flyer) - a robed, hooded corpse lying flat on its belly in the air, borne on two flesh-membrane wings
+like a ray's that ripple along their length. Under its chest it hugs a glowing lesson sac coloured by the weapon
+category of the lesson (`Decor.CAT_COL`: yellow BURSTS, orange SHOTGUN, blue AIM, red BLASTS).
+- **New way of flying:** it does not chase you - it flies **home**, to the right, toward the ROOT. Its wings beat with
+  the heart: on every beat it surges (`SURGE` x1.6 of `SPEED` 185), between beats it slacks (`SLACK` 0.45) - that is
+  when you shoot it. Far behind you it hurries (`CATCH_UP` 270). It flies in a lane `LANE` 190-400 px above the floor
+  with a slow wave. Shot at, it veers to another lane (`VEER_CHANCE` 0.45, `VEER_CD` 1.6). Passing over you it drops
+  a spore puff (`PUFF_R` 80): your aim sways for `PUFF_T` 2.2 s ("SPORES IN YOUR EYES").
+- **New weak point: the sac.** A hit on the sac (`SAC_R` 10 x scale) kills it at once: "LESSON LOST", the lesson
+  never arrives (`lesson_lost`). The robe is spongy (x`ROBE_MULT` 0.7). HP 30.
+- **Home:** `HOME_AHEAD` 820 px ahead of you / past an artery mouth ahead / into the heart chamber; in the arena it
+  flies into the ROOT's core. Each one that gets home: `lesson_home` (the ROOT resists that category more; in the
+  arena it also heals the ROOT).
+- **Learns:** sacs lost count in main meta `pg_lost`. After `LEARN_LOST` 3: "THEY PASS IT ON NOW". A PILGRIM killed
+  without hitting its sac throws the sac ahead (`LooseLesson`, a small glowing body on layer 4 that drifts home on its
+  own, or merges into another PILGRIM's sac - a double lesson). One shot on the floating sac = lost. Hero: "It threw
+  the lesson! Shoot the SAC, not the body."
+- Positioned directly (no `move_and_slide`, `collision_mask` 0). One draw call.
+
+**THE ROOT** (the final boss; hp 1200 (+400), scale 10.87, does not move) - the first culture of ECHO: a giant
+heart-brain of fungus grown into the right wall of the chamber from floor to ceiling. Brain folds, two heart lobes that
+beat with `U.beat`, thick arteries up to the ceiling, roots sinking into the floor, the faces of the absorbed pressed
+from inside against the skin. In the middle of its front: the **core**, a vertical slit with lips of flesh that opens
+on a green-white light.
+- **Damage:** core x`CORE_MULT` 1.45, body x`BODY_MULT` 0.35 ("RESISTED"), each multiplied by `resist[cat]`. Blasts
+  hit it (group `blastable`, deduped per frame). Phase changes `PHASE_AT` 75/50/25%: `TRANS_T` 2.2 s invulnerable
+  ("IT IS CHANGING"), a title card "LESSON OF THE <REGION>" / "<sub>", and `drop_supply`.
+- **Intro:** when you pass the arena gate +150: the membrane closes, the camera frames the ROOT, "IT LEARNED YOU" +
+  "IT ALREADY KNOWS: <categories>" listing the lessons that got home, hero: "There you are. The first one. The ROOT."
+- **Resist:** at the start, every lesson home (`U.lessons`) lowers that category's multiplier by `RESIST_STEP` 0.1
+  (min `RESIST_MIN` 0.5). In the fight, PILGRIMs keep flying from the arena mouths into the core every
+  `ARENA_PG_T` 13/12/11/9 s: each one that arrives = "IT LEARNED YOUR <CAT>", resist -0.1 and +`LEARN_HEAL` 45 hp.
+  Hero: "They're feeding it lessons. Shoot the sacs before they reach the heart!"
+- **Pulse:** stand within `PULSE_R` 160 and it swells (`PULSE_TELL` 0.45) and throws you back (`PULSE_CD` 2.6 s).
+- **Phase I - "WE WAIT" (lesson of the Northeast):** roots under the floor. A glowing bump with cracks under you
+  (`SPIKE_TELL` 0.75), then a giant spike (`SPIKE_H` 175). Volleys of `SPIKE_N` 4, `SPIKE_GAP` 0.62 s, aimed a bit
+  ahead of where you run. After a volley the core opens for `OPEN_T` 2.6 s ("The core! It opened - hit the light!").
+  **Learns:** after `SPIKE_LEARN` 3 jumps over spikes: "IT LEARNED YOUR JUMP" - every spike gets a second one on
+  your landing (+0.38 s) and leads you more.
+- **Phase II - "YOUR MACHINES" (Southeast):** two fungus guns grow from its front (`POD_L`, `POD_HP` 120). They spin
+  (`POD_SPIN` 0.8, the warning), spray `POD_SHOTS` 11 `EnemyShot`s (`POD_SHOT_V` 720) and then overheat (`POD_HEAT`
+  1.7 s, vulnerable, the core opens). Destroy both: "THE MACHINES ARE BROKEN", the core opens for 3.6 s, they regrow
+  after `POD_REGROW` 7 s. A spike now and then. **Learns:** hide behind cover for `COVER_T` 1.2 s: "IT LEARNED YOUR
+  COVER" - it lobs `SporeLob`s over the cover.
+- **Phase III - "WE PLAN" (Southern Cone):** it marks 3 zones on the floor (`ZONE_W` 64, `ZONE_TELL` 1.05, `ZONE_GAP`
+  0.28 s apart): where you are, where you are going, and where you ran last time (PlayerMemory), then they erupt
+  (`ZONE_H` 210 spike clusters). Every `CALL_T` 17 s: "IT CALLS ITS CHILDREN" and the arena pods burst (up to 3
+  HOLLOWs). **Learns:** it remembers which way you escaped the last zones and puts the third zone there: "IT PLANNED
+  FOR THAT".
+- **Phase IV - "WE ARE YOU" (Patagonia):** its front opens into a giant HOLLOW face (hood, hollow, two slits) that
+  fires **your** favourite category, boss-sized, with a tell (`FACE_TELL`): BURSTS = a fan of bursts, SHOTGUN = a
+  9-pellet blast with two guide lines, AIM = a long aim line and a hitscan beam (`BEAM_W` 22), BLASTS = 3 spore lobs.
+  It swaps to your second category, and mixes in spikes and zones. "IT USES YOUR <CAT> NOW". **Learns:** sustained
+  fire on the core (`HIDE_DMG` 150) -> "IT HIDES LIKE YOU": the face closes for `HIDE_T` 1.4 s.
+- **Death:** it does not vanish (`corpse_time` huge, physics off, `tick_dead` pins it). The stage kills the zombies
+  near the arena (`root_dead`) and 2.6 s later starts the ending. The heart stops beating.
+- One draw call for everything (body, spikes, guns, zones, face, beam).
+
+**The ending** (`effects/s63_ending.gd`) - in group `story_scene` (the Monologue stays silent), its own CanvasLayer 8
+UI and Camera2D, black bars, typed subtitles (Bangers), voices from `sounds/story/l63_ending/` (text only if a file
+is missing). The HUD is hidden, zombies are frozen, the player is not controllable and cannot be hurt.
+- **Talk:** the hero walks closer; the ROOT's core glows as it speaks (`root.speak`). Lines `intro` h01-h05 / p01-p02.
+- **Choose:** two buttons (menu_button.gd): **DESTROY** (red, "End the hive. Forever.") and **JOIN** (green,
+  "Go home. Become one."). Mouse/touch, keyboard (arrows, A/D, 1/2, ENTER/SPACE), gamepad (ui_left /
+  ui_right / ui_accept, focus neighbours). Saved as `Game.set_meta("ending_63", ...)`.
+- **DESTROY:** p03 / h06 / p04, the hero raises his gun, a tracer and a white flash, the core shatters
+  (`root.shattered`), every glow in the world dies (`U.life` -> 0: veins, mouths, spores go grey), grey spores fall,
+  a shaft of daylight comes down. Then p05-p07.
+- **JOIN:** p08 / h07, the hero walks to the core, his eyes turn green, roots wrap him (`root.embrace`), he is pulled
+  in and fades, everything blooms (`U.life` -> 2), spores rise. Then u01-u03 in the "WE" voice.
+- **THE END** (size 96), the ending's name ("ENDING: DESTROY - THE HIVE IS SILENT" / "ENDING: JOIN - EVERY MIND IS
+  ONE"), "THEY LEARNED YOU.", and a CONTINUE button -> `_complete()`: restores the player camera and HUD, frees its
+  UI, calls `main._level_complete()` (results -> map).
+- ENTER / SPACE / gamepad accept / tap skip lines (talk and outro). Everything moves in `_process`.
+
+**Tunables** - in each file header.
+- Stage: `HALL`, `HALL_BOSS_X`, `ARENA_X0`, `ROOT_X`, `STATUES`, `PODS`, `HALL_PODS`, `ARENA_PODS`, `SHELVES`,
+  `MOUTHS`, `ARENA_MOUTHS`, `MOUTH_H`, `VALVES`, `SNARES`, `ARENA_SHELVES`, `HALL_COVER`, `ARENA_COVER`, `WAVE_T`,
+  `MAX_PILGRIMS`, `BEAT_T`, `HARDER`.
+- HOLLOW: `LEARN_N`, `MODES`, `ROLL_*`, `ON_SHOT_CHANCE`, `MAX_SHOOTERS`, `AIM_*`, `MELEE_*`, `WAKE_R`, `B_*`.
+- PILGRIM: `SPEED`, `SURGE`, `SLACK`, `LANE`, `VEER*`, `ROBE_MULT`, `SAC_R`, `PUFF_*`, `HOME_AHEAD`, `LEARN_LOST`, `HP`.
+- ROOT: hp (stats), `BODY_MULT`, `CORE_MULT`, `PHASE_AT`, `SPIKE_*`, `POD_*`, `ZONE_*`, `FACE_*`, `RESIST*`,
+  `LEARN_HEAL`, `PULSE_*`, `ARENA_PG_T`.
+- Ending: `BAR_H`, `SPORES`; text in `story/scenes/l63_ending.gd`.
+
+
 # Polish pass (2026-10-17)
 
 Six areas were reworked together: gun and kill feel, zombie spawn placement, lighting, zombie art, bot playtest bug fixes, and gun/ability progression. Each section below covers one area.

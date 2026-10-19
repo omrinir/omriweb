@@ -2,6 +2,8 @@
 import glob, subprocess, re, os, sys
 STY = {"Q": "highpass=f=90,lowpass=f=7000", "P": "highpass=f=70", "Z": "highpass=f=60,aecho=0.8:0.45:6:0.35",
        "C": "highpass=f=60,aecho=0.8:0.6:40|90:0.4|0.25",
+       "H": "highpass=f=55,aecho=0.8:0.55:120|260:0.3|0.18",
+       "U": "highpass=f=60,aecho=0.8:0.5:90|200:0.25|0.15",
        "T": "highpass=f=260,lowpass=f=4600,acrusher=bits=12:mode=log:aa=1,aecho=0.7:0.35:14:0.3"}
 def mean(f):
     o = subprocess.run(["ffmpeg","-hide_banner","-i",f,"-af","volumedetect","-f","null","-"],capture_output=True,text=True).stderr

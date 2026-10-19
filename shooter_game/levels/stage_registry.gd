@@ -60,6 +60,9 @@ const STAGES := {
 	58: "res://levels/stage_58.gd",   # אזור שביעי, שלב 4 (בית הקברות של הלווייתנים)
 	59: "res://levels/stage_59.gd",   # אזור שביעי, שלב 5 (היער השחור)
 	60: "res://levels/stage_60.gd",   # אזור שביעי, שלב 6 (מעבדת הקרחון - פרויקט ECHO)
+	61: "res://levels/stage_61.gd",   # אזור שביעי, שלב 7 (סוף העולם - אושואיה)
+	62: "res://levels/stage_62.gd",   # אזור שביעי, שלב 8 (מוח הכוורת - ה-ROOT)
+	63: "res://levels/stage_63.gd",   # אזור שביעי, שלב 9 (הסוף - THEY LEARNED)
 }
 
 

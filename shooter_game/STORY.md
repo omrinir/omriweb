@@ -1,7 +1,7 @@
 # THEY LEARN: the story
 
-This is the story bible for the whole game (levels 1 to 63). It makes the earlier levels fit together and plans the rest.
-Levels 1 to 60 are built, and 61 to 63 are planned.
+This is the story bible for the whole game (levels 1 to 63). It makes all the levels fit together.
+All 63 levels are built. The ending is the player's choice (DESTROY or JOIN, level 63).
 
 ## The one-line version
 
@@ -15,6 +15,7 @@ The dead learn from dying. Every zombie you kill teaches the rest how you did it
   - A hundred die to fire, so the next ones learn to wet their skin or wear ice.
 - **Why it matters in play.** This is why every level brings new zombies and why each one is an answer to how you killed them before. It is also why the HUD warns **"THEY'RE LEARNING YOU"**, since the game really does track how you play (`ai/player_memory.gd`).
 - **Where it came from.** ECHO was built on purpose. **Project ECHO** was a military program at a research station under the Patagonian ice, the **Glacier Lab** (level 60). Its goal was soldiers who share combat memory: if one dies, the whole squad knows what killed him.
+- **Why it learns HIM (the answer, levels 62-63).** Project ECHO was built to learn one man, Subject Zero, and copy his combat pattern into seven soldiers. When it escaped it kept doing the one thing it was made for. Every zombie since level 1 is the experiment still running: each death sends its lesson home, and the hive gets better at being him. They are not learning to beat him. They are learning to BECOME him. The ROOT, the original culture, needs the original pattern to finish ("every mind becomes one"). The hive says it to his face in level 62: "We were made to learn you. You are our teacher."
 
 ## Who the hero is
 
@@ -173,11 +174,123 @@ There is no leader any more. The hive thinks as one, and it starts to show it. S
   through the speakers: "Welcome home." After the scene, the archive tanks break open.
 
 
-### Planned: 61 to 63
+### 61 END OF THE WORLD: "They learned to move as one"
 
-- **61 End of the World:** Ushuaia. The hive cuts every road; the whole region moves as one body toward the lab.
-- **62 The Hive Mind:** the ROOT, under the lab. Everything the hive has learned from the hero, used against him at once.
-- **63 They Learned:** the ending. Does the hero destroy the ROOT, or join it? This is open for the user to decide.
+- **Setting.** USHUAIA, the city at the end of the world, at dusk in light snow: streets of coloured tin houses on the
+  slope under the alpenglow-pink Martial mountains, the Beagle Channel, the End of the World train (once the prisoners'
+  train), the port with a rusted cruise ship, bonfires in the streets, and at the end the old prison, the PRESIDIO.
+- **The new fact.** The ROOT is not in the Glacier Lab any more. It went down the glacier with the meltwater into the
+  bay and grew under the whole city, under the old prison. The whole region is walking into the city as one body, in
+  step. They are not attacking the city: they are walking home.
+- **Lesson.** The hero always killed them one at a time and from the front. So the hive stopped sending single ones and
+  stopped showing him the side he shoots: it moves many bodies as one, carries them over his line, and turns its bone
+  to him.
+- **New zombies.**
+  - **BONESIDE.** Half bone, half flesh, split down the middle. Every bullet the hero fired hit flesh, so the side that
+    faces him rotted to bone: bullets pass between its ribs or chip the bone, and only its fleshy back really bleeds.
+    You learn to jump over it and shoot its back, so it learns to turn with you as you jump. The boss is **THE
+    FERRYMAN**, the ferryman of the Beagle Channel's dead: a giant BONESIDE with a ferry oar and an ECHO lantern who opens
+    his rib cage to swallow the hero and carry him down to the gate, and rings his lantern to call the crowds ("ALL
+    ABOARD"). In the fight he learns to turn with you, and his flesh rots to bone wherever you hit it, so only his heart
+    is left.
+  - **CONDOR (flyer).** A dead Andean condor that never flaps: it rides the hot air over the city's bonfires and glides.
+    It carries a zombie in its talons and drops it on the hero ("THEY CARRY EACH OTHER NOW"), then picks up another from
+    the street. Shoot the rider or a wing. After a few riders are shot down, condors fly higher and drop them behind his
+    back.
+  - **THRONG.** The town's people in puffer coats, marching in exactly the same step like a school of fish, one body of
+    many with one bite. Kill three fast and the school scatters, then regroups. After a few schools are broken, they
+    split around the hero like fish around a predator and close in from both sides.
+- **Story (environmental, no scene).**
+  - The hero, at the "USHUAIA - FIN DEL MUNDO" sign: "Ushuaia. The end of the world... and every one of them is walking
+    here." Under the sign the hive wrote "...Y EL PRINCIPIO" - "and the beginning".
+  - Everything walks in step: the crowds, the procession down the slope in the background, the footprints in the snow.
+    "They're walking in step. All of them... like one body."
+  - The prisoners' train: "It carried them to the prison... now they walk there by themselves."
+  - In the port: "The meltwater from the lab runs into this bay. The fungus came down the glacier with it." The cruise
+    ship reads "WE ARE ALL GOING HOME"; the houses read "WALK WITH US", "ONE STEP / ONE BODY", "ZERO / COME HOME".
+  - "They're not attacking the city... they're walking home."
+  - At the prison: "The ROOT isn't in the lab any more. It grew down here - under the whole city."
+  - After THE FERRYMAN, at the prison gate where the roots go down ("BAJEN / COME DOWN, ZERO"): "Down there. That's where
+    they're all walking... home." The gate is the way into the ROOT (62).
+
+
+### 62 THE HIVE MIND: "They learned to think as one"
+
+- **Setting.** Under Ushuaia, beneath the old End of the World prison (the Presidio), the ROOT has grown into a living cave.
+  - The walls are brain tissue and fungus, with cocoons holding bodies.
+  - Nerve threads carry pulses of light down toward the heart.
+  - Glowing memory pools replay the hero's old fights like old film.
+  - The hive writes to him in fungus on the walls: "WE ARE ONE", "EVERY LESSON CAME HOME", "TEACHER".
+- **Lesson.** The hive stops being many minds. Nerve knots fire a signal and every zombie in the hall knows where the hero is and attacks at the same moment ("THEY THINK AS ONE"). Everything it ever learned from him is here at once: in the pools, in the echoes of old bosses, in the bodies that refuse to stay bodies.
+- **New zombies.**
+  - **SEEPER.** Bright toxic green and see-through, with a skeleton floating inside and a glowing core in the chest. The hive learned that "a body can be shot - a puddle can't".
+    - A hit that would kill it makes it melt into a puddle that bullets only splash.
+    - The puddle flows to the hero, sticks to his boots, and rises whole again.
+    - The way to kill it is the core, best while it rises and the core is bare, or fire and explosions, which boil it away.
+    - Once it learns, it rises behind the hero, and later it splits into two.
+    - The boss is **THE FLOOD**, a giant made of many melted bodies. It breaks into a wave that floods the whole arena, rises on the other side, and learns in the fight: geysers under the hero's feet, then splitting off small seepers.
+  - **SYNAPSE (flyer).** Flying nerve cells, always in pairs or trios with a live current between them. They learned the hero dodges anything thrown at him, so they stretch a wall across his path.
+    - They hang still and then snap into place like a moving eye, and the current turns slowly through him.
+    - Shoot one knot and the link breaks.
+    - Once they learn, every group brings a spare that flies in and relinks.
+  - **REMNANT.** Ghostly echoes from the memory pools, each one an old fight: THE FIRST with its car door, THE SPITTER, SUBJECT FOUR's roll and uppercut, THE HOUND's leap. Each uses the trick it was killed with. Once they learn, each one uses two tricks at once: "everything they learned, used at once".
+- **Story scene (THE ONE VOICE).** In the chamber where all the nerves meet, a seeper stands in the biggest memory pool. For the first time the hive speaks with one voice, not a chorus:
+  - "Zero. You came down to us."
+  - "There is no one here. There is only us. One voice, now."
+  - "We were made to learn you."
+  - "Every one you killed was a lesson. Every lesson came home." (every pool flashes with his fights)
+  - The hero: "So I taught you how to kill me."
+  - "We do not hate you. You are our teacher."
+  - "We are not learning to beat you, Zero. We are learning to be you." (the face in the wall becomes his face)
+  - The hero: "Seven soldiers. One man's pattern. That was the project."
+  - "And the root still needs the first. Come down to the heart. Finish the lesson." (the speaker melts into the pool)
+  - The hero: "I'll finish it. My way."
+
+  Two memories rise from the pool. The hero: "Teacher. That's what I am to them."
+- **Ending.** THE FLOOD drains. Past it, the shaft goes down into the beating heart of the ROOT (63): "The heart is down there. I can hear it beating."
+
+
+### 63 THE HEART: "They learned you"
+
+- **Setting.** The heart of the ROOT, at the bottom of the shaft under Ushuaia's old prison. A cave of living flesh:
+  ribbed walls, glowing veins, roots hanging like curtains, a floor that beats. The hive has built the hero a museum:
+  statues of him in every pose he ever fought in, wombs where copies of him grow, a hall of mirrors with hundreds of
+  his silhouettes, and a wall of grown memories of the places he passed. At the entrance, carved in fungus: "WELCOME
+  HOME, ZERO". The heartbeat gets faster the deeper he goes.
+- **Lesson.** Every lesson from every region, all at once. It learned **him**: his distance, his roll, his cover,
+  his crouch, and above all his gun. The level counts which weapons you use, and the hive answers with them.
+- **New zombies.**
+  - **HOLLOW.** A copy of the hero grown in a womb: his coat and hood, and a black hollow where the face should be. It
+    keeps your distance, rolls when you shoot, jumps and fires, hides, clubs. After a few of them die, they all switch
+    to your favourite weapon ("THEY USE YOUR SHOTGUN NOW"). The mid-boss is **SUBJECT ZERO**, the hive's best copy,
+    alone with you in the hall of mirrors. Halfway down it remembers your last fight: it uses your two favourite guns
+    and copies your rolls and jumps. When it dies the hero says "It had my face... but not my memories."
+  - **PILGRIM (flyer).** A robed corpse flying face down on ray-like flesh wings, hugging a glowing sac: a lesson,
+    coloured by the weapon that taught it. It does not hunt you; it flies home to the ROOT, surging on every heartbeat.
+    Shoot the sac and the lesson is lost. Every lesson that gets home makes the ROOT resist that weapon. After a few
+    are lost, they throw the sac ahead when they die, so it can still drift home.
+  - **THE ROOT (final boss).** The first culture of ECHO: a heart-brain of fungus grown into the wall, with a core of
+    light. It fights with one lesson from each region: the Northeast's patience (roots that wait under the floor), the
+    Southeast's machines (fungus guns), the Southern Cone's plans (it marks where you will go), and Patagonia's
+    thinking: it opens into the hero's own hooded face and fires his own favourite gun at him. Through the fight,
+    PILGRIMs keep flying into its core to teach it. Each phase it learns how you beat the last trick.
+- **The ending (story scene, voiced, the player chooses).** The ROOT falls, and speaks with the hive's one voice:
+  - "Zero. You came all the way home." / "You're still talking."
+  - "Every lesson you gave us is in here. Every road. Every face you burned. We kept them all."
+  - "But you are the one lesson we never learned. You forgot. So you are free."
+  - "Come inside, and you will remember everything. Your name. The six. No one is ever alone again."
+  - "And every mind becomes one." / "Yes. Or end it. You are the only one who can."
+  - **[DESTROY]:** "You learned how I fight. You never learned why." / "Then teach us. One last time." / "This is the
+    last lesson." He shoots the core. It shatters, every glow in the world goes out, grey spores fall like ash, and
+    daylight comes down the shaft. "The spores went quiet. All of them, at once." / "No more lessons. Nobody left to
+    learn me." / "I still don't remember my name. But whatever I am... it's mine." - ENDING: THE HIVE IS SILENT.
+  - **[JOIN]:** "I'm tired of fighting myself." / "Then stop. Come home, Zero." He walks into the light; the roots
+    take him, his eyes turn green, and everything blooms. Then one voice, his and theirs: "I remember now. The lab.
+    The six. All of it." / "We are home." / "No more lessons. Now we just... know." - ENDING: EVERY MIND IS ONE.
+  - Then "THE END" and "THEY LEARNED YOU."
+- Both endings are true to the story: the lab file (60) said "If the network reclaims him, every mind becomes one" -
+  JOIN is exactly that; DESTROY is the STRANGER's wish (59). The hero never learns his name either way, except as a
+  memory inside the hive.
 
 ## How the game shows that they learn (rules for every new zombie)
 
