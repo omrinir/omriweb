@@ -69,7 +69,11 @@ func _results_buttons(first := false) -> void:
 	var y := 560.0
 	var d := 1.6 if first else 0.0   # בפעם הראשונה מחכים שהכוכבים יופיעו
 	var next := _btn("NEXT LEVEL", Vector2(vp.x / 2.0 - 330.0, y), Vector2(220, 56), Color("b3121a"), 26, d)
-	next.pressed.connect(_next)
+	if Game.level > Game.IMPLEMENTED:   # סיימת את השלב האחרון של המשחק - אין "שלב הבא"
+		next.text = "MAIN MENU"
+		next.pressed.connect(_menu)
+	else:
+		next.pressed.connect(_next)
 	_btn("UPGRADES", Vector2(vp.x / 2.0 - 100.0, y), Vector2(200, 56), Color("d8a033"), 26, d + 0.1).pressed.connect(_shop)
 	_btn("MAP", Vector2(vp.x / 2.0 + 120.0, y), Vector2(210, 56), Color("5a5a62"), 26, d + 0.2).pressed.connect(_map)
 	next.call_deferred("grab_focus")

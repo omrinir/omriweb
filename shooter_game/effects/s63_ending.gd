@@ -33,7 +33,7 @@ var main: Node = null
 var root: Node = null
 var player: Node2D = null
 var choice := ""
-var step := "talk"                 # talk / choose / outro / end / done
+var step := "talk"                 # talk / choose / outro / end / rate / thanks / done
 var lines_said := 0                # לבדיקות
 var _ui: CanvasLayer
 var _ui_draw: Node2D
@@ -48,6 +48,14 @@ var _white := 0.0
 var _end_k := 0.0
 var _ask_k := 0.0
 var _ask_tw: Tween = null
+var _rate_k := 0.0                 # חלון הדירוג (0..1)
+var _rate_hover := 0               # כמה כוכבים מסומנים (עכבר / מקשים), 0 = אף אחד
+var rating := 0                    # הדירוג שנבחר (1-5), 0 = דילג
+var _thanks_k := 0.0
+var _later: Control = null
+const FEEDBACK_PATH := "user://feedback.cfg"
+const STAR_R := 34.0
+const STAR_GAP := 96.0
 var _who := ""
 var _line := ""
 var _shown := 0.0
@@ -175,6 +183,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if step == "end":
 		if accept and _cont != null and _end_k > 0.9:
+			get_viewport().set_input_as_handled()
+			_ask_rating()
+		return
+	if step == "rate":
+		_rate_input(event, accept)
+		return
+	if step == "thanks":
+		if accept and _thanks_k > 0.9:
 			get_viewport().set_input_as_handled()
 			_complete()
 		return
@@ -395,12 +411,111 @@ func _the_end() -> void:
 	b.font_size = 32
 	b.accent = Color("d01818") if choice == "destroy" else Color("6ac83a")
 	b.size = Vector2(260.0, 64.0)
-	b.position = Vector2((vs.x - 260.0) * 0.5, vs.y * 0.5 + 120.0)
+	b.position = Vector2((vs.x - 260.0) * 0.5, vs.y * 0.5 + 180.0)
 	b.appear_delay = 0.2
 	_ui.add_child(b)
-	b.pressed.connect(_complete)
+	b.pressed.connect(_ask_rating)
 	_cont = b
 	b.grab_focus()
+
+
+# ---- אחרי THE END: "דרג את המשחק" 1-5 כוכבים, ואז "תודה על המשוב" ----
+# הדירוג נשמר במחשב של השחקן (user://feedback.cfg): כוכבים, איזה סוף, מתי.
+func _ask_rating() -> void:
+	if step != "end":
+		return
+	step = "rate"
+	if _cont != null:
+		_cont.queue_free()
+		_cont = null
+	_rate_hover = 0
+	create_tween().tween_property(self, "_black", 0.94, 0.5)
+	create_tween().tween_property(self, "_end_k", 0.0, 0.4)
+	create_tween().tween_property(self, "_rate_k", 1.0, 0.5)
+	var vs := get_viewport().get_visible_rect().size
+	var b := ButtonScript.new()
+	b.text = "NOT NOW"
+	b.font_size = 22
+	b.accent = Color("5a5a62")
+	b.size = Vector2(170.0, 46.0)
+	b.position = Vector2((vs.x - 170.0) * 0.5, vs.y * 0.5 + 150.0)
+	b.appear_delay = 0.5
+	b.focus_mode = Control.FOCUS_NONE   # ENTER בוחר כוכבים, לא "אחר כך"
+	_ui.add_child(b)
+	b.pressed.connect(func(): _rated(0))
+	_later = b
+
+
+func _star_center(i: int) -> Vector2:   # i = 0..4
+	var vs := get_viewport().get_visible_rect().size
+	return Vector2(vs.x * 0.5 + (float(i) - 2.0) * STAR_GAP, vs.y * 0.5 + 30.0)
+
+
+func _star_at(pos: Vector2) -> int:   # 1..5 או 0
+	for i in 5:
+		if pos.distance_to(_star_center(i)) < STAR_R * 1.25:
+			return i + 1
+	return 0
+
+
+func _rate_input(event: InputEvent, accept: bool) -> void:
+	if _rate_k < 0.6:
+		return
+	if event is InputEventMouseMotion:
+		var h := _star_at(event.position)
+		if h != _rate_hover and h > 0:
+			Sfx.play("ui", null, -10.0)
+		_rate_hover = h
+		return
+	var tap: bool = (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) \
+		or (event is InputEventScreenTouch and event.pressed)
+	if tap:
+		var n := _star_at(event.position)
+		if n > 0:
+			get_viewport().set_input_as_handled()
+			_rated(n)
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_5:
+		get_viewport().set_input_as_handled()
+		_rated(int(event.physical_keycode - KEY_1) + 1)
+		return
+	if event.is_action_pressed("ui_left") or (event is InputEventKey and event.pressed and event.physical_keycode in [KEY_A, KEY_LEFT]):
+		_rate_hover = clampi(_rate_hover - 1, 1, 5)
+		Sfx.play("ui", null, -10.0)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ui_right") or (event is InputEventKey and event.pressed and event.physical_keycode in [KEY_D, KEY_RIGHT]):
+		_rate_hover = clampi(_rate_hover + 1, 1, 5)
+		Sfx.play("ui", null, -10.0)
+		get_viewport().set_input_as_handled()
+	elif accept and _rate_hover > 0:
+		get_viewport().set_input_as_handled()
+		_rated(_rate_hover)
+
+
+func _rated(n: int) -> void:
+	if step != "rate":
+		return
+	if n <= 0:   # "NOT NOW" - בלי תודה, ישר למסך התוצאות
+		_complete()
+		return
+	rating = n
+	_rate_hover = n
+	step = "thanks"
+	Sfx.play("weapon", null, -4.0)
+	var cfg := ConfigFile.new()
+	cfg.load(FEEDBACK_PATH)   # אם אין קובץ - מתחילים חדש
+	cfg.set_value("rating", "stars", n)
+	cfg.set_value("rating", "ending", choice)
+	cfg.set_value("rating", "time", Time.get_datetime_string_from_system())
+	cfg.set_value("rating", "count", int(cfg.get_value("rating", "count", 0)) + 1)
+	cfg.save(FEEDBACK_PATH)
+	if _later != null:
+		_later.queue_free()
+		_later = null
+	create_tween().tween_property(self, "_thanks_k", 1.0, 0.5)
+	await _wait(3.2)
+	if step == "thanks":
+		_complete()
 
 
 func _complete() -> void:
@@ -528,6 +643,18 @@ func _on_ui_draw() -> void:
 	DrawBatch.end(_ui_draw)
 
 
+func _star(c: Vector2, r_: float, col: Color) -> void:   # כמו ב-results.gd
+	var pts := PackedVector2Array()
+	for i in 10:
+		var a := -PI / 2.0 + TAU * float(i) / 10.0
+		var rr := r_ if i % 2 == 0 else r_ * 0.45
+		pts.append(c + Vector2(cos(a), sin(a)) * rr)
+	DrawBatch.colored_polygon(_ui_draw, pts, col)
+	var closed := PackedVector2Array(pts)
+	closed.append(pts[0])
+	DrawBatch.polyline(_ui_draw, closed, Color(0, 0, 0, 0.8 * col.a), 2.0, true)
+
+
 func _centered(f: Font, y: float, text: String, fs: int, col: Color, outline := 6) -> void:
 	var vs := _ui_draw.get_viewport_rect().size
 	var w := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
@@ -580,6 +707,28 @@ func _ui_b() -> void:
 		var sc := Color(1.0, 0.6, 0.55, clampf(_end_k * 1.4 - 0.4, 0.0, 1.0)) if choice == "destroy" else Color(0.7, 1.0, 0.55, clampf(_end_k * 1.4 - 0.4, 0.0, 1.0))
 		_centered(f, vs.y * 0.5 + 30.0, sub, 26, sc, 5)
 		_centered(f, vs.y * 0.5 + 70.0, "THEY LEARNED YOU.", 20, Color(1, 1, 1, 0.55 * clampf(_end_k * 1.4 - 0.6, 0.0, 1.0)), 4)
+		_centered(f, vs.y * 0.5 + 130.0, "THANKS FOR PLAYING", 40, Color(1.0, 0.82, 0.3, clampf(_end_k * 1.4 - 0.8, 0.0, 1.0)), 6)
+	# דירוג
+	if _rate_k > 0.01:
+		var ra := _rate_k * (1.0 - _thanks_k)
+		if ra > 0.01:
+			_centered(f, vs.y * 0.5 - 90.0, "THANKS FOR PLAYING!", 30, Color(1.0, 0.82, 0.3, ra), 5)
+			_centered(f, vs.y * 0.5 - 40.0, "HOW WOULD YOU RATE THEY LEARN?", 40, Color(1.0, 0.96, 0.9, ra), 6)
+			var hint := "TAP A STAR" if TouchAPI.on() else "CLICK A STAR    or    1-5  /  LEFT RIGHT + ENTER"
+			_centered(f, vs.y * 0.5 + 110.0, hint, 18, Color(1, 1, 1, 0.5 * ra), 4)
+		var lit := rating if rating > 0 else _rate_hover
+		for i in 5:
+			var on := i < lit
+			var r := STAR_R * (1.12 if on and rating == 0 else 1.0)
+			if rating > 0 and on:
+				r *= 1.0 + 0.12 * sin(_clock * 5.0 + float(i) * 0.6)
+			var col := Color("f0c040") if on else Color(0.3, 0.28, 0.26)
+			col.a = _rate_k
+			_star(_star_center(i), r, col)
+		if _thanks_k > 0.01:
+			_centered(f, vs.y * 0.5 - 50.0, "THANKS FOR YOUR FEEDBACK!", 48, Color(1.0, 0.96, 0.9, _thanks_k), 7)
+			var word: String = ["", "1 STAR", "2 STARS", "3 STARS", "4 STARS", "5 STARS"][rating]
+			_centered(f, vs.y * 0.5 + 110.0, "YOU GAVE THEY LEARN " + word, 22, Color(1.0, 0.82, 0.3, 0.8 * _thanks_k), 4)
 	if step == "talk" or step == "outro":
 		if _bars > 0.5:
 			DrawBatch.string(_ui_draw, f, Vector2(vs.x - 150.0, 50.0), "ENTER  -  SKIP", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, 0.45))

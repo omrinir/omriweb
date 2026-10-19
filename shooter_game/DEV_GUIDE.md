@@ -3631,6 +3631,12 @@ is missing). The HUD is hidden, zombies are frozen, the player is not controllab
   `LEARN_HEAL`, `PULSE_*`, `ARENA_PG_T`.
 - Ending: `BAR_H`, `SPORES`; text in `story/scenes/l63_ending.gd`.
 
+**After THE END (thanks + rating).** THE END shows "THANKS FOR PLAYING". CONTINUE opens the rating window
+(`_ask_rating`): "HOW WOULD YOU RATE THEY LEARN?" with 5 stars (mouse hover/click, touch, 1-5 keys, left/right + ENTER,
+gamepad) and a NOT NOW button. A rating shows "THANKS FOR YOUR FEEDBACK!" for 3.2 s, then the results screen. The rating
+is saved only on the player's computer in `user://feedback.cfg` ([rating] stars, ending, time, count); nothing is sent
+anywhere. `results.gd`: after the last level (`Game.level > IMPLEMENTED`) the NEXT LEVEL button becomes MAIN MENU.
+
 
 # Polish pass (2026-10-17)
 
