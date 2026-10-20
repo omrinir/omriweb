@@ -327,6 +327,8 @@ func _ready() -> void:
 	else:
 		k = KINDS[clampi(kind, 0, KINDS.size() - 1)]
 	hp = k.hp + (100 * (mini(Game.level, 5) - 1) if is_boss() else 0)   # שלבים מאוחרים: הבוס לא "ספוג" יותר - הוא חכם יותר
+	if is_boss():
+		hp = int(float(hp) * Game.harder())   # שלבים 1-57: בוס +25% חיים
 	max_hp = hp
 	walk_speed = k.walk
 	chase_speed = k.chase
@@ -1451,10 +1453,18 @@ func _die(dir: Vector2) -> void:
 	_last_info["pos"] = global_position + Vector2(0.0, -52.0 * sc)   # לחותמת HEADSHOT של ui/kill_streak.gd
 	var bonuses: Array = Game.on_zombie_killed(kind, _last_info)
 	bonuses = bonuses.filter(func(b): return b[0] != "HEADSHOT")   # HEADSHOT מוצג בגדול ע"י ui/kill_streak.gd
-	for i in bonuses.size():
-		var b: Array = bonuses[i]
-		var txt: String = b[0] + (" +%d" % b[1] if int(b[1]) > 0 else "")
-		_popup(txt, Color("ffd34a"), 15, -96.0 - float(i) * 17.0)
+	# שורה אחת בלבד (הבונוס הגדול + סך הכל), ורק כשהניקוד גדול (150+) או לפעמים (Game.show_pop)
+	if not bonuses.is_empty():
+		var top: Array = bonuses[0]
+		var total := 0
+		for b in bonuses:
+			total += int(b[1])
+			if int(b[1]) > int(top[1]):
+				top = b
+		var big := total >= 150 or (int(top[1]) == 0 and Game.combo >= 10)
+		if Game.show_pop(big):
+			var txt: String = str(top[0]) + (" +%d" % total if total > 0 else "")
+			_popup(txt, Color("ffd34a"), 17 if big else 15, -96.0)
 	# בוס מסוג חדש (enemies/types, למשל TANK בשלב 8): פותח את השער + שלל של בוס
 	if _mod_boss:
 		_drop(PickupScript.BOOST)

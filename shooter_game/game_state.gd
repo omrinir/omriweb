@@ -447,6 +447,22 @@ func level_title() -> Array:
 
 
 # כמה הזומבים "חכמים" בשלב הזה (מתכופפים, מתחבאים, מכוונים לאן שאתה הולך)
+# קושי (2026-10-20): שלבים 1-57 קשים ב-25% (יותר זומבים, בוס עם יותר חיים, קצת יותר מהירים).
+# שלבים 58-63 כבר קשים - לא נוגעים. חיי זומבי רגיל לא משתנים (שההריגה תישאר מהירה).
+const HARDER_UNTIL := 57
+const HARDER := 1.25
+
+func harder() -> float:
+	return HARDER if level <= HARDER_UNTIL else 1.0
+
+
+# פופאפים של ניקוד: לא כל הריגה. גדול = תמיד, קטן = לפעמים (POP_CHANCE)
+const POP_CHANCE := 0.3
+
+func show_pop(big: bool) -> bool:
+	return big or randf() < POP_CHANCE
+
+
 func intelligence() -> float:
 	return 1.0 + 0.25 * float(level - 1)
 

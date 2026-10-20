@@ -14,6 +14,8 @@ const DrawBatch := preload("res://effects/draw_batch.gd")
 #    * הרצף נשבר: הכל נופל ונעלם. רצף של 5+ = סיכום "x6 CHAIN +900" שעולה למעלה.
 #    * רצף של 5-7: לפעמים (SPREE_SOUND_CHANCE) מתנגן "spree_die" (sounds/streak/spree_die.mp3), מהיר ב-15%.
 #  הלוגיקה (זמן, מד, בונוס) ב-game_state.gd (streak_*). לשנות מראה: TIERS, OFF, BAR_H.
+#  פחות עומס על המסך (2026-10-20): המד מופיע תמיד מ-SHOW_FROM הריגות ברצף, ברצף קטן יותר רק לפעמים
+#  (Game.show_pop). HEADSHOT וכיתוב של הריגה בודדת - רק לפעמים, וחותמת HEADSHOT אחת בכל רגע. הצלילים תמיד.
 # ============================================================
 
 const Art := preload("res://art.gd")
@@ -70,6 +72,7 @@ const OUTLINE := Color(0.08, 0.04, 0.04)
 const SPREE_SOUND_AT := Vector2i(5, 7)   # באיזו הריגה ברצף (נבחר אקראית בכל רצף)
 const SPREE_SOUND_CHANCE := 0.6          # הסיכוי שהצליל יתנגן ברצף הזה
 const SPREE_SOUND_PITCH := 1.15          # 15% מהר יותר
+const SHOW_FROM := 4                     # מכאן המד תמיד מוצג (EXCELLENT ומעלה)
 
 var player: Node2D = null
 var count := 0
@@ -93,6 +96,7 @@ var _word := ""
 var _spree_at := 0                    # באיזו הריגה הצליל של הרצף הזה (0 = לא ברצף הזה)
 var spree_sounds := 0                 # לבדיקות
 var _last_word := ""
+var _shown := false                   # האם הרצף הזה מוצג (נבחר בהריגה השנייה, תמיד מ-SHOW_FROM)
 var _layer: CanvasLayer
 var _ui: Node2D
 static var _font: Font = null
@@ -132,14 +136,15 @@ func _pick(arr: Array) -> String:
 
 
 func _on_kill(n: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void:
-	if head and pos != Vector2.INF:
+	if head and pos != Vector2.INF and _stamps.is_empty() and Game.show_pop(n >= SHOW_FROM):
 		_stamps.append([pos, 0.0])
 	if n == 1:
 		heads = [head]
 		count = 1
 		_spree_at = randi_range(SPREE_SOUND_AT.x, SPREE_SOUND_AT.y) if randf() < SPREE_SOUND_CHANCE else 0
-		for tg in tags:   # הריגה בודדת מיוחדת: כיתוב קטן שעולה
-			if tg in SOLO:
+		_shown = false
+		for tg in tags:   # הריגה בודדת מיוחדת: כיתוב קטן שעולה (לפעמים)
+			if tg in SOLO and Game.show_pop(false):
 				var c: Color = SPECIAL_COL.get(tg, Color(1.0, 0.85, 0.3))
 				_summaries.append([_pick(SPECIAL[tg]), 0.0, _anchor + Vector2(70.0, -175.0), c, true])
 				Sfx.play("streak_tick", null, -6.0, 0.05, 2, 1.2)
@@ -147,6 +152,10 @@ func _on_kill(n: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void
 		return
 	_end_t = 0.0
 	count = n
+	if n == 2:   # רצף קטן: רק לפעמים (הריגה מיוחדת = סיכוי כפול)
+		_shown = randf() < Game.POP_CHANCE * (2.0 if not tags.is_empty() else 1.0)
+	if n >= SHOW_FROM:
+		_shown = true
 	_summaries = _summaries.filter(func(sm): return not sm[4])   # הרצף התחיל: הכיתוב הקטן מפנה מקום למד
 	heads.append(head)
 	if heads.size() > 12:
@@ -161,7 +170,8 @@ func _on_kill(n: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void
 	if t != tier or n == 2:
 		tier = t
 		_spin_v = 9.0
-		_burst_sparks(TIERS[tier][1], 14 + tier * 3)
+		if _shown:
+			_burst_sparks(TIERS[tier][1], 14 + tier * 3)
 		Sfx.play("streak_up", null, -4.0 + float(tier) * 0.4, 0.0, 2, 1.0 + 0.09 * float(tier))
 	else:
 		Sfx.play("streak_tick", null, -8.0, 0.05, 3, 1.0 + 0.03 * float(n))
@@ -173,7 +183,7 @@ func _on_kill(n: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void
 func _on_end(n: int, total: int) -> void:
 	if n >= 2:
 		_end_t = 0.001
-	if n >= 5 and tier >= 0:
+	if n >= 5 and tier >= 0 and _shown:
 		_summaries.append(["x%d CHAIN  +%d" % [n, total], 0.0, _anchor + Vector2(70.0, -185.0), TIERS[tier][1], false])
 	count = 0
 
@@ -194,7 +204,7 @@ func _process(delta: float) -> void:
 	_spin += _spin_v * delta
 	_bonus_t += delta
 	_meter = move_toward(_meter, Game.streak_meter / Game.STREAK_FULL, delta * 3.0) if Game.streak > 0 else _meter
-	var showing := count >= 2 and Game.streak > 0
+	var showing := count >= 2 and Game.streak > 0 and _shown
 	if _end_t > 0.0:
 		_end_t += delta
 		_alpha = maxf(1.0 - _end_t / 0.45, 0.0)

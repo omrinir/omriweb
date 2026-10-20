@@ -4239,3 +4239,13 @@ This replaces the separate ability slots (6-0, reserve swap-in) and the separate
 - Then it collapses: `Boom.blast` with `BLAST_R` 170 and `BLAST_DMG` 60 (source "grenade", so armour that ignores bullets still takes it), 1 heart to the player if he stands inside, plus a purple `Flash` ring.
 - Look: particles only (user choice, 2026-10-17). ~170 light dots (blue to white, some purple) spiral inward, speed up and shrink near the centre, with 2-dot trails; ~60 large faint dark dots orbit the centre and form the "hole". Zombies darken as they get close (`modulate`, restored on collapse) and vanish into the dark cloud (z_index 14). In the last `COLLAPSE_T` (0.28 s) everything is sucked to a point, then `Flash` bursts 90 sparks outward with drag. No rings, glows or shapes.
 - Icons: `draw_icon()` (bar, wheel, pickup, in hand). Test: `devtools/t_gravity.gd` (6 zombies around a point: 5/6 pulled in and killed on stages 12 and 46).
+
+## Quieter score popups + harder levels 1-57 (2026-10-20)
+- Popups (user: "keep all, but show them randomly, and always when the score is big"):
+  - `Game.show_pop(big)` returns true when big, otherwise with `Game.POP_CHANCE` (0.3).
+  - Kill streak meter (ui/kill_streak.gd): always shown from `SHOW_FROM` (4) kills in a streak. At 2-3 kills it shows only sometimes (chosen once per streak, double chance on a special kill). Sounds always play.
+  - HEADSHOT stamp and single special-kill captions: only sometimes, and one HEADSHOT stamp at a time.
+  - Kill bonus text on the zombie (zombie.gd): one line (biggest bonus + total). Always shown when the total is 150+, otherwise sometimes.
+  - HUD: COMBO shows from x3 (`COMBO_SHOW_MULT`), STYLE only at A/S (`STYLE_SHOW_RANK`). Both fade in and out.
+- Difficulty: `Game.harder()` = 1.25 for levels 1-57 (`HARDER_UNTIL`), 1.0 for 58-63 (already hard).
+  - Zombies per screen x1.25, boss HP x1.25, zombie and boss speed +10%. Normal zombie HP is unchanged, so kills stay fast.

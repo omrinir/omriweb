@@ -142,6 +142,7 @@ func _ready() -> void:
 		zombies_per_screen *= _stage.zombie_density()
 	_start_music()
 	zombies_per_screen *= 1.0 + 0.15 * float(mini(Game.level, 5) - 1)
+	zombies_per_screen *= Game.harder()   # שלבים 1-57: +25% זומבים
 	if _stage == null:
 		zombie_weights[2] += 0.04 * float(Game.level - 1)
 	var vp := get_viewport_rect().size
@@ -1143,7 +1144,7 @@ func _make_exit(floor_y: float) -> void:
 	boss.position = Vector2(level_w - 480.0, floor_y)
 	boss.chase_range = 650.0
 	var diff: Dictionary = Settings.preset()
-	boss.speed_mult = diff.zombie_speed
+	boss.speed_mult = diff.zombie_speed * (1.0 + 0.4 * (Game.harder() - 1.0))
 	add_child(boss)
 	boss.world_w = level_w
 	boss._dir = -1.0
@@ -1229,7 +1230,7 @@ func _spawn_zombie(x: float, floor_y: float, kind := 0, rng: RandomNumberGenerat
 	var z = ZombieScene.instantiate()
 	z.kind = kind   # 0 = רגיל, 1 = רץ, 2 = ענק, 3 = יורק, 4 = צורח ... (ראה zombie.gd)
 	var diff: Dictionary = Settings.preset()
-	z.speed_mult = diff.zombie_speed
+	z.speed_mult = diff.zombie_speed * (1.0 + 0.4 * (Game.harder() - 1.0))   # שלבים 1-57: +10% מהירות
 	z.smart_mult = diff.smart * Game.intelligence()   # THEY LEARN: חכמים יותר בכל שלב
 	if rng != null and rng.randf() < dormant_chance and kind < 7:
 		z.dormant = true   # שוכב על הריצפה וקם כשמתקרבים

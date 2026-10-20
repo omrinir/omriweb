@@ -26,6 +26,11 @@ var _pulse := 0.0
 var _score_shown := 0.0
 var _combo_pop := 0.0
 var _last_mult := 1
+# קומבו ו-STYLE מוצגים רק כשהם גדולים (קומבו x3+, STYLE A/S) - נכנסים ויוצאים בהדרגה
+const COMBO_SHOW_MULT := 3
+const STYLE_SHOW_RANK := 3
+var _combo_a := 0.0
+var _style_a := 0.0
 var difficulty := ""
 var difficulty_color := Color.WHITE
 
@@ -60,13 +65,15 @@ func _process(delta: float) -> void:
 	_combo_pop = maxf(_combo_pop - delta * 3.0, 0.0)
 	_score_shown = move_toward(_score_shown, float(Game.run_score + Game.level_score), maxf(400.0 * delta, absf(float(Game.run_score + Game.level_score) - _score_shown) * 6.0 * delta))
 	var m := Game.multiplier()
+	_combo_a = move_toward(_combo_a, 1.0 if m >= COMBO_SHOW_MULT and Game.combo > 0 else 0.0, delta * 4.0)
+	_style_a = move_toward(_style_a, 1.0 if Game.style_rank() >= STYLE_SHOW_RANK else 0.0, delta * 3.0)
 	if m != _last_mult:
 		if m > _last_mult:
 			_combo_pop = 1.0
 		_last_mult = m
 	# כל פריים שני כשאין אנימציה (ה-HUD עולה ~0.6ms לציור)
 	_rf += 1
-	if _rf % 2 == 0 or _intro_t < 6.0 or _combo_pop > 0.0 or _pulse > 0.0:
+	if _rf % 2 == 0 or _intro_t < 6.0 or _combo_pop > 0.0 or _pulse > 0.0 or (_combo_a > 0.0 and _combo_a < 1.0) or (_style_a > 0.0 and _style_a < 1.0):
 		queue_redraw()
 
 
@@ -151,9 +158,9 @@ func _draw_eye(c: Vector2) -> void:
 		DrawBatch.circle(self, c, 18.0, Color(1.0, 0.2, 0.1, 0.12 * _eye_flash))
 
 
-func _text(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
+func _text(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, fade := 1.0) -> void:
 	var f := ThemeDB.fallback_font
-	DrawBatch.string_outline(self, f, pos, t, align, width, size, 4, Color(0, 0, 0, 0.75))
+	DrawBatch.string_outline(self, f, pos, t, align, width, size, 4, Color(0, 0, 0, 0.75 * fade))
 	DrawBatch.string(self, f, pos, t, align, width, size, col)
 
 
@@ -320,21 +327,24 @@ func _draw_b() -> void:
 	_draw_eye(Vector2(rx - 92.0, 25.0))
 	_text(Vector2(rx - 300, 58), "%d" % int(_score_shown), 26, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, 300)
 	var m := Game.multiplier()
-	if Game.combo > 0:
+	if Game.combo > 0 and _combo_a > 0.01:
 		var size := int(20 + 10 * _combo_pop)
+		var ca := _combo_a
 		var mc := Color("ffd34a") if m > 1 else Color(1, 1, 1, 0.8)
-		_text(Vector2(rx - 300, 88), "x%d   COMBO %d" % [m, Game.combo], size, mc, HORIZONTAL_ALIGNMENT_RIGHT, 300)
+		_text(Vector2(rx - 300, 88), "x%d   COMBO %d" % [m, Game.combo], size, Color(mc, mc.a * ca), HORIZONTAL_ALIGNMENT_RIGHT, 300, ca)
 		var k := clampf(Game.combo_t / Game.COMBO_WINDOW, 0.0, 1.0)
-		DrawBatch.rect(self, Rect2(Vector2(rx - 120, 96), Vector2(120, 3)), Color(0, 0, 0, 0.5))
-		DrawBatch.rect(self, Rect2(Vector2(rx - 120 * k, 96), Vector2(120 * k, 3)), mc)
-	# ---- דירוג סטייל ----
-	var sr := Game.style_rank()
-	var scol: Color = [Color(0.6, 0.6, 0.6), Color("7ad0ff"), Color("7aff8a"), Color("ffd34a"), Color("ff4a3a")][sr]
-	_text(Vector2(rx - 300, 150), Game.STYLE_RANKS[sr], 40, Color(scol, 0.4 + 0.6 * clampf(Game.style / 20.0, 0.0, 1.0)), HORIZONTAL_ALIGNMENT_RIGHT, 300)
-	_text(Vector2(rx - 300, 168), "STYLE", 12, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_RIGHT, 300)
-	var sk := fmod(Game.style, 20.0) / 20.0 if sr < 4 else 1.0
-	DrawBatch.rect(self, Rect2(Vector2(rx - 60, 174), Vector2(60, 3)), Color(0, 0, 0, 0.5))
-	DrawBatch.rect(self, Rect2(Vector2(rx - 60, 174), Vector2(60 * sk, 3)), scol)
+		DrawBatch.rect(self, Rect2(Vector2(rx - 120, 96), Vector2(120, 3)), Color(0, 0, 0, 0.5 * ca))
+		DrawBatch.rect(self, Rect2(Vector2(rx - 120 * k, 96), Vector2(120 * k, 3)), Color(mc, mc.a * ca))
+	# ---- דירוג סטייל (רק A / S) ----
+	if _style_a > 0.01:
+		var sa := _style_a
+		var sr := maxi(Game.style_rank(), STYLE_SHOW_RANK)
+		var scol: Color = [Color(0.6, 0.6, 0.6), Color("7ad0ff"), Color("7aff8a"), Color("ffd34a"), Color("ff4a3a")][sr]
+		_text(Vector2(rx - 300, 150), Game.STYLE_RANKS[sr], 40, Color(scol, sa), HORIZONTAL_ALIGNMENT_RIGHT, 300, sa)
+		_text(Vector2(rx - 300, 168), "STYLE", 12, Color(1, 1, 1, 0.6 * sa), HORIZONTAL_ALIGNMENT_RIGHT, 300, sa)
+		var sk := fmod(Game.style, 20.0) / 20.0 if sr < 4 else 1.0
+		DrawBatch.rect(self, Rect2(Vector2(rx - 60, 174), Vector2(60, 3)), Color(0, 0, 0, 0.5 * sa))
+		DrawBatch.rect(self, Rect2(Vector2(rx - 60, 174), Vector2(60 * sk, 3)), Color(scol, sa))
 	# ---- בר חיים של הבוס ----
 	if player != null:
 		for z in get_tree().get_nodes_in_group("zombies"):
