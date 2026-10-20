@@ -3,7 +3,7 @@ extends RefCounted
 #  ZOMBIE MIX - זומבים חוזרים בשלבים אחרים (2026-10-20).
 #  "Most zombies appear in only one level, so there's nothing to master":
 #    * זומבי שהופיע לראשונה בשלב N חוזר בשלבים N+1 ו-N+2, בפחות (NEXT_K מהמשקל).
-#    * וחוזר עוד 1-2 פעמים בשלבים מאוחרים יותר "באקראי" (GUEST_K). האקראיות קבועה לכל סוג
+#    * וחוזר עוד 1-2 פעמים בשלבים מאוחרים יותר "באקראי" (GUEST_K, עד GUEST_SPAN שלבים אחרי, עד MAX_GUESTS בשלב). האקראיות קבועה לכל סוג
 #      (seed לפי הסוג), כך שכל זומבי חוזר בדיוק באותם 1-2 שלבים בכל משחק - אפשר לבדוק ולתכנן.
 #  main.gd קורא ל-mix() אחרי zombie_weights() של השלב.
 #  INTRO = הזומבים החדשים של כל שלב והמשקל שלהם שם (נוצר מ-levels/stage_N.gd -> zombie_weights).
@@ -15,6 +15,8 @@ const R := preload("res://enemies/zombie_registry.gd")
 const NEXT_K := [0.5, 0.25]     # שלב אחד אחרי / שניים אחרי: חצי ורבע מהמשקל
 const GUEST_K := 0.5            # אורח בשלב מאוחר
 const GUESTS := Vector2i(1, 2)  # בכמה שלבים מאוחרים כל זומבי חוזר
+const MAX_GUESTS := 4           # לכל היותר אורחים בשלב אחד (השלבים האחרונים מקבלים הרבה מועמדים)
+const GUEST_SPAN := 24          # בתוך כמה שלבים אחרי N+2 (שלא כולם יתקבצו בשלבים האחרונים)
 const LAST_LEVEL := 63
 
 const INTRO := {
@@ -109,6 +111,7 @@ static func mix(level: int, w: Dictionary) -> Dictionary:
 # [[סוג, משקל מקורי, מקדם], ...] - מי חוזר לשלב הזה
 static func extras(level: int) -> Array:
 	var res := []
+	var guests := []
 	for from_lv in INTRO:
 		var d: int = level - int(from_lv)
 		if d <= 0:
@@ -119,7 +122,17 @@ static func extras(level: int) -> Array:
 			if d <= NEXT_K.size():
 				res.append([k, INTRO[from_lv][k], NEXT_K[d - 1]])
 			elif level in guest_levels(k, int(from_lv)):
-				res.append([k, INTRO[from_lv][k], GUEST_K])
+				guests.append([k, INTRO[from_lv][k], GUEST_K])
+	if guests.size() > MAX_GUESTS:   # יותר מדי: בוחרים "באקראי" (קבוע לכל שלב)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = level * 31337 + 7
+		for i in range(guests.size() - 1, 0, -1):
+			var j := rng.randi_range(0, i)
+			var t = guests[i]
+			guests[i] = guests[j]
+			guests[j] = t
+		guests.resize(MAX_GUESTS)
+	res.append_array(guests)
 	return res
 
 
@@ -135,7 +148,7 @@ static func guest_levels(kind: int, from_lv: int) -> Array:
 	for i in 12:
 		if res.size() >= n:
 			break
-		var lv := rng.randi_range(first, LAST_LEVEL)
+		var lv := rng.randi_range(first, mini(first + GUEST_SPAN, LAST_LEVEL))
 		if not lv in res:
 			res.append(lv)
 	return res
