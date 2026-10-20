@@ -1555,7 +1555,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		Settings._save()
 		var nm: String = Settings.AIM_NAMES[Settings.aim_guide] if Settings.difficulty == Settings.EASY or Settings.aim_guide == 0 else "CROSSHAIR"
 		_say("AIM: " + nm, Color(0.9, 0.9, 0.85))
-	elif event.physical_keycode == KEY_K:
+	elif event.physical_keycode == KEY_K and OS.has_feature("editor"):   # מקש בדיקה: מוות מיידי (רק מתוך העורך של Godot)
 		_invuln = 0.0
 		boosts.erase(PickupScript.GOD)
 		hurt(health, Vector2.ZERO)

@@ -49,7 +49,7 @@ func _boss() -> bool:
 func stats() -> Dictionary:
 	return {"name": "TANK", "hp": 150, "walk": 26.0, "chase": 50.0, "damage": 2, "bite_delay": 1.4, "scale": 1.7, "width": 1.55,
 		"duck": 0.0, "cover": 0.0, "skin": Color("7c8a86"), "shirt": Color("3a4652"), "pants": Color("262c34"), "shoe": Color("17171a"),
-		"points": 600, "boss": _boss(), "boss_name": "SUBJECT ZERO - THE TANK"}
+		"points": 600, "boss": _boss(), "boss_name": "SUBJECT SIX - THE TANK"}
 
 
 func brain_overrides() -> Dictionary:

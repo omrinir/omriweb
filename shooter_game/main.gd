@@ -301,9 +301,9 @@ func _ready() -> void:
 	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
-	label.text = "A/D move (x2 run)  W jump/climb  S crouch (SxS drop)  LMB fire  R reload  Q wheel  1-5  C use power  E next power  G drop  SHIFT roll  RMB scope  L aim"
+	label.text = PauseScript.CONTROLS
 	label.position = Vector2(12, 8)
-	label.visible = not TouchAPI.on()   # טלפון: אין מקלדת
+	label.visible = not TouchAPI.on() and Game.level <= PauseScript.SHOW_CONTROLS_UNTIL   # טלפון: אין מקלדת. אחרי שלב 3: ESC מציג אותם
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	label.add_theme_constant_override("shadow_offset_x", 1)

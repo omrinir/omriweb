@@ -102,7 +102,20 @@ func _draw_intro(vp: Vector2) -> void:
 	DrawBatch.string_outline(self, f, Vector2(-w * 0.5, 0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 7, Color(0, 0, 0, 0.8 * a))
 	DrawBatch.string(self, f, Vector2(-w * 0.5, 0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.85, 0.12, 0.1, a))
 	DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
-	_text(Vector2(0, y + 52), t[1], 18, Color(0.9, 0.85, 0.8, 0.85 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+	# תיאור ארוך לא נכנס בשורה אחת: שוברים לשתי שורות ליד האמצע (שלא ייחתך בקצוות המסך)
+	var sub: String = t[1]
+	var sub_col := Color(0.9, 0.85, 0.8, 0.85 * a)
+	if f.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x > vp.x - 80.0:
+		var mid := sub.length() / 2
+		var cut := sub.rfind(" ", mid)
+		var cut2 := sub.find(" ", mid)
+		if cut < 0 or (cut2 >= 0 and cut2 - mid < mid - cut):
+			cut = cut2
+		if cut > 0:
+			_text(Vector2(0, y + 52), sub.substr(0, cut), 18, sub_col, HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+			_text(Vector2(0, y + 74), sub.substr(cut + 1), 18, sub_col, HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+			return
+	_text(Vector2(0, y + 52), sub, 18, sub_col, HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 
 
 # "העין": סמל עדין של כמה הזומבים "ערים" בשלב הזה. בלי מספרים - נפתחת יותר בכל שלב,

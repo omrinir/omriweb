@@ -557,7 +557,7 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   Boss THE FOREMAN: 3 sticks in a fan.
 - Mind control: DYNAMITER -> explode, ECHO -> pounce.
 
-## Stage 30 - "FROZEN VILLAGE" ("THEY LEARNED THE COLD") - Andean highland village in a blizzard, region 4 level 3
+## Stage 30 - "FROZEN VILLAGE" ("THEY LEARNED THE WINTER") - Andean highland village in a blizzard, region 4 level 3
 - levels/stage_30.gd + effects/s30_decor.gd: grey blizzard sky, faded ridges, adobe houses with snowy roofs + smoking chimneys, a white colonial church,
   alpaca pens, colorful frozen laundry, snowdrifts. World: SnowGround (snow over cobbles, footprints), House walls under each roof platform (HOUSES, "roof")
   with lit windows and a chimney that puffs smoke particles, BellTower (TOWER, group "bells": ring() swings the bell + sound waves; a wooden floor at TOWER_H),
@@ -965,7 +965,7 @@ flags, and they all work for one goal: to conquer the world.
   from the last one (run_bias). mg burst. "JUMP! JUMP!" - JUMP_N paratroopers when few soldiers are near.
 - Game.IMPLEMENTED = 44.
 
-## Stage 45 - "THE RED PALACE" ("THEY LEARNED YOU") - the Imperial Palace of Petropolis, region 5 level 9 (the end of the Empire)
+## Stage 45 - "THE RED PALACE" ("THEY LEARNED YOUR TRICKS") - the Imperial Palace of Petropolis, region 5 level 9 (the end of the Empire)
 - levels/stage_45.gd + effects/s45_decor.gd: red dusk with a moon, the Serra dos Orgaos with the "Finger of God" peak, Petropolis'
   gothic cathedral, the neoclassical summer palace of Brazil's emperors painted red (columns, lit arched windows, giant banners,
   imperial palms), a hydrangea garden with an iron fence. World: PalaceGround (stone + red carpet), Balcony (upper floor at TIER +

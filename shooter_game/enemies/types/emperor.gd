@@ -2,7 +2,7 @@ extends "res://enemies/stationary_boss.gd"
 # ============================================================
 #  THE EMPEROR (הבוס האחרון של שלב 45, "THE RED PALACE") - קיסר המתים על כס המלכות בארמון פטרופוליס.
 #  גלימה אדומה עם פרווה לבנה, כתר זהב עם הנחש העתיק, שרביט עם כדור זוהר. עומד מול הכס על במת המדרגות.
-#  "THEY LEARNED YOU" - הסיכום של כל האימפריה:
+#  "THEY LEARNED YOUR TRICKS" - הסיכום של כל האימפריה:
 #    bolts  - מניפה של BOLT_N כדורי אש מהשרביט, בגובה שכל הרובאים בשלב למדו מההתחמקויות שלך (empire_kit squad_aim_y).
 #    guards - "GUARDS!": קורא ל-GUARD_N משמר (PRAETORIAN) כשיש פחות מ-GUARD_MAX. כל עוד המשמר קרוב לכס (GUARD_R) -
 #             הוא מקבל רק GUARD_MULT נזק ("THE GUARD PROTECTS HIM"). תהרוג את המשמר!

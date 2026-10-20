@@ -178,7 +178,7 @@ class ResultsPanel extends Node2D:
 			var a := clampf((_t - 0.9 - float(i) * 0.08) / 0.2, 0.0, 1.0)
 			if a <= 0.0:
 				continue
-			var y := 214.0 + float(i) * 28.0
+			var y := 210.0 + float(i) * 26.0   # השורה האחרונה ב-444 - מקום ל-SCRAP / NEW BEST / THEY FORGET YOU מתחת
 			var col := Color(0.85, 0.82, 0.78, a)
 			if i >= 8:
 				col = Color(1, 1, 1, a)
@@ -188,12 +188,12 @@ class ResultsPanel extends Node2D:
 			_txt(Vector2(px + 90, y), lines[i][1], 18, col, HORIZONTAL_ALIGNMENT_RIGHT, pw - 180.0)
 		if int(r.get("medal", 0)) == 2:   # GOLD: בשלב הבא הם זוכרים פחות עליך (progression/level_clock.gd)
 			var ga := clampf((_t - 1.9) / 0.4, 0.0, 1.0)
-			_txt(Vector2(0, 512), "THEY FORGET YOU  -  the next level knows less about how you fight", 15, Color(0.94, 0.75, 0.25, ga), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+			_txt(Vector2(0, 530), "THEY FORGET YOU  -  the next level knows less about how you fight", 14, Color(0.94, 0.75, 0.25, ga), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 		if _t > 1.8:
-			_txt(Vector2(0, 482), "+%d SCRAP" % r.scrap, 20, Color("d8a033"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+			_txt(Vector2(0, 478), "+%d SCRAP" % r.scrap, 20, Color("d8a033"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 			if r.best:
 				var pulse := 0.7 + 0.3 * sin(_t * 6.0)
-				_txt(Vector2(0, 512), "NEW BEST SCORE!", 22, Color(1.0, 0.85, 0.3, pulse), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+				_txt(Vector2(0, 505), "NEW BEST SCORE!", 22, Color(1.0, 0.85, 0.3, pulse), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 
 	func _star(c: Vector2, r_: float, col: Color) -> void:
 		if r_ <= 0.5:

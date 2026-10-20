@@ -16,6 +16,7 @@ const PropScript := preload("res://prop.gd")
 const StreetPropScript := preload("res://street_prop.gd")
 const RoadDecorScript := preload("res://road_decor.gd")
 const ButtonScript := preload("res://menu_button.gd")
+const PauseScript := preload("res://pause_menu.gd")
 
 const GAME_SCENE := "res://main.tscn"
 const MAP_SCENE := "res://map.tscn"
@@ -161,17 +162,20 @@ func _build_ui(vp: Vector2) -> void:
 		play.pressed.connect(_open_map)   # PLAY = מפת היבשת
 		first = play
 
-	# תרגול: קפיצה ישר לשלב 2-22 עם ציוד מתאים (לא נשמר, לא נוגע בשמירה)
+	# תרגול: קפיצה ישר לכל שלב עם ציוד מתאים (לא נשמר, לא נוגע בשמירה).
+	# רק כשמריצים מתוך העורך של Godot (בדיקות) - במשחק שמשחררים השחקן רואה מסך פתיחה נקי
+	var dev := OS.has_feature("editor")
 	var plbl := Caption.new()
 	plbl.text = "PRACTICE  (NOT SAVED)"
 	plbl.size = 15
 	plbl.position = Vector2(396, 250)
+	plbl.visible = dev
 	ui.add_child(plbl)
 	var accents := [Color("3a8acc"), Color("d8902a"), Color("6a5acd"), Color("c04a3a"), Color("4a90a0"), Color("c0a030"), Color("40b0a0"), Color("d02040"), Color("e8b84a"), Color("8a6ad0"), Color("c03a2a"), Color("d8c49c"), Color("5a8aa0"), Color("e8483a"), Color("d89a5a"), Color("e0c070"), Color("f0a020"), Color("4aa060"), Color("2e7a40"), Color("d8784a"), Color("5a8ab0"), Color("d86a2a"), Color("e0a040"), Color("7a8ad8")]
-	var n: int = Game.IMPLEMENTED - 1
+	var n: int = Game.IMPLEMENTED - 1 if dev else 0
 	var rows := 1 if n <= 24 else 2   # הרבה שלבים -> שתי שורות (שהמספרים יישארו קריאים)
 	var per_row := int(ceil(float(n) / float(rows)))
-	var step: float = minf(41.0, 864.0 / float(per_row))
+	var step: float = minf(41.0, 864.0 / float(maxi(per_row, 1)))
 	var bh := 44.0 if rows == 1 else 38.0
 	for i in n:
 		var col := i % per_row
@@ -214,7 +218,7 @@ func _build_ui(vp: Vector2) -> void:
 	var hint := Caption.new()
 	hint.size = 15
 	hint.color = Color(1, 1, 1, 0.55)
-	hint.text = "A/D move   W jump   S crouch   MOUSE aim   LMB fire   Q wheel   1-5 weapons   G drop   E grenade   SHIFT roll   F grapple   ESC pause"
+	hint.text = PauseScript.CONTROLS_SHORT
 	hint.position = Vector2(20, vp.y - 18.0)
 	hint.visible = not TouchAPI.on()
 	ui.add_child(hint)
@@ -224,6 +228,7 @@ func _build_ui(vp: Vector2) -> void:
 	build.color = Color(0.6, 1.0, 0.6, 0.8)
 	build.text = "LEVELS INSTALLED: %d" % Game.IMPLEMENTED
 	build.position = Vector2(vp.x - 190.0, vp.y - 42.0)
+	build.visible = dev
 	ui.add_child(build)
 
 	first.call_deferred("grab_focus")
