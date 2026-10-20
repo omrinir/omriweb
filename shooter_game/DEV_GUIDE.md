@@ -4433,3 +4433,8 @@ Screenshots were checked on 13, 34, 44 and 52 for: waiting, following with heart
 - On the kill: big FleshFx burst at the waist, blood spray, "splat" + "corpse_splat", and sometimes a "TORN IN HALF!" popup (`Game.show_pop`). A torn zombie leaves the "corpses" group (REVIVER can't raise half a zombie).
 - Performance: max `TEAR_MAX_SIM` (14) simulated corpses; in a multi-kill (`_lite`) only while fewer than `TEAR_MAX_LITE` (4). t_masskill 40 kills at once: avg 12.2 ms vs 11.5 ms without tearing.
 - Test: `devtools/t_tear.gd` (level 3, kills 4 zombies with `force_tear`, saves PNGs).
+
+# Headless walk (2026-10-20)
+- 20% of headshot kills (`zombie.gd HEADLESS_WALK_CHANCE`, random): the head flies off (`effects/flying_head.gd`: spins, leaves a blood trail, splats on floors/bricks, rolls and stays `LIFE` 7 s, max 12 at once) and the body keeps going. It is pushed back by the shot for 0.25 s, then staggers forward (`HW_SPEED` 70, zigzag) for `HW_TIME` 1.1-1.8 s with its arms groping where the head was and a neck blood fountain (`HW_SPURT`), then collapses as a ragdoll. It also collapses early if it walks into a wall or off a ledge.
+- Only the 20 original kinds (type_mod == null; the newer kinds draw themselves), not bosses, CRAWLER, IMP or one-legged zombies. Torn in half is rolled first; a kill never does both. Same ragdoll cap as tearing.
+- Test: `TEAR_MODE=head` with `devtools/t_tear.gd` (headshot kills with `force_hw`).

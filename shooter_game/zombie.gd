@@ -32,6 +32,7 @@ const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 const Art := preload("res://art.gd")
 const BloodScript := preload("res://blood_drop.gd")
 const RagdollScript := preload("res://effects/ragdoll.gd")   # גופה רכה
+const HeadScript := preload("res://effects/flying_head.gd")   # ראש שעף (מוות "הולך בלי ראש")
 const DEATH_FLING := 0.5     # כמה רחוק הגופה עפה מהפגיעה האחרונה (1 = כמו פעם)
 const BLOOD_AMOUNT := 0.5    # כמות הדם (1 = כמו פעם)
 const LegScript := preload("res://severed_leg.gd")
@@ -273,6 +274,9 @@ var _leg_hits := 0
 var _one_leg := false
 var _hop_t := 0.0
 var _headless := false
+var _hw_t := 0.0                  # "הולך בלי ראש": כמה זמן הגוף עוד מדדה אחרי המוות
+var _hw_age := 0.0
+var _hw_spurt := 0.0
 # תגובת פגיעה (לפי איפה הכדור פגע): ראש נזרק אחורה / מתקפל מכדור בבטן / קופץ על רגל אחת
 const REACT_TIME := {"head": 0.28, "body": 0.38, "leg": 0.5}
 var _react_t := 0.0              # כמה זמן נשאר לתגובה
@@ -1528,7 +1532,10 @@ func _die(dir: Vector2) -> void:
 	_spin = randf_range(8.0, 14.0) * signf(velocity.x if velocity.x != 0.0 else 1.0)
 	_splat_pending = kind != RAT and kind != JETPACK and kind != MECH and randf() < SPLAT_CHANCE
 	var tear := _can_tear() and (randf() < TEAR_CHANCE or has_meta("force_tear"))   # נקרע לשניים (גם במולטי-קיל - קרנג') (force_tear: devtools/t_tear.gd)
-	if _ragdoll_kind() and (not _lite or tear):   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל: גופה פשוטה)
+	var hwalk := not tear and _can_headless_walk() and (randf() < HEADLESS_WALK_CHANCE or has_meta("force_hw"))   # ירייה בראש: הגוף ממשיך ללכת (force_hw: devtools/t_tear.gd)
+	if hwalk:
+		_start_headless_walk(dir)
+	elif _ragdoll_kind() and (not _lite or tear):   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל: גופה פשוטה)
 		_rag = RagdollScript.new()
 		_rag.setup(self, velocity, dir, _last_hit if _last_hit != Vector2.ZERO else global_position + Vector2(0, -30) * sc, _last_boom, tear)
 		if tear:
@@ -1598,6 +1605,68 @@ func _tear_fx(dir: Vector2) -> void:
 		_popup("TORN IN HALF!", Color("ff4a3a"), 16, -110.0)
 
 
+# ---- הולך בלי ראש: 20% מההריגות בירייה בראש (רק סוגים 0-19 - לסוגים החדשים ציור משלהם) ----
+# הראש עף ומתגלגל (effects/flying_head.gd), הגוף נהדף, ואז מדדה קדימה עם ידיים שמחפשות את הראש
+# ומזרקת דם מהצוואר, עד שהברכיים נשברות והוא נופל (גופה רכה).
+# לשנות: HEADLESS_WALK_CHANCE, HW_TIME, HW_SPEED, HW_SPURT
+const HEADLESS_WALK_CHANCE := 0.2
+const HW_TIME := Vector2(1.1, 1.8)
+const HW_SPEED := 70.0
+const HW_SPURT := 0.05
+
+
+func _can_headless_walk() -> bool:
+	if not _headless or type_mod != null or is_boss() or not _ragdoll_kind() or _one_leg or not is_on_floor():
+		return false
+	if kind in [CRAWLER, IMP]:
+		return false
+	return RagdollScript.active < (TEAR_MAX_LITE if _lite else TEAR_MAX_SIM)
+
+
+func _start_headless_walk(dir: Vector2) -> void:
+	remove_from_group("corpses")
+	_hw_t = randf_range(HW_TIME.x, HW_TIME.y)
+	_hw_age = 0.0
+	_hw_spurt = 0.0
+	velocity = Vector2(signf(dir.x) * 140.0, 0.0)   # נהדף אחורה מהירייה
+	_spin = 0.0
+	_angle = 0.0
+	if HeadScript.alive < HeadScript.MAX_ALIVE:
+		var h = HeadScript.new()
+		get_parent().add_child(h)
+		var hx := signf(dir.x) if dir.x != 0.0 else -_dir
+		h.setup(global_position + Vector2(_dir * 3.0 * wf * sc, -50.0 * sc), Vector2(hx * randf_range(150.0, 300.0), -randf_range(320.0, 460.0)), self)
+	_spray_blood(global_position + Vector2(0.0, -46.0 * sc), Vector2(0.0, -1.0), 10, 380.0)
+
+
+func _headless_walk(delta: float) -> void:
+	_hw_t -= delta
+	_hw_age += delta
+	if not is_on_floor():
+		velocity.y += gravity * delta
+	if _hw_age < 0.25:   # רגע ההדיפה
+		velocity.x = move_toward(velocity.x, 0.0, 500.0 * delta)
+	else:   # מדדה קדימה בזיגזג
+		var want := _dir * HW_SPEED * (0.7 + 0.3 * sin(_hw_age * 6.0))
+		velocity.x = move_toward(velocity.x, want, 400.0 * delta)
+	move_and_slide()
+	_walk_phase += delta * (absf(velocity.x) * 0.075 / sc + 2.0)
+	# מזרקת דם מהצוואר, נחלשת עם הזמן
+	_hw_spurt -= delta
+	if _hw_spurt <= 0.0:
+		_hw_spurt = HW_SPURT
+		var k := clampf(_hw_t / HW_TIME.y, 0.3, 1.0)
+		_spray_blood(global_position + Vector2(_dir * 2.0 * wf * sc, -46.0 * sc), Vector2(sin(_hw_age * 9.0) * 0.4, -1.0), 1, 380.0 * k)
+	var fell: bool = not is_on_floor() and velocity.y > 250.0   # נפל לבור / מקצה
+	if _hw_t <= 0.0 or is_on_wall() or fell:   # הברכיים נשברות: גופה רכה
+		_hw_t = 0.0
+		Sfx.play("corpse_splat", global_position, -6.0, 0.1, 3, 0.9)
+		_rag = RagdollScript.new()
+		_rag.setup(self, Vector2(_dir * 60.0, 0.0), Vector2(_dir, 0.3), global_position + Vector2(0.0, -12.0 * sc), false)
+	if Art.on_screen(self, global_position, 60.0):
+		queue_redraw()
+
+
 # תחושת הריגה: צליל "מכה" (ראש = פיצוח), ועצירת זמן קטנה בהריגה בראש / ממכה חזקה / בוס (shake_camera.gd -> hit_stop)
 func _kill_feel() -> void:
 	var boss := is_boss() or _mod_boss
@@ -1630,6 +1699,9 @@ func _drop(pk: int) -> void:
 
 func _dead_process(delta: float) -> void:
 	_dead_t += delta
+	if _hw_t > 0.0:
+		_headless_walk(delta)
+		return
 	if _dead_t > corpse_time:
 		if _rag != null:
 			_rag.release()
@@ -1795,9 +1867,9 @@ func _draw_main() -> void:
 		_draw_gunner()
 		return
 	var s := Vector2(_dir * wf * sc, sc)
-	if not dead and not _lying() and is_on_floor():
+	if (not dead or _hw_t > 0.0) and not _lying() and is_on_floor():
 		Art.ground_shadow(self, Vector2(0.0, 0.0), 14.0 * wf * sc)
-	if dead:
+	if dead and _hw_t <= 0.0:
 		var outer := Transform2D(_angle, Vector2(0.0, -9.0 * sc))
 		DrawBatch.set_transform_matrix(self, outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
 	elif _lying():
@@ -1840,6 +1912,8 @@ func _draw_body() -> void:
 			lean = 3.0
 	if _climbing and not dead:   # מטפס: הגוף נשען אל הקיר
 		lean = 8.0
+	elif dead and _hw_t > 0.0:   # בלי ראש: מתנדנד
+		lean = 3.0 + sin(_time * 5.0) * 6.0
 	var bob := absf(sin(p)) * 1.5
 	var ck := 0.0 if dead or _lying() else (0.45 if riding else _crouch_k)   # התכופפות (על גג הרכבת: חצי כפוף)
 	var hip := Vector2(0.0, -24.0 - bob * 0.5 + 11.0 * ck)
@@ -1925,6 +1999,9 @@ func _draw_body() -> void:
 	if dead or _lying():
 		back_hand = bs + Vector2(-4.0, 15.0)
 		front_hand = fs + Vector2(5.0, 15.0)
+	if dead and _hw_t > 0.0:   # בלי ראש: הידיים מגששות למעלה, איפה שהיה הראש
+		front_hand = fs + Vector2(9.0 + sin(_time * 11.0) * 4.0, -13.0 + sin(_time * 7.0) * 5.0)
+		back_hand = bs + Vector2(-5.0 + cos(_time * 9.0) * 5.0, -11.0 - sin(_time * 8.0) * 4.0)
 	_arm(bs, back_hand, Art.shade(sk, 0.2), Art.shade(sh_col, 0.2))
 
 	# ---- רגליים ----
