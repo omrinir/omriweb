@@ -50,6 +50,8 @@ const ResultsScript := preload("res://results.gd")
 const SquadScript := preload("res://ai/squad_director.gd")
 const StageRegistry := preload("res://levels/stage_registry.gd")   # שלבים 5-9: levels/stage_N.gd
 const ZombieMix := preload("res://levels/zombie_mix.gd")
+const MusicDB := preload("res://music_db.gd")
+const LevelEvents := preload("res://levels/level_events.gd")
 var _stage: Node = null
 
 @export_group("Level")
@@ -345,6 +347,14 @@ func _ready() -> void:
 		pace.floor_y = floor_y
 		pace.budget = int(round(float(level_screens) * zombies_per_screen * pace.BUDGET_SHARE))
 		add_child(pace)
+	# סוג שלב מיוחד: HOLD / ESCAPE / RESCUE (levels/level_events.gd)
+	var ev = LevelEvents.make(Game.level)
+	if ev != null:
+		ev.main = self
+		ev.floor_y = floor_y
+		ev.hud_layer = hud
+		add_child(ev)
+		ev.start()
 	# סצנות סיפור בתוך השלב (story/story_db.gd): דמות עומדת בשלב, מגיעים אליה -> שיחה. פעם אחת בכל משחק של השלב
 	for sc in preload("res://story/story_db.gd").for_level(Game.level):
 		if not Game.story_seen.has(sc.id):
@@ -1143,6 +1153,8 @@ func _make_exit(floor_y: float) -> void:
 	if _stage != null:
 		boss.kind = _stage.boss_kind()
 	boss.position = Vector2(level_w - 480.0, floor_y)
+	if LevelEvents.mid_boss(Game.level):   # הבוס באמצע השלב, והשער נפתח כשהוא מת (levels/level_events.gd)
+		boss.position.x = _free_spot(level_w * LevelEvents.MID_BOSS_AT)
 	boss.chase_range = 650.0
 	var diff: Dictionary = Settings.preset()
 	boss.speed_mult = diff.zombie_speed * (1.0 + 0.4 * (Game.harder() - 1.0))
@@ -1154,11 +1166,13 @@ func _make_exit(floor_y: float) -> void:
 # מוזיקת רקע: שלב רחוב = TOTAL WAR, רכבת תחתית = מתח ואימה. מתנגנת בלופ ונכנסת בהדרגה
 @export var music_volume_db := -7.0   # היה -14: המוזיקה נבלעה מתחת ליריות
 func _start_music() -> void:
+	Settings.menu_music(false)
 	var path := "res://music/level2_suspense.mp3" if Game.is_subway() or Game.is_night() else "res://music/level1_total_war.mp3"
 	if Game.level == 1:
 		path = "res://music/level1_zombie_joyride.ogg"   # "Zombie Joyride" (EDM). OGG = קובץ קטן בערך פי 2.5 מ-MP3 באותה איכות
 	if _stage != null:
 		path = _stage.music()
+	path = MusicDB.level_track(Game.level, path)   # שיר לכל אזור (music_db.gd)
 	if path == "":   # השלב מנגן בעצמו (למשל התזמורת של שלב 32)
 		return
 	var stream := _load_music(path)
@@ -1177,32 +1191,53 @@ func _start_music() -> void:
 	add_child(mp)
 	mp.play()
 	create_tween().tween_property(mp, "volume_db", music_volume_db, 2.5)
+	_music = mp
 
 
-# טוען מוזיקה. אם העורך עוד לא ייבא את הקובץ - קוראים אותו ישירות (OGG / MP3)
+# ---- מוזיקת בוס: בוס חי קרוב (כמו בר החיים ב-hud.gd) -> BOSS, מת -> חזרה לשיר של השלב ----
+var _music: AudioStreamPlayer = null
+var _boss_music: AudioStreamPlayer = null
+var _boss_check := 0.0
+
+func _update_boss_music(delta: float) -> void:
+	_boss_check -= delta
+	if _boss_check > 0.0 or _music == null or not MusicDB.exists(MusicDB.BOSS):
+		return
+	_boss_check = 0.5
+	var near := false
+	if _player != null and not _player.dead:
+		for z in get_tree().get_nodes_in_group("zombies"):
+			if z.is_boss() and z.hp > 0 and absf(z.global_position.x - _player.global_position.x) < 900.0:
+				near = true
+				break
+	var on: bool = _boss_music != null and bool(_boss_music.get_meta("on", false))
+	if near == on:
+		return
+	if _boss_music == null:
+		_boss_music = AudioStreamPlayer.new()
+		_boss_music.bus = "Music"
+		_boss_music.stream = MusicDB.load_stream(MusicDB.BOSS)
+		_boss_music.volume_db = -40.0
+		_boss_music.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(_boss_music)
+	_boss_music.set_meta("on", near)
+	var tw := create_tween().set_parallel(true)
+	if near:
+		if not _boss_music.playing:
+			_boss_music.play()
+		tw.tween_property(_boss_music, "volume_db", music_volume_db, 1.2)
+		tw.tween_property(_music, "volume_db", -40.0, 1.2)
+	else:
+		tw.tween_property(_boss_music, "volume_db", -40.0, 2.5)
+		tw.tween_property(_music, "volume_db", music_volume_db, 2.5)
+
+
+# טוען מוזיקה בלופ (music_db.gd)
 func _load_music(path: String) -> AudioStream:
-	var stream: AudioStream = null
-	if OS.has_feature("mobile"):   # טלפון: גרסה קלה של המוזיקה (music/mobile/*.ogg 64k - רק בבניית אנדרואיד, כדי שה-APK יהיה קטן)
-		var light := "res://music/mobile/" + path.get_file().get_basename() + ".ogg"
-		if ResourceLoader.exists(light):
-			path = light
-	if ResourceLoader.exists(path):
-		stream = load(path) as AudioStream
-	if stream == null and FileAccess.file_exists(path):
-		if path.ends_with(".ogg"):
-			stream = AudioStreamOggVorbis.load_from_file(path)
-		elif path.ends_with(".mp3"):
-			var mp3 := AudioStreamMP3.new()
-			mp3.data = FileAccess.get_file_as_bytes(path)
-			stream = mp3
-	if stream is AudioStreamMP3:
-		(stream as AudioStreamMP3).loop = true
-	elif stream is AudioStreamOggVorbis:
-		(stream as AudioStreamOggVorbis).loop = true
-	return stream
-
+	return MusicDB.load_stream(path)
 
 func _process(delta: float) -> void:
+	_update_boss_music(delta)
 	if not _finished and _player != null and not _player.dead and not clock_paused:
 		_time += delta
 		Game.level_time = _time

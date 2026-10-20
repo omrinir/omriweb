@@ -89,6 +89,7 @@ static func _load_tex(path: String) -> Texture2D:
 
 func _ready() -> void:
 	Game.end_practice()   # המפה = הקמפיין האמיתי
+	Settings.menu_music(true)   # music_db.gd -> MENU
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	Sfx.warm_up()

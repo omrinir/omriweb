@@ -60,6 +60,7 @@ func _show_trophies() -> void:
 
 func _ready() -> void:
 	Game.end_practice()   # חזרה מתרגול: השמירה האמיתית חוזרת
+	Settings.menu_music(true)   # music_db.gd -> MENU
 	preload("res://sfx.gd").warm_up()   # מייצר את הצלילים כבר בתפריט
 	get_tree().paused = false
 	var vp := get_viewport_rect().size
