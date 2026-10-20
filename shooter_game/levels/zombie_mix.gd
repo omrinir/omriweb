@@ -79,7 +79,13 @@ const INTRO := {
 	63: {R.HOLLOW: 0.07},
 }
 
-const STAY_HOME := []
+const STAY_HOME := [
+	R.SWARMER,                        # שלב 16 = שלב של נחילים בלבד
+	R.DROWNED, R.ANGLER, R.SEALER,    # צריכים מים / חורים בקרח
+	R.SWINGER, R.CLINGER, R.VENT, R.SCARECROW,   # צריכים צמרת עצים / שפת צוק / תעלות אוורור / עמודי דחליל
+	R.DRIFTER, R.TUMBLER, R.BUOY,     # צריכים את הרוח של השלב שלהם
+	R.SKUA, R.CONDOR,                 # צריכים תרנים / זרמי אוויר חם (בשלב אחר הם נעלמים)
+]
 
 
 # משקלי השלב + הזומבים שחוזרים. רק מוסיף - לא משנה את מה שהשלב ביקש

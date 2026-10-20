@@ -156,7 +156,7 @@ func _remote_hazards(pl: Node) -> Array:
 	var out := []
 	var pp: Vector2 = pl.global_position
 	for h in z.get_tree().get_nodes_in_group("hazards"):
-		if not h.triggerable or h.is_in_group("s7_gates"):
+		if not h.get("triggerable") or h.is_in_group("s7_gates"):   # (מכשולים של שלבים אחרים בלי triggerable)
 			continue
 		var hc: Vector2 = h.world_rect().get_center()
 		if absf(hc.x - pp.x) < 170.0 and absf(hc.y - pp.y) < 200.0 and absf(hc.x - z.global_position.x) < 520.0:
