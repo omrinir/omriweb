@@ -94,6 +94,21 @@ How it falls depends on the hit (headshot snaps the head back, explosions launch
 It simulates only until it settles (~1-2 s, max 4 s), then freezes. Animals, the hand, the mech, jetpack, bloater and gunner
 keep their old death. A zombie type can opt out with `"ragdoll": false` in `stats()`.
 
+### Special deaths (zombie.gd `_die`, at most one per kill)
+
+Each one rolls only when its trigger applies, then 20%. Priority: burst, burned, torn in half, headless walk, normal ragdoll.
+Bosses never get them. Test any of them with `devtools/t_tear.gd` (`TEAR_MODE` = empty / head / burst / crawl / char).
+- **Burst into chunks** (`BURST_CHANCE`): explosive kills, or a heavy shotgun kill within `BURST_CLOSE` px. Head (`effects/flying_head.gd`),
+  torso, arms, legs and meat fly (`effects/gib.gd`, max `MAX_ALIVE` 48 parts). In a multi-kill only while fewer than `BURST_MAX_LITE` parts fly.
+- **Burned to bones** (`CHAR_CHANCE`): fire kills or a burning zombie. Stands and blackens (`CHAR_T`), then collapses into a bone pile
+  with an ash cloud (`effects/char_bones.gd`). Base kinds only (`type_mod == null`).
+- **Torn in half** (`TEAR_CHANCE`): ragdoll split mode (`effects/ragdoll.gd` `tear`). `TEAR_MAX_LITE` caps it in multi-kills.
+- **Headless walk** (`HEADLESS_WALK_CHANCE`): headshot kills on base kinds 0-19; the body walks on for `HW_TIME`.
+- **Crawling torso** (`CRAWL_CHANCE`, checked in `take_damage`, not `_die`): a lethal non-explosive leg shot. The zombie does NOT die:
+  both legs fly off as gibs, it keeps `CRAWL_HP` hp and drags itself at `CRAWL_SPEED` toward the player and bites (`_crawl_logic`,
+  `_legless`). Not for CRAWLER, IMP, COP, type mods or ceiling zombies.
+Perf (t_masskill, 40 kills, headless): same frame times as before these deaths (about 12 ms average).
+
 ## JETPACK ability
 
 `abilities/types/jetpack.gd` (unlocks at stage 2). C = take off, hold W/SPACE = thrust, release = slow hover-fall, C again = land/turn off.

@@ -33,6 +33,8 @@ const Art := preload("res://art.gd")
 const BloodScript := preload("res://blood_drop.gd")
 const RagdollScript := preload("res://effects/ragdoll.gd")   # גופה רכה
 const HeadScript := preload("res://effects/flying_head.gd")   # ראש שעף (מוות "הולך בלי ראש")
+const GibScript := preload("res://effects/gib.gd")             # חלקי גוף (מוות "מתפוצץ לחתיכות", רגליים של "פלג גוף זוחל")
+const CharScript := preload("res://effects/char_bones.gd")     # מוות "נשרף עד העצמות"
 const DEATH_FLING := 0.5     # כמה רחוק הגופה עפה מהפגיעה האחרונה (1 = כמו פעם)
 const BLOOD_AMOUNT := 0.5    # כמות הדם (1 = כמו פעם)
 const LegScript := preload("res://severed_leg.gd")
@@ -275,6 +277,9 @@ var _one_leg := false
 var _hop_t := 0.0
 var _headless := false
 var _hw_t := 0.0                  # "הולך בלי ראש": כמה זמן הגוף עוד מדדה אחרי המוות
+var _legless := false             # "פלג גוף זוחל": הרגליים נתלשו, זוחל על הידיים
+var _char: RefCounted = null      # "נשרף עד העצמות" (effects/char_bones.gd)
+var _gibbed := false              # "מתפוצץ לחתיכות": הגוף נעלם, נשארו חלקים
 var _hw_age := 0.0
 var _hw_spurt := 0.0
 # תגובת פגיעה (לפי איפה הכדור פגע): ראש נזרק אחורה / מתקפל מכדור בבטן / קופץ על רגל אחת
@@ -457,6 +462,9 @@ func _physics_main(delta: float) -> void:
 		return
 	if riding:   # על גג הרכבת: subway.gd מזיז אותו
 		_maybe_redraw()
+		return
+	if _legless:   # פלג גוף זוחל
+		_crawl_logic(get_tree().get_first_node_in_group("player"), delta)
 		return
 	if _crash_fly:   # נזרק מהרכבת: מתגלגל באוויר עד הנחיתה
 		_crash_fly_process(delta)
@@ -1322,6 +1330,9 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	# חתיכות בשר נתלשות (אפור + אדום) - effects/flesh_fx.gd
 	if dmg > 0 and kind != MECH and not metal and source != "fire" and (type_mod == null or bool(type_mod.stats().get("flesh", true))):
 		FleshFx.burst(get_parent(), hit_pos, dir, skin, zone, hp <= 0, explosive, hp <= 0 and death_load() >= DEATH_HEAVY - 1)
+	if hp <= 0 and zone == "leg" and not explosive and _can_crawl() and (randf() < CRAWL_CHANCE or has_meta("force_crawl")):   # (force_crawl: devtools/t_tear.gd)
+		_become_crawler(dir)   # לא מת: הרגליים נתלשו והוא ממשיך לזחול
+		return
 	if hp <= 0:
 		_die(dir)
 	else:
@@ -1531,11 +1542,23 @@ func _die(dir: Vector2) -> void:
 		velocity = Vector2(clampf((tx - global_position.x) / t_fall, -900.0, 900.0), vy0)
 	_spin = randf_range(8.0, 14.0) * signf(velocity.x if velocity.x != 0.0 else 1.0)
 	_splat_pending = kind != RAT and kind != JETPACK and kind != MECH and randf() < SPLAT_CHANCE
-	var tear := _can_tear() and (randf() < TEAR_CHANCE or has_meta("force_tear"))   # נקרע לשניים (גם במולטי-קיל - קרנג') (force_tear: devtools/t_tear.gd)
-	var hwalk := not tear and _can_headless_walk() and (randf() < HEADLESS_WALK_CHANCE or has_meta("force_hw"))   # ירייה בראש: הגוף ממשיך ללכת (force_hw: devtools/t_tear.gd)
-	if hwalk:
+	if _legless:   # פלג גוף זוחל: נשאר שוכב על הבטן (בלי לקפוץ לעמידה)
+		_angle = PI / 2.0 * _dir
+		_spin = 0.0
+		velocity = Vector2(velocity.x * 0.3, -60.0)
+	# מוות מיוחד, כל אחד 20% כשהתנאי שלו מתקיים (אחד לכל היותר): פיצוץ / שוטגאן מקרוב -> חתיכות, אש -> עצמות,
+	# כל הריגה -> נקרע לשניים, ירייה בראש -> הולך בלי ראש. (force_*: devtools/t_tear.gd)
+	var burst := _can_burst() and (randf() < BURST_CHANCE or has_meta("force_burst"))
+	var burn := not burst and _can_char() and (randf() < CHAR_CHANCE or has_meta("force_char"))
+	var tear := not burst and not burn and _can_tear() and (randf() < TEAR_CHANCE or has_meta("force_tear"))
+	var hwalk := not burst and not burn and not tear and _can_headless_walk() and (randf() < HEADLESS_WALK_CHANCE or has_meta("force_hw"))
+	if burst:
+		_burst_into_chunks(dir)
+	elif burn:
+		_start_char()
+	elif hwalk:
 		_start_headless_walk(dir)
-	elif _ragdoll_kind() and (not _lite or tear):   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל: גופה פשוטה)
+	elif _ragdoll_kind() and not _legless and (not _lite or tear):   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל: גופה פשוטה)
 		_rag = RagdollScript.new()
 		_rag.setup(self, velocity, dir, _last_hit if _last_hit != Vector2.ZERO else global_position + Vector2(0, -30) * sc, _last_boom, tear)
 		if tear:
@@ -1589,7 +1612,7 @@ const TEAR_MAX_LITE := 4            # מולטי-קיל (הרבה הריגות �
 
 
 func _can_tear() -> bool:
-	if not _ragdoll_kind() or RagdollScript.active >= (TEAR_MAX_LITE if _lite else TEAR_MAX_SIM):
+	if not _ragdoll_kind() or _legless or RagdollScript.active >= (TEAR_MAX_LITE if _lite else TEAR_MAX_SIM):
 		return false
 	return type_mod == null or not (type_mod.has_method("ragdoll_pose") or type_mod.has_method("draw_ragdoll"))   # פרופורציות אחרות
 
@@ -1616,7 +1639,7 @@ const HW_SPURT := 0.05
 
 
 func _can_headless_walk() -> bool:
-	if not _headless or type_mod != null or is_boss() or not _ragdoll_kind() or _one_leg or not is_on_floor():
+	if not _headless or type_mod != null or is_boss() or not _ragdoll_kind() or _one_leg or _legless or not is_on_floor():
 		return false
 	if kind in [CRAWLER, IMP]:
 		return false
@@ -1667,6 +1690,147 @@ func _headless_walk(delta: float) -> void:
 		queue_redraw()
 
 
+# ---- מתפוצץ לחתיכות: 20% מההריגות בפיצוץ או בשוטגאן/צלף מקרוב (מכה חזקה, עד BURST_CLOSE מהשחקן) ----
+# הגוף נעלם: ראש (effects/flying_head.gd), 2 ידיים, 2 רגליים, בית חזה וגושי בשר עפים (effects/gib.gd), דם בכל מקום.
+# לשנות: BURST_CHANCE, BURST_CLOSE, BURST_SPEED, BURST_MAX_LITE
+const BURST_CHANCE := 0.2
+const BURST_CLOSE := 170.0
+const BURST_SPEED := Vector2(240.0, 520.0)
+
+
+const BURST_MAX_LITE := 18          # מולטי-קיל: מתפוצץ רק אם יש פחות מזה חלקים באוויר
+
+func _can_burst() -> bool:
+	if not _ragdoll_kind() or is_boss() or not GibScript.can_spawn():
+		return false
+	if _lite and GibScript.alive >= BURST_MAX_LITE:   # מולטי-קיל: לכל היותר 2-3 פיצוצים בבת אחת (ביצועים)
+		return false
+	if _last_boom:
+		return true
+	var pl := get_tree().get_first_node_in_group("player")
+	return heavy_kill and pl != null and global_position.distance_to(pl.global_position) < BURST_CLOSE
+
+
+func _burst_into_chunks(dir: Vector2) -> void:
+	_gibbed = true
+	remove_from_group("corpses")
+	hide()
+	corpse_time = 0.3
+	var c := global_position + Vector2(0.0, -30.0 * sc)
+	var d := dir.normalized() if dir != Vector2.ZERO else Vector2(-_dir, 0.0)
+	var fling := func(up: float) -> Vector2:
+		return Vector2.from_angle(d.angle() + randf_range(-0.9, 0.9)) * randf_range(BURST_SPEED.x, BURST_SPEED.y) + Vector2(0.0, -randf_range(150.0, 380.0) * up)
+	if not _headless and HeadScript.alive < HeadScript.MAX_ALIVE:
+		var h = HeadScript.new()
+		get_parent().add_child(h)
+		h.setup(global_position + Vector2(0.0, -50.0 * sc), fling.call(1.4), self)
+	var parts := [[GibScript.TORSO, shirt, -32.0], [GibScript.ARM, shirt, -38.0], [GibScript.ARM, shirt, -38.0]]
+	if not _legless:
+		parts.append([GibScript.LEG, pants, -14.0])
+		if not _one_leg:
+			parts.append([GibScript.LEG, pants, -14.0])
+	for i in (1 if _lite else randi_range(3, 5)):
+		parts.append([GibScript.MEAT, skin, -30.0])
+	for pt in parts:
+		if not GibScript.can_spawn():
+			break
+		var g = GibScript.new()
+		get_parent().add_child(g)
+		g.setup(pt[0], global_position + Vector2(randf_range(-5.0, 5.0), float(pt[2]) * sc), fling.call(1.0), self, pt[1])
+	FleshFx.burst(get_parent(), c, d, skin, "body", true, true, _lite)
+	if not _lite:
+		FleshFx.burst(get_parent(), c + Vector2(0.0, -10.0 * sc), Vector2(-d.x, -1.0), skin, "head", true, true)
+	_spray_blood(c, Vector2(d.x, -0.8), 6 if _lite else 18, 520.0)
+	Sfx.play("splat", global_position, 4.0, 0.12, 3)
+	Sfx.play("corpse_splat", global_position, 2.0, 0.1, 3, 0.8)
+	if Game.show_pop(false):
+		_popup("CHUNKS!", Color("ff4a3a"), 16, -110.0)
+
+
+# ---- פלג גוף זוחל: 20% מההריגות בירייה ברגליים (סוגים 0-19) ----
+# לא מת: שתי הרגליים נתלשות (effects/gib.gd), והוא ממשיך לזחול אליך על הידיים עם CRAWL_HP חיים - צריך לגמור אותו.
+# לשנות: CRAWL_CHANCE, CRAWL_HP, CRAWL_SPEED
+const CRAWL_CHANCE := 0.2
+const CRAWL_HP := 12
+const CRAWL_SPEED := 55.0
+
+
+func _can_crawl() -> bool:
+	return type_mod == null and not is_boss() and not _legless and not dead and is_on_floor() and _ragdoll_kind() \
+		and not kind in [CRAWLER, IMP, COP] and not on_ceiling and not dormant and _carry == null
+
+
+func _become_crawler(dir: Vector2) -> void:
+	_legless = true
+	_one_leg = false
+	hp = CRAWL_HP
+	max_hp = maxi(max_hp, CRAWL_HP)
+	_stagger_t = 0.0
+	_duck_t = 0.0
+	_cover_state = 0
+	velocity = Vector2(dir.x * 60.0, 0.0)
+	var r := _shape.shape as RectangleShape2D   # שוכב: אזור פגיעה נמוך וארוך
+	r.size = Vector2(44.0 * sc, 20.0 * sc)
+	_shape.position = Vector2(0.0, -10.0 * sc)
+	_crouched_shape = true
+	var hip := global_position + Vector2(0.0, -22.0 * sc)
+	for i in 2:
+		if GibScript.can_spawn():
+			var g = GibScript.new()
+			get_parent().add_child(g)
+			g.setup(GibScript.LEG, hip + Vector2(float(i) * 4.0 - 2.0, 6.0 * sc), Vector2(dir.x * randf_range(120.0, 260.0) + randf_range(-60.0, 60.0), -randf_range(200.0, 330.0)), self, pants)
+	_spray_blood(hip, Vector2(dir.x, -0.5), 14, 340.0)
+	FleshFx.burst(get_parent(), hip, dir, skin, "leg", true, false)
+	Sfx.play("splat", global_position, 0.0, 0.12, 3)
+	_voice("zscream", 1.0, 4.0)
+	Game.on_leg_severed()
+	if Game.show_pop(false):
+		_popup("NO LEGS!", Color("ff8a5a"), 15, -50.0)
+
+
+func _crawl_logic(player: Node, delta: float) -> void:
+	if not is_on_floor():
+		velocity.y += gravity * delta
+	var speed := 0.0
+	if player != null and not player.dead:
+		var d: Vector2 = player.global_position - global_position
+		_dir = signf(d.x) if absf(d.x) > 4.0 else _dir
+		speed = CRAWL_SPEED * _speed_mul * (0.35 + 0.65 * maxf(0.0, sin(_walk_phase)))   # משיכות: יד, עוד יד
+		if absf(d.x) < 26.0 * sc and absf(d.y) < 40.0 and _attack_t <= 0.0:   # תופס את הקרסול ונושך
+			_attack_t = bite_delay * 1.3
+			_bite_anim = 0.3
+			player.hurt(damage, Vector2(_dir, 0.0))
+	velocity.x = move_toward(velocity.x, _dir * speed, 500.0 * delta)
+	move_and_slide()
+	_walk_phase += delta * 5.0
+	if Engine.get_physics_frames() % 6 == 0 and randf() < 0.3:   # שובל דם מהמותן
+		_spray_blood(global_position + Vector2(-_dir * 16.0 * sc, -6.0 * sc), Vector2(-_dir, -0.4), 1, 90.0)
+	_maybe_redraw()
+
+
+# ---- נשרף עד העצמות: 20% מההריגות באש (או זומבי בוער שנהרג) ----
+# הגוף נשאר לעמוד ובוער ומשחיר, ואז נופל לערימת עצמות עם ענן אפר (effects/char_bones.gd).  לשנות: CHAR_CHANCE
+const CHAR_CHANCE := 0.2
+
+
+func _can_char() -> bool:
+	if not _ragdoll_kind() or type_mod != null or is_boss() or _legless or not is_on_floor():
+		return false
+	return str(_last_info.get("source", "")) == "fire" or _burn_t > 0.2
+
+
+func _start_char() -> void:
+	remove_from_group("corpses")
+	_char = CharScript.new()
+	_char.setup(self)
+	_burn_t = 1.5   # להבות על הגוף בזמן שהוא משחיר (_draw_burning)
+	velocity = Vector2.ZERO
+	_spin = 0.0
+	_angle = 0.0
+	corpse_time = maxf(corpse_time, 5.0)
+	_voice("zscream", 1.0, 4.0)
+
+
 # תחושת הריגה: צליל "מכה" (ראש = פיצוח), ועצירת זמן קטנה בהריגה בראש / ממכה חזקה / בוס (shake_camera.gd -> hit_stop)
 func _kill_feel() -> void:
 	var boss := is_boss() or _mod_boss
@@ -1701,6 +1865,11 @@ func _dead_process(delta: float) -> void:
 	_dead_t += delta
 	if _hw_t > 0.0:
 		_headless_walk(delta)
+		return
+	if _char != null and _dead_t <= corpse_time:   # נשרף: עומד במקום, משחיר, מתפרק לעצמות
+		modulate.a = clampf(corpse_time - _dead_t, 0.0, 1.0)
+		if (_char.step(delta) or _dead_t > corpse_time - 1.0) and Art.on_screen(self, global_position, 60.0):
+			queue_redraw()
 		return
 	if _dead_t > corpse_time:
 		if _rag != null:
@@ -1824,7 +1993,7 @@ func _draw() -> void:
 		prof["draws"] = int(prof.get("draws", 0)) + 1
 		return
 	_draw_main()
-	if _burn_t > 0.0 and not dead and not _lying():
+	if _burn_t > 0.0 and (not dead or (_char != null and not _char.skeleton())) and not _lying():
 		_draw_burning()
 	DrawBatch.end(self)
 
@@ -1845,6 +2014,9 @@ func _draw_burning() -> void:
 func _draw_main() -> void:
 	if dead and _rag != null:
 		_rag.draw(self)
+		return
+	if dead and _char != null and _char.skeleton():
+		_char.draw(self)
 		return
 	if type_mod != null and type_mod.draw():   # סוג חדש מצייר את עצמו (enemies/types/*.gd)
 		return
@@ -1869,7 +2041,9 @@ func _draw_main() -> void:
 	var s := Vector2(_dir * wf * sc, sc)
 	if (not dead or _hw_t > 0.0) and not _lying() and is_on_floor():
 		Art.ground_shadow(self, Vector2(0.0, 0.0), 14.0 * wf * sc)
-	if dead and _hw_t <= 0.0:
+	if _legless and not dead:   # זוחל: הגוף שוכב על הבטן, הראש קדימה
+		DrawBatch.set_transform_matrix(self, Transform2D(PI / 2.0 * _dir, Vector2(-_dir * 26.0 * sc, -7.0 * sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO))
+	elif dead and _hw_t <= 0.0 and _char == null:
 		var outer := Transform2D(_angle, Vector2(0.0, -9.0 * sc))
 		DrawBatch.set_transform_matrix(self, outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
 	elif _lying():
@@ -1912,8 +2086,8 @@ func _draw_body() -> void:
 			lean = 3.0
 	if _climbing and not dead:   # מטפס: הגוף נשען אל הקיר
 		lean = 8.0
-	elif dead and _hw_t > 0.0:   # בלי ראש: מתנדנד
-		lean = 3.0 + sin(_time * 5.0) * 6.0
+	elif dead and (_hw_t > 0.0 or _char != null):   # בלי ראש / בוער: מתנדנד
+		lean = 3.0 + sin(_time * (5.0 if _hw_t > 0.0 else 9.0)) * 6.0
 	var bob := absf(sin(p)) * 1.5
 	var ck := 0.0 if dead or _lying() else (0.45 if riding else _crouch_k)   # התכופפות (על גג הרכבת: חצי כפוף)
 	var hip := Vector2(0.0, -24.0 - bob * 0.5 + 11.0 * ck)
@@ -1999,15 +2173,27 @@ func _draw_body() -> void:
 	if dead or _lying():
 		back_hand = bs + Vector2(-4.0, 15.0)
 		front_hand = fs + Vector2(5.0, 15.0)
+	if _legless and not dead:   # זוחל: הידיים נמשכות קדימה (לכיוון הראש) ונועצות בריצפה לסירוגין
+		front_hand = fs + Vector2(9.0 + maxf(0.0, cos(p)) * 4.0, -14.0 - sin(p) * 7.0)
+		back_hand = bs + Vector2(8.0 + maxf(0.0, -cos(p)) * 4.0, -14.0 + sin(p) * 7.0)
+	if dead and _char != null:   # בוער: מתפתל, ידיים מנפנפות
+		front_hand = fs + Vector2(8.0 + sin(_time * 13.0) * 5.0, -12.0 + cos(_time * 11.0) * 6.0)
+		back_hand = bs + Vector2(-6.0 + cos(_time * 12.0) * 5.0, -10.0 + sin(_time * 10.0) * 6.0)
 	if dead and _hw_t > 0.0:   # בלי ראש: הידיים מגששות למעלה, איפה שהיה הראש
 		front_hand = fs + Vector2(9.0 + sin(_time * 11.0) * 4.0, -13.0 + sin(_time * 7.0) * 5.0)
 		back_hand = bs + Vector2(-5.0 + cos(_time * 9.0) * 5.0, -11.0 - sin(_time * 8.0) * 4.0)
 	_arm(bs, back_hand, Art.shade(sk, 0.2), Art.shade(sh_col, 0.2))
 
 	# ---- רגליים ----
-	if not _one_leg:
+	if _legless:   # גדמים קרועים במותן
+		Art.limb(self, PackedVector2Array([hip + Vector2(-3.0, -1.0), hip + Vector2(-2.0, 4.0)]), 8.0, Art.shade(pa, 0.15))
+		Art.fill(self, PackedVector2Array([hip + Vector2(-6.0, 3.5), hip + Vector2(-3.0, 7.0), hip + Vector2(-1.0, 5.0),
+			hip + Vector2(1.5, 7.5), hip + Vector2(3.0, 3.5)]), Color("8a0d0d"), Art.OUTLINE, 1.0)
+		Art.limb(self, PackedVector2Array([hip + Vector2(-1.5, 3.0), hip + Vector2(-1.0, 8.5)]), 1.6, Color("e8dcc4"), Art.NONE)   # עמוד שדרה
+	elif not _one_leg:
 		_leg(hip + Vector2(-2.0, 0.0), f2, Art.shade(pa, 0.25), Art.shade(sk, 0.2), Art.shade(shoe_col, 0.2))
-	_leg(hip + Vector2(2.0, 0.0), f1, pa, sk, shoe_col)
+	if not _legless:
+		_leg(hip + Vector2(2.0, 0.0), f1, pa, sk, shoe_col)
 	if _one_leg:   # גדם
 		Art.limb(self, PackedVector2Array([hip + Vector2(-2.0, 0.0), hip + Vector2(-3.0, 6.0)]), 7.0, Art.shade(pa, 0.25))
 		var st := hip + Vector2(-3.0, 7.5)
