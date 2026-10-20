@@ -1527,9 +1527,12 @@ func _die(dir: Vector2) -> void:
 		velocity = Vector2(clampf((tx - global_position.x) / t_fall, -900.0, 900.0), vy0)
 	_spin = randf_range(8.0, 14.0) * signf(velocity.x if velocity.x != 0.0 else 1.0)
 	_splat_pending = kind != RAT and kind != JETPACK and kind != MECH and randf() < SPLAT_CHANCE
-	if _ragdoll_kind() and not _lite:   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל: גופה פשוטה)
+	var tear := _can_tear() and (randf() < TEAR_CHANCE or has_meta("force_tear"))   # נקרע לשניים (גם במולטי-קיל - קרנג') (force_tear: devtools/t_tear.gd)
+	if _ragdoll_kind() and (not _lite or tear):   # זומבי אנושי: גופה רכה שנופלת לפי המכה (במולטי-קיל: גופה פשוטה)
 		_rag = RagdollScript.new()
-		_rag.setup(self, velocity, dir, _last_hit if _last_hit != Vector2.ZERO else global_position + Vector2(0, -30) * sc, _last_boom)
+		_rag.setup(self, velocity, dir, _last_hit if _last_hit != Vector2.ZERO else global_position + Vector2(0, -30) * sc, _last_boom, tear)
+		if tear:
+			_tear_fx(dir)
 	_spray_blood(global_position + Vector2(0, -30) * sc, dir, 14, 380.0)
 	if is_instance_valid(_fire):
 		_fire.queue_free()
@@ -1569,6 +1572,30 @@ func _die(dir: Vector2) -> void:
 		_:   # תחמושת דינמית: יותר כשנגמר לשחקן (progression/arsenal.gd)
 			if randf() < Arsenal.ammo_drop_chance(get_tree().get_first_node_in_group("player")):
 				_drop(PickupScript.AMMO)
+
+
+# ---- נקרע לשניים: 20% מההריגות, בכל נשק (effects/ragdoll.gd split) ----
+# לשנות: TEAR_CHANCE, TEAR_MAX_SIM / TEAR_MAX_LITE (כמה גופות מדומות לכל היותר כדי שעוד יקרע - ביצועים)
+const TEAR_CHANCE := 0.2
+const TEAR_MAX_SIM := 14
+const TEAR_MAX_LITE := 4            # מולטי-קיל (הרבה הריגות בשנייה): רק אם יש פחות מזה גופות מדומות
+
+
+func _can_tear() -> bool:
+	if not _ragdoll_kind() or RagdollScript.active >= (TEAR_MAX_LITE if _lite else TEAR_MAX_SIM):
+		return false
+	return type_mod == null or not (type_mod.has_method("ragdoll_pose") or type_mod.has_method("draw_ragdoll"))   # פרופורציות אחרות
+
+
+func _tear_fx(dir: Vector2) -> void:
+	remove_from_group("corpses")   # חצי זומבי לא קם לתחייה
+	var waist := global_position + Vector2(0.0, -24.0 * sc)
+	FleshFx.burst(get_parent(), waist, dir, skin, "body", true, true)
+	_spray_blood(waist, Vector2(dir.x, -0.6), 10, 420.0)
+	Sfx.play("splat", global_position, 2.0, 0.12, 3)
+	Sfx.play("corpse_splat", global_position, 0.0, 0.1, 3, 0.85)
+	if Game.show_pop(false):
+		_popup("TORN IN HALF!", Color("ff4a3a"), 16, -110.0)
 
 
 # תחושת הריגה: צליל "מכה" (ראש = פיצוח), ועצירת זמן קטנה בהריגה בראש / ממכה חזקה / בוס (shake_camera.gd -> hit_stop)
