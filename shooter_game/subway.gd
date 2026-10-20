@@ -8,6 +8,7 @@ const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 #  * מים עד הקרסול: מאטים, ניתזים, והטייזר חזק בהם פי 3
 #  * פסים מחושמלים: זומבי שנכנס אליהם מתחשמל
 #  * רכבת רפאים: מדי פעם אזהרה ואז רכבת שדורסת את מי שעל הריצפה
+#    על הגג שלה רוכב זומבי: כשהיא עוברת הוא קופץ ממנה, מתגלגל, נוחת ליד השחקן ומסתער
 #  * חושך: רק ליד מנורות רואים. שוברים מנורה = חושך,
 #    אבל גם הזומבים רואים אותך פחות
 # ============================================================
@@ -34,6 +35,17 @@ var _splash_t := 0.0
 var _zap_t := {}                    # זומבי -> מתי חושמל לאחרונה
 var _overlay: ColorRect
 var _warn: WarnFx
+# ---- זומבי על גג הרכבת ----
+# לשנות: RIDER_LAND_GAP (כמה רחוק מהשחקן נוחת), RIDER_VX / RIDER_POP (הקפיצה), RIDER_RUNNER (סיכוי לרץ)
+const TRAIN_H := 150.0
+const RIDER_OFF := 220.0            # מרחק מחזית הרכבת
+const RIDER_LAND_GAP := 110.0
+const RIDER_VX := 650.0
+const RIDER_POP := 400.0
+const RIDER_RUNNER := 0.6
+const RIDER_SKIP_END := 1400.0      # לא בקרב הבוס
+var _rider: Node = null
+var _rider_release := -INF
 
 
 func _ready() -> void:
@@ -175,6 +187,7 @@ func _physics_process(delta: float) -> void:
 				_train_x = view.end.x + 80.0
 				Sfx.play("train", null, 4.0, 0.0)
 				_train_hit = false
+				_spawn_rider(player)
 				var cam := vp.get_camera_2d()
 				if cam != null and cam.has_method("shake"):
 					cam.shake(6.0, 1.2)
@@ -188,10 +201,46 @@ func _physics_process(delta: float) -> void:
 				z._drop_down()
 				z._popup("SPLAT", Color("ff5040"), 18, -70.0)
 				z.take_damage(999, z.global_position + Vector2(0, -30), Vector2.LEFT, true, {"source": "train"})
+		_ride(view)
 		if x1 < view.position.x - 100.0:
 			_train_x = INF
 	queue_redraw()
 	_warn.queue_redraw()
+
+
+# זומבי עולה על הגג. מחשבים מראש איפה לקפוץ כדי לנחות RIDER_LAND_GAP ליד השחקן
+func _spawn_rider(player: Node) -> void:
+	if player == null or player.dead or player.global_position.x > level_w - RIDER_SKIP_END:
+		return
+	var main := get_parent()
+	if not main.has_method("_spawn_zombie"):
+		return
+	var side := -1.0 if randf() < 0.5 else 1.0
+	var land: float = player.global_position.x + side * RIDER_LAND_GAP
+	for rl in rails:   # לא נוחת על פס מחושמל
+		if land > rl[0] - 40.0 and land < rl[1] + 40.0:
+			land = player.global_position.x - side * RIDER_LAND_GAP
+	var z = main._spawn_zombie(_train_x + RIDER_OFF, floor_y - TRAIN_H, 1 if randf() < RIDER_RUNNER else 0, null)   # 1 = רץ, 0 = רגיל
+	z.riding = true
+	z._dir = -1.0
+	z.reset_physics_interpolation()
+	var g: float = z.gravity
+	var t := (RIDER_POP + sqrt(RIDER_POP * RIDER_POP + 2.0 * g * TRAIN_H)) / g   # זמן באוויר עד הריצפה
+	_rider_release = land + RIDER_VX * t
+	_rider = z
+
+
+func _ride(view: Rect2) -> void:
+	if _rider == null:
+		return
+	if not is_instance_valid(_rider) or _rider.dead or not _rider.riding:
+		_rider = null
+		return
+	var rx := _train_x + RIDER_OFF
+	_rider.global_position = Vector2(rx, floor_y - TRAIN_H)
+	if rx <= _rider_release or rx < view.position.x + 60.0:
+		_rider.throw_off(Vector2(-RIDER_VX, -RIDER_POP))
+		_rider = null
 
 
 func _draw() -> void:

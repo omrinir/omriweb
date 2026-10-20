@@ -230,6 +230,16 @@ var goal_x := INF                # INF = רגיל. אחרת: הולך לנקוד
 var type_mod = null              # enemies/types/*.gd (סוגים 20+)
 var _drop_t := 0.0               # יורד דרך קומה (one-way)
 var _stagger_t := 0.0
+# שלב 2: רוכב על גג רכבת הרפאים (subway.gd מזיז אותו), נזרק ממנה ונוחת ליד השחקן
+var riding := false
+var _crash_fly := false
+# שלב 2 (ניסוי): מטפסים על מכשולים במקום לקפוץ.  לשנות: CLIMB_LEVELS, CLIMB_SPEED
+const CLIMB_LEVELS := [2]
+const CLIMB_SPEED := 170.0
+var climb_mode := false
+var _climbing := false
+var _climb_y := INF               # INF = מטפס על קיר עד הקצה. אחרת: עד הגובה הזה (קומה מעליו)
+var _climb_time := 0.0
 var _decoy_id := 0               # איזה עותק רפאים בדקנו
 var _decoy_fooled := true
 var _mod_boss := false           # סוג חדש שהוא בוס (stats()["boss"])
@@ -330,6 +340,7 @@ func _ready() -> void:
 	if is_boss():
 		hp = int(float(hp) * Game.harder())   # שלבים 1-57: בוס +25% חיים
 	max_hp = hp
+	climb_mode = Game.level in CLIMB_LEVELS
 	walk_speed = k.walk
 	chase_speed = k.chase
 	damage = k.damage
@@ -440,6 +451,12 @@ func _physics_main(delta: float) -> void:
 		possessed.drive(self, delta)
 		_maybe_redraw()
 		return
+	if riding:   # על גג הרכבת: subway.gd מזיז אותו
+		_maybe_redraw()
+		return
+	if _crash_fly:   # נזרק מהרכבת: מתגלגל באוויר עד הנחיתה
+		_crash_fly_process(delta)
+		return
 
 	var player := get_tree().get_first_node_in_group("player")
 	# שוכב על הריצפה עד שהשחקן מתקרב
@@ -510,6 +527,9 @@ func _physics_main(delta: float) -> void:
 	# סוג חדש עם תנועה מיוחדת (מטפס / זוחל על קירות / קופץ...)
 	if type_mod != null and type_mod.physics(player, delta):
 		_maybe_redraw()
+		return
+	if _climbing:
+		_climb_process(delta)
 		return
 
 	if not is_on_floor():
@@ -646,7 +666,10 @@ func _physics_main(delta: float) -> void:
 	# נתקע בקיר: קופץ (או מסתובב אם הוא סתם מטייל)
 	if is_on_wall() and is_on_floor() and not _one_leg and kind != MECH:
 		if _chasing or _cover_state == 1 or goal_x < INF:   # (גם בדרך לנקודה שקיבל פקודה ללכת אליה)
-			velocity.y = jump_velocity
+			if climb_mode:
+				_start_climb(INF)
+			else:
+				velocity.y = jump_velocity
 		else:
 			_dir = -_dir
 
@@ -1004,8 +1027,69 @@ func hurt(amount: int, knock_dir: Vector2) -> void:
 func hop_up(height: float) -> void:
 	if not is_on_floor() or dead:
 		return
+	if climb_mode:   # מטפס למעלה במקום לקפוץ
+		_start_climb(global_position.y - maxf(height, 40.0))
+		return
 	velocity.y = -sqrt(2.0 * gravity * maxf(height, 40.0))
 	velocity.x = _dir * maxf(absf(velocity.x), 60.0)
+
+
+# ---- טיפוס (שלב 2, ניסוי): נצמד לקיר ועולה לאט, ואז מושך את עצמו מעל הקצה ----
+func _start_climb(to_y: float) -> void:
+	if _climbing:
+		return
+	_climbing = true
+	_climb_y = to_y
+	_climb_time = 0.0
+	_voice("groan", 0.5, -6.0)
+
+
+func _climb_process(delta: float) -> void:
+	_climb_time += delta
+	velocity = Vector2(_dir * 60.0, -CLIMB_SPEED * _speed_mul)   # נדחף לקיר ועולה
+	move_and_slide()
+	_walk_phase += delta * 11.0
+	var done := global_position.y <= _climb_y if _climb_y < INF else (not is_on_wall() and _climb_time > 0.08)
+	if done:
+		_climbing = false
+		velocity = Vector2(_dir * 150.0, -170.0)   # מושך את עצמו מעל הקצה
+	elif _climb_time > 3.0 or is_on_ceiling():   # קיר גבוה מדי: נופל
+		_climbing = false
+		velocity = Vector2(-_dir * 60.0, 0.0)
+	_maybe_redraw()
+
+
+# ---- נזרק מגג הרכבת (subway.gd): מתגלגל באוויר, נוחת בבום, קם ורודף ----
+func throw_off(vel: Vector2) -> void:
+	riding = false
+	_crash_fly = true
+	velocity = vel
+	_dir = signf(vel.x) if vel.x != 0.0 else _dir
+	_voice("zscream", 1.0, 3.0)
+
+
+func _crash_fly_process(delta: float) -> void:
+	velocity.y += gravity * delta
+	_spin_a += delta * 10.0   # (סיבוב אחד בערך עד הנחיתה)
+	move_and_slide()
+	if is_on_floor():
+		_crash_fly = false
+		_spin_a = 0.0
+		velocity = Vector2.ZERO
+		Sfx.play("land", global_position, 6.0, 0.05, 2, 0.6)
+		Sfx.play("corpse_splat", global_position, 0.0, 0.1, 2)
+		Particles.burst(get_parent(), global_position + Vector2(0, -4), "smoke", Vector2.UP, 14)
+		Particles.burst(get_parent(), global_position + Vector2(0, -6), "drop", Vector2.UP, 12)
+		var cam := get_viewport().get_camera_2d()
+		if cam != null and cam.has_method("shake"):
+			cam.shake(7.0, 0.3)
+		_stagger_t = 0.45   # רגע של בלבול, ואז הסתערות
+		_alert_t = 30.0
+		_rush_t = 3.0
+		var pl := get_tree().get_first_node_in_group("player")
+		if pl != null:
+			_dir = signf(pl.global_position.x - global_position.x)
+	_maybe_redraw()
 
 
 func drop_through() -> void:
@@ -1699,6 +1783,8 @@ func _draw_main() -> void:
 		DrawBatch.set_transform_matrix(self, Transform2D(_tilt, Vector2(0.0, -30.0 * sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 30.0 * sc)))
 	elif kind == IMP and _carrier != null:   # קטן מוחזק ביד אחת: שוכב על הצד, המותן בכף היד, ראש קדימה, רגליים תלויות
 		DrawBatch.set_transform_matrix(self, Transform2D(PI / 2.0 * _dir, Vector2.ZERO) * Transform2D(0.0, s, 0.0, Vector2(0.0, 25.0 * sc)))
+	elif _crash_fly:   # נזרק מהרכבת: מתגלגל
+		DrawBatch.set_transform_matrix(self, Transform2D(_spin_a * _dir, Vector2(0.0, -28.0 * sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
 	elif kind == IMP and _thrown:   # קטן שנזרק: מסתובב באוויר
 		DrawBatch.set_transform_matrix(self, Transform2D(_spin_a, Vector2(0.0, -28.0 * sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * sc)))
 	else:
@@ -1725,8 +1811,10 @@ func _draw_body() -> void:
 			lean = 3.0 + sin(_time * 1.7) * 7.0
 		_:
 			lean = 3.0
+	if _climbing and not dead:   # מטפס: הגוף נשען אל הקיר
+		lean = 8.0
 	var bob := absf(sin(p)) * 1.5
-	var ck := 0.0 if dead or _lying() else _crouch_k   # התכופפות
+	var ck := 0.0 if dead or _lying() else (0.45 if riding else _crouch_k)   # התכופפות (על גג הרכבת: חצי כפוף)
 	var hip := Vector2(0.0, -24.0 - bob * 0.5 + 11.0 * ck)
 	var sh := Vector2(lean + 3.0 * ck, -41.0 - bob * 0.5 + (1.0 if _big() else 0.0) + 12.0 * ck)
 	# תגובת פגיעה
@@ -1764,6 +1852,12 @@ func _draw_body() -> void:
 		f2 = Vector2(-4.0, -4.0)
 	f1.x += 5.0 * ck
 	f2.x -= 5.0 * ck
+	if _climbing and not dead:   # מטפס: רגליים נדחפות בקיר לסירוגין
+		f1 = Vector2(12.0, -12.0 + sin(p) * 6.0)
+		f2 = Vector2(10.0, -4.0 - sin(p) * 6.0)
+	elif riding and not dead:   # על הגג: עמידת גולש, רגליים פשוקות
+		f1 = Vector2(9.0, 0.0)
+		f2 = Vector2(-9.0, 0.0)
 	if hop != 0.0 or (rk > 0.0 and _react_zone == "leg"):   # קופץ על רגל אחת: הרגל הפגועה באוויר
 		f1 = Vector2(1.0, hop)
 		if not _one_leg:
@@ -1795,6 +1889,12 @@ func _draw_body() -> void:
 		var belly := (sh + hip) * 0.5 + Vector2(7.0, 1.0)
 		front_hand = front_hand.lerp(belly, minf(1.0, rk))
 		back_hand = back_hand.lerp(belly + Vector2(-2.0, -3.0), minf(1.0, rk))
+	if _climbing and not dead:   # מטפס: ידיים למעלה, נאחזות בקיר לסירוגין
+		front_hand = fs + Vector2(17.0, -13.0 + sin(p) * 6.0)
+		back_hand = bs + Vector2(17.0, -6.0 - sin(p) * 6.0)
+	elif riding and not dead:   # על הגג: ידיים פרושות לשיווי משקל
+		front_hand = fs + Vector2(17.0, -8.0 + sin(_time * 9.0) * 3.0)
+		back_hand = bs + Vector2(-15.0, -6.0 - sin(_time * 9.0) * 3.0)
 	if dead or _lying():
 		back_hand = bs + Vector2(-4.0, 15.0)
 		front_hand = fs + Vector2(5.0, 15.0)
