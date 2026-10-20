@@ -49,7 +49,6 @@ const ExitScript := preload("res://exit.gd")
 const ResultsScript := preload("res://results.gd")
 const SquadScript := preload("res://ai/squad_director.gd")
 const StageRegistry := preload("res://levels/stage_registry.gd")   # שלבים 5-9: levels/stage_N.gd
-const ZombieMix := preload("res://levels/zombie_mix.gd")
 const MusicDB := preload("res://music_db.gd")
 const LevelEvents := preload("res://levels/level_events.gd")
 var _stage: Node = null
@@ -139,7 +138,7 @@ func _ready() -> void:
 	_stage = StageRegistry.make(Game.level)
 	if _stage != null:
 		_stage.main = self
-		zombie_weights = _weights_array(ZombieMix.mix(Game.level, _stage.zombie_weights()))   # + זומבים משלבים קודמים (levels/zombie_mix.gd)
+		zombie_weights = _weights_array(_stage.zombie_weights())
 		_gens = _stage.generators()
 		pits = _stage.pits()
 		zombies_per_screen *= _stage.zombie_density()

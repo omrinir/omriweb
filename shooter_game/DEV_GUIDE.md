@@ -4265,18 +4265,9 @@ This replaces the separate ability slots (6-0, reserve swap-in) and the separate
 - Difficulty: `Game.harder()` = 1.25 for levels 1-57 (`HARDER_UNTIL`), 1.0 for 58-63 (already hard).
   - Zombies per screen x1.25, boss HP x1.25, zombie and boss speed +10%. Normal zombie HP is unchanged, so kills stay fast.
 
-## Zombie mix: zombies come back in later levels (2026-10-20, levels/zombie_mix.gd)
-- User: "if a zombie appears on level one he will randomly appear on 2 and 3, just less times... and randomly pop them up on 1 or 2 different levels throughout the game".
-- `ZombieMix.mix(level, weights)` is called by main.gd right after the stage's `zombie_weights()`. It only adds zombies and never changes what the stage asked for.
-- A zombie first seen at level N returns:
-  - at N+1 with half its weight, and at N+2 with a quarter (`NEXT_K`);
-  - in 1-2 later levels within `GUEST_SPAN` (24) at half weight (`GUEST_K`).
-- No level gets more than `MAX_GUESTS` (4) guests. The picks are seeded by kind and by level, so they are the same in every playthrough.
-- Weights are capped by the host level's own most common new zombie, so returning zombies never outnumber that level's new ones.
-- `INTRO` lists each level's new zombies and is generated from levels/stage_N.gd. When you add a level, add its new zombies there.
-- `STAY_HOME` lists zombies that need their own level's terrain: water, ice holes, wind, vines, cliffs, ducts, scarecrow poles, masts and thermals.
-- Levels without zombie 0 in their weights (16 = swarm only) get no extras.
-- Test: devtools t_mix.gd (spawns every returning zombie near the player in its new level).
+## Zombie mix (removed 2026-10-20)
+- Tried: each level's new zombies returning in later levels (levels/zombie_mix.gd). The user said it was not working, so it was removed.
+  Each level spawns only its own `zombie_weights()` again. The old code is in git history (commits 6e5fb18..b9318b1).
 
 ## New level types + music (2026-10-20)
 - levels/level_events.gd: TYPES (hold 6,21,30,48,57 / escape 11,23,41,55 / escort 13,34,44,52), MID_BOSS [10,19,40] (boss at 0.62 of the level, gate opens when it dies). main.gd creates the event after the level is built (ev.main/floor_y/hud_layer, ev.start()).
