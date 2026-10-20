@@ -265,7 +265,9 @@ static func has(kind: int) -> bool:
 static func make(kind: int) -> RefCounted:
 	if not has(kind):
 		return null
-	return load(TYPES[kind]).new()
+	var sc: Script = load(TYPES[kind])
+	preload("res://sfx.gd").register_script(sc)   # הצלילים שלו (sfx.gd לא טוען את כל הסוגים בפתיחה)
+	return sc.new()
 
 
 static func stats(kind: int) -> Dictionary:

@@ -69,4 +69,6 @@ const STAGES := {
 static func make(level: int) -> Node:
 	if not STAGES.has(level) or not ResourceLoader.exists(STAGES[level]):
 		return null
-	return load(STAGES[level]).new()
+	var sc: Script = load(STAGES[level])
+	preload("res://sfx.gd").register_script(sc)   # הצלילים של השלב (sfx.gd לא טוען את כל השלבים בפתיחה)
+	return sc.new()
