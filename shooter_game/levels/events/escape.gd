@@ -267,7 +267,6 @@ func _spawn_ahead(p: Node2D) -> void:
 			continue
 		_budget -= 1
 		z.dormant = false
-		z.chase_range = 3000.0
 		z._dir = -1.0
 		z._alert_t = ALERT
 

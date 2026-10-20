@@ -4262,3 +4262,162 @@ This replaces the separate ability slots (6-0, reserve swap-in) and the separate
 - `STAY_HOME` lists zombies that need their own level's terrain: water, ice holes, wind, vines, cliffs, ducts, scarecrow poles, masts and thermals.
 - Levels without zombie 0 in their weights (16 = swarm only) get no extras.
 - Test: devtools t_mix.gd (spawns every returning zombie near the player in its new level).
+
+## New level types + music (2026-10-20)
+- levels/level_events.gd: TYPES (hold 6,21,30,48,57 / escape 11,23,41,55 / escort 13,34,44,52), MID_BOSS [10,19,40] (boss at 0.62 of the level, gate opens when it dies). main.gd creates the event after the level is built (ev.main/floor_y/hud_layer, ev.start()).
+- Never give event zombies chase_range > 600: ~40 types read that as "I am the boss". Use _alert_t like levels/pace_director.gd.
+- music_db.gd: REGION[7] tracks, BOSS (crossfade when a live boss is within 900 px, back to the level track when it dies), MENU (Settings.menu_music on menu/map). Missing file = old behaviour. Credits + licence notes: music/CREDITS.txt.
+- Tests: devtools/t_hold.gd, t_escape.gd, t_escort.gd (t_bot + event logging).
+
+### HOLD THE LINE — `levels/events/hold.gd` (levels 6, 21, 30, 48, 57)
+
+## (a) What it does
+- **Where:** it scans for an arena centre at 30–40% of `level_w` and scores each spot. If nothing fits, it widens the range to 26–44%. As a last resort it allows a pit inside the arena, but never under a wall or in the middle. The arena is 1.2 *visible* screens wide (`vp.x / camera_zoom`, so 1228 px on desktop), falling back to 1.0 and then 0.85 screens. A spot is rejected if it has a pit within 80 px, a story scene within 1000 px, the checkpoint within 350 px, a boss within 300 px, or falls in the last 1500 px. Score penalties: hazards inside the arena, a wall that lands on an obstacle, ladder or reserved rect, and distance from 35%.
+- **Before:** a low row of sandbags marks both wall spots, so the place reads as fortified.
+- **Trigger** (player x ≥ centre − 90, no story scene running): two barricades slam down. The art is sandbags, corrugated metal, a car door, planks, barbed wire and a blinking lamp, drawn with DrawBatch only.
+  - Collision is a StaticBody on layer 1, 56×230 px, which blocks the player, zombies and bullets. Above it sits an invisible layer-512 wall, 1400 px tall, that only the player hits (the same mechanism as pass_barrier). This stops a double jump from a floor or a JETPACK escape.
+  - It also adds camera shake, sounds synthesised in this file (`Sfx.register`: hold_slam, hold_alarm, hold_win, hold_vault), the banner "HOLD THE LINE / SURVIVE 1:00" (Bangers at a fixed 72 px, animated with `set_transform`), and a `HOLD 0:42` box under the level clock with a progress bar that marks the lull.
+- **Waves:** zombies spawn at the top of a wall, just inside, and drop in with a dust puff. In levels with floors, 30% of groups instead appear at the end of a floor inside the arena ("from above"). Kinds come from `main._pick_kind`. Boss, ceiling-crawler and sewer-hand kinds are remapped, and any spawn where `is_boss()` is true is freed. Rats and dogs come as packs.
+  - Nothing lands within `SAFE_DROP` = 300 px of the player. If the player hugs a wall, zombies come from the far wall or the far end of a floor.
+  - The number alive in the arena is capped. Every zombie inside gets `_alert_t` refreshed every 0.5 s.
+- **Pacing** (k = t / duration): first group at 4%. **RAMP**: interval 3.4→2.4 s, group size 1→2. **LULL** at 50–60%: no spawns, a SUPPLY crate drops by parachute, "SUPPLY DROP / RELOAD!". **SURGE**: interval 2.2→1.6 s, size 1.6→2.5. "FINAL WAVE" appears with 10 s left, nothing new enters in the last 3.5 s, and a tick sounds each second for the last 5 s. That gives about 21–37 zombies per hold on NORMAL.
+- **End:** "LINE HELD!" plus a reward of SUPPLY, AMMO and a heart. The reward drops low and 70–170 px *ahead* of the player, so it is picked up on the way out. The barricades topple outward over 1.1 s and the colliders are removed. Leftovers in the arena (and anything waiting up to 500 px past the right wall) are alerted and keep fighting. Loot that lands on a wall top slides into the arena.
+- **Ammo:** once a second, if the held weapon is below 25% of its max, an AMMO box parachutes onto the surface the player stands on (under any floor above them). The cooldown is 6 s. If every weapon is empty, it drops a SUPPLY crate instead, after 2.5 s. No drop if a box is already lying within reach.
+- **Clock:** `Game.clock_pars += duration`, so the forced wait never costs the GOLD/SILVER medal.
+- **Safety net:** if the player is ever past a wall face while the hold is active (a bug or a teleport), they are put back inside.
+- **Tuning** (all listed under the file's `לשנות:` header):
+  - Placement and size: `AT/AT_WIDE/PREFER`, `WIDTHS [1.2,1.0,0.85]`, `TRIGGER_BEFORE 90`.
+  - Waves: `DURATION [45,60,70]`, `MAX_ALIVE [5,7,9]`, `INTERVAL_MULT [1.3,1,0.85]`, `SIZE_ADD [-0.5,0,0.5]`, `EARLY_LEVEL 12 / EARLY_EASE 1.2` (level 6 gets intervals ×1.2 and a cap 1 lower), `RAMP`, `SURGE`, `RAMP_SIZE`, `SURGE_SIZE`, `LULL`, `START_AT`, `STOP_T`, `FINAL_T`, `ABOVE_SHARE`, `SAFE_DROP`.
+  - Ammo and drops: `LOW_AMMO`, `AMMO_CD`, `EMPTY_CD`, `DROP_H`, `REWARD_H`, `CHUTE_GRAVITY`.
+  - Walls: `WALL_W/WALL_H/WALL_VIS/SKY_H`.
+
+## (b) Checkpoint, death, restart
+- `start()` runs after `_start_at_checkpoint`. If the player is already past the arena's left wall (the arena always ends at least 350 px before the checkpoint), the event frees itself: no walls and no UI. The clock pars still get +duration, because the time saved at the checkpoint already includes the hold. I checked this with `HOLD_CP=1` on levels 6 and 57: no hold node, and pars went from 155 to 215 on level 6.
+- If the player dies, spawning stops while `player.dead` is set. TRY AGAIN reloads the scene as normal and the hold replays; nothing is persisted. The walls, FX and UI belong to the scene, and the UI is also freed in `_exit_tree`.
+
+## (c) Tests (my copy, NORMAL, bot god=0, `t_hold.gd` = t_bot plus hold logging)
+All levels: `PARSED 445 bad 0` and no SCRIPT ERROR in any run. Damage taken inside the hold, on 5 hearts:
+| lv | t_hold seed default: result / hold dmg / total dmg / spawned | t_hold seed 77 | plain t_bot.gd (no hold-aware wait) |
+|---|---|---|---|
+| 6  | FINISHED 141s / 1 / 5 / 30   | FINISHED 164s / 2 / 8   | FINISHED 139s dmg=10 |
+| 21 | FINISHED 170s / 1 / 23 / 34  | FINISHED 174s / 0 / 17  | FINISHED 166s dmg=29 |
+| 30 | FINISHED 157s / 6 / 15 / 33  | FINISHED 156s / 1 / 3   | FINISHED 155s dmg=11 |
+| 48 | FINISHED 202s / 7 / 27 / 37  | FINISHED 204s / 11 / 27 | FINISHED 214s dmg=34 |
+| 57 | FINISHED 225s / 17 / 33 / 37 | FINISHED 214s / 15 / 27 | FINISHED 240s dmg=21 |
+Baseline without the hold (same bot): total dmg 3–29. Frames inside the hold: average 6–14 ms, worst 42 ms. Level 57 is the hardest because of the whaling-station hazards inside the arena; I'm accepting that as late-game difficulty. Ammo never ran out inside the hold, and the rifle had 15→57 after the reward. Spawned per hold: 21–37.
+
+## (d) Shared changes / things the lead should know
+1. **Trap in the BRIEF:** do *not* set `z.chase_range = 3000`. About 40 enemy types (revolver, frostbite, waddler, ironarms, glider…) treat `chase_range > 600` as "I am the BOSS", which means boss stats, boss attacks and the gate trigger. I use `_alert_t`, as pace_director does. The escape and escort authors should check their code for this.
+2. **t_bot.gd** teleports 260 px forward after 25 s without progress, and it only exempts pass_barrier. In a 60 s hold it jumped past the right wall: one plain-bot run on level 21 did this before I added the safety net. Suggestion: in `_move()`, treat a child of main whose script ends with `events/hold.gd` and returns `is_active()` like the barrier (`best_x_f = f`). `t_hold.gd` does exactly that, and it also has `HOLD_SHOTS` / `HOLD_CP` / `HOLD_DIFF` env options.
+3. The bot's only weapon is the starting rifle, and it sprays. Once in two seeds it reached a boss (21 REVOLVER, 6 HOUND) with no ammo, more than 4000 px after the hold. Without the hold that didn't happen in 3 runs. That is why the end reward is SUPPLY + AMMO, placed on the way out. If it still shows up, consider a slightly higher `Arsenal.ammo_drop_chance` on hold levels (shared file).
+4. One headless run in about 60 crashed with signal 11 ("Caller thread can't call this function in this node (/root)") right after a hold started on level 30. I couldn't reproduce it in 8 more level-30 runs, and nothing in hold.gd uses threads. Worth watching.
+5. No shared file needs to change for the event itself.
+
+### ESCAPE / THE HORDE: `levels/events/escape.gd` (levels 11, 23, 41, 55)
+
+## (a) What it is
+- When the player passes `START_AT` (0.15 of the level, x=1536) and the 5 s level-title intro is over, a tsunami of the dead rises
+  at the left edge of the screen: a dark wall with a forward-leaning crest of about 70 silhouettes (reaching arms, glowing red,
+  yellow or green eyes, front-row runners with legs), plus dust. It is all one DrawBatch drawing on a Node2D in main (z 6, above the player).
+  It has no zombie nodes. Collision is one x test against the front edge `_hx`.
+- The horde moves at `SPEED` [210, 232, 258] (EASY/NORMAL/HARD). Walking is 205 and running is 320, so a walker gets caught slowly and a runner pulls away.
+  It starts at `START_SPEED` 140 and ramps up over `RAMP_T` 2.5 s. If it falls more than `CATCHUP_GAP` 950 px behind, it moves at `CATCHUP_SPEED` 330, so it never stops threatening.
+- Touching the wall (player x < front, feet below `WALL_H` 330, which covers every roof and overpass in these stages) costs 1 heart through `player.hurt` and
+  launches the player forward and up (`KNOCK` 560/-480, enough to clear obstacles). `TOUCH_CD` [2.2, 1.8, 1.4]. After a hit the horde slows to
+  30% for `STUMBLE_T` 1.6 s, and it waits while the player is inside it, so it never overruns them. Roll, shield and god mode work as usual.
+- Live non-boss zombies it overtakes are absorbed with a blood burst and freed. Corpses are left alone.
+- Runners ahead: every `SPAWN_EVERY` [3.6, 2.9, 2.4] s, 1-2 zombies from the level's `_pick_kind` mix (rats and dogs in their own group sizes, no
+  ceiling crawlers or bosses) spawn 640-820 px ahead on free road (same spot test as pace_director) and charge. `SPAWN_BUDGET` [8, 11, 14].
+- HUD: a "RUN!" punch banner (Bangers font, scaled through the transform) with "THE HORDE IS COMING - DON'T STOP" and then "DOUBLE-TAP TO SPRINT".
+  Below the clock there is a meter (horde fill, player marker, green SAFE flag, "THE HORDE 23m" and "SAFE 41m"). When the horde is off screen,
+  a red edge glow, an arrow and the distance show on the left, pulsing faster as it gets closer. A green flare marks the safe point in the world.
+- Sound: roar, screams and groans from the horde, plus a synthesized `esc_rumble` (registered with `Sfx.register`, no audio files) whose volume follows the gap.
+  The camera shakes on the rise, on each hit and when the horde is close.
+- End: the player reaches `_safe_x`, which is min(trigger + `CHASE_LEN` 3300, checkpoint - `CP_GAP` 350), at least `STORY_GAP` 1100 before any story scene
+  and outside the boss zone. The horde stops, roars, then sinks and crumbles into dust (`CRUMBLE_T` 2.6 s), "SAFE! THE HORDE FELL APART"
+  appears, and the player gets +40 style. The safety net is `MAX_T` 75 s, after which it gives up ("THEY GAVE UP"). Safe x by level: 11 and 41: 4836, 23: 4770,
+  55: 3400 (STRANGER at 4500). The chase is about 3,000 px, roughly 15-36 s depending on how much you fight.
+- pass_barrier: it is suspended during the chase (otherwise its wall locks the player in front of the horde). If a wall is already up,
+  it is faded out, and the barrier's physics process is restored at the end and on `_exit_tree`.
+- Tuning constants (under "לשנות:" in the header): START_AT, CHASE_LEN, CP_GAP, STORY_GAP, SPEED, START_SPEED, RAMP_T, CATCHUP_GAP,
+  CATCHUP_SPEED, WALL_H, TOUCH_CD, KNOCK, STUMBLE_T/K, SPAWN_EVERY, SPAWN_BUDGET, MAX_T, CRUMBLE_T.
+
+## (b) Checkpoint, death, restart
+- `start()` runs after `_start_at_checkpoint`. If the player is already at or past the trigger (a checkpoint start), or the window is
+  shorter than `MIN_LEN` 1400, the node frees itself and nothing happens. The escape always ends before the checkpoint, so a checkpoint
+  restart skips it.
+- Death: the horde stops where it is and roars once, and the HUD stays. TRY AGAIN reloads main, so the event is rebuilt from scratch.
+- It freezes during story scenes, `clock_paused` and `_finished`.
+
+## (c) Tests (Godot 4.3, test copy, NORMAL). `t_escape.gd` = t_bot plus a horde log (ESC lines and HIT counter) and a `shot` mode for screenshots
+Parse: `PARSED 445 bad 0`. No SCRIPT ERROR in any run. Final code:
+- 11 seed 77: `BOT lv=11 god=0 result=FINISHED time=183.8s ... deaths=10 dmg=50` (chase 24.2 s, 7 horde hits)
+- 11 seed 99: `result=FINISHED time=415.8s ... dmg=360` (0 horde hits; the long DEVOURER boss fight; baseline seed 99 = dmg 138, 197 s)
+- 11 default seed: `result=TIMEOUT` (420 s and 700 s), stuck at x≈9230 y≈410 next to the boss. **Baseline without the event, seed 77, times out at the
+  same spot** (`STUCK x=9230 y=409 260s`), so this is a bot/stage issue at the end of the level, not the escape.
+- 23 default: `BOT lv=23 god=0 result=FINISHED time=140.8s ... deaths=10 dmg=50` (8 hits); seed 77: `FINISHED 182.7s dmg=40` (4 hits)
+- 41 seed 77: `BOT lv=41 god=0 result=FINISHED time=145.2s ... deaths=5 dmg=29` (5 hits); seed 99: `FINISHED 131.8s dmg=27` (36 s chase, 15 hits)
+- 41 default: one run `TIMEOUT` at the MARSHAL (baseline seed 77 also times out there, 950/950); one run crashed with signal 11 mid-chase (see d)
+- 55 default: `BOT lv=55 god=0 result=FINISHED time=157.3s ... deaths=4 dmg=21` (6 hits); seed 77: `FINISHED 171.3s dmg=30` (8 hits)
+- Baseline (no event): 11 dmg 8 / 138; 23 dmg 27; 41 dmg 14 / 133(TIMEOUT); 55 dmg 13 / 19. The bot walks slowly (about 140 px/s) and backs away from zombies
+  into the wall, so it takes 0-15 horde hits (about 7 on average). A player who keeps moving takes far fewer.
+- Screenshots were checked on 11 (night), 23, 41 and 55: the wall, crest, eyes, meter, off-screen arrow, crumble and SAFE banner all render correctly.
+
+## (d) Shared changes / notes
+- No shared files were edited. Nice to have: a public `suspended` flag in `environment/pass_barrier.gd` so events don't have to toggle its
+  physics process and set `_fade` (escape.gd does this through duck typing today).
+- Level 41 sometimes crashes the engine with signal 11 (identical backtrace with and without the event: a baseline run crashed too).
+  It is pre-existing and non-deterministic, and I could not symbolize it with the official binary. Worth a look by whoever owns stage 41.
+
+### ESCORT ("RESCUE"): levels 13, 34, 44, 52 (`levels/events/escort.gd`)
+
+## (a) What it is, and its tuning constants
+- A combat **medic** (a new character drawn in escort.gd: white helmet with a red cross, orange jacket, radio pack with a blinking antenna) waits at `SPAWN_AT` = 15% of the level and calls out on the radio (radio waves + a green marker over her). She is not survivor.gd, so she has no drain.
+  On 52 she is pushed to at least `STORY_CLEAR` = 1000 px from story scenes, so she waits at x=2341 (the scene is at 1300).
+- Start banner (HUD, Bangers): "RESCUE: GET HER TO THE EXTRACTION". It shows at 4.6 s, after the level title.
+- She joins when you come within `JOIN_DIST` 320 px, then follows `FOLLOW_DIST` 80 px behind you. She walks at `WALK` 235 and sprints at `SPRINT` 345 when far. She jumps walls and obstacles, and jumps pits when a ray finds no ground ahead.
+  When you are on a higher floor she climbs the nearest ladder that leads there (a hop when none exists). When you are below, she drops through the one-way floor. If she gets stuck inside a slope she nudges herself out.
+- Teleport to a free ground spot next to you: when she is more than `TP_FAR` 1000 px away, when she fell, after `STUCK_T` 2.5 s stuck off-screen, or after `STUCK_FORCE` 5 s stuck on-screen (with a smoke puff).
+- Collision layer 0: player bullets and explosions, zombies and the player all pass through her. Mask 1|16 (ground and floors).
+- Hearts `HP` = [7,6,5] (EASY/NORMAL/HARD), shown over her head with an HP bar.
+  - Any awake, chasing, non-boss zombie that touches her bites for 1 heart. The bite respects `type_mod.can_bite()` and skips ranged kinds. Each zombie can bite once per `BITE_CD` 1.2 s, and she gets `IFRAME` 0.9 s after a hit.
+- **Hunters:** every `HUNT_EVERY` [13,10,8] s (±20%), `HUNTERS` [1,1,2] zombies 220-900 px away from her switch to `goal_x` = her x, ignore you and run at her. They get a red pulsing marker and a dashed line to her, and she shouts "HE'S AFTER ME!".
+  Plain kinds (`HUNT_KINDS`) are picked first, never `NO_HUNT` kinds. A special type whose movement ignores `goal_x` is released after `HUNT_CHECK` 1.6 s, and every hunter is released after `HUNT_T` 7 s.
+  A hunter is dropped if someone else rewrites its `goal_x` (s44 Surge). `HUNT_FIRST` 7 s of quiet after she joins.
+- **Boss zone** (last `BOSS_ZONE` 1500 px, gate locked): she hides at `level_w-1580` ("I'LL STAY DOWN HERE!"). There she cannot be hurt and no hunters are picked.
+- **Rescued:** the gate opens (boss dead) while she is alive, or you pass `exit.x-30`. Then:
+  - `Game.add_score(RESCUE_SCORE` 1500, with multipliers) and `Game.scrap += RESCUE_SCRAP` 40 + 2×level (66 on lv13, 144 on lv52).
+  - Banner "SURVIVOR RESCUED +N SCORE +N SCRAP". She runs to the helicopter and fades out.
+  - The bonus is awarded before exit.gd fires `reached`, so the score is counted in `finish_level`.
+- **Lost:** "SURVIVOR LOST / No rescue bonus this time" plus a wail. She lies there and fades after 12 s. No other penalty.
+- Performance: every `_draw` uses the DrawBatch wrapper. She redraws only when on screen, and the banner and marks redraw only while active. The bite scan runs every 3rd physics frame. Solo bot run: slow25=0, worst=22 ms.
+
+## (b) Checkpoint, death and restart
+- If the player already starts past `spawn_x-200` (`_start_at_checkpoint` or any other jump), the medic spawns 70 px behind the player and is already following. The banner comes at 1 s.
+- If she is still waiting and the player gets past her, she teleports next to the player and joins.
+- The checkpoint does not save her state, so a TRY AGAIN from the checkpoint brings her back alive even if she died before it. This is intended: "spawn next to the player".
+- Player death or restart reloads main.tscn and the event is created again. During story scenes (`clock_paused`) she stands still and no new hunters are picked.
+
+## (c) Test results (t_escort.gd = t_bot + an ESCORT line; god=0, NORMAL)
+Final build:
+- `BOT lv=13 result=FINISHED time=75.7s deaths=2 dmg=14` | ESCORT lost (bot doesn't defend; bitten by graveborn/devourer)
+- `BOT lv=34 result=FINISHED time=221.5s deaths=10 dmg=50` | ESCORT rescued, min_hp 5
+- `BOT lv=44 result=FINISHED time=114.2s deaths=6 dmg=33` | ESCORT rescued, min_hp 5
+- `BOT lv=52 result=FINISHED time=129.9s deaths=2 dmg=13 story=32s` | ESCORT rescued (joined 43.7 s, after the story scene)
+
+Checkpoint start (ESCORT_CP=1):
+- 13: FINISHED 55.5s deaths=0 dmg=1, rescued
+- 34: FINISHED 136.9s deaths=6 dmg=30, rescued
+- 44: FINISHED 127.9s deaths=6 dmg=34, rescued
+- 52: FINISHED 255.2s deaths=5 dmg=27, rescued
+
+Across 22 bot runs with her: 15 rescued (68%). The bot never protects her; most losses are on 13, where graveborn erupt right where you walk.
+
+Baseline (ESCORT_OFF=1) shows the same bot variance on 34 and 44: each timed out once on the boss in 2 runs with the event off. The event does not cause it.
+
+Screenshots were checked on 13, 34, 44 and 52 for: waiting, following with hearts, hunter marker, lost and rescued banners. Parse: `PARSED 445 bad 0`, and no SCRIPT ERROR in any run.
+
+## (d) Shared changes I'd want (not made)
+- `zombie.gd`: a real "bite target" hook would make hunters play their own bite animation and reach. Today escort.gd fakes the bite through `_bite_anim` and its own contact check.
+- `results.gd`: show "SURVIVOR RESCUED +scrap" on the results screen. Right now the scrap is added straight to `Game.scrap`, so the results "scrap earned" line doesn't include it.
+- Optional: save `medic_alive` in `Game.checkpoint`, if a medic who died before the checkpoint should stay dead.
