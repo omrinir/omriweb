@@ -1,6 +1,6 @@
 extends Node2D
 # ============================================================
-#  ערפל אפור-בהיר חי (שלבים 2 ו-4) - במקום הערפל הרגיל (main.gd, MIST_LEVELS קובע גם את העובי בכל שלב).
+#  ערפל חי (שלב 2 ירוק, שלב 4 אפור-בהיר) - במקום הערפל הרגיל (main.gd, MIST_LEVELS קובע עובי וצבע בכל שלב).
 #  * שחקן וזומבים שזזים "חותכים" את הערפל: הוא נדחף קדימה בכיוון התנועה, מסתחרר בצדדים,
 #    נפתח שובל מאחוריהם, ואחרי ~3 שניות הערפל חוזר וסוגר אותו. פיצוץ דוחף את הערפל החוצה בטבעת,
 #    יריות מעיפות אותו מהקנה, ונחיתה מקפיצה מרימה אותו מהריצפה.
@@ -8,7 +8,7 @@ extends Node2D
 #    הבדל, ועבודת הציור יורדת פי 4. המעבד רק מעדכן רשימה של עד MAX_PTS נקודות
 #    (מיקום, מהירות, עוצמה) - שובל של נקודות שנזרקות מאחורי מי שזז ודועכות.
 #  * המשחק איטי (Quality.level >= 2): חצי נקודות ושכבת רעש אחת פחות.
-#  לשנות: COLOR / COLOR2 / STRENGTH (מראה), HEIGHT (גובה), LIFE (כמה זמן השובל נשאר),
+#  לשנות: COLORS / STRENGTH (מראה), HEIGHT (גובה), LIFE (כמה זמן השובל נשאר),
 #         PLAYER_STEP / ZOMBIE_STEP (כל כמה פיקסלים נזרקת נקודה), RADIUS (רוחב השובל).
 #  חלק: מיקום הדמויות לפי physics interpolation (כמו שהן מצוירות), מהירות מוחלקת, ונקודות שנכנסות ויוצאות בהדרגה.
 #  בדיקה: devtools/t_mist.gd (מהירות עם/בלי, וצילומי מסך).
@@ -25,13 +25,16 @@ const SHOT_EVERY := 0.1          # פאף מהקנה, לא יותר מפעם ב-
 const MIN_SPEED := 18.0         # פיקסלי עולם לשנייה: מתחת לזה לא נחשב תנועה
 const RADIUS := 42.0            # רוחב השובל (פיקסלי עולם)
 const HEIGHT := 260.0           # גובה הערפל מעל הריצפה (פיקסלי מסך)
-const COLOR := Color(0.88, 0.90, 0.92)
-const COLOR2 := Color(0.70, 0.73, 0.77)
-const STRENGTH := 0.42
+const COLORS := {   # צבע לכל סוג (main.gd, MIST_LEVELS): [בהיר, כהה]
+	"green": [Color(0.42, 0.95, 0.30), Color(0.70, 0.95, 0.18)],   # שלב 2: גז רעיל במטרו
+	"gray": [Color(0.88, 0.90, 0.92), Color(0.70, 0.73, 0.77)],    # שלב 4
+}
+const STRENGTH := 0.357         # אטימות (0.42 פחות 15%, לבקשת המשתמש)
 
 var y_screen := 600.0           # הריצפה על המסך (main.gd קובע)
 var zoom := 1.0                 # זום המצלמה (main.gd קובע)
 var thick := 1.0                # עובי (main.gd, MIST_LEVELS): 1 = שלב 2, פחות בשלב 4
+var tint := "gray"              # מפתח ב-COLORS (main.gd, MIST_LEVELS)
 var _t := 0.0
 var _rect: ColorRect
 var _vp: SubViewport
@@ -126,8 +129,9 @@ func _ready() -> void:
 	var m := ShaderMaterial.new()
 	m.shader = Shader.new()
 	m.shader.code = SHADER
-	m.set_shader_parameter("col", COLOR)
-	m.set_shader_parameter("col2", COLOR2)
+	var cs: Array = COLORS.get(tint, COLORS["gray"])
+	m.set_shader_parameter("col", cs[0])
+	m.set_shader_parameter("col2", cs[1])
 	m.set_shader_parameter("strength", STRENGTH * thick)
 	m.set_shader_parameter("rect_size", Vector2(s.x, hh))   # החישובים בפיקסלים של המסך
 	m.set_shader_parameter("zoom", zoom)

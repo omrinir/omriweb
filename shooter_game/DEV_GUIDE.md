@@ -109,11 +109,11 @@ Bosses never get them. Test any of them with `devtools/t_tear.gd` (`TEAR_MODE` =
   `_legless`). Not for CRAWLER, IMP, COP, type mods or ceiling zombies.
 Perf (t_masskill, 40 kills, headless): same frame times as before these deaths (about 12 ms average).
 
-## Live mist (effects/toxic_mist.gd, levels 2 and 4)
-- main.gd MIST_LEVELS = {level: thickness}: {2: 1.0, 4: 0.55}. These levels get the light gray live mist instead of the grey fog (fog.gd); a thinner mist is also lower. Add levels there to use it elsewhere.
+## Live mist (effects/toxic_mist.gd, level 2 green, level 4 gray)
+- main.gd MIST_LEVELS = {level: [thickness, colour]}: {2: [1.0, "green"], 4: [0.55, "gray"]} (colours in toxic_mist.gd COLORS). These levels get the live mist instead of the grey fog (fog.gd); a thinner mist is also lower. STRENGTH 0.357 = opacity (user asked for -15% from 0.42). Add levels there to use it elsewhere.
 - One shader drawn at half resolution (SubViewport) and stretched to the screen (premultiplied alpha). The player and the 11 zombies nearest the screen centre push the mist every frame at the position they are DRAWN at (physics-interpolated, like smooth_motion.gd, else the mist steps at 60/s on 120/144 Hz screens), with smoothed speed; they also drop trail points every PLAYER_STEP / ZOMBIE_STEP px moved. Every point fades in (FADE_IN) and out; when the list is full the oldest fades over KILL_T instead of vanishing (popping points looked choppy). the shader pushes the mist along the motion, swirls it around the body and clears a wake that closes again after LIFE (3 s). Shots puff it away from the barrel (max every 0.1 s), landing from a jump kicks up a ring, explosion.gd blast() calls ToxicMist.poke().
 - Cost: ~0.1 ms CPU per frame; drawing in the software renderer = 1x the old fog idle, 2x with 48 active points. Slow game (Quality.level >= 2): 24 points and 3 noise layers.
-- Look: COLOR / COLOR2 / STRENGTH / HEIGHT / RADIUS / LIFE. Test: devtools/t_mist.gd (MIST_LV=4 for level 4; perf / render [off], shot).
+- Look: COLORS / STRENGTH / HEIGHT / RADIUS / LIFE. Test: devtools/t_mist.gd (MIST_LV=4 for level 4; perf / render [off], shot).
 
 ## Explosions (explosion.gd + effects/boom_fx.gd)
 

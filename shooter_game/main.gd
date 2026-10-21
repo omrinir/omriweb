@@ -37,7 +37,7 @@ const SUBWAY_WEIGHTS := [0.25, 0.14, 0.08, 0.08, 0.05, 0.0, 0.07, 0.0, 0.1, 0.1,
 const SUBWAY_GENS := [["train", 3.0], ["crates", 1.5], ["barrels", 1.5], ["barrier", 1.0], ["rubble", 1.0], ["block", 1.0], ["sandbags", 1.0]]
 const FogScript := preload("res://fog.gd")
 const MistScript := preload("res://effects/toxic_mist.gd")   # ערפל אפור-בהיר שזז כשעוברים בו
-const MIST_LEVELS := {2: 1.0, 4: 0.55}   # שלב -> עובי
+const MIST_LEVELS := {2: [1.0, "green"], 4: [0.55, "gray"]}   # שלב -> [עובי, צבע (toxic_mist.gd COLORS)]
 const PauseScript := preload("res://pause_menu.gd")
 const SurvivorScript := preload("res://survivor.gd")
 const WeaponDB := preload("res://weapons/weapon_db.gd")
@@ -302,7 +302,8 @@ func _ready() -> void:
 	fog.y_screen = vp.y - (vp.y - floor_y) * camera_zoom - 6.0
 	if MIST_LEVELS.has(Game.level):
 		fog.zoom = camera_zoom
-		fog.thick = MIST_LEVELS[Game.level]
+		fog.thick = MIST_LEVELS[Game.level][0]
+		fog.tint = MIST_LEVELS[Game.level][1]
 	fog_layer.add_child(fog)
 
 	# טקסט עזרה + לבבות
