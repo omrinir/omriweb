@@ -2,6 +2,8 @@ extends SceneTree
 # Mist test (effects/toxic_mist.gd, level 2; MIST_LV=4 for level 4): the player walks back and forth and shoots while 16 zombies walk in.
 # mode "perf [off]": 10 s of frame times (MIST line) + the mist script's own CPU time per frame. "off" removes the mist.
 # mode "render [off]": same, but the game is paused at 1.5 s (only the mist keeps moving): pure drawing cost, ON vs OFF.
+# mode "smooth": no zombies, the player walks right at a steady speed; run with --fixed-fps 144 (physics stays 60/s).
+#   Prints JITTER = mean frame-to-frame change in speed (screen px) of the mist's disturbance centre. Lower = smoother.
 # mode "shot <png_prefix> [frames...]": saves PNGs (frames counted from the start).
 # usage: godot --headless --path . -s res://t_mist.gd -- perf [off]
 #        xvfb-run -a -s "-screen 0 1280x720x24" godot --fixed-fps 60 --path . --rendering-driver opengl3 -s res://t_mist.gd -- shot /tmp/mist 150 200
@@ -26,7 +28,7 @@ func _initialize() -> void:
 	current_scene = main_node
 	var a := OS.get_cmdline_user_args()
 	mode = a[0] if a.size() > 0 else mode
-	if mode == "perf" or mode == "render":
+	if mode == "perf" or mode == "render" or mode == "smooth":
 		off = a.size() > 1 and a[1] == "off"
 	else:
 		prefix = a[1] if a.size() > 1 else "/tmp/mist"
@@ -67,6 +69,8 @@ func _process(_d: float) -> bool:
 		if off:
 			for m in main_node.get_tree().get_nodes_in_group("toxic_mist"):
 				m.queue_free()
+	if mode == "smooth":
+		return _smooth(pl)
 	if f == 30:
 		for i in 16:
 			var side := -1.0 if i % 2 == 0 else 1.0
@@ -100,5 +104,31 @@ func _process(_d: float) -> bool:
 		for t in times:
 			s += t
 		print("MIST %s frames=%d avg=%.2fms p95=%.2fms max=%.1fms mist_cpu=%.3fms/frame zombies=%d" % ["OFF" if off else "ON", times.size(), s / times.size(), times[int(times.size() * 0.95)], times[-1], cpu, main_node.get_tree().get_nodes_in_group("zombies").size()])
+		quit()
+	return false
+
+var cx_hist := []
+
+func _smooth(pl) -> bool:
+	if f > 40:
+		_key(KEY_D, true)
+	if f > 100:
+		var m = main_node.get_tree().get_nodes_in_group("toxic_mist")[0]
+		var mat: ShaderMaterial = m._rect.material
+		var cnt: int = mat.get_shader_parameter("count")
+		var pos: PackedVector2Array = mat.get_shader_parameter("pos")
+		var amt: PackedFloat32Array = mat.get_shader_parameter("amt")
+		var c := Vector2.ZERO
+		var w := 0.0
+		for i in cnt:
+			c += pos[i] * amt[i]
+			w += amt[i]
+		if w > 0.0:
+			cx_hist.append((c / w).x)
+	if f >= 100 + 300:
+		var j := 0.0
+		for i in range(2, cx_hist.size()):
+			j += absf(cx_hist[i] - 2.0 * cx_hist[i - 1] + cx_hist[i - 2])
+		print("JITTER %.3f px/frame over %d frames" % [j / maxf(1.0, cx_hist.size() - 2), cx_hist.size()])
 		quit()
 	return false
