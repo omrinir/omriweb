@@ -109,6 +109,12 @@ Bosses never get them. Test any of them with `devtools/t_tear.gd` (`TEAR_MODE` =
   `_legless`). Not for CRAWLER, IMP, COP, type mods or ceiling zombies.
 Perf (t_masskill, 40 kills, headless): same frame times as before these deaths (about 12 ms average).
 
+## Green mist (effects/toxic_mist.gd, level 2)
+- main.gd MIST_LEVELS = [2]: these levels get the green mist instead of the grey fog (fog.gd). Add level numbers to use it elsewhere.
+- One shader on one screen-wide rect. The player (every 0.05 s) and zombies on screen (every 0.16 s) drop trail points (position, speed) when they move; the shader pushes the mist along the motion, swirls it around the body and clears a wake that closes again after LIFE (2.2 s). explosion.gd blast() calls ToxicMist.poke() for an outward ring.
+- Cost: ~0.1 ms CPU per frame. Slow game (Quality.level >= 2): 24 points instead of 48 and 3 noise layers instead of 4.
+- Look: COLOR / COLOR2 / STRENGTH / HEIGHT / RADIUS. Test: devtools/t_mist.gd (perf / render [off], shot).
+
 ## Explosions (explosion.gd + effects/boom_fx.gd)
 
 `Boom.blast(...)` (grenades, barrels, cars, bloaters, dynamite, mines, artillery...) does the damage, then adds one `Boom.Explosion`
