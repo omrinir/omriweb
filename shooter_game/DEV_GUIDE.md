@@ -115,6 +115,12 @@ Perf (t_masskill, 40 kills, headless): same frame times as before these deaths (
 - Cost: ~0.1 ms CPU per frame; drawing in the software renderer = 1x the old fog idle, 2x with 48 active points. Slow game (Quality.level >= 2): 24 points and 3 noise layers.
 - Look: COLORS / STRENGTH / HEIGHT / RADIUS / LIFE. Test: devtools/t_mist.gd (MIST_LV=4 for level 4; perf / render [off], shot).
 
+## CLIMBER spider form (enemies/types/climber.gd, level 5) + WALL CRAWLER (level 6)
+- The CLIMBER no longer climbs (it used to climb straight up anywhere, so it looked like it climbed on air).
+- When it is hit but not killed it transforms: 4 spider legs grow out of its back (TRANSFORM_T 0.5 s), then it runs faster (SPIDER_SPEED) and crouches + leaps high at the player (LEAP_H 300 px apex, aimed to land on the player; when it is right next to the player it leaps over to the other side; cooldown 1.2-2.2 s). Landing on the player hurts like a leaper. HP 28 (was 22) so the transform is seen more often.
+- The level 6 WALL_CRAWLER (wall_crawler.gd) only climbs when a real ceiling is above it; with no ceiling it stays on the ground (it used to cling to an invisible wall).
+- Test: `devtools/t_spider.gd` (copy into a test project): spawns a CLIMBER on level 5, hits it on frame 75, prints state/pos and the leap count. Args `-- <png_prefix> [zoom] [frames...]` save frames; SPIDER_FOCUS=1 points the camera at the zombie.
+
 ## Explosions (explosion.gd + effects/boom_fx.gd)
 
 `Boom.blast(...)` (grenades, barrels, cars, bloaters, dynamite, mines, artillery...) does the damage, then adds one `Boom.Explosion`
