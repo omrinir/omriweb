@@ -20,7 +20,7 @@ static func blast(parent: Node2D, center: Vector2, radius := 120.0, break_radius
 	var src := {"source": source, "blast": _next_blast}
 	Game.make_noise(center, 700.0)   # פיצוץ מעיר את כל הזומבים מסביב
 	Sfx.play("explosion", center, 3.0, 0.12, 4)
-	preload("res://effects/toxic_mist.gd").poke(tree, center, radius)   # הערפל הירוק (שלב 2) נדחף החוצה
+	preload("res://effects/toxic_mist.gd").poke(tree, center, radius)   # הערפל החי (שלבים 2, 4) נדחף החוצה
 	# לבנים, מכוניות, חביות...
 	for b in tree.get_nodes_in_group("blastable"):
 		if b.has_method("hit_by_blast") and b.has_method("blast_rect"):

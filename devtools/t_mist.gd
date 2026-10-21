@@ -1,5 +1,5 @@
 extends SceneTree
-# Green mist test (effects/toxic_mist.gd, level 2): the player walks back and forth and shoots while 16 zombies walk in.
+# Mist test (effects/toxic_mist.gd, level 2; MIST_LV=4 for level 4): the player walks back and forth and shoots while 16 zombies walk in.
 # mode "perf [off]": 10 s of frame times (MIST line) + the mist script's own CPU time per frame. "off" removes the mist.
 # mode "render [off]": same, but the game is paused at 1.5 s (only the mist keeps moving): pure drawing cost, ON vs OFF.
 # mode "shot <png_prefix> [frames...]": saves PNGs (frames counted from the start).
@@ -20,7 +20,7 @@ var cpu0 := 0
 func _initialize() -> void:
 	var g = root.get_node("Game")
 	g.new_run()
-	g.level = 2
+	g.level = int(OS.get_environment("MIST_LV")) if OS.get_environment("MIST_LV") != "" else 2
 	main_node = load("res://main.tscn").instantiate()
 	root.add_child(main_node)
 	current_scene = main_node
