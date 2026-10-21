@@ -109,6 +109,20 @@ Bosses never get them. Test any of them with `devtools/t_tear.gd` (`TEAR_MODE` =
   `_legless`). Not for CRAWLER, IMP, COP, type mods or ceiling zombies.
 Perf (t_masskill, 40 kills, headless): same frame times as before these deaths (about 12 ms average).
 
+## Explosions (explosion.gd + effects/boom_fx.gd)
+
+`Boom.blast(...)` (grenades, barrels, cars, bloaters, dynamite, mines, artillery...) does the damage, then adds one `Boom.Explosion`
+(= `effects/boom_fx.gd`). It has 3 particle styles, picked at random and never the same twice in a row (`pick_style`):
+0 fireball (big rolling fire cloud, sparks, embers, smoke column), 1 shrapnel (sharp flash and shock ring, fast spark streaks,
+dirt clumps, dust cloud along the floor), 2 fire pillar (column of fire with a mushroom cap, ground dust ring, falling embers).
+- Every layer is a one-shot `CPUParticles2D` (simulated in C++, one draw per layer). Textures, color ramps and curves are built once
+  and shared (`res()`). Specs are the `STYLE_*` arrays; sizes and speeds scale with the blast radius (`_k`, 0.55-1.5).
+- Fewer particles when the game is slow (`Quality.particles()`) or more than `BUSY` (4) explosions are alive.
+- Flash, shock ring and scorch mark are drawn by the node; it also lights dark levels for 0.5 s (`dyn_lights`).
+- `prewarm()` (main.gd, level start) compiles the additive-blend shader so the first explosion does not hitch.
+- Test: `devtools/t_boom.gd` (`perf` prints frame times; `shot` saves PNGs, `BOOM_STYLE`=0/1/2). Old vs new (headless, 13 blasts
+  in 5 s): 8.2 ms -> 6.9 ms per frame. The rocket's mini explosions (weapons/rocket.gd) keep their own particle effect.
+
 ## JETPACK ability
 
 `abilities/types/jetpack.gd` (unlocks at stage 2). C = take off, hold W/SPACE = thrust, release = slow hover-fall, C again = land/turn off.

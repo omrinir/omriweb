@@ -269,6 +269,7 @@ func _ready() -> void:
 		_start_at_checkpoint(player)
 	# חימום shader של ריסוס הדם עכשיו, ולא בהריגה הראשונה (effects/flesh_fx.gd -> prewarm)
 	preload("res://effects/flesh_fx.gd").prewarm(self, player.position + Vector2(160.0, -60.0))
+	preload("res://effects/boom_fx.gd").prewarm(self)   # ככה גם לפיצוץ הראשון (אור מצטבר)
 
 	# מצלמה שעוקבת אחרי השחקן ונעצרת בקצוות הרמה
 	if TouchAPI.on():
