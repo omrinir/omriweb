@@ -29,6 +29,8 @@ var _cd := 0.0
 var _hp0 := -1
 var _hit_done := false
 var _scrape := 0.0
+var _gait := 0.0                 # מחזור הצעדים של רגלי העכביש (לפי מהירות)
+var _move := 0.0                 # 0..1 כמה הוא הולך עכשיו
 
 
 func stats() -> Dictionary:
@@ -75,6 +77,9 @@ func physics(pl: Node, delta: float) -> bool:
 					z._dir = signf(dx) if dx != 0.0 else z._dir
 					Sfx.play("climb_hiss", z.global_position, -2.0, 0.1, 2)
 					return true
+			var spd := absf(z.velocity.x)
+			_move = move_toward(_move, clampf(spd / 120.0, 0.0, 1.0), delta * 4.0)
+			_gait += delta * (1.5 + spd * 0.075)
 			_scrape -= delta
 			if _scrape <= 0.0 and absf(z.velocity.x) > 40.0:
 				_scrape = 0.3
@@ -205,7 +210,8 @@ func _draw_spider() -> bool:
 	var squash := 0.0
 	if state == CROUCH:
 		squash = 1.0 - clampf(_t / CROUCH_T, 0.0, 1.0)
-	var lift := lerpf(22.0, 27.0, g) - 12.0 * squash   # גובה הגוף מעל הריצפה
+	var walk := _move if state == SPIDER else 0.0
+	var lift := lerpf(22.0, 27.0, g) - 12.0 * squash + sin(_gait * 2.0) * 1.8 * walk   # גובה הגוף מעל הריצפה (מתנדנד בהליכה)
 	var shake := Vector2(sin(p * 1.7) * 1.5, cos(p * 2.3) * 1.0) if state == TRANSFORM else Vector2.ZERO
 	begin_draw()
 	var hip := Vector2(-10.0, -lift) + shake
@@ -218,11 +224,12 @@ func _draw_spider() -> bool:
 			var front := pass_i == 1
 			var root: Vector2 = hip.lerp(sh, 0.25 + 0.5 * float(k))
 			var side := -1.0 if k == 0 else 1.0                       # רגל אחורית/קדמית בכיוון התנועה
-			var ph := p * 1.1 + float(i) * PI * 0.5
+			# הליכה: זוגות אלכסוניים (אחורית+קדמית מנוגדות) צועדים יחד. כף הרגל זזה קדימה באוויר ואחורה על הריצפה.
+			var ph := _gait + (0.0 if i == 0 or i == 3 else PI)
 			var reach := (24.0 + 8.0 * float(k)) * LEG_LEN * g
-			var step := sin(ph) * 6.0 * g
-			var up := maxf(0.0, cos(ph)) * 5.0 * g
-			var knee := Vector2(root.x + side * reach * 0.8, -lift - 34.0 * g + 8.0 * squash)   # ברך גבוהה מעל הגוף
+			var step := sin(ph) * (2.0 + 12.0 * walk) * g
+			var up := maxf(0.0, cos(ph)) * (1.0 + 10.0 * walk) * g
+			var knee := Vector2(root.x + side * reach * 0.8 + step * 0.45, -lift - 34.0 * g + 8.0 * squash - up * 0.6)   # ברך גבוהה מעל הגוף
 			var ankle := Vector2(root.x + side * reach * 1.2 + step * 0.6, -14.0 * g - up)
 			var foot := Vector2(root.x + side * reach * 1.3 + step, -up)
 			if air:   # באוויר: רגליים פרושות למטה ולצדדים
