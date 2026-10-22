@@ -520,6 +520,8 @@ static func draw_item(ci: CanvasItem, c: Vector2, kind: String, s: float, alpha 
 			preload("res://effects/mind_control.gd").draw_device(ci, c + Vector2(-8.0, 0.0) * s, Vector2.RIGHT, t, 1.3 * s)
 		"gravity":
 			preload("res://weapons/gravity_grenade.gd").draw_icon(ci, c, s, t)
+		"tiger":
+			preload("res://effects/spirit_tiger.gd").draw_icon(ci, c, s, t)
 		"grenade":
 			DrawBatch.circle(ci, c + Vector2(0.0, 2.0) * s, 6.5 * s, Color(Color("6d8236"), alpha))
 			DrawBatch.circle(ci, c + Vector2(-2.0, 0.0) * s, 2.5 * s, Color(Color("8aa048"), alpha))

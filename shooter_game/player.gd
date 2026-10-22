@@ -1125,7 +1125,7 @@ func _fire() -> void:
 # ============================================================
 func take_special(kind: String) -> void:
 	var info: Dictionary = Arsenal.SPECIALS[kind]
-	var n: int = int(info.uses) + (0 if kind in ["god", "mind", "laser"] else Upgrades.perk("grenade_pouch"))
+	var n: int = int(info.uses) + (0 if kind in ["god", "mind", "laser", "tiger"] else Upgrades.perk("grenade_pouch"))
 	if special == kind:
 		special_uses += n
 	else:
@@ -1184,6 +1184,18 @@ func _use_special(sh: Vector2) -> void:
 	if special == "god":   # שותים את השיקוי
 		_drink_god()
 		_cooldown = 0.4
+		special_uses -= 1
+		if special_uses <= 0:
+			special = ""
+			special_uses = 0
+			weapon = GUN
+			weapon_changed.emit(weapon)
+		return
+	if special == "tiger":   # SPIRIT TIGER: נמר רוח יוצא מהגוף ותוקף זומבים (effects/spirit_tiger.gd)
+		var tg = preload("res://effects/spirit_tiger.gd").new()
+		tg.setup(self)
+		get_parent().add_child(tg)
+		_cooldown = 0.6
 		special_uses -= 1
 		if special_uses <= 0:
 			special = ""
@@ -1912,6 +1924,8 @@ func _draw_hero(la: Vector2) -> void:
 		PickupScript.draw_potion(self, hand + la * 2.0 + Vector2(0, -2), 0.55, _time)
 	elif special == "gravity":   # רימון כבידה ביד
 		preload("res://weapons/gravity_grenade.gd").draw_icon(self, hand + la * 3.0, 0.5, _time)
+	elif special == "tiger":   # SPIRIT TIGER ביד: ראש נמר בוער
+		preload("res://effects/spirit_tiger.gd").draw_icon(self, hand + la * 3.0, 0.45, _time)
 	else:
 		var g := hand + la * 3.0
 		Art.disc(self, g, 4.3, Color("4a5a2c"))
@@ -2080,6 +2094,8 @@ func _draw_body(la: Vector2, limp: bool) -> void:
 		PickupScript.draw_potion(self, hand + la * 2.0 + Vector2(0, -2), 0.55, _time)
 	elif special == "gravity":   # רימון כבידה ביד
 		preload("res://weapons/gravity_grenade.gd").draw_icon(self, hand + la * 3.0, 0.5, _time)
+	elif special == "tiger":   # SPIRIT TIGER ביד: ראש נמר בוער
+		preload("res://effects/spirit_tiger.gd").draw_icon(self, hand + la * 3.0, 0.45, _time)
 	else:
 		var g := hand + la * 3.0
 		Art.disc(self, g, 4.3, Color("4a5a2c"))

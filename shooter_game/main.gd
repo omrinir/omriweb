@@ -1068,6 +1068,14 @@ func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
 		lz.life = 100000.0
 		add_child(lz)
 		lz.setup(Vector2(get_viewport_rect().size.x * 0.12 + 280.0, floor_y - 30.0), Vector2.ZERO)
+	# בדיקה: SPIRIT TIGER בתחילת שלב Arsenal.TEST_TIGER_LEVEL
+	if Game.level == Arsenal.TEST_TIGER_LEVEL:
+		var tg = PickupScript.new()
+		tg.kind = PickupScript.SPECIAL
+		tg.special = "tiger"
+		tg.life = 100000.0
+		add_child(tg)
+		tg.setup(Vector2(_free_spot(get_viewport_rect().size.x * 0.12 + 220.0), floor_y - 30.0), Vector2.ZERO)
 	# שיקוי GOD MODE: שלב 3, ואז כל 2-3 שלבים - באמצע השלב, שם יש זומבים (progression/arsenal.gd)
 	if Arsenal.has_potion(Game.level):
 		var pot = PickupScript.new()

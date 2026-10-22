@@ -569,6 +569,17 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   sometimes sets them on fire. It goes through zombies and stops only at walls (breaks bricks it hits). Narrows out at the end.
 - After the 8th beam ends the item is used up and you go back to your gun. Sounds: lz_charge / lz_fire / lz_hit (registered via sfx.gd BANKS).
 
+## SPIRIT TIGER (special item "tiger", effects/spirit_tiger.gd) - added 2026-10-22, in testing
+- progression/arsenal.gd SPECIALS "tiger": 1 use, "from" 999 (never a random find yet). Test: Arsenal.TEST_TIGER_LEVEL = 20 -> main.gd puts one near the start of level 20. Set it to 0 to remove.
+- C (use_item -> _use_special "tiger") spawns the tiger node in the level. SUMMON (0.75 s): a column of green flames on the player's body, the player glows green,
+  the tiger grows out of his chest and lands in front of him with a roar. RUN: bounds (gallop arcs) toward the nearest normal zombie (SEARCH 1100,
+  bosses / mind-controlled zombies skipped), passes through walls and pits (spirit). Within POUNCE_R it pounces in a high homing arc, jaw open,
+  and kills the zombie (DMG 9999 fixed, retried as explosive for armored types; a zombie that still survives is skipped). MAUL 0.34 s, "SPIRIT n/3" popup.
+- After KILLS (3), or IDLE_MAX 5 s with no target, or LIFE_MAX 22 s: roars and dissolves into rising flames.
+- Drawing: opaque green body (stripes, tail, 4 jointed legs, jaw) in one DrawBatch call + additive _glow child (soft halo, burning eye, up to 170 flame
+  particles drawn as teardrops). Headless cost ~+1 ms/frame while it is out (devtools/t_tiger.gd, TIGER_OFF=1 = baseline).
+- Sounds: tiger_summon / tiger_roar / tiger_pounce / tiger_maul (registered via sfx.gd BANKS, in sounds/sfx_cache.res).
+
 ## Region 4 - ANDES (levels 28-36)
 
 ## Stage 28 - "DEATH ROAD" ("THEY LEARNED TO WAIT") - Bolivia's Yungas road, region 4 level 1
