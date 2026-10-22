@@ -132,6 +132,11 @@ dirt clumps, dust cloud along the floor), 2 fire pillar (column of fire with a m
 - Fewer particles when the game is slow (`Quality.particles()`) or more than `BUSY` (4) explosions are alive.
 - Flash, shock ring and scorch mark are drawn by the node; it also lights dark levels for 0.5 s (`dyn_lights`).
 - `prewarm()` (main.gd, level start) compiles the additive-blend shader so the first explosion does not hitch.
+- Debris + flares (`effects/boom_debris.gd`, child of every explosion): 9-14 broken chunks (concrete/metal/dirt, some glowing hot and
+  cooling) fly out, spin, bounce off the floor or any world surface (one short ray per falling chunk, layer 1), rest `REST_T` and fade;
+  3-4 burning flares shoot out in arcs with a fire tail (additive `_glow` child) and a grey smoke trail. All drawn as batched triangles
+  (2 draw calls per explosion). Cost ~0.08 ms per explosion per frame; more than `MANY` (4) alive = half chunks and 2 flares, more than
+  `TOO_MANY` (8) = none. t_boom perf (barrage of 23 blasts): frame time same as before within noise.
 - Test: `devtools/t_boom.gd` (`perf` prints frame times; `shot` saves PNGs, `BOOM_STYLE`=0/1/2). Old vs new (headless, 13 blasts
   in 5 s): 8.2 ms -> 6.9 ms per frame. The rocket's mini explosions (weapons/rocket.gd) keep their own particle effect.
 

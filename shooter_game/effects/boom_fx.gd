@@ -1,5 +1,6 @@
 extends Node2D
 const DrawBatch := preload("res://effects/draw_batch.gd")
+const Debris := preload("res://effects/boom_debris.gd")
 # ============================================================
 #  אפקט הפיצוץ (explosion.gd -> Boom.Explosion): 3 סגנונות שמתחלפים באקראי (אף פעם לא אותו סגנון פעמיים ברצף).
 #   0 כדור אש  - כדור אש גדול ומתגלגל, ניצוצות, גחלים ועמוד עשן שעולה.
@@ -9,6 +10,7 @@ const DrawBatch := preload("res://effects/draw_batch.gd")
 #    המשאבים (טקסטורות, צבעים, עקומות) נבנים פעם אחת ומשותפים לכל הפיצוצים.
 #  * המשחק איטי (Quality.particles) או יותר מ-BUSY פיצוצים בבת אחת: פחות חלקיקים.
 #  * הבזק, גל הדף, אור (בשלבים חשוכים, dyn_lights) וכתם חריכה מצוירים כאן.
+#  * שברים שעפים וקופצים + זיקוקים עם שובל עשן: effects/boom_debris.gd (ילד של הפיצוץ).
 #  לשנות: STYLE_* (המפרטים של כל סגנון), BUSY, SCORCH_T.  בדיקה: devtools/t_boom.gd (BOOM_STYLE=0/1/2).
 # ============================================================
 
@@ -99,6 +101,14 @@ func _ready() -> void:
 			var m: Dictionary = spec.duplicate()
 			m["dir"] = Vector2(-(spec["dir"] as Vector2).x, (spec["dir"] as Vector2).y)
 			_layer(m, q)
+	if Debris.alive < Debris.TOO_MANY:   # שברים + זיקוקים (effects/boom_debris.gd); המון פיצוצים בבת אחת - בלי
+		var d := Debris.new()
+		d.style = style
+		d.k = _k
+		d.on_ground = on_ground
+		d.q = q
+		add_child(d)
+		_end = maxf(_end, 4.4)
 	add_to_group("dyn_lights")
 	if _scorch:
 		_end = maxf(_end, SCORCH_T)
