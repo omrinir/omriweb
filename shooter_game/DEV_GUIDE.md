@@ -283,6 +283,7 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 * **Ammo**: fixed supply points with a sign (`SupplyMarker`) at 20/40/60/80% (`SUPPLY_POINTS`; a stage can override `supply_points()` -
   stage 16 has one every 10%, incl. medkits). Dynamic drops: a dying zombie drops ammo with 3% (full) .. 20% (almost empty) .. 35% (all empty)
   - `Arsenal.ammo_drop_chance()`.
+* **GOD MODE push** (2026-10-22): every hit from a god-mode bullet (src "god", bullet.gd) pushes zombies 35% harder: knockback velocity, hit-reaction sway and corpse fling all x `zombie.gd` `GOD_PUSH` (1.35).
 * **Saving** (`game_state.gd`): autosave at level end + at the mid-level checkpoint (`environment/checkpoint.gd`, `main.gd` `CHECKPOINT_AT`):
   position, weapons, ammo, grenades. TRY AGAIN after passing it = start at the checkpoint with that gear. Each level attempt keeps one
   `attempt_seed`, so a restart rebuilds the exact same level. HOLD THE LINE levels also save a checkpoint when the arena closes

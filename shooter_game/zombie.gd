@@ -302,12 +302,14 @@ const SPLAT_CHANCE := 0.5
 static var _splat_last := 0       # זמן הצליל האחרון (לא כמה ביחד במולטי-קיל)
 var _last_hit := Vector2.ZERO    # איפה הפגיעה האחרונה (קובע איך הגופה נופלת)
 var _last_boom := false
+var _last_god := false            # הפגיעה האחרונה הייתה ב-GOD MODE (הגופה עפה GOD_PUSH רחוק יותר)
 var _last_kb := -1.0             # knockback של הנשק שפגע אחרון (-1 = לא נשק). קובע כמה רחוק הגופה עפה
 var _kb_shot := 0                # הירייה האחרונה שהדפה אותו (Game.shot_id)
 var heavy_kill := false          # נהרג ממכה חזקה (שוטגאן מקרוב / צלף): הגופה עפה ולא מתקפלת במקום (effects/ragdoll.gd)
 # ---- תחושת הריגה (gunfeel) ----
 const KILL_FLING := Vector2(0.75, 1.75)   # מכפיל עיפת הגופה: [נשק חלש, נשק חזק] לפי knockback (SMG ~0.9, רובה ~1.2, שוטגאן/צלף ~1.7)
 const HEAVY_KB := 150.0                   # knockback מזה ומעלה = מכה חזקה
+const GOD_PUSH := 1.35                    # GOD MODE (src "god" מ-bullet.gd): כל פגיעה הודפת 35% חזק יותר (הדיפה, תגובה, עיפת הגופה)
 const HITSTOP_HEAD := 0.045               # עצירת זמן קטנה בהריגה בראש (שניות אמיתיות)
 const HITSTOP_HEAVY := 0.055              # ... בהריגה ממכה חזקה
 const HITSTOP_BOSS := 0.28                # ... במוות של בוס
@@ -1305,6 +1307,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 	_last_hit = hit_pos
 	_last_boom = explosive
 	_last_kb = float(src.get("knockback", -1.0)) if source == "bullet" or source == "melee" else -1.0
+	_last_god = bool(src.get("god", false))
 	hp -= dmg
 	Game.story.emit("zhit", {"z": self, "zone": zone, "source": source, "was_lying": was_lying})
 	if hp > 0 and not metal and (source == "bullet" or source == "melee" or source == "taser"):
@@ -1345,7 +1348,7 @@ func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false
 		var ksid: int = int(src.get("shot", 0))
 		if ksid == 0 or ksid != _kb_shot:   # שוטגאן: רק הכדור הראשון של הירייה הודף (6 כדורים היו זורקים אותו מחוץ לטווח)
 			_kb_shot = ksid
-			velocity.x += dir.x * (110.0 + (float(src.get("knockback", 0.0)) if not is_boss() else 0.0))   # הדיפה לפי הנשק
+			velocity.x += dir.x * (110.0 + (float(src.get("knockback", 0.0)) if not is_boss() else 0.0)) * (GOD_PUSH if src.get("god", false) else 1.0)   # הדיפה לפי הנשק
 		# לפעמים הוא בורח ומתחבא מאחורי מכונית / מחסום (אם יש אחד קרוב)
 		if _cover_state == 0 and not was_lying and not is_boss() and randf() < cover_chance:
 			_try_cover(get_tree().get_first_node_in_group("player"))
@@ -1360,7 +1363,7 @@ func _start_react(zone: String, dir: Vector2, src: Dictionary) -> void:
 	_react_zone = zone
 	_react_t = REACT_TIME[zone]
 	_react_dx = signf(dir.x * _dir) if dir.x != 0.0 else -1.0
-	_react_push = clampf(0.8 + float(src.get("knockback", 60.0)) / 200.0, 0.8, 1.6)
+	_react_push = clampf(0.8 + float(src.get("knockback", 60.0)) / 200.0, 0.8, 1.6) * (GOD_PUSH if src.get("god", false) else 1.0)
 	if is_boss() or _big():   # בוס / ענק: בקושי זז
 		_react_push *= 0.35 if is_boss() else 0.6
 
@@ -1530,6 +1533,8 @@ func _die(dir: Vector2) -> void:
 	if _last_kb >= 0.0 and not _last_boom:
 		fl = lerpf(KILL_FLING.x, KILL_FLING.y, clampf(_last_kb / 220.0, 0.0, 1.0))
 		heavy_kill = _last_kb >= HEAVY_KB
+	if _last_god and not _last_boom:
+		fl *= GOD_PUSH
 	velocity = (Vector2(dir.x, minf(dir.y, 0.0)).normalized() * randf_range(420.0, 620.0) * fl / sqrt(sc * wf) + Vector2(0.0, -260.0 * minf(fl, 1.3))) * DEATH_FLING
 	_kill_feel()
 	if Game.level >= SPORE_FROM and not _lite and not is_boss() and Quality.level < 2:   # "THEY LEARN": השיעור עובר הלאה
