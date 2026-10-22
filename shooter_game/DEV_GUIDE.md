@@ -577,6 +577,10 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   zombie's feet; passing within HIT_R kills it (DMG 9999 fixed, retried as explosive; survivors are skipped), soft chime + vapour burst, then it
   keeps its momentum for AFTER_HIT before curving to the next. Turns by squashing through scale 0 (_face_s). No zombies -> floats near the player.
   After KILLS (3) / IDLE_MAX 5 s / LIFE_MAX 22 s: drifts up and fades. Bosses + mind-controlled zombies are ignored; passes through walls.
+- v3 (user: "shorter, less defined, cloud-like when floating, tiger-like when it attacks"): SCALE 0.85 + LEN_K 0.82 (shorter body), no glowing rim,
+  no afterimages. 10 soft puffs (PUFF_T) drift around the centre as a wide flat cloud with one glowing eye; within ATTACK_R (250) of its target
+  the puffs gather into the tiger's shape (_m 0 -> 1 at MORPH_IN 4.5/s) and the translucent tiger body, stripes and open jaw fade in; after a kill
+  it melts back into a cloud (MORPH_OUT 1.6/s). Vapour wisps are bigger and softer (no bright cores). Visual check: TIGER_CROP=1 in devtools/t_tiger.gd.
 - Drawing: translucent body (alpha 0.55, dark see-through stripes, legs that fade into vapour, long waving tail) + additive _glow: glowing rim
   (BODY/HEAD outlines), TRAIL_N afterimages, faint halo, eye, up to 200 soft vapour wisps. Headless cost ~+0.6 ms/frame (devtools/t_tiger.gd, TIGER_OFF=1 = baseline).
 - Sounds: tiger_summon / tiger_roar / tiger_swoop / tiger_hit (sfx.gd BANKS, in sounds/sfx_cache.res).

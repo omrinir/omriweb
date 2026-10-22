@@ -2,20 +2,26 @@ extends Node2D
 const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  SPIRIT TIGER - פריט מיוחד (progression/arsenal.gd -> SPECIALS "tiger", שימוש אחד).
-#  C -> רוח של נמר יוצאת מהגוף של השחקן: הגוף זוהר ירוק, הרוח עולה מהחזה, שקופה וזוהרת, ומתחילה לרחף.
-#  רוח, לא חיה: לא רצה על הרצפה ולא קופצת - גולשת באוויר בקשתות חלקות (היגוי רך: המהירות נמשכת לאט לכיוון המטרה),
-#  עוברת דרך הזומבי (הוא מת) וממשיכה בתנופה לבא בתור. הגוף שקוף, עם הילה, עקבות (צלליות שנשארות מאחור),
-#  רגליים שנמסות לאד, זנב ארוך שמתנפנף, ולהבות ירוקות רכות שנמשכות אחריה.
+#  C -> רוח של נמר יוצאת מהגוף של השחקן: הגוף זוהר ירוק, ענן ירוק עולה מהחזה ומתחיל לרחף.
+#  v3 (המשתמש: "קטן יותר, פחות מוגדר, ענן כשהוא מרחף, נמר כשהוא תוקף"):
+#    מרחף = ענן רך של "נשיפות" (PUFFS) שמסתובבות לאט, רק עין זוהרת אחת.
+#    מתקרב לזומבי (ATTACK_R) -> הנשיפות מתאספות לצורת נמר (_m: 0 = ענן, 1 = נמר), הגוף השקוף + פסים + לסת פתוחה מופיעים,
+#    עובר דרך הזומבי (הוא מת), ואחרי ההריגה נמס חזרה לענן (MORPH_OUT).
+#  תנועה: גולש באוויר בקשתות חלקות (היגוי רך), לא נוגע ברצפה, וממשיך בתנופה לבא בתור. בלי קווי מתאר חדים.
 #  אחרי KILLS הריגות (או IDLE_MAX שניות בלי זומבים / LIFE_MAX בסך הכל) - עולה למעלה ונמסה.
 #  בוסים וזומבי MIND CONTROL - לא נוגעת. עוברת דרך קירות.
-#  ציור: צומת אחד (גוף שקוף, DrawBatch) + ילד _glow עם אור מצטבר (הילה, עקבות, עיניים, להבות).
-#  לשנות: KILLS, SPEED, STEER, HIT_R, SCALE, TRAIL_N, WISP_RATE, WISPS_MAX.  בדיקה: devtools/t_tiger.gd.
+#  ציור: צומת אחד (נשיפות הענן + גוף הנמר השקוף, DrawBatch) + ילד _glow עם אור מצטבר (הילה, עין, אד).
+#  לשנות: KILLS, SPEED, STEER, HIT_R, SCALE, LEN_K, ATTACK_R, MORPH_IN / MORPH_OUT, PUFF_T, WISP_RATE, WISPS_MAX.  בדיקה: devtools/t_tiger.gd.
 # ============================================================
 
 const Sfx := preload("res://sfx.gd")
 
 const KILLS := 3
-const SCALE := 1.15
+const SCALE := 0.85
+const LEN_K := 0.82              # הנמר קצר יותר (מכווץ לאורך)
+const ATTACK_R := 250.0          # מהמרחק הזה הענן הופך לנמר
+const MORPH_IN := 4.5            # כמה מהר הופך לנמר (לשנייה)
+const MORPH_OUT := 1.6           # כמה מהר נמס חזרה לענן
 const SEARCH := 1100.0           # כמה רחוק היא מחפשת זומבים
 const SPEED := 470.0             # מהירות גלישה
 const STEER := 2.7               # כמה מהר המהירות נמשכת לכיוון (קטן = קשתות רחבות וחלקות)
@@ -26,15 +32,15 @@ const SUMMON_T := 0.9            # יוצאת מהגוף
 const FADE_T := 1.1
 const IDLE_MAX := 5.0
 const LIFE_MAX := 22.0
-const TRAIL_N := 7               # כמה צלליות-עקבות
-const TRAIL_STEP := 0.035
 const WISP_RATE := 60.0          # להבות בשנייה
 const WISPS_MAX := 200
 const DMG := 9999
 
 const C_BODY := Color(0.5, 1.0, 0.66)
 const C_STRIPE := Color(0.04, 0.42, 0.18)
-const C_RIM := Color(0.75, 1.0, 0.82)
+# הנשיפות: [מיקום בצורת נמר, רדיוס בנמר]. בענן הן מסתובבות סביב המרכז
+static var PUFF_T := [[Vector2(-30, 0), 12.0], [Vector2(-14, -1), 12.0], [Vector2(2, -2), 12.0], [Vector2(18, -3), 12.0], [Vector2(33, -6), 11.0],
+	[Vector2(48, -8), 11.0], [Vector2(24, 14), 7.0], [Vector2(-26, 14), 7.0], [Vector2(-52, -10), 6.0], [Vector2(-68, -18), 5.0]]
 const C_CORE := Color(0.85, 1.0, 0.9)
 const C_EYE := Color(0.92, 1.0, 0.94)
 
@@ -65,8 +71,7 @@ var _jaw := 0.0
 var _grow := 0.0
 var _alpha := 0.0
 var _swim := 0.0                 # תנועת "שחייה" של הרגליים (מתגברת עם המהירות)
-var _trail: Array = []           # [Transform2D, jaw, swim]
-var _trail_t := 0.0
+var _m := 0.0                    # 0 = ענן, 1 = נמר
 var _wisps: Array = []           # [pos, vel, life, age, size]
 var _emit := 0.0
 var _glow: Node2D
@@ -111,15 +116,13 @@ func _process(delta: float) -> void:
 	if absf(vel.x) > 50.0:
 		face = signf(vel.x)
 	_face_s = move_toward(_face_s, face, delta * 5.0)
-	var want_rot := clampf(atan2(vel.y, maxf(absf(vel.x), 60.0)), -0.6, 0.6) * 0.55 * signf(_face_s if _face_s != 0.0 else face)
+	var want_rot := clampf(atan2(vel.y, maxf(absf(vel.x), 60.0)), -0.6, 0.6) * 0.55 * _m * signf(_face_s if _face_s != 0.0 else face)
 	_rot = lerpf(_rot, want_rot, 1.0 - exp(-6.0 * delta))
 	_swim += delta * (2.0 + vel.length() / 90.0)
-	_trail_t -= delta
-	if _trail_t <= 0.0:
-		_trail_t = TRAIL_STEP
-		_trail.push_front([_xf(), _jaw, _swim])
-		if _trail.size() > TRAIL_N:
-			_trail.pop_back()
+	var want_m := 0.0
+	if state == HUNT and _coast <= 0.0 and _valid(_target) and pos.distance_to(_target.global_position + Vector2(0.0, -HOVER)) < ATTACK_R:
+		want_m = 1.0
+	_m = move_toward(_m, want_m, delta * (MORPH_IN if want_m > _m else MORPH_OUT))
 	_update_wisps(delta)
 	queue_redraw()
 	_glow.queue_redraw()
@@ -248,17 +251,8 @@ func _update_wisps(delta: float) -> void:
 		var xf := _xf()
 		while _emit >= 1.0:
 			_emit -= 1.0
-			var r := randf()
-			var lp: Vector2
-			if r < 0.4:
-				lp = Vector2(randf_range(-40.0, 36.0), randf_range(-11.0, -5.0))   # הגב
-			elif r < 0.6:
-				lp = _tail_pt(randf_range(0.5, 1.0), _t)
-			elif r < 0.85:
-				lp = Vector2(randf_range(-30.0, 28.0), randf_range(14.0, 26.0))   # הרגליים נמסות לאד
-			else:
-				lp = Vector2(randf_range(30.0, 48.0), -16.0)   # ראש
-			var wp := xf * lp
+			var pf := _puff(randi() % PUFF_T.size())   # אד יוצא מהנשיפות
+			var wp := xf * (pf[0] as Vector2 + Vector2.from_angle(randf() * TAU) * float(pf[1]) * 0.7)
 			if state == SUMMON and pl != null and is_instance_valid(pl) and randf() < 0.5:   # אד עולה מהגוף של השחקן
 				wp = pl.global_position + Vector2(randf_range(-10.0, 10.0), -randf_range(0.0, 56.0))
 			_wisp(wp, -vel * 0.18 + Vector2(randf_range(-18.0, 18.0), -randf_range(25.0, 70.0)), randf_range(0.45, 0.9), randf_range(4.0, 8.0) * _grow)
@@ -276,7 +270,21 @@ func _update_wisps(delta: float) -> void:
 
 func _xf() -> Transform2D:
 	var s := SCALE * _grow
-	return Transform2D(_rot, Vector2(_face_s * s, s), 0.0, pos)
+	return Transform2D(_rot, Vector2(_face_s * s * LEN_K, s), 0.0, pos)
+
+
+# נשיפה i: [מיקום מקומי, רדיוס] - בין הענן (_m=0) לצורת הנמר (_m=1)
+func _puff(i: int) -> Array:
+	var fi := float(i)
+	var a := fi * 2.4 + _t * (0.5 + 0.15 * float(i % 3))
+	var rr := 6.0 + fmod(fi * 7.0, 22.0)
+	var cloud := Vector2(cos(a) * rr * 1.5, sin(a) * rr * 0.6 - 2.0)   # ענן רחב ושטוח
+	var cr := 15.0 + fmod(fi * 5.0, 8.0) + sin(_t * 2.0 + fi) * 2.5
+	var e := _m * _m * (3.0 - 2.0 * _m)
+	var tp: Vector2 = PUFF_T[i][0]
+	if i >= 8:   # הזנב מתנפנף
+		tp += Vector2(0.0, sin(_t * 4.0 - fi) * 5.0)
+	return [cloud.lerp(tp + Vector2(sin(_t * 3.0 + fi) * 1.5, cos(_t * 2.6 + fi) * 1.5), e), lerpf(cr, float(PUFF_T[i][1]), e)]
 
 
 static var BODY := PackedVector2Array([Vector2(-42, -2), Vector2(-30, -11), Vector2(-8, -10), Vector2(12, -13), Vector2(30, -12), Vector2(40, -8),
@@ -291,9 +299,14 @@ static func _tail_pt(u: float, t: float) -> Vector2:
 # ============ ציור ============
 func _draw() -> void:
 	DrawBatch.begin(self)
-	if _alpha > 0.01:   # הגוף השקוף (ערבוב רגיל, כדי שייראה גם על רקע בהיר)
+	if _alpha > 0.01:   # ערבוב רגיל, כדי שייראה גם על רקע בהיר
 		DrawBatch.set_transform_matrix(self, _xf())
-		draw_body(self, _t, _swim, _jaw, 0.55 * _alpha, C_BODY, true)
+		for i in PUFF_T.size():   # הענן: נשיפות רכות (שתי שכבות שקופות)
+			var pf := _puff(i)
+			DrawBatch.circle(self, pf[0], float(pf[1]) * 1.3, Color(C_BODY, 0.10 * _alpha))
+			DrawBatch.circle(self, pf[0], float(pf[1]) * 0.85, Color(C_BODY, 0.16 * _alpha))
+		if _m > 0.05:   # הנמר מתגבש מהענן
+			draw_body(self, _t, _swim, _jaw, 0.4 * _m * _m * _alpha, C_BODY, true)
 		DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 	DrawBatch.end(self)
 
@@ -337,42 +350,19 @@ static func draw_body(ci: CanvasItem, t: float, swim: float, jaw: float, a: floa
 		DrawBatch.line(ci, hd + Vector2(10, -16), hd + Vector2(11, -12), Color(C_STRIPE, a * 0.8), 2.0)
 
 
-# קו מתאר זוהר (באור המצטבר): מגדיר את הצורה של הרוח
-static func draw_rim(ci: CanvasItem, t: float, a: float) -> void:
-	var col := Color(C_RIM, a)
-	var b := BODY.duplicate()
-	b.append(BODY[0])
-	var h := HEAD.duplicate()
-	h.append(HEAD[0])
-	for pass_i in 2:   # רחב וחלש (זוהר) + דק ובהיר
-		var c2 := Color(C_RIM, a * (0.3 if pass_i == 0 else 0.75))
-		DrawBatch.polyline(ci, b, c2, 6.0 if pass_i == 0 else 1.5)
-		DrawBatch.polyline(ci, h, c2, 5.0 if pass_i == 0 else 1.4)
-	var prev := _tail_pt(0.0, t)
-	for i in range(1, 10):
-		var u := float(i) / 9.0
-		var p := _tail_pt(u, t)
-		DrawBatch.line(ci, prev, p, Color(C_RIM, a * 0.6 * (1.0 - u)), 2.0)
-		prev = p
-
-
 func _draw_glow() -> void:
 	DrawBatch.begin(_glow)
 	var a := _alpha
 	if a > 0.01:
-		for i in range(_trail.size() - 1, -1, -1):   # עקבות: צלליות שנשארות מאחור ודוהות
-			var tr: Array = _trail[i]
-			var k := 1.0 - float(i + 1) / float(TRAIL_N + 1)
-			DrawBatch.set_transform_matrix(_glow, tr[0])
-			draw_body(_glow, _t, float(tr[2]), float(tr[1]), 0.07 * k * k * a, C_BODY, false)
 		var xf := _xf()
 		DrawBatch.set_transform_matrix(_glow, xf)
-		DrawBatch.ellipse(_glow, Vector2(0.0, -1.0), 62.0, 24.0, Color(0.2, 1.0, 0.45, 0.045 * a))   # הילה
-		DrawBatch.ellipse(_glow, Vector2(0.0, -2.0), 30.0, 5.0, Color(C_CORE, 0.12 * a))   # ליבה
-		draw_rim(_glow, _t, 0.4 * a)
+		for i in PUFF_T.size():   # הילה רכה סביב כל נשיפה
+			var pf := _puff(i)
+			DrawBatch.circle(_glow, pf[0], float(pf[1]) * 1.7, Color(0.2, 1.0, 0.45, 0.035 * a))
+		DrawBatch.ellipse(_glow, Vector2(0.0, -2.0), 22.0, 10.0, Color(C_CORE, 0.035 * a * (1.0 - _m)))   # ליבה רכה בענן
 		DrawBatch.set_transform_matrix(_glow, Transform2D.IDENTITY)
-		var ep := xf * Vector2(51.0, -11.0)   # עין
-		DrawBatch.circle(_glow, ep, 7.0 * _grow, Color(0.5, 1.0, 0.65, 0.4 * a))
+		var ep := xf * Vector2(10.0, -8.0).lerp(Vector2(51.0, -11.0), _m)   # עין (בענן: באמצע, בנמר: בראש)
+		DrawBatch.circle(_glow, ep, 6.0 * _grow, Color(0.5, 1.0, 0.65, 0.3 * a))
 		DrawBatch.circle(_glow, ep, 2.4 * _grow, Color(C_EYE, 0.95 * a))
 		if state == SUMMON and pl != null and is_instance_valid(pl):   # הגוף של השחקן זוהר
 			var g := sin(clampf(_st / SUMMON_T, 0.0, 1.0) * PI)
@@ -383,8 +373,8 @@ func _draw_glow() -> void:
 		var fa := sin(minf(u * 5.0, 1.0) * PI * 0.5) * (1.0 - u)   # נכנס בעדינות, יוצא לאט
 		var r: float = float(w[4]) * (0.7 + 0.6 * u)
 		var p: Vector2 = w[0]
-		DrawBatch.circle(_glow, p, r, Color(0.15, 0.95, 0.4, 0.16 * fa))
-		DrawBatch.circle(_glow, p, r * 0.45, Color(0.6, 1.0, 0.7, 0.32 * fa * (1.0 - u)))
+		DrawBatch.circle(_glow, p, r * 1.4, Color(0.15, 0.95, 0.4, 0.07 * fa))   # אד: רך וגדל, בלי ליבה בוהקת
+		DrawBatch.circle(_glow, p, r * 0.8, Color(0.4, 1.0, 0.6, 0.09 * fa))
 	DrawBatch.end(_glow)
 
 

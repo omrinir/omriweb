@@ -87,9 +87,13 @@ func _physics_process(_d: float) -> bool:
 			cam._base_zoom = Vector2(zoom, zoom)
 			cam.zoom = cam._base_zoom
 			if tiger != null and is_instance_valid(tiger):
-				cam.base_offset = (tiger.pos - pl.global_position) * 0.5 + Vector2(0, -40)
+				cam.base_offset = (tiger.pos - pl.global_position) * float(OS.get_environment("TIGER_FOLLOW") if OS.get_environment("TIGER_FOLLOW") != "" else "0.5") + Vector2(0, -40)
 		if f in shots:
 			var img := root.get_viewport().get_texture().get_image()
+			if tiger != null and is_instance_valid(tiger) and OS.get_environment("TIGER_CROP") != "":   # crop around the tiger
+				var sp: Vector2 = tiger.get_global_transform_with_canvas() * tiger.pos
+				var r := Rect2i(int(sp.x) - 260, int(sp.y) - 170, 520, 340).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+				img = img.get_region(r)
 			img.save_png("%s_%03d.png" % [prefix, f])
 	if f >= max_f or (tiger != null and last_state == 99 and f > USE_F + 30 and prefix == ""):
 		var alive := 0
