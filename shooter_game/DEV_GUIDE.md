@@ -121,6 +121,16 @@ Perf (t_masskill, 40 kills, headless): same frame times as before these deaths (
 - The level 6 WALL_CRAWLER (wall_crawler.gd) only climbs when a real ceiling is above it; with no ceiling it stays on the ground (it used to cling to an invisible wall).
 - Test: `devtools/t_spider.gd` (copy into a test project): spawns a CLIMBER on level 5, hits it on frame 75, prints state/pos and the leap count. Args `-- <png_prefix> [zoom] [frames...]` save frames; SPIDER_FOCUS=1 points the camera at the zombie.
 
+## Dog + machine-gunner animations (zombie.gd _draw_canine, _draw_gunner_dead)
+- DOG / HOUND run: gallop (rear legs almost together, front legs opposite, legs lift as they swing forward, body stretches,
+  pitches and has a short airborne moment each stride; all scales with speed).
+- DOG / HOUND death: half a flip in the air with legs flailing (not a spinning wheel), lands, legs kick and fade out
+  (`kick`, decays over ~2 s, plus one last spasm at 1.9 s), last breaths, blood pool spreading underneath. `_land_t` = when it landed.
+- GUNNER death (`_draw_gunner_dead`): does not fly. Jolts forward, falls back behind the sandbags, helmet pops off, the tripod and
+  gun tip forward over the sandbags while the dying trigger finger fires a last burst into the sky (`GUNNER_BURST` times, flashes +
+  tracer + rifle sound, no real bullets), blood pool. The sandbags stay put.
+- Test: `devtools/t_deaths.gd` (DT_KIND=15 dog / 19 hound / 17 gunner; DT_PERF=1 kills 12 at once and prints frame times).
+
 ## Explosions (explosion.gd + effects/boom_fx.gd)
 
 `Boom.blast(...)` (grenades, barrels, cars, bloaters, dynamite, mines, artillery...) does the damage, then adds one `Boom.Explosion`

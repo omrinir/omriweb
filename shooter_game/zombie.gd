@@ -315,6 +315,8 @@ const HEAD_HEAVY := 1.6                   # נשק עם damage מעל זה: גם
 const HEAD_HEAVY_K := 0.6
 var _angle := 0.0
 var _dead_t := 0.0
+var _land_t := -1.0               # מתי הגופה נגעה בריצפה (כלב בועט / מקלען) - לפי _dead_t
+var _gburst := 0                  # מקלען מת: כמה יריות אחרונות כבר נשמעו
 var _bled_on: Dictionary = {}
 # ---- התחמקות ומחסה ----
 var duck_chance := 0.25          # הסיכוי להתכופף כשיורים לכיוונו
@@ -1541,6 +1543,12 @@ func _die(dir: Vector2) -> void:
 		var t_fall := (-vy0 + sqrt(vy0 * vy0 + 2.0 * 650.0 * h)) / 650.0
 		velocity = Vector2(clampf((tx - global_position.x) / t_fall, -900.0, 900.0), vy0)
 	_spin = randf_range(8.0, 14.0) * signf(velocity.x if velocity.x != 0.0 else 1.0)
+	if kind == DOG or kind == HOUND:   # כלב: חצי סיבוב באוויר (לא גלגל), נוחת על הצד ובועט ברגליים
+		_spin = randf_range(3.0, 5.0) * signf(velocity.x if velocity.x != 0.0 else 1.0)
+	elif kind == GUNNER:   # מקלען: לא עף - נופל אחורה מאחורי השקים, המקלע נופל קדימה ויורה צרור אחרון
+		velocity = Vector2.ZERO
+		_spin = 0.0
+		_angle = 0.0
 	_splat_pending = kind != RAT and kind != JETPACK and kind != MECH and randf() < SPLAT_CHANCE
 	if _legless:   # פלג גוף זוחל: נשאר שוכב על הבטן (בלי לקפוץ לעמידה)
 		_angle = PI / 2.0 * _dir
@@ -1877,6 +1885,9 @@ func _dead_process(delta: float) -> void:
 		queue_free()
 		return
 	modulate.a = clampf(corpse_time - _dead_t, 0.0, 1.0)
+	if kind == GUNNER and _gburst < GUNNER_BURST.size() and _dead_t >= GUNNER_BURST[_gburst]:   # האצבע נלחצת על ההדק בנפילה
+		_gburst += 1
+		Sfx.play("rifle", global_position + Vector2(_dir * 30.0, -40.0 * sc), -7.0, 0.15, 3)
 	if _rag != null:   # גופה רכה: מדמה עד שהיא נרגעת, ואז רק מצוירת
 		if _rag.step(delta) and Art.on_screen(self, global_position, 400.0):
 			queue_redraw()
@@ -1902,9 +1913,11 @@ func _dead_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, 900.0 * delta)
 		_spin = move_toward(_spin, 0.0, 30.0 * delta)
 		var rest := PI / 2.0 if fposmod(_angle, TAU) < PI else PI * 1.5
-		if kind == DOG or kind == HOUND:
-			rest = 0.0   # כלב: נוחת על הבטן ומתמוטט (לא על הגב)
+		if kind == DOG or kind == HOUND or kind == GUNNER:
+			rest = 0.0   # כלב: נוחת על הבטן ומתמוטט (לא על הגב). מקלען: נשאר במקום (הנפילה מצוירת)
 		_angle = lerp_angle(_angle, rest, 8.0 * delta)
+		if _land_t < 0.0:
+			_land_t = _dead_t
 	if is_on_wall():
 		velocity.x *= -0.3
 	_angle += _spin * delta
@@ -3202,12 +3215,17 @@ func _draw_canine(S: float, hound: bool) -> void:
 	var ph := _walk_phase * 1.6
 	var crouch := 1.0 if (hound and _hstate == 1) else 0.0
 	var base := Transform2D(0.0, Vector2(f * S, S), 0.0, Vector2.ZERO)
+	var lt := _dead_t - _land_t if dead and _land_t >= 0.0 else -1.0   # כמה זמן הגופה כבר על הריצפה
 	if dead:
+		if lt >= 0.0:   # שלולית דם שמתפשטת מתחת לכלב
+			var pk := clampf(lt / 2.0, 0.0, 1.0)
+			DrawBatch.ellipse(self, Vector2(f * 6.0 * S, 0.5), (8.0 + 22.0 * pk) * S, (1.5 + 2.0 * pk) * S, Color(0.3, 0.02, 0.02, 0.55))
 		base = Transform2D(_angle, Vector2(0.0, -20.0 * S)) * Transform2D(0.0, Vector2(f * S, S), 0.0, Vector2(0.0, 20.0 * S))
 	else:
 		Art.ground_shadow(self, Vector2.ZERO, 26.0 * S)
 	DrawBatch.set_transform_matrix(self, base)
-	var bob := absf(sin(ph)) * 2.0 if run and not dead else 0.0
+	var gal := clampf(absf(velocity.x) / 260.0, 0.0, 1.0) if run and not dead else 0.0   # דהירה: כמה מהר
+	var bob := (maxf(0.0, sin(ph)) * 6.0 * gal + absf(sin(ph)) * 1.2) if run and not dead else 0.0   # רגע באוויר בכל צעד
 	var nk := Vector2(23.0, -36.0)
 	# מת על הריצפה: הגוף צונח לקרקע והרגליים נשמטות לצדדים
 	var dk := clampf(1.0 - absf(wrapf(_angle, -PI, PI)) / 1.2, 0.0, 1.0) if dead and is_on_floor() else 0.0
@@ -3239,30 +3257,40 @@ func _draw_canine(S: float, hound: bool) -> void:
 	if not dead:
 		if not is_on_floor():
 			rot = clampf(velocity.y / 1400.0, -0.3, 0.3)
-		elif run:
-			rot = sin(ph) * 0.06
-			sq = Vector2(1.0 + sin(ph * 2.0) * 0.04, 1.0 - sin(ph * 2.0) * 0.04)
+		elif run:   # דהירה: הגוף מתמתח ומתכווץ ומתנדנד קדימה-אחורה
+			rot = sin(ph + 0.6) * (0.05 + 0.09 * gal)
+			sq = Vector2(1.0 + sin(ph) * 0.08 * gal, 1.0 - sin(ph) * 0.06 * gal)
 		else:
 			sq = Vector2(1.0, 1.0 + sin(_time * 2.0) * 0.015)   # נשימה
 		sq *= Vector2(1.0 + crouch * 0.06, 1.0 - crouch * 0.16)
 		if _bite_anim > 0.0 or (hound and _hstate == 2):
 			rot -= 0.08
+	var kick := 0.0   # מת: בעיטות ברגליים שדועכות + עווית אחרונה
 	if dead:
 		rot = 0.08 * dk
 		bob = -15.0 * dk
+		if lt >= 0.0:
+			kick = exp(-lt * 1.2) + 0.8 * exp(-pow((lt - 1.9) / 0.15, 2.0))
+			rot += sin(lt * 9.0) * 0.03 * kick
+			sq = Vector2(1.0, 1.0 + sin(lt * 4.5) * 0.035 * exp(-lt * 0.6))   # נשימות אחרונות
 	var bm := base * Transform2D(rot, sq, 0.0, Vector2(0.0, -bob))
 	var mod := Color(4, 4, 4) if white else Color.WHITE
 	var k := Vector2(76.0 / 186.0, 50.0 / 123.0)   # פיקסל בתמונה -> יחידה מקומית
-	var amp := 0.0 if dead else clampf(absf(velocity.x) / 260.0, 0.0, 0.55)
+	var amp := 0.0 if dead else clampf(absf(velocity.x) / 220.0, 0.0, 0.85)
 	var air := not dead and not is_on_floor()
 	# שוקיים נפרדות (צד ימין של התמונה) שמתנדנדות סביב הברך: [x0, חיתוך y, x1, ציר x, היסט פאזה, זווית באוויר]
-	for lg in [[0.0, 84.0, 24.0, 12.0, PI * 0.5, 0.6], [24.0, 84.0, 60.0, 36.0, PI, 0.5], [90.0, 76.0, 150.0, 115.0, 0.0, -0.6]]:
+	for lg in [[0.0, 84.0, 24.0, 12.0, 0.0, 0.6], [24.0, 84.0, 60.0, 36.0, 0.55, 0.5], [90.0, 76.0, 150.0, 115.0, PI, -0.6]]:   # דהירה: האחוריות כמעט יחד, הקדמיות הפוך
 		var src := Rect2(192.0 + lg[0], lg[1] - 2.0, lg[2] - lg[0], 125.0 - lg[1])
 		var pv := Vector2(-36.0, -50.0) + Vector2(lg[3], lg[1]) * k
 		var la: float = lg[5] if air else sin(ph + lg[4]) * amp
+		var lift := maxf(0.0, cos(ph + lg[4])) * 3.0 * amp if not air else 0.0   # הרגל מתרוממת כשהיא חוזרת קדימה
 		if dead:
 			la = (-1.35 if lg[0] > 80.0 else 1.35) * dk
-		DrawBatch.set_transform_matrix(self, bm * Transform2D(la, pv) * Transform2D(0.0, -pv))
+			if lt < 0.0:   # באוויר: מפרפר
+				la = sin(_dead_t * 22.0 + float(lg[4]) * 2.0) * 0.9
+			else:
+				la += sin(lt * 17.0 + float(lg[4]) * 2.3) * 0.55 * kick
+		DrawBatch.set_transform_matrix(self, bm * Transform2D(la, pv + Vector2(0.0, -lift)) * Transform2D(0.0, -pv))
 		DrawBatch.texture_rect_region(self, DOG_TEX, Rect2(Vector2(-36.0, -50.0) + Vector2(lg[0], lg[1] - 2.0) * k, src.size * k), src, mod)
 	DrawBatch.set_transform_matrix(self, bm)
 	DrawBatch.texture_rect_region(self, DOG_TEX, Rect2(-36, -50, 76, 50), Rect2(0, 0, 186, 123), mod)
@@ -3276,16 +3304,18 @@ func _draw_canine(S: float, hound: bool) -> void:
 
 
 # ---- ציור מקלען על חצובה ----
+const GUNNER_BURST := [0.16, 0.24, 0.33, 0.45]   # מקלען מת: מתי נשמעות היריות האחרונות (שניות אחרי המוות)
+
 func _draw_gunner() -> void:
+	if dead:
+		_draw_gunner_dead()
+		return
 	var f := _dir
 	var white := _flash > 0.0
 	var sk: Color = Color.WHITE if white else skin
 	var army: Color = Color.WHITE if white else shirt
-	if dead:
-		DrawBatch.set_transform_matrix(self, Transform2D(_angle, Vector2(0.0, -20.0 * sc)) * Transform2D(0.0, Vector2(f * sc, sc), 0.0, Vector2(0.0, 20.0 * sc)))
-	else:
-		Art.ground_shadow(self, Vector2.ZERO, 26.0 * sc)
-		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(f * sc, sc))
+	Art.ground_shadow(self, Vector2.ZERO, 26.0 * sc)
+	DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(f * sc, sc))
 	# שקי חול
 	for p in [Vector2(14, -5), Vector2(25, -5), Vector2(19, -13)]:
 		Art.oval(self, p, 7.0, 5.0, Color("8a7a58"), 0.0, Art.OUTLINE, 1.0)
@@ -3302,8 +3332,6 @@ func _draw_gunner() -> void:
 	DrawBatch.line(self, Vector2(10, -32), Vector2(3, 0), Color("2a2a2e"), 1.8)
 	DrawBatch.line(self, Vector2(10, -32), Vector2(19, 0), Color("2a2a2e"), 1.8)
 	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
-	if dead:
-		return
 	# מקלע + מגן פלדה (מסתובבים לכיוון השחקן)
 	var piv := Vector2(f * 10.0 * wf, -34.0 * sc)
 	var dv := Vector2.from_angle(_gun_ang)
@@ -3325,6 +3353,77 @@ func _draw_gunner() -> void:
 	if _muzzle_t > 0.0:
 		for i in 5:
 			DrawBatch.line(self, muzzle, muzzle + dv.rotated(randf_range(-0.6, 0.6)) * randf_range(6.0, 14.0), Color(1.0, 0.85, 0.4), 2.0)
+
+
+# ---- מקלען מת: הגוף נזרק קדימה ונופל אחורה מאחורי השקים, הקסדה עפה, החצובה + המקלע נופלים קדימה
+#      על השקים ויורים צרור אחרון לשמיים (GUNNER_BURST). השקים נשארים במקום. ----
+func _draw_gunner_dead() -> void:
+	var t := _dead_t
+	var sk: Color = skin
+	var army: Color = shirt
+	var base := Transform2D(0.0, Vector2(_dir * sc, sc), 0.0, Vector2.ZERO)
+	DrawBatch.set_transform_matrix(self, base)
+	var pool := clampf((t - 0.6) / 2.2, 0.0, 1.0)   # שלולית דם מתחת לגוף
+	if pool > 0.0:
+		DrawBatch.ellipse(self, Vector2(-20.0, 0.5), 5.0 + 17.0 * pool, 2.0 + 1.6 * pool, Color(0.3, 0.02, 0.02, 0.6))
+	for p in [Vector2(14, -5), Vector2(25, -5), Vector2(19, -13)]:   # שקי חול (לא זזים)
+		Art.oval(self, p, 7.0, 5.0, Color("8a7a58"), 0.0, Art.OUTLINE, 1.0)
+	# רגליים כורעות (נשארות), ואז הגוף: קפיצה קדימה מהפגיעה ונפילה אחורה סביב המותן
+	var hip := Vector2(-6.0, -17.0)
+	Art.limb(self, PackedVector2Array([Vector2(-8, -18), Vector2(2, -10), Vector2(-4, 0)]), 6.0, pants)
+	var fall := _ease01((t - 0.1) / 0.5)
+	var a := 0.18 * sin(clampf(t / 0.14, 0.0, 1.0) * PI) - 1.5 * fall + 0.1 * sin(clampf((t - 0.6) / 0.22, 0.0, 1.0) * PI)   # + קפיצה קטנה כשנוחת
+	DrawBatch.set_transform_matrix(self, base * Transform2D(a, hip) * Transform2D(0.0, -hip))
+	Art.fill(self, PackedVector2Array([Vector2(-12, -18), Vector2(2, -18), Vector2(3, -42), Vector2(-9, -44)]), army, Art.OUTLINE, 1.2)
+	var arm := _ease01((t - 0.2) / 0.5)   # היד נשמטת
+	Art.limb(self, PackedVector2Array([Vector2(-2, -38), Vector2(6, -32).lerp(Vector2(4, -26), arm), Vector2(12, -34).lerp(Vector2(10, -20), arm)]), 4.0, sk)
+	var hc := Vector2(-2, -51)
+	Art.oval(self, hc, 7.0, 7.5, sk, 0.0, Art.OUTLINE, 1.2)
+	DrawBatch.line(self, hc + Vector2(2, 4), hc + Vector2(6, 5), Color(0.2, 0.05, 0.05), 1.2)
+	if t < 0.25:
+		Art.glow(self, hc + Vector2(4, 1), 3.5 * (1.0 - t / 0.25), Color(1.0, 0.2, 0.1, 0.7))   # העין כבה
+	# הקסדה עפה מהראש ונוחתת מאחור
+	var hm := Color("3a4a2e")
+	var ht := t - 0.08
+	DrawBatch.set_transform_matrix(self, base)
+	var hp := Vector2(-2, -60)
+	var hr := 0.0
+	if ht > 0.0:
+		var tl := minf(ht, 0.62)
+		hp = Vector2(-2.0 - 70.0 * tl, -60.0 - 230.0 * tl + 0.5 * 760.0 * tl * tl)
+		hp.y = minf(hp.y, -8.0)
+		hr = -7.0 * tl
+	else:
+		DrawBatch.set_transform_matrix(self, base * Transform2D(a, hip) * Transform2D(0.0, -hip))
+		hp = hc + Vector2(0, -9)
+	Art.fill(self, PackedVector2Array([hp + Vector2(-8, 8).rotated(hr), hp + Vector2(-6, 1).rotated(hr), hp + Vector2(2, -1).rotated(hr), hp + Vector2(8, 4).rotated(hr), hp + Vector2(9, 8).rotated(hr)]), hm, Art.OUTLINE, 1.0)
+	# חצובה + מקלע: מתהפכים קדימה סביב הרגל הקדמית של החצובה (19, 0), ומקפצים פעם אחת
+	var tip := 1.25 * _ease01((t - 0.12) / 0.5) - 0.12 * sin(clampf((t - 0.62) / 0.2, 0.0, 1.0) * PI)
+	var foot := Vector2(19, 0)
+	DrawBatch.set_transform_matrix(self, base * Transform2D(tip, foot) * Transform2D(0.0, -foot))
+	DrawBatch.line(self, Vector2(10, -32), Vector2(3, 0), Color("2a2a2e"), 1.8)
+	DrawBatch.line(self, Vector2(10, -32), Vector2(19, 0), Color("2a2a2e"), 1.8)
+	var piv := Vector2(10, -34)
+	var dv := Vector2(cos(_gun_ang) * float(_dir), sin(_gun_ang)).normalized()   # הכיוון האחרון של הקנה (מקומי)
+	dv = dv.lerp(Vector2(0.6, -0.8), _ease01(t / 0.3)).normalized()   # הקנה מתרומם לשמיים
+	var nv := dv.rotated(PI / 2.0)
+	DrawBatch.colored_polygon(self, PackedVector2Array([piv - nv * 4.0 - dv * 10.0, piv - nv * 4.0 + dv * 12.0, piv + nv * 4.0 + dv * 12.0, piv + nv * 4.0 - dv * 10.0]), Color("26282c"))
+	DrawBatch.line(self, piv + dv * 12.0, piv + dv * 34.0, Color("3a3c40"), 4.0)
+	var sp := piv + dv * 8.0
+	DrawBatch.colored_polygon(self, PackedVector2Array([sp - nv * 18.0, sp - nv * 18.0 + dv * 3.0, sp + nv * 12.0 + dv * 3.0, sp + nv * 12.0]), Color("5d6168"))
+	var muzzle := piv + dv * 34.0
+	for bt in GUNNER_BURST:   # הבזקי הצרור האחרון + קו נותב
+		var d := t - float(bt)
+		if d >= 0.0 and d < 0.06:
+			for i in 4:
+				DrawBatch.line(self, muzzle, muzzle + dv.rotated(randf_range(-0.6, 0.6)) * randf_range(6.0, 14.0), Color(1.0, 0.85, 0.4), 2.0)
+			DrawBatch.line(self, muzzle + dv * 20.0, muzzle + dv.rotated(randf_range(-0.08, 0.08)) * 160.0, Color(1.0, 0.9, 0.5, 0.7), 1.2)
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
+
+
+static func _ease01(x: float) -> float:
+	var k := clampf(x, 0.0, 1.0)
+	return k * k * (3.0 - 2.0 * k)
 
 
 # ---- פרטים על הגוף: ריקבון, חולצה קרועה, תפרים, רצועת בשר תלויה ----
