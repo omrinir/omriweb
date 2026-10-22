@@ -77,7 +77,7 @@ func _physics_process(_d: float) -> bool:
 	if tiger != null and is_instance_valid(tiger):
 		if tiger.state != last_state:
 			last_state = tiger.state
-			print("TIGER f=%d state=%d pos=%s kills=%d flames=%d" % [f, tiger.state, str(tiger.pos.round()), tiger.kills, tiger._flames.size()])
+			print("TIGER f=%d state=%d pos=%s kills=%d wisps=%d" % [f, tiger.state, str(tiger.pos.round()), tiger.kills, tiger._wisps.size()])
 	elif tiger != null and last_state != 99:
 		last_state = 99
 		print("TIGER gone f=%d" % f)

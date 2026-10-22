@@ -571,14 +571,15 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
 
 ## SPIRIT TIGER (special item "tiger", effects/spirit_tiger.gd) - added 2026-10-22, in testing
 - progression/arsenal.gd SPECIALS "tiger": 1 use, "from" 999 (never a random find yet). Test: Arsenal.TEST_TIGER_LEVEL = 20 -> main.gd puts one near the start of level 20. Set it to 0 to remove.
-- C (use_item -> _use_special "tiger") spawns the tiger node in the level. SUMMON (0.75 s): a column of green flames on the player's body, the player glows green,
-  the tiger grows out of his chest and lands in front of him with a roar. RUN: bounds (gallop arcs) toward the nearest normal zombie (SEARCH 1100,
-  bosses / mind-controlled zombies skipped), passes through walls and pits (spirit). Within POUNCE_R it pounces in a high homing arc, jaw open,
-  and kills the zombie (DMG 9999 fixed, retried as explosive for armored types; a zombie that still survives is skipped). MAUL 0.34 s, "SPIRIT n/3" popup.
-- After KILLS (3), or IDLE_MAX 5 s with no target, or LIFE_MAX 22 s: roars and dissolves into rising flames.
-- Drawing: opaque green body (stripes, tail, 4 jointed legs, jaw) in one DrawBatch call + additive _glow child (soft halo, burning eye, up to 170 flame
-  particles drawn as teardrops). Headless cost ~+1 ms/frame while it is out (devtools/t_tiger.gd, TIGER_OFF=1 = baseline).
-- Sounds: tiger_summon / tiger_roar / tiger_pounce / tiger_maul (registered via sfx.gd BANKS, in sounds/sfx_cache.res).
+- v2 (user: "spirit like, more smooth and less physical"): a ghost, not an animal. No running / pouncing / mauling / screen shake.
+  SUMMON (0.9 s): the player's body glows, green vapour rises from it, the see-through tiger floats up out of the chest with an ethereal roar.
+  HUNT: glides through the air with soft steering (vel lerps toward the target, SPEED 470, STEER 2.7 = wide smooth curves), HOVER 34 above the
+  zombie's feet; passing within HIT_R kills it (DMG 9999 fixed, retried as explosive; survivors are skipped), soft chime + vapour burst, then it
+  keeps its momentum for AFTER_HIT before curving to the next. Turns by squashing through scale 0 (_face_s). No zombies -> floats near the player.
+  After KILLS (3) / IDLE_MAX 5 s / LIFE_MAX 22 s: drifts up and fades. Bosses + mind-controlled zombies are ignored; passes through walls.
+- Drawing: translucent body (alpha 0.55, dark see-through stripes, legs that fade into vapour, long waving tail) + additive _glow: glowing rim
+  (BODY/HEAD outlines), TRAIL_N afterimages, faint halo, eye, up to 200 soft vapour wisps. Headless cost ~+0.6 ms/frame (devtools/t_tiger.gd, TIGER_OFF=1 = baseline).
+- Sounds: tiger_summon / tiger_roar / tiger_swoop / tiger_hit (sfx.gd BANKS, in sounds/sfx_cache.res).
 
 ## Region 4 - ANDES (levels 28-36)
 
