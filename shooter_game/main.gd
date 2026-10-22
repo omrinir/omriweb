@@ -989,7 +989,8 @@ func _pick_kind(rng: RandomNumberGenerator) -> int:
 
 func _start_at_checkpoint(player: Node2D) -> void:
 	var cp: Dictionary = Game.checkpoint
-	player.position.x = _checkpoint.position.x + 30.0
+	var at_hold: bool = cp.has("hold")   # מתת ב-HOLD THE LINE: מתחילים ממש לפני הזירה (levels/events/hold.gd)
+	player.position.x = float(cp.x) if at_hold else _checkpoint.position.x + 30.0
 	_time = float(cp.get("time", 0.0))   # השעון ממשיך מנקודת הביקורת
 	Game.level_time = _time
 	player.slots = (cp.slots as Array).duplicate(true)
@@ -999,7 +1000,8 @@ func _start_at_checkpoint(player: Node2D) -> void:
 		if player.slots[i] != null:
 			player.cur_slot = i
 			break
-	_checkpoint.set_reached()
+	if not at_hold:   # נקודת הביקורת שבאמצע עוד לפניך - תשמור כשתעבור אותה
+		_checkpoint.set_reached()
 	var gx := 0   # מתנות ההתקדמות שעוד לא נלקחו (נשק חדש / MOD) עוברות לנקודת הביקורת
 	for pk in get_tree().get_nodes_in_group("pickups"):
 		if pk.gift and pk.global_position.x < player.position.x:

@@ -284,9 +284,11 @@ func end_practice() -> void:
 	_practice_backup = {}
 
 
-func reach_checkpoint(x: float, player: Node) -> void:
+# extra: עוד שדות (HOLD THE LINE שומר {"hold": [x0, x1, cx]} - מתחילים מחדש לפני הזירה, levels/events/hold.gd)
+func reach_checkpoint(x: float, player: Node, extra := {}) -> void:
 	checkpoint = {"level": level, "x": x, "slots": player.slots.duplicate(true), "special": player.special, "special_uses": int(player.special_uses),
 		"seed": attempt_seed, "run_score": run_score + level_score, "scrap": scrap, "time": level_time}
+	checkpoint.merge(extra, true)
 	_save()
 
 

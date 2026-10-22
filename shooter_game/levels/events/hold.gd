@@ -16,8 +16,10 @@ const DrawBatch := preload("res://effects/draw_batch.gd")
 #  אין כלום בכל הנשקים - ארגז SUPPLY (כבר אחרי EMPTY_CD). בהפוגה תמיד ארגז SUPPLY.
 #  בוסים: הזירה לא נבחרת ליד בוס, וזומבי בוס שנוצר בטעות בגל - נמחק.
 #  שעון השלב: זמן ההחזקה נוסף ל-GOLD / SILVER (Game.clock_pars) - לא מפסידים מדליה בגלל ההמתנה.
-#  נקודת ביקורת: אם השלב מתחיל ממנה (השחקן כבר אחרי הזירה) - אין אירוע. מוות = השלב מתחיל מחדש כרגיל
-#  (הכל נבנה מחדש, אין כאן מצב ששומרים).
+#  נקודת ביקורת: כשהזירה נסגרת - נשמרת נקודת ביקורת ממש לפני הזירה (Game.reach_checkpoint עם "hold": [x0, x1, cx]).
+#  מתת בזמן ההחזקה -> TRY AGAIN מתחיל שם (לא מתחילת השלב), עם הנשקים והתחמושת שהיו כשהזירה נסגרה, ונכנסים שוב.
+#  הזירה נבנית באותו מקום בדיוק (start לוקח את x0/x1/cx מהשמירה). עוברים את נקודת הביקורת שבאמצע -> היא מחליפה את זו.
+#  אם השלב מתחיל מנקודת הביקורת שבאמצע (השחקן כבר אחרי הזירה) - אין אירוע.
 #  זהירות: לא נותנים לזומבים chase_range > 600 - אצל הרבה סוגים (enemies/types) זה הסימן שהם הבוס!
 #          במקום זה _alert_t (כמו levels/pace_director.gd), מתחדש כל ALERT_EVERY שניות.
 #  לשנות: AT / PREFER (איפה), WIDTHS (רוחב הזירה במסכים), DURATION, MAX_ALIVE, RAMP / SURGE / LULL,
@@ -43,6 +45,7 @@ const CP_CLEAR := 350.0                # מרחק מנקודת הביקורת
 const BOSS_ZONE := 1500.0              # לא בסוף השלב
 const PIT_CLEAR := 80.0
 const TRIGGER_BEFORE := 90.0           # כמה לפני האמצע זה מתחיל
+const RETRY_BACK := 160.0              # מוות בהחזקה: מתחילים כל כך לפני המחסום השמאלי
 
 # ---- המחסומים ----
 const WALL_W := 56.0                   # רוחב הגוף המוצק
@@ -144,7 +147,12 @@ func start() -> void:
 		_max_alive = int(MAX_ALIVE[_diff])
 	Sfx.register(SOUNDS)
 	Sfx.warm_up()   # הצלילים החדשים מסונתזים עכשיו (בטעינה), לא בטריקה
-	if not _find_spot():
+	var cp: Dictionary = Game.checkpoint
+	if Game.use_checkpoint and int(cp.get("level", -1)) == Game.level and cp.has("hold"):   # חוזרים לזירה: אותו מקום בדיוק
+		x0 = float(cp.hold[0])
+		x1 = float(cp.hold[1])
+		cx = float(cp.hold[2])
+	elif not _find_spot():
 		push_warning("[HOLD] no spot for the hold in level %d" % Game.level)
 		queue_free()
 		return
@@ -300,7 +308,7 @@ func _physics_process(delta: float) -> void:
 
 
 # ============ התחלה ============
-func _begin(_p: Node) -> void:
+func _begin(p: Node) -> void:
 	state = ACTIVE
 	t = 0.0
 	_next = 0.0
@@ -326,6 +334,17 @@ func _begin(_p: Node) -> void:
 	if cam != null and cam.has_method("shake"):
 		cam.shake(10.0)
 	_show("HOLD THE LINE", "SURVIVE %s" % _fmt(duration), Color("ffcf3a"), 2.6, 76)
+	Game.reach_checkpoint(_retry_x(), p, {"hold": [x0, x1, cx]})   # מוות בזמן ההחזקה -> מתחילים כאן, לא מתחילת השלב
+
+
+# איפה מתחילים אחרי מוות בהחזקה: קצת לפני המחסום השמאלי, על רצפה (לא בבור / על מכשול)
+func _retry_x() -> float:
+	var x := x0 - RETRY_BACK
+	for i in 20:
+		if not main._in_pit(x - 40.0, x + 40.0, 0.0) and not main._near_brick(x):
+			return x
+		x -= 41.0
+	return x0 - RETRY_BACK
 
 
 func _make_body(x: float, sz: Vector2, y: float, layer: int) -> StaticBody2D:

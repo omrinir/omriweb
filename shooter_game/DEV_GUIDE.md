@@ -285,7 +285,10 @@ and `draw_ragdoll(ci, rag)` to keep its own silhouette as a soft corpse (STILTER
   - `Arsenal.ammo_drop_chance()`.
 * **Saving** (`game_state.gd`): autosave at level end + at the mid-level checkpoint (`environment/checkpoint.gd`, `main.gd` `CHECKPOINT_AT`):
   position, weapons, ammo, grenades. TRY AGAIN after passing it = start at the checkpoint with that gear. Each level attempt keeps one
-  `attempt_seed`, so a restart rebuilds the exact same level. Menu: CONTINUE (checkpoint or next stage) + STAGE MAP. The stage buttons
+  `attempt_seed`, so a restart rebuilds the exact same level. HOLD THE LINE levels also save a checkpoint when the arena closes
+  (`levels/events/hold.gd` `_begin`, `"hold": [x0, x1, cx]` in `Game.checkpoint`): dying mid-hold restarts just before the arena
+  (`RETRY_BACK`) with the gear you had when it closed, and the hold runs again; the mid-level checkpoint replaces it once passed.
+  Test: `devtools/t_hold_retry.gd <level>`. Menu: CONTINUE (checkpoint or next stage) + STAGE MAP. The stage buttons
   are PRACTICE (`start_practice`): stage-appropriate loadout, nothing is saved and the real save is restored on return (`end_practice`).
 * **Performance**: death budget in `zombie.gd` - from the 3rd death within 1 s (`DEATH_HEAVY`) the death is "lite": no ragdoll, a third of
   the blood drops, one flesh chunk, one spray layer. Blood drops capped (`MAX_BLOOD`). Landed flesh chunks stop redrawing (fade by modulate).
