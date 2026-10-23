@@ -70,6 +70,11 @@ func _spawn(side: int, n: int) -> void:
 				z.queue_free()
 	root.get_node("Game").make_noise(pl.global_position, 1400.0)
 
+# aim stays close to level: at most a little up or down (zombies walk on the ground)
+func _level_aim(v: Vector2) -> Vector2:
+	var e := clampf(atan2(-v.y, absf(v.x)), -0.3, 0.35)
+	return Vector2(signf(v.x) if v.x != 0.0 else 1.0, 0.0).rotated(-e * (signf(v.x) if v.x != 0.0 else 1.0))
+
 func _physics_process(_d: float) -> bool:
 	f += 1
 	pl = main_node.get_tree().get_first_node_in_group("player")
@@ -130,6 +135,9 @@ func _physics_process(_d: float) -> bool:
 	if tgt != null:
 		var aim_p: Vector2 = tgt.global_position + Vector2(0.0, -30.0 * float(tgt.sc))
 		var want: Vector2 = (aim_p - (pl.global_position + pl._front_shoulder())).normalized()
+		want = _level_aim(want)
+		if signf(want.x) != signf(_aim.x):   # turning around: flip like a person does, not a sweep through the sky
+			_aim = Vector2(-_aim.x, _aim.y)
 		_aim = _aim.slerp(want, 0.25)
 		pl._aim = _aim
 		if _pause <= 0 and f >= _next_fire and absf(_aim.angle_to(want)) < 0.25 and absf(tgt.global_position.x - pl.global_position.x) < 620.0:
@@ -152,6 +160,15 @@ func _physics_process(_d: float) -> bool:
 	else:
 		_aim = _aim.slerp(Vector2(pl._face(), -0.05).normalized(), 0.1)
 		pl._aim = _aim
+	# between shots the game aims at the mouse: keep the mouse on the aim line, or he points at the corner of the screen
+	var aim_w: Vector2 = pl.global_position + pl._front_shoulder() + _aim * 320.0
+	main_node.get_viewport().warp_mouse(main_node.get_viewport().get_canvas_transform() * aim_w)
+	var mm := InputEventMouseMotion.new()
+	mm.position = main_node.get_viewport().get_canvas_transform() * aim_w
+	mm.global_position = mm.position
+	Input.parse_input_event(mm)
+	if f % 30 == 0 and OS.get_environment("AIM_LOG") != "":
+		print("aim f=%d want=%.2f got=%.2f" % [f, _aim.angle(), pl._aim.angle()])
 	_move_left -= 1
 	_key(KEY_A, _move < 0)
 	_key(KEY_D, _move > 0)
