@@ -4,14 +4,18 @@ extends SceneTree
 # sides. He plays like a person: aims at the closest zombie, turns around, steps back, sometimes jumps, short pauses.
 # After GOD MODE ends a big final wave comes in (the "...then it ran out" ending). HUD hidden.
 # env: GOD_LEVEL (default 3), GOD_AT (player x, default 2400), GOD_WEAPON (weapon_db id, default 10 = ASSAULT SHOTGUN),
-#      REC_POS=<csv>: t, player position on screen (follow-cam), kills, GOD MODE seconds left, PREVIEW=<png>: save one frame at f=50 and quit.
+#      REC_POS=<csv>: t, player position on screen (follow-cam), kills, GOD MODE seconds left, fired (0/1), fresh corpses
+#      ("id/age/x/y" joined by |, screen space, for 1.2 s after each kill: lets the edit swing the camera to the zombie that got shot),
+#      PREVIEW=<png>: save one frame at f=50 and quit.
+# He fires ONE shot about every second (FIRE_GAP), so the camera has time to swing to the zombie that got hit and back.
 # usage: REC_POS=/tmp/g.csv xvfb-run -a -s "-screen 0 2560x1440x24" godot --path . --rendering-driver opengl3 --resolution 2560x1440 \
 #        --write-movie /tmp/g.avi --fixed-fps 60 -s res://t_rec_god.gd
 const GOD_F := 150               # drinks the potion (2.5 s in)
-const WAVES := [[90, 1, 3], [170, -1, 4], [230, 1, 5], [300, -1, 5], [360, 1, 6], [430, -1, 5], [490, 1, 6], [560, -1, 6],
-	[620, 1, 6], [690, -1, 6], [750, 1, 7], [820, -1, 6], [880, 1, 7], [950, -1, 6]]   # [frame, side, count]
+const WAVES := [[90, 1, 3], [170, -1, 3], [240, 1, 4], [320, -1, 4], [400, 1, 4], [480, -1, 4], [560, 1, 5], [640, -1, 4],
+	[720, 1, 5], [800, -1, 4], [880, 1, 5], [950, -1, 4]]   # [frame, side, count]
 const FINAL_F := 1010            # the big wave after GOD MODE ends (god ends ~f 978)
 const END_F := 1260
+const FIRE_GAP := [40, 52]       # frames between shots (camera swing rhythm)
 var f := 0
 var main_node: Node = null
 var pl = null
@@ -24,6 +28,10 @@ var _pause := 0
 var _move := 0                   # -1 / 0 / 1
 var _move_left := 0
 var _aim := Vector2.RIGHT
+var _next_fire := 0
+var _fired := false
+var _alive := {}                 # instance id -> zombie (alive last frame)
+var _died := {}                  # instance id -> [zombie, death frame]
 
 func _initialize() -> void:
 	var g = root.get_node("Game")
@@ -76,7 +84,7 @@ func _physics_process(_d: float) -> bool:
 		pl.global_position.x = at_x
 		pl.slots[0] = {"id": weapon, "ammo": 999, "mag": 8}
 		pl.select_slot(0)
-	if f == 50 and OS.get_environment("PREVIEW") != "":
+	if f == (int(OS.get_environment("PREVIEW_F")) if OS.get_environment("PREVIEW_F") != "" else 50) and OS.get_environment("PREVIEW") != "":
 		root.get_viewport().get_texture().get_image().save_png(OS.get_environment("PREVIEW"))
 		quit()
 	for s in main_node.get_tree().get_nodes_in_group("story_scene"):
@@ -124,8 +132,10 @@ func _physics_process(_d: float) -> bool:
 		var want: Vector2 = (aim_p - (pl.global_position + pl._front_shoulder())).normalized()
 		_aim = _aim.slerp(want, 0.25)
 		pl._aim = _aim
-		if _pause <= 0 and absf(_aim.angle_to(want)) < 0.4:
+		if _pause <= 0 and f >= _next_fire and absf(_aim.angle_to(want)) < 0.25 and absf(tgt.global_position.x - pl.global_position.x) < 620.0:
 			pl._fire_test = true
+			_fired = true
+			_next_fire = f + _rng.randi_range(FIRE_GAP[0], FIRE_GAP[1])
 		var dx: float = tgt.global_position.x - pl.global_position.x
 		# step back when they get close, step in when it is quiet
 		if _move_left <= 0:
@@ -146,10 +156,29 @@ func _physics_process(_d: float) -> bool:
 	_key(KEY_A, _move < 0)
 	_key(KEY_D, _move > 0)
 	_key(KEY_W, f > 200 and f % 211 < 6)   # a jump now and then
+	# who died this frame (alive last frame, dead or gone now)
+	for id in _alive:
+		var z = _alive[id]
+		if is_instance_valid(z) and z.dead and not _died.has(id):
+			_died[id] = [z, f]
+	_alive.clear()
+	for z in main_node.get_tree().get_nodes_in_group("zombies"):
+		if not z.dead:
+			_alive[z.get_instance_id()] = z
 	if pos_file != null:
 		var xf: Transform2D = main_node.get_viewport().get_canvas_transform()
 		var sp: Vector2 = xf * pl.global_position
-		pos_file.store_line("%.4f,%d,%d,%d,%.2f" % [f / 60.0, sp.x, sp.y, int(root.get_node("Game").stats.kills), float(pl.boosts.get(preload("res://pickup.gd").GOD, 0.0))])   # + kills, GOD MODE time left
+		var fresh := PackedStringArray()
+		for id in _died.keys():
+			var d: Array = _died[id]
+			if f - int(d[1]) > 72 or not is_instance_valid(d[0]):
+				_died.erase(id)
+				continue
+			var zp: Vector2 = xf * (d[0].global_position + Vector2(0.0, -30.0 * float(d[0].sc)))
+			fresh.append("%d/%d/%d/%d" % [id % 1000000, f - int(d[1]), zp.x, zp.y])
+		pos_file.store_line("%.4f,%d,%d,%d,%.2f,%d,%s" % [f / 60.0, sp.x, sp.y, int(root.get_node("Game").stats.kills),
+			float(pl.boosts.get(preload("res://pickup.gd").GOD, 0.0)), int(_fired), "|".join(fresh)])   # + kills, GOD MODE time left, fired, fresh corpses
+	_fired = false
 	if f % 60 == 0:
 		var n := 0
 		for z in main_node.get_tree().get_nodes_in_group("zombies"):
