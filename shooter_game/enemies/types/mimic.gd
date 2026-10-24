@@ -142,7 +142,7 @@ func draw() -> bool:
 	var m := _m
 	var size: float = z.sc
 	var jit := Vector2.ZERO
-	if state == MORPH:   # עוויתות
+	if state == MORPH and not z.dead:   # עוויתות (גופה: לא - נשארת שקטה)
 		jit = Vector2(randf_range(-1.5, 1.5), randf_range(-1.0, 1.0)) * (1.0 + 2.0 * m)
 	if z.is_on_floor():
 		Art.ground_shadow(z, Vector2.ZERO, 11.0 * size)

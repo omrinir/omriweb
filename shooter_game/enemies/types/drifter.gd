@@ -97,6 +97,7 @@ var _gy := 630.0                 # הקרקע מתחת (לצל)
 var _gy_t := 0.0
 var _spill := false
 var _wd := -1.0                  # כיוון הרוח האחרון
+var _dead_w := 0.0               # הרוח ברגע המוות: הגופה מצוירת איתה (מעיל שלא מתנפנף = גופה שלא מצוירת מחדש)
 var _flap_t := 0.0
 var _body: StaticBody2D = null
 var _cshape: CollisionShape2D = null
@@ -629,6 +630,7 @@ func on_damage(_amount: int, _hit_pos: Vector2, _dir: Vector2, src: Dictionary) 
 
 
 func on_death() -> void:
+	_dead_w = _wind()
 	if _canopy:
 		_drop_canopy(true)
 	if _body != null:
@@ -851,7 +853,7 @@ func _draw_pilot(hanging: bool, dead: bool) -> void:
 	var wl: float = _wd * z._dir
 	var body := PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(7, -1), hip + Vector2(-7, 0), sh + Vector2(-9, 6)])
 	Art.fill_shaded(z, body, jk, 0.15, 0.35)
-	var tail := hip + Vector2(wl * (8.0 + 4.0 * absf(_wind())), -2.0 + sin(z._time * 10.0) * 2.0)
+	var tail := hip + Vector2(wl * (8.0 + 4.0 * absf(_dead_w if dead else _wind())), -2.0 + sin(z._time * 10.0) * 2.0)
 	DrawBatch.colored_polygon(z, PackedVector2Array([hip + Vector2(-6, -6), hip + Vector2(6, -6), tail]), jkd)
 	DrawBatch.line(z, sh + Vector2(-6, 1), sh + Vector2(-6, 12), col(Color("d8d0c0")), 0.8)   # רוכסן / רצועה
 	DrawBatch.line(z, sh + Vector2(5, 1), hip + Vector2(4, -5), col(Color("1a1a1e")), 1.6)   # רצועת כתף

@@ -25,6 +25,8 @@ static var _fans := {}            # n -> משולשי מניפה של עיגול
 static var _quad := PackedVector2Array([Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 0), Vector2(1, 1), Vector2(0, 1)])
 static var _tmpc := PackedColorArray()
 static var flushes := 0           # לבדיקות
+static var sig_on := false        # גופה נצבעת (zombie.gd): גם מה שנשלח באמצע (טקסטורה / טקסט) נכנס לטביעת האצבע
+static var _sig := 0
 
 
 static func begin(ci: CanvasItem) -> void:
@@ -37,6 +39,7 @@ static func begin(ci: CanvasItem) -> void:
 	_xf = Transform2D.IDENTITY
 	_pts.clear()
 	_cols.clear()
+	_sig = 0
 
 
 static func end(ci: CanvasItem) -> void:
@@ -49,12 +52,21 @@ static func end(ci: CanvasItem) -> void:
 
 static func _flush() -> void:
 	if not _pts.is_empty():
+		if sig_on:
+			_sig = hash([_sig, _pts, _cols])
 		RenderingServer.canvas_item_add_triangle_array(_rid, PackedInt32Array(), _pts, _cols)
 		flushes += 1
 		_pts.clear()
 		_cols.clear()
 
 
+# "טביעת אצבע" של כל מה שצויר מאז begin (נקודות + צבעים, ועם sig_on גם טקסטורות / טקסט). אותו מספר = אותו ציור בדיוק
+# (zombie.gd: גופה שלא משתנה לא מצוירת שוב)
+static func signature() -> int:
+	return hash([_sig, _pts, _cols])
+
+
+# (בתוך הקובץ הבדיקה כתובה ישר: "ci != _ci" - אלפי קריאות בכל פריים, קריאה לפונקציה עולה יותר מהבדיקה)
 static func _on(ci: CanvasItem) -> bool:
 	return ci == _ci and _ci != null
 
@@ -85,14 +97,14 @@ static func _seg(r: float) -> int:   # כמה צלעות לעיגול לפי ה�
 
 # ---- ציור "חי" כשאין batch: הטרנספורם של הקנבס ----
 static func set_transform(ci: CanvasItem, pos: Vector2, rot := 0.0, scale := Vector2.ONE) -> void:
-	if _on(ci):
+	if ci == _ci:
 		_xf = Transform2D(rot, scale, 0.0, pos)
 	else:
 		ci.draw_set_transform(pos, rot, scale)
 
 
 static func set_transform_matrix(ci: CanvasItem, xf: Transform2D) -> void:
-	if _on(ci):
+	if ci == _ci:
 		_xf = xf
 	else:
 		ci.draw_set_transform_matrix(xf)
@@ -102,7 +114,7 @@ static func set_transform_matrix(ci: CanvasItem, xf: Transform2D) -> void:
 static func ellipse(ci: CanvasItem, c: Vector2, rx: float, ry: float, col: Color, rot := 0.0, n := 0) -> void:
 	if n <= 0:
 		n = _seg(maxf(rx, ry))
-	if not _on(ci):
+	if ci != _ci:
 		ci.draw_colored_polygon(Transform2D(rot, Vector2(rx, ry), 0.0, c) * _unit(n), col)
 		return
 	_add(_xf * Transform2D(rot, Vector2(rx, ry), 0.0, c) * _fan(n), col)
@@ -121,7 +133,7 @@ static func _unit(n: int) -> PackedVector2Array:
 # אליפסה עם צבע לכל נקודה על ההיקף (הצללה). cols = צבע לכל אחת מ-n הנקודות, center_col = המרכז
 static func ellipse_cols(ci: CanvasItem, c: Vector2, rx: float, ry: float, cols: PackedColorArray, center_col: Color, rot := 0.0) -> void:
 	var n := cols.size()
-	if not _on(ci):
+	if ci != _ci:
 		ci.draw_polygon(Transform2D(rot, Vector2(rx, ry), 0.0, c) * _unit(n), cols)
 		return
 	_pts.append_array(_xf * Transform2D(rot, Vector2(rx, ry), 0.0, c) * _fan(n))
@@ -132,7 +144,7 @@ static func ellipse_cols(ci: CanvasItem, c: Vector2, rx: float, ry: float, cols:
 # ================= אותם פרמטרים כמו ב-Godot =================
 
 static func circle(ci: CanvasItem, pos: Vector2, radius: float, color: Color, filled := true, width := -1.0, antialiased := false) -> void:
-	if not _on(ci):
+	if ci != _ci:
 		ci.draw_circle(pos, radius, color, filled, width, antialiased)
 		return
 	if filled:
@@ -142,7 +154,7 @@ static func circle(ci: CanvasItem, pos: Vector2, radius: float, color: Color, fi
 
 
 static func colored_polygon(ci: CanvasItem, points: PackedVector2Array, color: Color, uvs := PackedVector2Array(), texture: Texture2D = null) -> void:
-	if not _on(ci) or texture != null:
+	if ci != _ci or texture != null:
 		_pass(ci)
 		ci.draw_colored_polygon(points, color, uvs, texture)
 		return
@@ -168,7 +180,7 @@ static func colored_polygon(ci: CanvasItem, points: PackedVector2Array, color: C
 
 
 static func polygon(ci: CanvasItem, points: PackedVector2Array, colors: PackedColorArray, uvs := PackedVector2Array(), texture: Texture2D = null) -> void:
-	if not _on(ci) or texture != null or colors.size() != points.size():
+	if ci != _ci or texture != null or colors.size() != points.size():
 		if _on(ci) and texture == null and colors.size() == 1:
 			colored_polygon(ci, points, colors[0])
 			return
@@ -200,7 +212,7 @@ static func _convex4(p: PackedVector2Array) -> bool:
 
 # קו עבה = מלבן (width <= 0 = קו דק של פיקסל אחד במסך)
 static func line(ci: CanvasItem, from: Vector2, to: Vector2, color: Color, width := -1.0, antialiased := false) -> void:
-	if not _on(ci):
+	if ci != _ci:
 		ci.draw_line(from, to, color, width, antialiased)
 		return
 	var w := width if width > 0.0 else 1.0 / maxf(_xf.get_scale().abs().x, 0.001)
@@ -217,7 +229,7 @@ static func line(ci: CanvasItem, from: Vector2, to: Vector2, color: Color, width
 
 
 static func polyline(ci: CanvasItem, points: PackedVector2Array, color: Color, width := -1.0, antialiased := false) -> void:
-	if not _on(ci):
+	if ci != _ci:
 		ci.draw_polyline(points, color, width, antialiased)
 		return
 	var n := points.size()
@@ -287,7 +299,7 @@ static func polyline(ci: CanvasItem, points: PackedVector2Array, color: Color, w
 
 
 static func arc(ci: CanvasItem, center: Vector2, radius: float, start_angle: float, end_angle: float, point_count: int, color: Color, width := -1.0, antialiased := false) -> void:
-	if not _on(ci):
+	if ci != _ci:
 		ci.draw_arc(center, radius, start_angle, end_angle, point_count, color, width, antialiased)
 		return
 	if point_count < 2:
@@ -301,7 +313,7 @@ static func arc(ci: CanvasItem, center: Vector2, radius: float, start_angle: flo
 
 
 static func rect(ci: CanvasItem, r: Rect2, color: Color, filled := true, width := -1.0, antialiased := false) -> void:
-	if not _on(ci):
+	if ci != _ci:
 		ci.draw_rect(r, color, filled, width, antialiased)
 		return
 	if filled:
@@ -314,67 +326,83 @@ static func rect(ci: CanvasItem, r: Rect2, color: Color, filled := true, width :
 
 # ---- דברים שאי אפשר לאסוף (טקסט, טקסטורה): שולחים את מה שנאסף, ומציירים כרגיל עם הטרנספורם הנוכחי ----
 static func _pass(ci: CanvasItem) -> void:
-	if _on(ci):
+	if ci == _ci:
 		_flush()
 		ci.draw_set_transform_matrix(_xf)
 
 
 static func _unpass(ci: CanvasItem) -> void:
-	if _on(ci):
+	if ci == _ci:
 		ci.draw_set_transform_matrix(Transform2D.IDENTITY)
 
 
 static func texture_rect(ci: CanvasItem, texture: Texture2D, r: Rect2, tile: bool, modulate := Color.WHITE, transpose := false) -> void:
 	_pass(ci)
+	if sig_on and ci == _ci:
+		_sig = hash([_sig, _xf, texture, r, tile, modulate, transpose])
 	ci.draw_texture_rect(texture, r, tile, modulate, transpose)
 	_unpass(ci)
 
 
 static func texture_rect_region(ci: CanvasItem, texture: Texture2D, r: Rect2, src_rect: Rect2, modulate := Color.WHITE, transpose := false, clip_uv := true) -> void:
 	_pass(ci)
+	if sig_on and ci == _ci:
+		_sig = hash([_sig, _xf, texture, r, src_rect, modulate, transpose])
 	ci.draw_texture_rect_region(texture, r, src_rect, modulate, transpose, clip_uv)
 	_unpass(ci)
 
 
 static func string(ci: CanvasItem, font: Font, pos: Vector2, text: String, alignment := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, font_size := 16, modulate := Color.WHITE, justification_flags := 3, direction := 0, orientation := 0) -> void:
 	_pass(ci)
+	if sig_on and ci == _ci:
+		_sig = hash([_sig, _xf, font, pos, text, alignment, width, font_size, modulate])
 	ci.draw_string(font, pos, text, alignment, width, font_size, modulate, justification_flags, direction, orientation)
 	_unpass(ci)
 
 
 static func string_outline(ci: CanvasItem, font: Font, pos: Vector2, text: String, alignment := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, font_size := 16, size := 1, modulate := Color.WHITE, justification_flags := 3, direction := 0, orientation := 0) -> void:
 	_pass(ci)
+	if sig_on and ci == _ci:
+		_sig = hash([_sig, _xf, font, pos, text, alignment, width, font_size, size, modulate])
 	ci.draw_string_outline(font, pos, text, alignment, width, font_size, size, modulate, justification_flags, direction, orientation)
 	_unpass(ci)
 
 
 static func multiline_string(ci: CanvasItem, font: Font, pos: Vector2, text: String, alignment := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, font_size := 16, max_lines := -1, modulate := Color.WHITE, brk_flags := 3, justification_flags := 3, direction := 0, orientation := 0) -> void:
 	_pass(ci)
+	if sig_on and ci == _ci:
+		_sig = hash([_sig, _xf, font, pos, text, alignment, width, font_size, max_lines, modulate])
 	ci.draw_multiline_string(font, pos, text, alignment, width, font_size, max_lines, modulate, brk_flags, justification_flags, direction, orientation)
 	_unpass(ci)
 
 
 static func multiline_string_outline(ci: CanvasItem, font: Font, pos: Vector2, text: String, alignment := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, font_size := 16, max_lines := -1, size := 1, modulate := Color.WHITE, brk_flags := 3, justification_flags := 3, direction := 0, orientation := 0) -> void:
 	_pass(ci)
+	if sig_on and ci == _ci:
+		_sig = hash([_sig, _xf, font, pos, text, alignment, width, font_size, max_lines, size, modulate])
 	ci.draw_multiline_string_outline(font, pos, text, alignment, width, font_size, max_lines, size, modulate, brk_flags, justification_flags, direction, orientation)
 	_unpass(ci)
 
 
 static func style_box(ci: CanvasItem, sb: StyleBox, r: Rect2) -> void:
 	_pass(ci)
+	if sig_on and ci == _ci:
+		_sig = hash([_sig, _xf, sb, r])
 	ci.draw_style_box(sb, r)
 	_unpass(ci)
 
 
 static func texture(ci: CanvasItem, tex: Texture2D, pos: Vector2, modulate := Color.WHITE) -> void:
 	_pass(ci)
+	if sig_on and ci == _ci:
+		_sig = hash([_sig, _xf, tex, pos, modulate])
 	ci.draw_texture(tex, pos, modulate)
 	_unpass(ci)
 
 
 # קווים נפרדים: כל זוג נקודות = קו
 static func multiline(ci: CanvasItem, points: PackedVector2Array, color: Color, width := -1.0) -> void:
-	if not _on(ci):
+	if ci != _ci:
 		ci.draw_multiline(points, color, width)
 		return
 	for i in range(0, points.size() - 1, 2):
@@ -383,13 +411,15 @@ static func multiline(ci: CanvasItem, points: PackedVector2Array, color: Color, 
 
 static func polyline_colors(ci: CanvasItem, points: PackedVector2Array, colors: PackedColorArray, width := -1.0, antialiased := false) -> void:
 	_pass(ci)
+	if sig_on and ci == _ci:
+		_sig = hash([_sig, _xf, points, colors, width, antialiased])
 	ci.draw_polyline_colors(points, colors, width, antialiased)
 	_unpass(ci)
 
 
 # משולשים מוכנים (כמו RenderingServer.canvas_item_add_triangle_array): נכנסים ל-batch עם הטרנספורם הנוכחי
 static func tris(ci: CanvasItem, pts: PackedVector2Array, cols: PackedColorArray) -> void:
-	if not _on(ci):
+	if ci != _ci:
 		RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), PackedInt32Array(), pts, cols)
 		return
 	if cols.size() == pts.size():

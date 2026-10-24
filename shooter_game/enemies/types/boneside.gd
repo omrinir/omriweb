@@ -1038,7 +1038,7 @@ func _flesh_arm(s0: Vector2, hand: Vector2, skin: Color) -> void:
 	Art.oval(z, m, 2.6, 1.8, col(MEAT), (elbow - s0).angle(), Art.NONE)
 	DrawBatch.line(z, m + Vector2(-1.5, -0.5), m + Vector2(1.5, 0.6), col(MEAT_D), 0.7)
 	Art.disc(z, hand, 3.8, skin)
-	if not z.crowded():
+	if not z.lod():
 		var d := (hand - elbow).normalized()
 		for i in 3:
 			var a := d.rotated(0.4 + float(i) * 0.4)

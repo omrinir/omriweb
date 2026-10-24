@@ -51,9 +51,23 @@ const DebrisScript := preload("res://debris.gd")
 var hp := 3
 var _broken := false
 var _shape: CollisionShape2D
-var _blood_rects: Array[Rect2] = []
-var _blood_cols: Array[Color] = []
+# כתמי הדם מצוירים בשכבות (ילדים) של עד BLOOD_LAYER כתמים: כתם חדש = ציור מחדש רק של השכבה האחרונה.
+# קודם כל כתם צייר מחדש את כל הלבנה + עד 700 כתמים (ריצפה מלאת דם = ~3 ms בכל טיפה, כל הזמן בהריגה המונית / מיניגאן)
+const BLOOD_LAYER := 48
+var _blood_layers: Array[BloodLayer] = []   # הכי ישנה ראשונה
+var _blood_n := 0
 var _cracks: Array[PackedVector2Array] = []
+
+
+class BloodLayer extends Node2D:
+	var rects: Array[Rect2] = []
+	var cols: Array[Color] = []
+
+	func _draw() -> void:
+		DrawBatch.begin(self)
+		for i in rects.size():
+			DrawBatch.rect(self, rects[i], cols[i])
+		DrawBatch.end(self)
 
 
 func _ready() -> void:
@@ -184,16 +198,24 @@ func add_blood(world_pos: Vector2, normal: Vector2, strength := 1.0) -> void:
 			var x := lp.x + randf_range(-6.0, 6.0) * s
 			var drip_len := randf_range(6.0, 22.0) * s
 			_add_blood_rect(Rect2(x, lp.y, 2.0, drip_len).intersection(area))
-	while _blood_rects.size() > max_blood_rects:
-		_blood_rects.pop_front()
-		_blood_cols.pop_front()
-	queue_redraw()
+	while _blood_n > max_blood_rects and _blood_layers.size() > 1:   # הישנים נמחקים (שכבה שלמה בכל פעם)
+		var old: BloodLayer = _blood_layers.pop_front()
+		_blood_n -= old.rects.size()
+		old.queue_free()
 
 
 func _add_blood_rect(r: Rect2) -> void:
-	if r.has_area():
-		_blood_rects.append(r)
-		_blood_cols.append(Color("a31616").darkened(randf_range(0.0, 0.45)))
+	if not r.has_area():
+		return
+	if _blood_layers.is_empty() or _blood_layers[-1].rects.size() >= BLOOD_LAYER:
+		var l := BloodLayer.new()
+		add_child(l)
+		_blood_layers.append(l)
+	var top: BloodLayer = _blood_layers[-1]
+	top.rects.append(r)
+	top.cols.append(Color("a31616").darkened(randf_range(0.0, 0.45)))
+	top.queue_redraw()
+	_blood_n += 1
 
 
 # ============================================================
@@ -216,8 +238,7 @@ func _draw_b() -> void:
 			_draw_bricks()
 	for c in _cracks:   # סדקים
 		DrawBatch.polyline(self, c, Color(0, 0, 0, 0.6), 1.5)
-	for i in _blood_rects.size():   # כתמי דם (מעל הכל)
-		DrawBatch.rect(self, _blood_rects[i], _blood_cols[i])
+	# (כתמי הדם: BloodLayer - ילדים, מצוירים מעל הכל)
 
 
 func _draw_bricks() -> void:

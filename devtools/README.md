@@ -29,3 +29,9 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
   resynthesis with all-noise excitation), then mastered to about -18 dB mean like the level 1 scene.
 
 - `t_masskill.gd` - mass-kill frame-time test: `godot --headless --path . -s res://t_masskill.gd -- <level> <n> all|stream [quality]` (copy into a test project first). Prints a MASSKILL summary (avg / p95 / max frame ms).
+- `t_minigun.gd` - holds the trigger of a gun (default the minigun) into a steady crowd and prints frame times and kills:
+  `-- [level 55] [weapon id 21] [seconds 10] [zombies per wave 4]`. Env `MG_NOFIRE=1` (crowd only), `MG_AIR=1` with 0 per wave
+  (the gun alone), `MG_SHOT=300,out.png` (picture of that frame, run with a window under xvfb).
+- `t_corpse_audit.gd` - checks that dead bodies of every zombie kind stop being redrawn once they lie still (`-- all`, a range
+  `0-65` or a list). A corpse that keeps changing is redrawn for 7 s and makes mass kills slow; a new zombie type should come out
+  still, or return true in `corpse_anim()` when its body moves on purpose.

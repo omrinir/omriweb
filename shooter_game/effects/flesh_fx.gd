@@ -191,7 +191,7 @@ class Chunk extends Node2D:
 				global_position = to
 			rotation += _spin * delta
 		modulate.a = clampf(life / 0.6, 0.0, 1.0)   # דוהה בלי לצייר מחדש
-		if not _landed and Art.on_screen(self, global_position):   # נחת = לא מצייר יותר (חוסך)
+		if not _landed and _smear != Vector2.INF and Art.on_screen(self, global_position):   # נחת = לא מצייר יותר (חוסך). לפני הנגיעה הראשונה הציור לא משתנה (רק הסיבוב של הצומת)
 			queue_redraw()
 
 	func _draw() -> void:

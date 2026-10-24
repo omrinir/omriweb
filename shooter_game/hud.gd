@@ -164,6 +164,16 @@ func _text(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_A
 	DrawBatch.string(self, f, pos, t, align, width, size, col)
 
 
+# טקסט שקופץ / פועם: גודל פונט אחד קבוע (size) ומגדילים בסקייל k סביב נקודת העיגון.
+# (גודל פונט שמשתנה = כל האותיות מרוסטרות מחדש בכל גודל = גמגום של כמה ms בכל פריים בקומבו הראשון)
+func _text_k(anchor: Vector2, t: String, size: int, k: float, col: Color, align: int, fade := 1.0) -> void:
+	var w := 1000.0
+	var x := -w if align == HORIZONTAL_ALIGNMENT_RIGHT else (-w * 0.5 if align == HORIZONTAL_ALIGNMENT_CENTER else 0.0)
+	DrawBatch.set_transform(self, anchor, 0.0, Vector2(k, k))
+	_text(Vector2(x, 0.0), t, size, col, align, w, fade)
+	DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
+
+
 # ============================================================
 #  THEY LEARN CLOCK (progression/level_clock.gd): שעון למעלה באמצע + פס GOLD / SILVER / אדום
 # ============================================================
@@ -205,8 +215,8 @@ func _draw_clock(vp: Vector2) -> void:
 		tcol = red_c.lerp(Color.WHITE, 0.25 * beat)
 	elif urgent:
 		tcol = (gold_c if t <= p.x else silver_c).lerp(red_c, beat)
-	var fs := 30 + (int(3.0 * beat) if urgent or Game.learn_tier > 0 else 0)
-	_text(Vector2(0, 66), LevelClock.fmt(t), fs, tcol, HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+	var fk := (30.0 + 3.0 * beat) / 30.0 if urgent or Game.learn_tier > 0 else 1.0
+	_text_k(Vector2(vp.x * 0.5, 66), LevelClock.fmt(t), 30, fk, tcol, HORIZONTAL_ALIGNMENT_CENTER)
 	# פס: GOLD | SILVER | למידה (3 דרגות)
 	var full := p.y + LevelClock.LEARN_STEP * float(LevelClock.MAX_TIER)
 	var bw := 220.0
@@ -328,10 +338,9 @@ func _draw_b() -> void:
 	_text(Vector2(rx - 300, 58), "%d" % int(_score_shown), 26, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, 300)
 	var m := Game.multiplier()
 	if Game.combo > 0 and _combo_a > 0.01:
-		var size := int(20 + 10 * _combo_pop)
 		var ca := _combo_a
 		var mc := Color("ffd34a") if m > 1 else Color(1, 1, 1, 0.8)
-		_text(Vector2(rx - 300, 88), "x%d   COMBO %d" % [m, Game.combo], size, Color(mc, mc.a * ca), HORIZONTAL_ALIGNMENT_RIGHT, 300, ca)
+		_text_k(Vector2(rx, 88), "x%d   COMBO %d" % [m, Game.combo], 20, 1.0 + 0.5 * _combo_pop, Color(mc, mc.a * ca), HORIZONTAL_ALIGNMENT_RIGHT, ca)
 		var k := clampf(Game.combo_t / Game.COMBO_WINDOW, 0.0, 1.0)
 		DrawBatch.rect(self, Rect2(Vector2(rx - 120, 96), Vector2(120, 3)), Color(0, 0, 0, 0.5 * ca))
 		DrawBatch.rect(self, Rect2(Vector2(rx - 120 * k, 96), Vector2(120 * k, 3)), Color(mc, mc.a * ca))

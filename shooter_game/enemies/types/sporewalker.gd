@@ -474,7 +474,7 @@ func draw() -> bool:
 	# זוהר נבגים
 	var gl := 0.12 + 0.1 * sin(t * 3.0) + wk * 0.35
 	Art.glow(z, hc + Vector2(0, -8), 16.0 + wk * 14.0, Color(0.9, 1.0, 0.5, gl))
-	if not z.crowded():
+	if not z.lod():
 		for q in 5:   # נבגים שנושרים
 			var fp := hc + Vector2(-8.0 + float(q) * 4.0, -6.0 + fmod(t * 9.0 + float(q) * 7.0, 34.0))
 			DrawBatch.circle(z, fp, 0.9, Color(0.95, 1.0, 0.6, 0.6))

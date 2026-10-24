@@ -318,6 +318,12 @@ const HEAD_HEAVY_K := 0.6
 var _angle := 0.0
 var _dead_t := 0.0
 var _land_t := -1.0               # מתי הגופה נגעה בריצפה (כלב בועט / מקלען) - לפי _dead_t
+# גופה ששוכבת בשקט לא מצוירת מחדש (הציור הקודם נשאר על המסך). עד עכשיו כל גופה צוירה מחדש כל 3-6 פריימים
+# במשך 7 שניות (~1 ms כל ציור) - הריגה המונית = עשרות ציורים מיותרים בכל פריים. ראה _corpse_redraw
+var _c_hash := -1                 # "טביעת האצבע" של הציור האחרון (DrawBatch.signature: כל הנקודות והצבעים)
+var _c_same := 0                  # כמה ציורים ברצף יצאו זהים לקודם
+var _c_angle := 0.0               # הזווית בציור האחרון
+var _lod_dead := false            # גופה: הפרטים הזעירים כמו ברגע המוות (לא מתחלפים כשזומבים אחרים נכנסים / יוצאים מהמסך)
 var _gburst := 0                  # מקלען מת: כמה יריות אחרונות כבר נשמעו
 var _bled_on: Dictionary = {}
 # ---- התחמקות ומחסה ----
@@ -1488,6 +1494,9 @@ static func death_load() -> int:   # כמה זומבים מתו בשנייה ה�
 
 func _die(dir: Vector2) -> void:
 	dead = true
+	_c_same = 0
+	_c_hash = -1
+	_lod_dead = crowded()
 	_lite = death_load() >= DEATH_HEAVY - 1
 	_deaths.append(Time.get_ticks_msec())
 	Game.story.emit("zkill", {"z": self, "zone": _last_info.get("zone", ""), "source": _last_info.get("source", "")})
@@ -1894,7 +1903,7 @@ func _dead_process(delta: float) -> void:
 		_gburst += 1
 		Sfx.play("rifle", global_position + Vector2(_dir * 30.0, -40.0 * sc), -7.0, 0.15, 3)
 	if _rag != null:   # גופה רכה: מדמה עד שהיא נרגעת, ואז רק מצוירת
-		if _rag.step(delta) and Art.on_screen(self, global_position, 400.0):
+		if _rag.step(delta) and Art.on_screen(self, global_position, 400.0) and _rag.moved():   # (זזה פחות מחצי פיקסל = לא מציירים)
 			queue_redraw()
 		if _splat_pending:
 			_try_splat(_rag.on_ground())
@@ -1921,11 +1930,23 @@ func _dead_process(delta: float) -> void:
 		if kind == DOG or kind == HOUND or kind == GUNNER:
 			rest = 0.0   # כלב: נוחת על הבטן ומתמוטט (לא על הגב). מקלען: נשאר במקום (הנפילה מצוירת)
 		_angle = lerp_angle(_angle, rest, 8.0 * delta)
+		if absf(angle_difference(_angle, rest)) < 0.002:   # כמעט שם: נעצרת בדיוק (בלי שינויים זעירים שמכריחים ציור מחדש)
+			_angle = rest
 		if _land_t < 0.0:
 			_land_t = _dead_t
 	if is_on_wall():
 		velocity.x *= -0.3
 	_angle += _spin * delta
+	_corpse_redraw()
+
+
+# גופה רגילה (לא רכה): מציירים מחדש רק כשמשהו בה משתנה. אחרי ששלושה ציורים ברצף יצאו זהים לגמרי
+# (אותן נקודות ואותם צבעים - גם אנימציה של סוג מסוים נבדקת כך) והגופה לא הסתובבה מאז - הציור הקודם נשאר.
+# ההזזה על הריצפה וההיעלמות (modulate) לא צריכות ציור מחדש
+func _corpse_redraw() -> void:
+	if _c_same >= 2 and _flash <= 0.0 and _react_t <= 0.0 and absf(angle_difference(_angle, _c_angle)) < 0.003:
+		_count_visible()   # (עדיין נספרת כזומבי על המסך, כמו קודם: הקצב והפרטים של כל השאר לא משתנים)
+		return
 	_maybe_redraw()
 
 
@@ -2002,18 +2023,53 @@ func _ragdoll_kind() -> bool:
 
 func _draw() -> void:
 	DrawBatch.begin(self)   # כל הצורות נאספות ונשלחות כ-draw call אחד (effects/draw_batch.gd, כמו רימון הכבידה)
+	DrawBatch.sig_on = _plain_corpse()   # גופה: גם טקסטורות (כלב, הילה) נכנסות לטביעת האצבע (_corpse_sig)
 	if prof_on:
 		var t0 := Time.get_ticks_usec()
+		var t1 := _time
+		if _corpse_still_time():
+			_time -= _dead_t
 		_draw_main()
+		_time = t1
+		_corpse_sig()
 		DrawBatch.end(self)
 		var k := "draw:" + _prof_name()
 		prof[k] = int(prof.get(k, 0)) + Time.get_ticks_usec() - t0
 		prof["draws"] = int(prof.get("draws", 0)) + 1
 		return
+	var t := _time
+	if _corpse_still_time():
+		_time -= _dead_t   # גופה רגילה: הראש / הלסת / השיער לא ממשיכים לזוז אחרי המוות (הציור נעצר - _corpse_redraw)
 	_draw_main()
 	if _burn_t > 0.0 and (not dead or (_char != null and not _char.skeleton())) and not _lying():
 		_draw_burning()
+	_time = t
+	_corpse_sig()
 	DrawBatch.end(self)
+
+
+# גופה רגילה מצוירת עם הזמן של רגע המוות (_time - _dead_t): תנועות "חיות" שתלויות ב-_time (ראש מתנודד, לסת, שיער,
+# זוהר שפועם) נעצרות, וגופה ששוכבת בשקט מפסיקה להיות מצוירת מחדש. סוג שהגופה שלו אמורה להמשיך לזוז לפי _time
+# (להבות, ניצוצות...) מחזיר true ב-corpse_anim() (enemies/zombie_type.gd). אנימציית מוות לפי _dead_t ממשיכה כרגיל
+func _corpse_still_time() -> bool:
+	return _plain_corpse() and (type_mod == null or not type_mod.corpse_anim())
+
+
+# גופה רגילה (לא רכה / לא נשרפת / לא הולכת בלי ראש)
+func _plain_corpse() -> bool:
+	return dead and _rag == null and _hw_t <= 0.0 and _char == null
+
+
+# גופה רגילה: האם הציור הזה זהה לקודם (ראה _corpse_redraw)
+func _corpse_sig() -> void:
+	DrawBatch.sig_on = false
+	if not _plain_corpse():
+		_c_same = 0
+		return
+	var h := DrawBatch.signature()
+	_c_same = _c_same + 1 if h == _c_hash else 0
+	_c_hash = h
+	_c_angle = _angle
 
 
 # בוער (בקבוק תבערה / שטח בוער): להבות אמיתיות על הגוף (effects/flame_fx.gd)
@@ -2324,15 +2380,27 @@ static func crowded() -> bool:
 	return _vis_prev > Quality.crowded_at()   # (המשחק איטי - quality.gd: גם עם פחות זומבים)
 
 
-func _maybe_redraw() -> void:
+# אותו דבר לזומבי הזה: גופה נשארת עם הפרטים שהיו לה כשמתה (אחרת הציור שלה "משתנה" ולא נעצר - _corpse_redraw)
+func lod() -> bool:
+	return _lod_dead if dead else crowded()
+
+
+# סופרים כמה זומבים על המסך בכל פריים. מחזיר: הזומבי הזה על המסך
+func _count_visible() -> bool:
 	var fr := Engine.get_physics_frames()
-	if fr != _vis_frame:   # סופרים כמה זומבים על המסך בכל פריים
+	if fr != _vis_frame:
 		_vis_prev = _vis_count
 		_vis_count = 0
 		_vis_frame = fr
 	if not Art.on_screen(self, global_position):
-		return
+		return false
 	_vis_count += 1
+	return true
+
+
+func _maybe_redraw() -> void:
+	if not _count_visible():
+		return
 	if type_mod != null and _flash <= 0.0 and _react_t <= 0.0 and not type_mod.wants_redraw():   # סוג שעומד בלי לזוז (GHILLIE מתחבא) - הציור הקודם נשאר
 		return
 	var every := (2 if _vis_prev <= 3 else (3 if _vis_prev <= 10 else (4 if _vis_prev <= 20 else (5 if _vis_prev <= 32 else 6)))) + Quality.redraw_extra()   # הרבה זומבים על המסך: כל אחד מתעדכן פחות (חוסך ציור; התזוזה עצמה נשארת חלקה)
@@ -2386,14 +2454,14 @@ func _arm(shoulder: Vector2, hand: Vector2, sk: Color, sleeve: Color, gore := fa
 		Art.limb(self, PackedVector2Array([cuff, elbow, hand]), w * 0.85, sk, Art.OUTLINE, false, false)
 		Art.limb(self, PackedVector2Array([shoulder, cuff]), w + 1.0, sleeve)
 	var d := (hand - elbow).normalized()
-	if gore and not crowded():   # בשר קרוע ועצם חשופה באמה
+	if gore and not lod():   # בשר קרוע ועצם חשופה באמה
 		var m := elbow.lerp(hand, 0.5)
 		Art.oval(self, m, 3.4, w * 0.42, Color("6e0c0c"), d.angle(), Art.NONE)
 		DrawBatch.line(self, m - d * 2.4, m + d * 2.6, Color("e8dcc4"), 1.4, true)
 		DrawBatch.circle(self, m + d * 2.8, 0.95, Color("e8dcc4"))
 	# כף יד עם אצבעות שמוטות
 	Art.disc(self, hand, w * 0.5 + 0.6, sk)
-	if crowded():   # הרבה זומבים על המסך: בלי אצבעות (לא רואים אותן בגודל הזה)
+	if lod():   # הרבה זומבים על המסך: בלי אצבעות (לא רואים אותן בגודל הזה)
 		return
 	for i in 3:
 		var a := d.rotated(0.5 + float(i) * 0.35)
@@ -2493,12 +2561,12 @@ func _head(c: Vector2, sk: Color) -> void:
 	elif kind < 20 and _bald and not _big():   # קרחת: כתם ריקבון / שריטה על הקודקוד
 		Art.oval(self, c + Vector2(-2.0, -5.0), 2.2, 1.4, Color(0.42, 0.06, 0.05, 0.75), 0.3, Art.NONE)
 	Art.oval(self, c + Vector2(2.5, -0.5), 4.5, 3.0, Color(0.1, 0.0, 0.05, 0.22), 0.1, Art.NONE)   # עיניים שקועות
-	var lod := crowded()   # הרבה זומבים על המסך: בלי פרטים זעירים (ורידים, סדקים, שערות, שיניים)
-	if not lod:
+	var lo := lod()   # הרבה זומבים על המסך: בלי פרטים זעירים (ורידים, סדקים, שערות, שיניים)
+	if not lo:
 		_head_micro(c, sk)
 	else:
 		DrawBatch.circle(self, c + Vector2(4.0, -1.0), 1.1, Color(0.85, 0.88, 0.75, 0.85))
-	_head_rest(c, sk, lod)
+	_head_rest(c, sk, lo)
 
 
 # פרטים זעירים בפנים (מדולגים כשיש המון זומבים על המסך)
@@ -2516,7 +2584,7 @@ func _head_micro(c: Vector2, sk: Color) -> void:
 			DrawBatch.line(self, hs, hs + Vector2(-2.0 - float(i) * 0.5, -2.5 + sin(_time * 3.0 + float(i)) * 0.6), hair, 0.8, true)
 
 
-func _head_rest(c: Vector2, sk: Color, lod: bool) -> void:
+func _head_rest(c: Vector2, sk: Color, lo: bool) -> void:
 	if _det[5]:   # לחי קרועה: רואים שיניים (גור - נשאר גם בציור המפושט)
 		Art.fill(self, PackedVector2Array([c + Vector2(-1.0, 1.0), c + Vector2(2.5, 0.5), c + Vector2(2.0, 4.0), c + Vector2(-1.5, 3.5)]), Color("5a1010"), Art.NONE)
 		for i in 3:
@@ -2531,7 +2599,7 @@ func _head_rest(c: Vector2, sk: Color, lod: bool) -> void:
 	if kind == SPITTER and _spit_anim > 0.0:
 		jaw_open = 5.0
 	Art.fill(self, PackedVector2Array([c + Vector2(1.5, 3.0), c + Vector2(7.5, 2.0), c + Vector2(7.0, 3.5 + jaw_open), c + Vector2(2.0, 5.0 + jaw_open)]), Color("2a0a0c"), Art.OUTLINE, 1.0)
-	if not lod:
+	if not lo:
 		for i in 3:   # שיניים
 			var tx := 3.0 + float(i) * 1.6
 			Art.fill(self, PackedVector2Array([c + Vector2(tx, 2.7), c + Vector2(tx + 1.2, 2.6), c + Vector2(tx + 0.6, 4.0)]), Color("e0d8b0"), Art.NONE)
@@ -2553,7 +2621,7 @@ func _head_rest(c: Vector2, sk: Color, lod: bool) -> void:
 		DrawBatch.line(self, lip, lip + Vector2(-0.4, 3.2), Color(0.5, 0.02, 0.02, 0.9), 1.2, true)
 		DrawBatch.circle(self, lip + Vector2(-0.4, 3.4), 0.8, Color(0.55, 0.03, 0.03, 0.9))
 	DrawBatch.line(self, c + Vector2(2.0, -4.0), c + Vector2(7.0, -3.2), Art.shade(sk, 0.45), 1.4, true)   # גבה
-	if not lod:
+	if not lo:
 		Art.disc(self, c + Vector2(-2.5, 0.5), 1.8, Art.shade(sk, 0.15), Art.OUTLINE, 0.8)            # אוזן
 	match kind:
 		BRUTE, BOSS:   # קרחת עם תפרים
@@ -3220,7 +3288,7 @@ func _draw_canine(S: float, hound: bool) -> void:
 	var ph := _walk_phase * 1.6
 	var crouch := 1.0 if (hound and _hstate == 1) else 0.0
 	var base := Transform2D(0.0, Vector2(f * S, S), 0.0, Vector2.ZERO)
-	var lt := _dead_t - _land_t if dead and _land_t >= 0.0 else -1.0   # כמה זמן הגופה כבר על הריצפה
+	var lt := minf(_dead_t - _land_t, 4.0) if dead and _land_t >= 0.0 else -1.0   # כמה זמן הגופה כבר על הריצפה (אחרי 4 שניות כבר לא זז)
 	if dead:
 		if lt >= 0.0:   # שלולית דם שמתפשטת מתחת לכלב
 			var pk := clampf(lt / 2.0, 0.0, 1.0)

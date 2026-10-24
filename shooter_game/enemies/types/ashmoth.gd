@@ -626,6 +626,11 @@ func wants_redraw() -> bool:
 	return true
 
 
+# מת כשהכנף בוערת: הלהבה על הגופה ממשיכה להבהב (כל גופה אחרת נעצרת - zombie_type.gd corpse_anim)
+func corpse_anim() -> bool:
+	return _wfire > 0.0
+
+
 func draw() -> bool:
 	var dead: bool = z.dead
 	var down := dead or state == DOWN or state == SPIRAL

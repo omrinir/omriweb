@@ -132,6 +132,12 @@ func wants_redraw() -> bool:
 	return true
 
 
+# true = הגופה ממשיכה לזוז לפי z._time אחרי המוות (להבות / ניצוצות / בועות). false (רגיל) = הגופה מצוירת עם
+# הזמן של רגע המוות, וכשהיא שוכבת בשקט היא לא מצוירת מחדש (zombie.gd _corpse_still_time / _corpse_redraw)
+func corpse_anim() -> bool:
+	return false
+
+
 # ציור. להחזיר true = ציירנו בעצמנו. false = הציור הרגיל של zombie.gd
 func draw() -> bool:
 	return false

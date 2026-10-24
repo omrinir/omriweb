@@ -523,7 +523,7 @@ func draw() -> bool:
 	# מעיל פוך: גוף מרופד עם תפרים אופקיים
 	var body := PackedVector2Array([sh + Vector2(-8.0, -1.5), sh + Vector2(8.5, -1.0), hip + Vector2(9.0, 3.0), hip + Vector2(-8.5, 3.5)])
 	Art.fill_shaded(z, body, coat, 0.16, 0.3)
-	if not z.crowded():
+	if not z.lod():
 		for q in 4:
 			var yy := sh.y + 4.0 + float(q) * 4.6
 			DrawBatch.line(z, Vector2(sh.x - 7.0, yy), Vector2(sh.x + 7.5, yy + 0.6), coat_d, 0.9)
@@ -564,7 +564,7 @@ func draw() -> bool:
 	z._arm(sh + Vector2(3.0, 2.0), hf, skin, coat)
 	end_draw()
 	# חוט ECHO: מהעורף שלי לעורף של השכן (במבנה). בלי טרנספורם (מצויר אחרי end_draw)
-	if not z.dead and s != null and s.state != SCATTER and not z.crowded():
+	if not z.dead and s != null and s.state != SCATTER and not z.lod():
 		var al: Array = s.members
 		var k := al.find(z)
 		if k >= 0 and k + 1 < al.size():

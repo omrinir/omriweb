@@ -55,6 +55,8 @@ var _stand_p := PackedVector2Array()
 var _gush := 0.0
 var _gut_ok := true
 var _hit_dir := Vector2.RIGHT
+var _drawn := PackedVector2Array()  # איפה היו המפרקים בציור האחרון
+const MOVE_EPS := 0.4               # פחות מזה (פיקסלים) מאז הציור האחרון = העין לא רואה, לא מציירים מחדש
 
 
 # vel = מהירות הגוף, dir = כיוון המכה, hit = איפה נפגע (גלובלי), boom = פיצוץ
@@ -291,7 +293,18 @@ func _notification(what: int) -> void:
 # ============================================================
 #  ציור (בצבעים של הזומבי)
 # ============================================================
+# זזה מאז הציור האחרון? (גופה שכמעט נרגעה זזה בחלקיקי פיקסל - לא שווה ~1 ms של ציור בכל פריים)
+func moved() -> bool:
+	if _drawn.size() != p.size():
+		return true
+	for i in p.size():
+		if p[i].distance_squared_to(_drawn[i]) > MOVE_EPS * MOVE_EPS:
+			return true
+	return false
+
+
 func draw(ci: CanvasItem) -> void:
+	_drawn = p.duplicate()
 	if z.type_mod != null and z.type_mod.has_method("draw_ragdoll"):   # סוג שמצייר את הגופה שלו בעצמו
 		z.type_mod.draw_ragdoll(ci, self)
 		return

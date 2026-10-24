@@ -417,6 +417,9 @@ static func _sample(name: String) -> AudioStream:
 
 
 static func play(name: String, pos: Variant = null, vol := 0.0, pitch_var := 0.08, max_same := 5, pitch := 1.0) -> void:
+	if int(_active.get(name, 0)) >= max_same:   # כבר מתנגן מספיק פעמים: עוצרים לפני כל החיפושים (בהריגה המונית - רוב הקריאות)
+		played[name] = int(played.get(name, 0)) + 1
+		return
 	var sample := _sample(name)
 	if sample != null:
 		vol += float(SAMPLE_GAIN.get(name, SAMPLE_GAIN["_"]))
