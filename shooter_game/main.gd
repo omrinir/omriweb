@@ -37,6 +37,7 @@ const SUBWAY_WEIGHTS := [0.25, 0.14, 0.08, 0.08, 0.05, 0.0, 0.07, 0.0, 0.1, 0.1,
 const SUBWAY_GENS := [["train", 3.0], ["crates", 1.5], ["barrels", 1.5], ["barrier", 1.0], ["rubble", 1.0], ["block", 1.0], ["sandbags", 1.0]]
 const FogScript := preload("res://fog.gd")
 const MistScript := preload("res://effects/toxic_mist.gd")   # ערפל אפור-בהיר שזז כשעוברים בו
+const DarkEyes := preload("res://effects/dark_eyes.gd")   # עיניים בחושך (שלבים חשוכים)
 const MIST_LEVELS := {2: [1.0, "green"], 4: [0.55, "gray"]}   # שלב -> [עובי, צבע (toxic_mist.gd COLORS)]
 const PauseScript := preload("res://pause_menu.gd")
 const SurvivorScript := preload("res://survivor.gd")
@@ -235,6 +236,14 @@ func _ready() -> void:
 		tip.seconds = 4.0
 		tip.sub = "Press E until FLASHLIGHT is picked, then C to turn it on"
 		add_child(tip)
+		# מדי פעם עיניים זוהרות בחושך (effects/dark_eyes.gd). שכבה 1 + אחרון בין הילדים = מעל שכבות החושך
+		var el := CanvasLayer.new()
+		el.layer = 1
+		el.follow_viewport_enabled = true
+		var eyes = DarkEyes.new()
+		eyes.main = self
+		el.add_child(eyes)
+		add_child.call_deferred(el)
 
 	# "המפקד הנסתר": תורות התקפה, תקשורת, פקודות (ai/squad_director.gd)
 	var squad = SquadScript.new()
@@ -1199,8 +1208,12 @@ func _start_music() -> void:
 		print("[MUSIC] music volume is 0 in the settings (pause menu) - you won't hear ", path)
 	else:
 		print("[MUSIC] playing ", path)
+	if _mood == null:   # המוזיקה מגיבה לסכנה (effects/music_mood.gd)
+		_mood = MusicMood.new()
+		_mood.main = self
+		add_child(_mood)
 	var mp := AudioStreamPlayer.new()
-	mp.bus = "Music"   # עוצמה: Settings.music_volume
+	mp.bus = MusicMood.BUS   # -> "Music". עוצמה: Settings.music_volume
 	mp.stream = stream
 	mp.volume_db = -40.0
 	mp.process_mode = Node.PROCESS_MODE_ALWAYS   # ממשיכה גם בהשהיה
@@ -1214,38 +1227,70 @@ func _start_music() -> void:
 var _music: AudioStreamPlayer = null
 var _boss_music: AudioStreamPlayer = null
 var _boss_check := 0.0
+var _boss_hush := 0.0          # השקט שלפני הבוס: כמה שניות כבר (עד BOSS_HUSH_MAX, פעם אחת לכל בוס)
+const BOSS_HUSH_X := 1350.0    # בוס שעוד לא פגשת קרוב מזה (אבל לא ב-900): המוזיקה נסוגה לשקט
+const BOSS_HUSH_MAX := 3.0
 
 func _update_boss_music(delta: float) -> void:
 	_boss_check -= delta
 	if _boss_check > 0.0 or _music == null or not MusicDB.exists(MusicDB.BOSS):
 		return
 	_boss_check = 0.5
-	var near := false
+	var near: Node = null
+	var ahead := false
 	if _player != null and not _player.dead:
 		for z in get_tree().get_nodes_in_group("zombies"):
-			if z.is_boss() and z.hp > 0 and absf(z.global_position.x - _player.global_position.x) < 900.0:
-				near = true
-				break
+			if z.is_boss() and z.hp > 0:
+				var bd: float = absf(z.global_position.x - _player.global_position.x)
+				if bd < 900.0:
+					near = z
+					break
+				ahead = ahead or (bd < BOSS_HUSH_X and not z.has_meta("boss_met"))
 	var on: bool = _boss_music != null and bool(_boss_music.get_meta("on", false))
-	if near == on:
+	if ahead and near == null and not on and _boss_hush < BOSS_HUSH_MAX:
+		_boss_hush += 0.5
+		music_hush(0.6)
+	if (near != null) == on:
 		return
 	if _boss_music == null:
 		_boss_music = AudioStreamPlayer.new()
-		_boss_music.bus = "Music"
+		_boss_music.bus = MusicMood.BUS
 		_boss_music.stream = MusicDB.load_stream(MusicDB.BOSS)
 		_boss_music.volume_db = -40.0
 		_boss_music.process_mode = Node.PROCESS_MODE_ALWAYS
 		add_child(_boss_music)
-	_boss_music.set_meta("on", near)
+	_boss_music.set_meta("on", near != null)
 	var tw := create_tween().set_parallel(true)
-	if near:
+	if near != null:
+		near.set_meta("boss_met", true)
 		if not _boss_music.playing:
 			_boss_music.play()
+		if _boss_hush > 0.0:   # אחרי השקט: הבוס נכנס על שקט (בלי שהשיר של השלב חוזר לרגע)
+			_music.volume_db = -40.0
+			music_hit()
+		_boss_hush = 0.0
 		tw.tween_property(_boss_music, "volume_db", music_volume_db, 1.2)
 		tw.tween_property(_music, "volume_db", -40.0, 1.2)
 	else:
 		tw.tween_property(_boss_music, "volume_db", -40.0, 2.5)
 		tw.tween_property(_music, "volume_db", music_volume_db, 2.5)
+
+
+# ---- המוזיקה מגיבה לסכנה (effects/music_mood.gd). levels/events: hush = השקט שלפני, hit = זה התחיל ----
+const MusicMood := preload("res://effects/music_mood.gd")
+var _mood: Node = null
+
+func music_hush(t := 0.15) -> void:
+	if _mood != null:
+		_mood.hush(t)
+
+func music_hit() -> void:
+	if _mood != null:
+		_mood.hit()
+
+func music_hot(t := 1.0) -> void:
+	if _mood != null:
+		_mood.hot(t)
 
 
 # טוען מוזיקה בלופ (music_db.gd)

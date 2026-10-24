@@ -35,3 +35,9 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
 - `t_corpse_audit.gd` - checks that dead bodies of every zombie kind stop being redrawn once they lie still (`-- all`, a range
   `0-65` or a list). A corpse that keeps changing is redrawn for 7 s and makes mass kills slow; a new zombie type should come out
   still, or return true in `corpse_anim()` when its body moves on purpose.
+- `t_jump.gd` - jump feel: walks off a pit edge and presses jump 1 / 4 / 7 frames later (coyote time = full jump that keeps
+  the double jump), then presses jump just before landing (jump buffer = jumps on touchdown). `-- [level 1]`, headless.
+- `t_music_mood.gd` - prints the level-music filter and volume (effects/music_mood.gd) when calm, with zombies near, during a
+  hush, after a hit and on the way to the boss. `-- [level 1]`, headless.
+- `t_eyes.gd` - forces the eyes in the dark (effects/dark_eyes.gd) on a dark level (2, 4, 11, 14, 26, 29, 54), saves a picture
+  when they are open and checks they go away when you walk at them: `xvfb-run -a godot --rendering-driver opengl3 --path . -s res://t_eyes.gd -- 11 /tmp/eyes.png`.

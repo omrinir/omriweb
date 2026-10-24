@@ -223,6 +223,10 @@ var _roll_dir := 1.0
 var _slide_t := 0.0              # החלקה אחרי ריצה + כריעה
 var _air_jumps := 1              # קפיצה כפולה
 var _jump_was := false
+const COYOTE := 0.1              # ירד מקצה בלי לקפוץ: עוד 0.1 שנייה אפשר לקפוץ קפיצה מלאה מהקרקע (והקפיצה הכפולה נשארת)
+const JUMP_BUFFER := 0.12        # לחץ קפיצה רגע לפני הנחיתה (בלי קפיצה כפולה שנשארה): קופץ ברגע שהרגליים נוגעות
+var _coyote_t := 0.0
+var _jbuf_t := 0.0
 var _crouch_was := false
 var _q_was := false
 var _running := false            # ריצה: לחיצה כפולה על A / D
@@ -536,6 +540,7 @@ func _physics_process(delta: float) -> void:
 		_climbing = true
 		_jump_was = true
 	if _climbing:
+		_coyote_t = 0.0
 		var ksp := controllable and Input.is_physical_key_pressed(KEY_SPACE)
 		# כמה מהגוף עוד על הסולם (A/D מזיזים הצידה - חצי בחוץ = עוזבים / קופצים)
 		var inside := 0.0
@@ -582,18 +587,29 @@ func _physics_process(delta: float) -> void:
 		_drop_t = 0.25
 		velocity.y = 80.0
 		_jump_was = true
+		_coyote_t = 0.0
 		jump = false
 	if is_on_floor():
 		_air_jumps = 1
+		_coyote_t = COYOTE
+	else:
+		_coyote_t -= delta
 	jump = jump and grabbed_by == null
-	if jump and not _jump_was:
-		if is_on_floor() and not _crouching:
-			velocity.y = jump_velocity
-			Sfx.play("jump", global_position, -4.0)
-			_jump_zoom(JUMP_ZOOM)
-			_jump_t = 0.0
-			_djump = false
-		elif not is_on_floor() and _air_jumps > 0:   # קפיצה כפולה
+	var press := jump and not _jump_was
+	var ground := is_on_floor() or (_coyote_t > 0.0 and velocity.y >= 0.0 and not _crouching)   # (רגע אחרי שירד מהקצה עדיין נחשב על הקרקע)
+	_jbuf_t -= delta
+	if press and not ground and _air_jumps <= 0 and jetpack == null:   # מוקדם מדי: נשמר עד הנחיתה
+		_jbuf_t = JUMP_BUFFER
+	if (press or (_jbuf_t > 0.0 and is_on_floor() and controllable and grabbed_by == null)) and ground and not _crouching:
+		velocity.y = jump_velocity
+		Sfx.play("jump", global_position, -4.0)
+		_jump_zoom(JUMP_ZOOM)
+		_jump_t = 0.0
+		_djump = false
+		_coyote_t = 0.0
+		_jbuf_t = 0.0
+	elif press:
+		if not ground and _air_jumps > 0:   # קפיצה כפולה
 			_air_jumps -= 1
 			velocity.y = jump_velocity * 0.85
 			Sfx.play("whoosh", global_position, -2.0)

@@ -45,6 +45,7 @@ const CP_CLEAR := 350.0                # מרחק מנקודת הביקורת
 const BOSS_ZONE := 1500.0              # לא בסוף השלב
 const PIT_CLEAR := 80.0
 const TRIGGER_BEFORE := 90.0           # כמה לפני האמצע זה מתחיל
+const HUSH_BEFORE := 120.0             # מכאן (לפני המחסום השמאלי) עד הטריקה - השקט שלפני הסערה (effects/music_mood.gd)
 const RETRY_BACK := 160.0              # מוות בהחזקה: מתחילים כל כך לפני המחסום השמאלי
 
 # ---- המחסומים ----
@@ -261,6 +262,8 @@ func _physics_process(delta: float) -> void:
 	if state == WAIT:
 		if not p.dead and p.global_position.x >= cx - TRIGGER_BEFORE and get_tree().get_nodes_in_group("story_scene").is_empty():
 			_begin(p)
+		elif not p.dead and p.global_position.x >= x0 - HUSH_BEFORE:   # נכנס לזירה: המוזיקה נסוגה לשקט (main.music_hush)
+			main.music_hush()
 		return
 	if p.dead:   # מוות: השלב יתחיל מחדש (main / pause_menu). רק לא ממשיכים לשלוח זומבים
 		return
@@ -321,6 +324,7 @@ func _begin(p: Node) -> void:
 		b.slam()
 		Sfx.play("hold_slam", b.global_position + Vector2(0, -100), 2.0, 0.05, 2)
 	Sfx.play("hold_alarm", null, -4.0, 0.0, 1)
+	main.music_hit()
 	for z in get_tree().get_nodes_in_group("zombies"):   # מי שכבר בפנים מתעורר מהטריקה
 		if not z.dead and z.global_position.x > x0 and z.global_position.x < x1:
 			z.hear_noise(z.global_position, 100.0)

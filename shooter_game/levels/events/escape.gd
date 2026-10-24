@@ -47,6 +47,7 @@ const CRUMBLE_T := 2.6             # כמה זמן העדר מתפורר בסו�
 const BODY := 1500.0               # עומק הגוש שמצוירים בו דמויות (מאחורי החזית)
 const PX_PER_M := 40.0             # למד המרחק
 const INTRO_T := 5.2               # לא לפני שכותרת השלב (hud.gd, 5 שניות) נעלמת
+const HUSH_BEFORE := 360.0         # המרחק לפני ההתחלה שבו המוזיקה נסוגה לשקט (effects/music_mood.gd)
 
 const SOUNDS := {   # צליל מסונתז (לא קובץ): רעם של אלפי רגליים
 	"esc_rumble": {"rev": 0.3, "layers": [["N", 0, 0, 0.0, 1.6, 0.3, 1.5, 0.9, 0.05, 0], ["S", 48, 36, 0.0, 1.5, 0.25, 1.8, 0.5, 1.0, 0.2], ["C", 0, 0, 0.0, 1.4, 0.2, 2.0, 0.25, 1.0, 0]]},
@@ -175,9 +176,12 @@ func _physics_process(delta: float) -> void:
 		WAIT:
 			if not paused and not p.dead and p.global_position.x >= _trigger_x and _anim > INTRO_T:
 				_begin(p)
+			elif not paused and not p.dead and p.global_position.x >= _trigger_x - HUSH_BEFORE:   # השקט שלפני (main.music_hush)
+				main.music_hush()
 		CHASE:
 			if paused:
 				return
+			main.music_hot(0.5)   # ההמון הוא לא זומבים בקבוצה: המוזיקה נשארת פתוחה כל הבריחה
 			_chase(p, delta)
 		CRUMBLE:
 			_end_t += delta
@@ -195,6 +199,7 @@ func _begin(p: Node2D) -> void:
 	Sfx.play("roar", null, 6.0, 0.05, 2, 0.55)
 	Sfx.play("esc_rumble", null, 4.0, 0.05, 2)
 	Sfx.play("zscream", Vector2(_hx + 60.0, floor_y - 120.0), 2.0, 0.2, 3)
+	main.music_hit()
 	var cam := get_viewport().get_camera_2d()
 	if cam != null and cam.has_method("shake"):
 		cam.shake(12.0, 0.7)
