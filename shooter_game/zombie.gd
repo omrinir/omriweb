@@ -236,6 +236,9 @@ var _stagger_t := 0.0
 # שלב 2: רוכב על גג רכבת הרפאים (subway.gd מזיז אותו), נזרק ממנה ונוחת ליד השחקן
 var riding := false
 var _crash_fly := false
+# חולדה שנשכה: השחקן תופס אותה בזנב ומטיח ברצפה (player.gd - RAT SLAM). בינתיים הוא מצייר אותה ביד והיא מוסתרת
+var held_by: Node = null
+var _belly_up := false           # הוטחה: הגופה שוכבת על הגב
 # שלב 2 (ניסוי): מטפסים על מכשולים במקום לקפוץ.  לשנות: CLIMB_LEVELS, CLIMB_SPEED
 const CLIMB_LEVELS := [2]
 const CLIMB_SPEED := 170.0
@@ -473,6 +476,12 @@ func _physics_main(delta: float) -> void:
 	if riding:   # על גג הרכבת: subway.gd מזיז אותו
 		_maybe_redraw()
 		return
+	if held_by != null:   # RAT SLAM: ביד של השחקן
+		if is_instance_valid(held_by):
+			return
+		held_by = null
+		visible = true
+		collision_layer = 4
 	if _legless:   # פלג גוף זוחל
 		_crawl_logic(get_tree().get_first_node_in_group("player"), delta)
 		return
@@ -649,11 +658,15 @@ func _physics_main(delta: float) -> void:
 			_attack_t = bite_delay
 			_bite_anim = 0.25
 			var charging: bool = brain != null and brain.is_charging()
+			# חולדה: הנשיכה פוגעת כרגיל, ואז השחקן תופס אותה בזנב ומטיח אותה ברצפה (player.gd - rat_slam)
+			var slam: bool = kind == RAT and tp == player and player.has_method("rat_slam") and player.can_rat_slam()
 			tp.hurt(damage + (1 if charging else 0), Vector2(_dir * (2.0 if charging else 1.0), 0.0))
 			if brain != null:
 				brain.on_bite(self)
 			if type_mod != null:
 				type_mod.on_bite(player)
+			if slam:
+				player.rat_slam(self)
 		# לפעמים, כשהשחקן מכוון אליו מרחוק, הוא מתקדם ממחסה למחסה
 		_think_t -= delta
 		if _think_t <= 0.0:
@@ -1933,6 +1946,8 @@ func _dead_process(delta: float) -> void:
 		var rest := PI / 2.0 if fposmod(_angle, TAU) < PI else PI * 1.5
 		if kind == DOG or kind == HOUND or kind == GUNNER:
 			rest = 0.0   # כלב: נוחת על הבטן ומתמוטט (לא על הגב). מקלען: נשאר במקום (הנפילה מצוירת)
+		elif _belly_up:
+			rest = PI   # חולדה שהוטחה: על הגב
 		_angle = lerp_angle(_angle, rest, 8.0 * delta)
 		if absf(angle_difference(_angle, rest)) < 0.002:   # כמעט שם: נעצרת בדיוק (בלי שינויים זעירים שמכריחים ציור מחדש)
 			_angle = rest
@@ -2758,23 +2773,31 @@ const RAT_EYE := Color("ff5030")
 
 
 func _draw_rat() -> void:
-	var f := _dir
-	var ph := _walk_phase * 2.0
-	DrawBatch.set_transform(self, Vector2.ZERO, _angle if dead else 0.0, Vector2(f, 1.0))
 	var c := Color.WHITE if _flash > 0.0 else skin
 	var pink := RAT_PINK if _flash <= 0.0 else Color.WHITE
-	var tw := sin(_time * 8.0) * 2.0
-	DrawBatch.polyline(self, PackedVector2Array([Vector2(-7, -3), Vector2(-12, -3.5 + tw * 0.4), Vector2(-17, -5 + tw)]), pink, 1.3)   # זנב ורוד
+	if dead and _belly_up:   # הוטחה ברצפה (RAT SLAM): על הגב, הרגליים באוויר ומפרכסות עוד רגע
+		DrawBatch.set_transform(self, Vector2(0.0, -7.0), _angle, Vector2(_dir, 1.0))
+		rat_shape(self, c, pink, sin(_time * 8.0) * 2.0, _dead_t * 40.0, true, clampf(1.0 - _dead_t, 0.0, 1.0))
+	else:
+		DrawBatch.set_transform(self, Vector2.ZERO, _angle if dead else 0.0, Vector2(_dir, 1.0))
+		rat_shape(self, c, pink, sin(_time * 8.0) * 2.0, _walk_phase * 2.0)
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
+
+
+# החולדה בקואורדינטות שלה (פונה ימינה, הרגליים ב-y=0). גם player.gd מצייר איתה חולדה שהוא מחזיק בזנב (RAT SLAM):
+# tail = false - בלי הזנב (הוא מצייר אותו עד היד). legs = כמה הרגליים זזות
+static func rat_shape(ci: CanvasItem, c: Color, pink: Color, tw: float, ph: float, tail := true, legs := 1.0) -> void:
+	if tail:
+		DrawBatch.polyline(ci, PackedVector2Array([Vector2(-7, -3), Vector2(-12, -3.5 + tw * 0.4), Vector2(-17, -5 + tw)]), pink, 1.3)   # זנב ורוד
 	for i in 2:
 		var lx := -3.0 + float(i) * 6.0
-		DrawBatch.line(self, Vector2(lx, -1), Vector2(lx + sin(ph + float(i) * PI) * 2.0, 0.5), RAT_LEG, 1.4)
-	Art.oval(self, Vector2(0, -4), 7.5, 4.0, c, 0.0, Art.OUTLINE, 1.0)   # גוף
-	DrawBatch.line(self, Vector2(-5.0, -6.4), Vector2(3.0, -6.8), Art.shade(c, -0.25), 1.4)   # אור על הגב (נפח)
-	DrawBatch.circle(self, Vector2(-1.5, -3.4), 1.5, RAT_SORE)   # פצע פתוח (עור קרחת)
-	Art.oval(self, Vector2(7, -5), 3.6, 2.6, c, 0.2, Art.OUTLINE, 1.0)
-	DrawBatch.circle(self, Vector2(6.4, -8.0), 1.6, pink)   # אוזן ורודה
-	DrawBatch.circle(self, Vector2(8.8, -5.6), 1.1, RAT_EYE)   # עין אדומה
-	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
+		DrawBatch.line(ci, Vector2(lx, -1), Vector2(lx + sin(ph + float(i) * PI) * 2.0 * legs, 0.5), RAT_LEG, 1.4)
+	Art.oval(ci, Vector2(0, -4), 7.5, 4.0, c, 0.0, Art.OUTLINE, 1.0)   # גוף
+	DrawBatch.line(ci, Vector2(-5.0, -6.4), Vector2(3.0, -6.8), Art.shade(c, -0.25), 1.4)   # אור על הגב (נפח)
+	DrawBatch.circle(ci, Vector2(-1.5, -3.4), 1.5, RAT_SORE)   # פצע פתוח (עור קרחת)
+	Art.oval(ci, Vector2(7, -5), 3.6, 2.6, c, 0.2, Art.OUTLINE, 1.0)
+	DrawBatch.circle(ci, Vector2(6.4, -8.0), 1.6, pink)   # אוזן ורודה
+	DrawBatch.circle(ci, Vector2(8.8, -5.6), 1.1, RAT_EYE)   # עין אדומה
 
 
 const HAND_SLEEVE := Color("5a5446")

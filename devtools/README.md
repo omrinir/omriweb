@@ -44,3 +44,8 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
 - `t_arrows.gd` - threat arrows (ui/threat_arrows.gd): spawns zombies of one kind off screen behind the player and prints the
   arrows until they walk into view: `-- [level 55] [kind 1] [count 2] [distance 950]`. A runner should get an arrow about a
   second before it appears; a slow walker none. Env `ARROW_SHOT=/tmp/a.png` (+ `ARROW_K=0.7`) saves a picture (xvfb, opengl3).
+- `t_rat_slam.gd` - rat slam (player.gd `rat_slam`): rats run at a player who stands still, case after case (front, behind,
+  a pack, roll mid-slam, GOD MODE, shield, rat killed in the hand). Prints the bite damage (stays: 1 per slam, 0 with god /
+  shield) and where each body lands (on its back by the feet), then checks the bodies stop being redrawn:
+  `-- [level 1] [pack 5]`, headless. Env `SLAM_CASES=god,front`, `SLAM_SHOT=/tmp/slam` (pictures of the front/behind slams,
+  xvfb, opengl3), `SLAM_TRACE=1`.

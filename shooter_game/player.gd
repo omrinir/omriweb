@@ -409,6 +409,7 @@ func _physics_process(delta: float) -> void:
 	for b in _bolts:
 		b[1] -= delta
 	_bolts = _bolts.filter(func(b): return b[1] > 0.0)
+	_slam_process(delta)
 
 	if not is_on_floor():
 		velocity.y += gravity * delta
@@ -1524,7 +1525,7 @@ func _try_melee() -> bool:
 	var target: Node = null
 	var best := INF
 	for z in get_tree().get_nodes_in_group("zombies"):
-		if z.dead:
+		if z.dead or z.get("held_by") != null:   # (חולדה ביד - RAT SLAM)
 			continue
 		var d: Vector2 = z.global_position - global_position
 		var reach: float = 34.0 + 14.0 * z.wf * z.sc
@@ -1650,6 +1651,232 @@ func is_draining() -> bool:
 	return _drain_target != null
 
 
+# ============================================================
+#  RAT SLAM - חולדה שהגיעה אליך ונשכה (הנזק נשאר כרגיל): תופסים אותה בזנב ביד האחורית, מניפים מעל הראש
+#  ומטיחים ברצפה לפני הרגליים - היא מתה ונשארת על הגב. הנשק נשאר ביד הקדמית: אפשר לזוז ולירות כל הזמן.
+#  החולדה עצמה (zombie.gd) מוסתרת עד המכה, ובינתיים השחקן מצייר אותה ביד (_draw_slam).
+#  zombie.gd קורא ל-rat_slam רק כשהנשיכה באמת הגיעה (can_rat_slam). בדיקה: devtools/t_rat_slam.gd
+# ============================================================
+const ZombieScript := preload("res://zombie.gd")
+const SLAM_T := 0.62            # כל האנימציה (שניות)
+const SLAM_GRAB := 0.09         # עד שהיא ביד
+const SLAM_SWING := 0.31        # מתחילים להטיח
+const SLAM_HIT := 0.40          # המכה
+const SLAM_LET := 0.48          # עד כאן היד נשארת למטה, ואז חוזרת לנשק
+const SLAM_R := 15.0            # היד מהכתף (במרחב הידיים)
+const SLAM_TAIL := 10.0         # הזנב: מהיד עד הגוף
+const SLAM_FAR := 18.0          # כמה לפני הכתף האחורית היא נוחתת
+const SLAM_TB := Vector2(-7.0, -3.0)   # בסיס הזנב (בקואורדינטות של החולדה, zombie.gd rat_shape)
+# [זמן, זווית היד, זווית הגוף שלה] במעלות, כשהחולדה מימין: 0 = קדימה, 90 = למטה, -90 = למעלה
+const SLAM_KEYS := [
+	[0.09, 70.0, 100.0],     # ביד: תלויה הפוך מהזנב
+	[0.18, -15.0, 55.0],     # מרים
+	[0.27, -105.0, -60.0],   # מעל הראש
+	[0.31, -118.0, -140.0],  # היא ממשיכה אחורה (הנפה)
+	[0.35, -60.0, -125.0],   # מטיח, והיא עוד מאחור
+	[0.38, 20.0, -50.0],
+	[0.40, 62.0, 0.0],       # בום: שוכבת על הרצפה
+]
+var _slam_e := -1.0             # כמה זמן עבר מהתפיסה (-1 = לא)
+var _slam_rat: Node = null      # החולדה (עד המכה)
+var _slam_side := 1.0           # הצד שלה (בעולם)
+var _slam_from := Vector2.ZERO  # איפה היא הייתה ברגע התפיסה (בעולם)
+var _slam_dir := 1.0            # ולאן פנתה
+var _slam_skin := Color.WHITE
+var _slam_layer := 4
+var _slam_at := Vector2.ZERO    # בציור האחרון (מקומי): בסיס הזנב שלה
+var _slam_land := Vector2.ZERO  # ... ואיפה היא תנחת
+
+
+# הנשיכה הזו תגיע (לא בגלגול / אחרי פגיעה) והיד פנויה לתפוס
+func can_rat_slam() -> bool:
+	return _slam_e < 0.0 and not dead and _invuln <= 0.0 and _roll_t <= 0.0 and _slide_t <= 0.0 and _melee_t <= 0.0 \
+			and _drain_target == null and not unarmed and not _climbing
+
+
+# אחרי הנשיכה (zombie.gd)
+func rat_slam(rat: Node) -> void:
+	if _slam_e >= 0.0 or dead or rat == null or rat.dead or rat.held_by != null:
+		return
+	_slam_e = 0.0
+	_slam_rat = rat
+	_slam_side = signf(rat.global_position.x - global_position.x)
+	if _slam_side == 0.0:
+		_slam_side = -float(rat._dir)
+	_slam_from = rat.global_position
+	_slam_dir = float(rat._dir)
+	_slam_skin = rat.skin
+	_slam_layer = rat.collision_layer
+	_slam_at = (_slam_from - global_position) * Vector2(_face(), 1.0)
+	_slam_land = Vector2(_slam_side * _face() * SLAM_FAR, 0.0)
+	rat.held_by = self
+	rat.visible = false
+	rat.collision_layer = 0   # ביד: קליעים ומכות לא פוגעים בה
+	rat.velocity = Vector2.ZERO
+	if is_on_floor():   # נשאר על הרגליים (בלי הקפיצה אחורה של הפגיעה) - שיראו את החבטה
+		velocity.y = maxf(velocity.y, 0.0)
+		velocity.x *= 0.35
+	Sfx.play("yelp", rat.global_position, -8.0, 0.12, 2, 2.3)   # צפצוף
+
+
+func _slam_process(delta: float) -> void:
+	if _slam_e < 0.0:
+		return
+	var e0 := _slam_e
+	_slam_e += delta
+	if _slam_e >= 0.12:   # רק רתיעה קצרה מהנשיכה, ואז מרימים אותה
+		_hurt_t = minf(_hurt_t, 0.0)
+	var r = _slam_rat
+	if r != null:
+		if not is_instance_valid(r) or r.dead:   # מתה ביד (פיצוץ...): הגופה נופלת מהיד, והיד חוזרת לנשק
+			if is_instance_valid(r):
+				r.held_by = null
+				r.visible = true
+			_slam_rat = null
+			_slam_e = -1.0
+			return
+		if dead or _roll_t > 0.0 or _slide_t > 0.0 or _melee_t > 0.0 or unarmed or _drain_target != null or _climbing:
+			_slam_hit(true)   # נקטע באמצע (גלגול...): נזרקת ומתה מיד
+			_slam_e = -1.0
+			return
+		r.global_position = global_position + _slam_at * Vector2(_face(), 1.0)   # הגוף המוסתר נשאר ביד
+		if e0 < SLAM_SWING and _slam_e >= SLAM_SWING:
+			Sfx.play("whoosh", global_position, -1.0, 0.1, 2, 1.3)
+		if _slam_e >= SLAM_HIT:
+			_slam_hit(false)
+	if _slam_e >= SLAM_T or dead:
+		_slam_e = -1.0
+
+
+# המכה: החולדה חוזרת להיות זומבי רגיל - על הרצפה, על הגב, ומתה
+func _slam_hit(early: bool) -> void:
+	var r = _slam_rat
+	_slam_rat = null
+	if r == null or not is_instance_valid(r) or r.dead:
+		return
+	var at := global_position + (_slam_at if early else _slam_land) * Vector2(_face(), 1.0)
+	r.held_by = null
+	r.visible = true
+	r.collision_layer = _slam_layer
+	r.global_position = at
+	r._dir = -_slam_side
+	r._belly_up = true
+	r.reset_physics_interpolation()
+	var kd := Vector2(_slam_side * 0.6, 0.8).normalized()
+	r.take_damage(maxi(int(r.hp), 1), at + Vector2(0.0, -4.0), kd, true, {"source": "melee"})
+	if not r.dead:   # נזק מוחלש (ליד הדגל של FLAGBEARER...): הטחה תמיד הורגת
+		r.take_damage(999, at + Vector2(0.0, -4.0), kd, true, {"source": "melee"})
+	if r.dead:   # לא עפה כמו מירייה: נשארת איפה שהוטחה
+		r._spin = 0.0
+		r._angle = PI
+		r.velocity = Vector2(_slam_side * 140.0, 60.0) if early else Vector2(_slam_side * 25.0, -70.0)
+	if early:
+		return
+	Sfx.play("melee", at, 3.0, 0.1, 3, 0.8)
+	Sfx.play("corpse_splat", at, -2.0, 0.1, 2)
+	for i in 6:   # אבק נפרש על הרצפה לשני הצדדים
+		var sd := -1.0 if i % 2 == 0 else 1.0
+		_dust.append([at + Vector2(sd * randf_range(2.0, 7.0), -1.5), Vector2(sd * randf_range(40.0, 95.0), randf_range(-30.0, -8.0)), 0.0, randf_range(0.35, 0.55), randf_range(2.2, 3.8)])
+	var cam := get_viewport().get_camera_2d()
+	if cam != null and cam.has_method("shake"):
+		cam.shake(4.5, 0.15)
+	Game.make_noise(at, 120.0)
+
+
+# רגע המכה: הגוף כורע עם החולדה (רק על הרצפה)
+func _slam_dip() -> bool:
+	return _slam_e >= SLAM_HIT - 0.035 and _slam_e < SLAM_LET + 0.05 and is_on_floor()
+
+
+# זווית היד וזווית הגוף שלה (מעלות, כשהיא מימין) ברגע e: עקומה חלקה בין המפתחות (Catmull-Rom)
+func _slam_key(e: float) -> Vector2:
+	var n := SLAM_KEYS.size()
+	var i := 0
+	while i < n - 2 and e > float(SLAM_KEYS[i + 1][0]):
+		i += 1
+	var k0: Array = SLAM_KEYS[maxi(i - 1, 0)]
+	var k1: Array = SLAM_KEYS[i]
+	var k2: Array = SLAM_KEYS[i + 1]
+	var k3: Array = SLAM_KEYS[mini(i + 2, n - 1)]
+	var dt: float = float(k2[0]) - float(k1[0])
+	var u := clampf((e - float(k1[0])) / dt, 0.0, 1.0)
+	var u2 := u * u
+	var u3 := u2 * u
+	var out := Vector2.ZERO
+	for j in 2:
+		var p1: float = k1[j + 1]
+		var p2: float = k2[j + 1]
+		var m1: float = (p2 - float(k0[j + 1])) / (float(k2[0]) - float(k0[0])) * dt if i > 0 else p2 - p1
+		var m2: float = (float(k3[j + 1]) - p1) / (float(k3[0]) - float(k1[0])) * dt if i + 2 < n else (p2 - p1) * 1.4   # נכנסת לרצפה בתאוצה
+		out[j] = (2.0 * u3 - 3.0 * u2 + 1.0) * p1 + (u3 - 2.0 * u2 + u) * m1 + (3.0 * u2 - 2.0 * u3) * p2 + (u3 - u2) * m2
+	return out
+
+
+# התנוחה עכשיו. sh = הכתף (במרחב הידיים, כמו ב-_draw_hero), rest = איפה היד האחורית הייתה בלי החולדה,
+# arm_k = ממרחב הידיים (0.72) למרחב המקומי. מחזיר [היד (מרחב הידיים), בסיס הזנב, זווית הגוף, flip, קצה הזנב] (מקומי)
+func _slam_pose(sh: Vector2, rest: Vector2, arm_k: Transform2D) -> Array:
+	var side := _slam_side * _face()   # 1 = היא לפני (במרחב המקומי)
+	var bs := sh + Vector2(-3.0, 1.5)   # הכתף האחורית
+	var e := _slam_e
+	var key := _slam_key(e)
+	var th := deg_to_rad(key.x)
+	var hand := bs + Vector2(cos(th) * side, sin(th)) * SLAM_R
+	if e < SLAM_GRAB:   # תופס: היד יורדת אליה והיא קופצת ליד
+		hand = rest.lerp(hand, smoothstep(0.0, SLAM_GRAB, e))
+	elif e >= SLAM_HIT:   # אחרי המכה: היד נשארת רגע למטה וחוזרת לנשק
+		hand = hand.lerp(rest, smoothstep(SLAM_LET, SLAM_T, e))
+	var hand_l := arm_k * hand
+	var land := Vector2((arm_k * bs).x + SLAM_FAR * side, 0.0)
+	_slam_land = land
+	var phi := deg_to_rad(key.y)
+	if side < 0.0:
+		phi = PI - phi
+	var tb := hand_l + Vector2.from_angle(phi) * SLAM_TAIL
+	var tip := hand_l
+	if e < SLAM_GRAB:   # מהרצפה ליד
+		var g := smoothstep(0.0, SLAM_GRAB, e)
+		var from := (_slam_from - global_position) * Vector2(_face(), 1.0)
+		var d := _slam_dir * _face()
+		tb = (from + Vector2(SLAM_TB.x * d, SLAM_TB.y)).lerp(tb, g) + Vector2(0.0, -6.0 * sin(g * PI))
+		phi = lerpf(0.0 if d > 0.0 else PI, phi, g)
+		tip = (from + Vector2(-17.0 * d, -5.0)).lerp(hand_l, g)
+	elif e > SLAM_HIT - 0.03:   # רגע לפני המכה: נצמדת לרצפה, על הגב (כמו הגופה ב-zombie.gd _draw_rat)
+		var w := smoothstep(SLAM_HIT - 0.03, SLAM_HIT, e)
+		tb = tb.lerp(land + Vector2(SLAM_TB.x * side, -4.0), w)
+		phi = lerp_angle(phi, 0.0 if side > 0.0 else PI, w)
+	_slam_at = tb
+	return [hand, tb, phi, -side, tip]
+
+
+# היד האחורית עם החולדה. נקרא מ-_draw_hero במרחב הידיים, ומחזיר אותו כמו שהיה
+func _draw_slam(sh: Vector2, rest: Vector2, arm_k: Transform2D) -> void:
+	var p := _slam_pose(sh, rest, arm_k)
+	_arm(sh + Vector2(-3.0, 1.5), p[0], true)
+	var swing := _slam_e > SLAM_SWING + 0.02 and _slam_e < SLAM_LET
+	if _slam_rat == null and not swing:
+		return
+	DrawBatch.set_transform_matrix(self, _base_xf)   # החולדה בגודל אמיתי (לא במרחב הידיים המוקטן)
+	if swing:   # קו תנועה של ההטחה (כמו במכת קת): נגרר אחרי החולדה ודועך אחרי המכה
+		var th := deg_to_rad(_slam_key(minf(_slam_e, SLAM_HIT)).x)
+		var a0 := maxf(th - 2.0, deg_to_rad(-125.0))
+		var c := arm_k * (sh + Vector2(-3.0, 1.5))
+		var col := Color(1.0, 1.0, 1.0, 0.4 * (1.0 - smoothstep(SLAM_HIT, SLAM_LET, _slam_e)))
+		if _slam_side * _face() > 0.0:
+			DrawBatch.arc(self, c, 27.0, a0, th, 12, col, 3.0, true)
+		else:
+			DrawBatch.arc(self, c, 27.0, PI - th, PI - a0, 12, col, 3.0, true)
+	if _slam_rat == null:
+		DrawBatch.set_transform_matrix(self, _base_xf * arm_k)
+		return
+	var tb: Vector2 = p[1]
+	var tip: Vector2 = p[4]
+	DrawBatch.polyline(self, PackedVector2Array([tb, tb.lerp(tip, 0.5) + Vector2(0.0, 1.5), tip]), ZombieScript.RAT_PINK, 1.3)   # הזנב מתוח
+	DrawBatch.set_transform_matrix(self, _base_xf * Transform2D(p[2], Vector2(1.0, p[3]), 0.0, tb) * Transform2D(0.0, -SLAM_TB))
+	ZombieScript.rat_shape(self, _slam_skin, ZombieScript.RAT_PINK, 0.0, _time * 34.0, false)   # הרגליים משתוללות
+	DrawBatch.set_transform_matrix(self, _base_xf * arm_k)
+	Art.disc(self, p[0], 2.5, glove_color)   # האגרוף סוגר על הזנב
+
+
 # נקרא ע"י זומבים, רגליים שנזרקות ורימונים
 func hurt(amount: int, knock_dir: Vector2) -> void:
 	if dead or _invuln > 0.0 or _drain_target != null:
@@ -1718,7 +1945,7 @@ func _draw_b() -> void:
 	var la := Vector2(_aim.x * face, _aim.y)   # כיוון הנשק במרחב המקומי (תמיד ימינה)
 	if is_on_floor():
 		Art.ground_shadow(self, Vector2.ZERO, 15.0)
-	var blink := _invuln > 0.0 and int(_invuln * 16.0) % 2 == 0
+	var blink := _invuln > 0.0 and _slam_e < 0.0 and int(_invuln * 16.0) % 2 == 0   # (בזמן RAT SLAM בלי הבהוב - שהחולדה ביד לא תהבהב איתו)
 	modulate = Color(1.0, 0.55, 0.55) if blink else Color.WHITE
 	_base_xf = Transform2D(0.0, Vector2(face, 1.0), 0.0, Vector2.ZERO)
 	if _roll_t > 0.0:   # גלגול: הגוף מסתובב סביב המרכז
@@ -1817,6 +2044,8 @@ func _hero_frame() -> Array:
 		return ["slide", clampi(int((1.0 - _slide_t / 0.55) * 3.0), 0, 2)]
 	if _hurt_t > 0.0:
 		return ["hurt", clampi(int((0.3 - _hurt_t) / 0.1), 0, 2)]
+	if _slam_dip():   # RAT SLAM: כורע עם המכה
+		return ["crouch", 4]
 	if not is_on_floor() and _air_t > 0.03:
 		# המראה -> עולה -> שיא -> נופל (לפי המהירות האנכית)
 		var vy := velocity.y
@@ -1905,14 +2134,15 @@ func _draw_hero(la: Vector2) -> void:
 	if dead or _melee_t > 0.0 or _roll_t > 0.0 or _slide_t > 0.0 or unarmed:
 		return
 	# ידיים + נשק מעל הספרייט (מכוונים לעכבר)
-	var c := _crouch_k
+	var c := 1.0 if _slam_dip() and _anim == "crouch" else _crouch_k
 	var sh := Vector2(3.0 * c + 1.0, -37.0 + 15.0 * c)
 	if HeroAnim.NEW_SHEET.has(_anim):   # הכתף לפי גובה הפריים (בקפיצה/נפילה הגוף נמוך או מקופל)
 		sh.y = -(float(_fr_ay) - 22.0) * SPRITE_SCALE
 	sh.y *= 1.0 - _land_squash()
 	# הנשק והידיים קטנים יותר (מתאים לדמות הרזה מהספרייט), סביב הכתף
 	var ws := 0.72
-	DrawBatch.set_transform_matrix(self, _base_xf * Transform2D(0.0, Vector2(ws, ws), 0.0, sh * (1.0 - ws)))
+	var arm_k := Transform2D(0.0, Vector2(ws, ws), 0.0, sh * (1.0 - ws))
+	DrawBatch.set_transform_matrix(self, _base_xf * arm_k)
 	if _anim == "run":   # ריצה: הגוף בפריימים נוטה קדימה - הידיים איתו
 		sh += Vector2(2.0, 3.0)
 	elif _anim == "hurt":
@@ -1923,15 +2153,21 @@ func _draw_hero(la: Vector2) -> void:
 		_arm(sh, hand, false)
 		DrawBatch.set_transform_matrix(self, _base_xf)
 		return
+	if _slam_e >= 0.0 and not (weapon == GUN or _special_weapon() >= 0):   # RAT SLAM עם פריט ביד
+		_draw_slam(sh, sh + Vector2(-2.0, 15.5), arm_k)
 	if weapon == GUN or _special_weapon() >= 0:   # נשק, או פריט שהוא נשק (מולוטוב / משגרים)
 		var rp := _reload_pose(hand, la, sh) if weapon == GUN else {"la": la, "hand": hand, "support": hand + la * 9.0 + la.rotated(PI / 2.0) * 2.0, "held": ""}
 		la = rp.la
 		hand = rp.hand
-		_arm(sh + Vector2(-3.0, 1.5), rp.support, true)
+		if _slam_e >= 0.0:   # RAT SLAM: היד האחורית עם החולדה, הנשק ביד אחת
+			_draw_slam(sh, rp.support, arm_k)
+		else:
+			_arm(sh + Vector2(-3.0, 1.5), rp.support, true)
 		_draw_id = _special_weapon() if weapon != GUN else -1
 		_draw_rifle(hand, la)
 		_draw_id = -1
-		_draw_held(rp.support, la, rp.held)
+		if _slam_e < 0.0:
+			_draw_held(rp.support, la, rp.held)
 	elif special == "laser":   # תותח לייזר ביד (זוהר יותר בזמן טעינה)
 		LaserCannon.draw_gun(self, hand, la, _time, clampf(laser_charge / LaserCannon.CHARGE_T, 0.0, 1.0), 0.8)
 	elif special == "mind":   # מכשיר MIND CONTROL ביד
