@@ -230,6 +230,10 @@ func _ready() -> void:
 	add_child(preload("res://ui/monologue.gd").new())
 	# מד רצף הריגות מהיר מעל השחקן (ui/kill_streak.gd)
 	add_child(preload("res://ui/kill_streak.gd").new())
+	# חץ אדום בקצה המסך: זומבי עומד להגיע אליך מחוץ למסך (ui/threat_arrows.gd)
+	var arrows = preload("res://ui/threat_arrows.gd").new()
+	arrows.main = self
+	add_child(arrows)
 	# שלב חשוך: טיפ לפנס (4 שניות, אחרי כותרת השלב)
 	if Game.is_night() or Game.is_subway() or (_stage != null and _stage.dark_level()):
 		var tip = preload("res://ui/tip_banner.gd").new()

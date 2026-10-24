@@ -41,3 +41,6 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
   hush, after a hit and on the way to the boss. `-- [level 1]`, headless.
 - `t_eyes.gd` - forces the eyes in the dark (effects/dark_eyes.gd) on a dark level (2, 4, 11, 14, 26, 29, 54), saves a picture
   when they are open and checks they go away when you walk at them: `xvfb-run -a godot --rendering-driver opengl3 --path . -s res://t_eyes.gd -- 11 /tmp/eyes.png`.
+- `t_arrows.gd` - threat arrows (ui/threat_arrows.gd): spawns zombies of one kind off screen behind the player and prints the
+  arrows until they walk into view: `-- [level 55] [kind 1] [count 2] [distance 950]`. A runner should get an arrow about a
+  second before it appears; a slow walker none. Env `ARROW_SHOT=/tmp/a.png` (+ `ARROW_K=0.7`) saves a picture (xvfb, opengl3).
