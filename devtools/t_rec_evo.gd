@@ -10,6 +10,10 @@ extends SceneTree
 #      EVO_DX (spawn distance, negative = left of the player), EVO_SPREAD (gap between several, default 70),
 #      EVO_SPAWN_F (frame of the spawn, default 30), EVO_WEAPON (weapon_db id, default 0), EVO_MODE, EVO_HOLD, EVO_FIRE_AT,
 #      EVO_GAP (default 24), EVO_RANGE (default 520), EVO_END (frames, default 600), EVO_AFTER (frames after the last kill, default 70),
+#      EVO_META=<key=int,...> (main meta set before the spawn, e.g. sep_beaten=3 = the SEEPER already learned to rise behind you),
+#      EVO_ADOPT=1 (no spawn: adopt the level's own boss of EVO_KIND near the player, e.g. HOLLOW = SUBJECT ZERO in the hall),
+#      EVO_LIQUID_AIM=0 (the player loses a zombie that turned into a puddle: no tracking, no shots until it rises),
+#      EVO_AIM_Y2 (aim height once it has risen again, e.g. -30 = the SEEPER's core after headshots melted it),
 #      EVO_AIM_UP / EVO_AIM_DOWN (aim limits in radians, default 0.45 / 0.35), EVO_AIM_Y (aim height on the zombie, default -30,
 #      -50 = the head), EVO_SURVIVORS=1 (keep the level's survivors), EVO_HELPERS=0 (also clear zombies that walk up next to ours), EVO_TEXT_MAX (longer floating texts are hidden, default 24), EVO_STAY=1 (never steps back), EVO_GOD=1 (GOD MODE),
 #      REC_POS=<csv>: t, player x, y, target x, y (screen, 1280 space), fired (0/1), fresh corpses "id/age/x/y|..." (as t_rec_god.gd)
@@ -30,6 +34,7 @@ var _fired := false
 var _done_f := -1
 var _move := 0
 var _move_left := 0
+var _was_lost := false
 var _rng := RandomNumberGenerator.new()
 var at_x := 2000.0
 var spawn_f := 30
@@ -68,6 +73,12 @@ func _kind() -> int:
 	return int(rs.get_script_constant_map()[k])
 
 
+# the level's own boss of EVO_KIND (EVO_ADOPT=1)
+func _adoptable(o) -> bool:
+	return _env("EVO_ADOPT", 0) == 1 and is_instance_valid(o) and not o.dead and int(o.kind) == _kind() and float(o.chase_range) > 600.0 \
+		and absf(o.global_position.x - at_x) < 1700.0
+
+
 func _key(code: int, on: bool) -> void:
 	if bool(keys.get(code, false)) == on:
 		return
@@ -97,6 +108,8 @@ func _physics_process(_d: float) -> bool:
 	if mb >= 0:
 		AudioServer.set_bus_mute(mb, true)
 	if f == 2:
+		for kv in str(_env("EVO_META", "")).split(",", false):
+			main_node.set_meta(kv.get_slice("=", 0), int(kv.get_slice("=", 1)))
 		for c in main_node.get_children():
 			var sc = c.get_script()
 			if sc != null and str(sc.resource_path).ends_with("pace_director.gd"):
@@ -127,6 +140,12 @@ func _physics_process(_d: float) -> bool:
 	if f == spawn_f:
 		var n: int = _env("EVO_N", 1)
 		var dx: float = _env("EVO_DX", 480.0)
+		if _env("EVO_ADOPT", 0) == 1:
+			n = 0
+			for o in main_node.get_tree().get_nodes_in_group("zombies"):
+				if _adoptable(o):
+					o.dormant = false
+					ours.append(o)
 		for i in n:
 			var x: float = pl.global_position.x + dx + signf(dx) * float(_env("EVO_SPREAD", 70.0)) * i
 			var z = main_node._spawn_zombie(x, pl.global_position.y - 4.0, _kind(), null)
@@ -143,7 +162,7 @@ func _physics_process(_d: float) -> bool:
 			o.queue_free()
 	if f % 5 == 0:
 		for o in main_node.get_tree().get_nodes_in_group("zombies"):
-			if o in ours or o.dead or absf(o.global_position.x - pl.global_position.x) > 1700.0:
+			if o in ours or o.dead or absf(o.global_position.x - pl.global_position.x) > 1700.0 or _adoptable(o):
 				continue
 			var helper := false
 			if f > spawn_f and _env("EVO_HELPERS", 1) == 1:
@@ -171,8 +190,16 @@ func _physics_process(_d: float) -> bool:
 		_done_f = f
 		print("f=%d all dead" % f)
 	var mode: String = _env("EVO_MODE", "shoot")
-	if tgt != null:
-		var aim_p: Vector2 = tgt.global_position + Vector2(0.0, float(_env("EVO_AIM_Y", -30.0)) * float(tgt.sc))   # -50 = headshots
+	var tm0 = tgt.type_mod if tgt != null else null
+	var lost: bool = _env("EVO_LIQUID_AIM", 1) == 0 and tm0 != null and tm0.has_method("is_liquid") and tm0.is_liquid()
+	if lost:
+		_was_lost = true
+	if tgt != null and lost:
+		_move = 0
+		pl._aim = _aim
+	elif tgt != null:
+		var ay: float = _env("EVO_AIM_Y2", 0.0) if _was_lost and OS.get_environment("EVO_AIM_Y2") != "" else _env("EVO_AIM_Y", -30.0)
+		var aim_p: Vector2 = tgt.global_position + Vector2(0.0, ay * float(tgt.sc))   # -50 = headshots
 		var want: Vector2 = _level_aim((aim_p - (pl.global_position + pl._front_shoulder())).normalized())
 		if signf(want.x) != signf(_aim.x):
 			_aim = Vector2(-_aim.x, _aim.y)
