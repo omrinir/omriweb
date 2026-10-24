@@ -17,6 +17,7 @@ static var played := {}           # כמה פעמים כל צליל התנגן (
 # צלילים נוספים מקבצים אחרים (נשקים חדשים, זומבים חדשים, סביבה). כל קובץ = const SOUNDS := {...}
 # כדי להוסיף קובץ צלילים חדש - מוסיפים את הנתיב שלו כאן
 const BANKS := ["res://weapons/weapon_sounds.gd", "res://enemies/enemy_sounds.gd", "res://effects/env_sounds.gd", "res://weapons/laser_cannon.gd", "res://effects/spirit_tiger.gd"]
+const EVENT_SCRIPTS := ["res://levels/events/escape.gd", "res://levels/events/hold.gd"]   # רק לבניית המטמון (scan_all)
 static var EXTRA := {}
 static var _banks_loaded := false
 # ---- מטמון צלילים מוכנים (מהירות פתיחת המשחק) ----
@@ -127,6 +128,17 @@ static func scan_all() -> void:
 				var consts: Dictionary = load(sp).get_script_constant_map()
 				if consts.has("SOUNDS"):
 					register(consts.SOUNDS)
+	for sp in EVENT_SCRIPTS:   # אירועי שלב (העדר, HOLD THE LINE) - גם הם במטמון, אחרת הצליל מסונתז באמצע המשחק
+		if ResourceLoader.exists(sp):
+			register(load(sp).get_script_constant_map().get("SOUNDS", {}))
+
+
+# הצלילים של אירוע שלב (levels/events): נבנים עכשיו (בטעינת השלב), לא ברגע שהאירוע מתחיל.
+# צליל שלא במטמון = סינתזה של 100-250 ms - קפיאה באמצע ריצה (העדר בשלבים 11, 23, 41, 55)
+static func warm(bank: Dictionary) -> void:
+	_load_banks()
+	for k in bank:
+		_stream(k)
 
 
 # מוסיף "מתכוני" צליל (אותו פורמט כמו R)

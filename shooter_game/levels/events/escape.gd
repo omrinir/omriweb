@@ -84,6 +84,31 @@ var _safe_t := -1.0                # SAFE! (שניות מאז שהופיע)
 var _figs: Array = []
 var _runners: Array = []
 var _crest: Array = []
+# ציור מהיר: הגיאומטריה של דמות נבנית פעם אחת (מקומית, כפות הרגליים ב-0,0), ובכל פריים יש לדמות טרנספורם אחד.
+# קודם: ~12 קריאות ציור לכל דמות, כ-40 דמויות על המסך = 1.1-2.4 ms בכל פריים רק לבניית העדר.
+# כל המשולשים של העדר נאספים ל-_gp/_gc ונשלחים ביחד (DrawBatch.tris) - אותו מראה בדיוק.
+const HEAD_N := 16                 # צלעות לראש / לזוהר העיניים / לעין / לאבק (מספיק לצללית כהה בגודל הזה)
+const GLOW_N := 10
+const EYE_N := 6
+const DUST_N := 20
+const STEP := 18.0                 # רוחב רצועה בגוש
+const EYE_COLS := [Color(1.0, 0.22, 0.12), Color(1.0, 0.8, 0.25), Color(0.75, 1.0, 0.35)]   # אדום, צהוב, ירקרק
+var _tpl_body := PackedVector2Array()   # גוף + ראש
+var _tpl_glow := PackedVector2Array()   # זוהר סביב העיניים
+var _tpl_eyes := PackedVector2Array()   # שתי העיניים
+var _dust := PackedVector2Array()       # עיגול יחידה לאבק
+var _lim := PackedVector2Array()        # ידיים + אצבעות (+ רגליים לרצים), נבנה מחדש לכל דמות
+var _pile_tab := PackedFloat32Array()   # _pile(d) לכל רצועה (המרחק של רצועה מהחזית קבוע)
+var _strip_c := PackedColorArray()      # צבעי הרצועות (משתנים רק בהתפוררות)
+var _strip_k := -1.0
+var _sp := PackedVector2Array()
+var _gp := PackedVector2Array()         # כל המשולשים של העדר בפריים הזה
+var _gc := PackedColorArray()
+var _cb := PackedColorArray()           # צבע אחיד לכל חלק (fill - בלי לולאה)
+var _cbl := PackedColorArray()
+var _cg := PackedColorArray()
+var _ce := PackedColorArray()
+var _cd := PackedColorArray()
 
 
 func start() -> void:
@@ -105,6 +130,7 @@ func start() -> void:
 	if p == null or p.global_position.x > _trigger_x - 100.0 or _safe_x - _trigger_x < MIN_LEN:
 		queue_free()
 		return
+	Sfx.warm(SOUNDS)   # הרעם נבנה עכשיו, בטעינה - לא ברגע שהעדר קם (שם זו הייתה קפיאה של רבע שנייה)
 	_budget = int(SPAWN_BUDGET[_diff()])
 	_make_figs()
 	_world = Node2D.new()
@@ -360,6 +386,30 @@ func _make_figs() -> void:
 		_runners.append([float(i) * 22.0 + r.randf_range(0.0, 12.0), r.randf_range(0.95, 1.15), r.randf() * TAU, r.randf(), r.randi() % 3])
 	for i in 6:    # על הפסגה, צוללים קדימה
 		_crest.append([120.0 + float(i) * 28.0 + r.randf_range(-8.0, 8.0), r.randf_range(1.0, 1.25), r.randf() * TAU, r.randf(), r.randi() % 3])
+	# הצורות הקבועות של דמות (פונה ימינה): גוף (מרובע) + ראש, זוהר העיניים, העיניים
+	_tpl_body = PackedVector2Array([Vector2(-9, -32), Vector2(9, -32), Vector2(12, -60), Vector2(-9, -32), Vector2(12, -60), Vector2(-10, -62)])
+	_tpl_body.append_array(_disc(Vector2(4, -70), 9.0, HEAD_N))
+	_tpl_glow = _disc(Vector2(9, -72), 5.0, GLOW_N)
+	_tpl_eyes = _disc(Vector2(7, -72), 1.7, EYE_N)
+	_tpl_eyes.append_array(_disc(Vector2(11, -72), 1.7, EYE_N))
+	_dust = _disc(Vector2.ZERO, 1.0, DUST_N)
+	_lim.resize(36)
+	_cb.resize(_tpl_body.size() + 24)
+	_cbl.resize(_tpl_body.size() + 36)
+	_cg.resize(_tpl_glow.size())
+	_ce.resize(_tpl_eyes.size())
+	_cd.resize(_dust.size())
+	_pile_tab.resize(int((BODY + 900.0) / STEP) + 2)
+	for i in _pile_tab.size():
+		_pile_tab[i] = _pile(STEP * float(i + 1) - 6.0)
+
+
+# עיגול מלא כמשולשי מניפה (מרכז, נקודה, הנקודה הבאה)
+func _disc(c: Vector2, r: float, n: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in n:
+		out.append_array([c, c + Vector2.from_angle(TAU * float(i) / float(n)) * r, c + Vector2.from_angle(TAU * float(i + 1) / float(n)) * r])
+	return out
 
 
 func _draw_world() -> void:
@@ -384,26 +434,43 @@ func _draw_b() -> void:
 	var sink := (1.0 - k) * 300.0   # בהתפוררות הכל שוקע
 	var t := _anim
 	var left := maxf(v.position.x - 40.0, _hx - BODY - 900.0)
+	_gp.clear()
+	_gc.clear()
 	# ---- הגוש: רצועות אנכיות, למעלה אדמדם-כהה, למטה שחור ----
-	var pts := PackedVector2Array()
-	var cols := PackedColorArray()
-	var top_c := Color(0.17, 0.09, 0.09, 0.97 * minf(k * 1.6, 1.0))
-	var bot_c := Color(0.03, 0.025, 0.03, 0.98 * minf(k * 1.6, 1.0))
+	var nc := clampi(int(ceil((_hx + 6.0 - left) / STEP)), 0, _pile_tab.size())
+	_sp.resize(nc * 6)
 	var x := _hx + 6.0
-	var step := 18.0
 	var prev := Vector2(x, floor_y - 4.0 + sink)
-	while x > left:
-		var nx := x - step
-		var d := _hx - nx
-		var h := _pile(d) + 12.0 * sin(d * 0.09 + t * 3.0) + 7.0 * sin(d * 0.23 - t * 5.0)
+	var by := floor_y + 8.0
+	for i in nc:
+		var nx := x - STEP
+		var d := STEP * float(i + 1) - 6.0
+		var h := _pile_tab[i] + 12.0 * sin(d * 0.09 + t * 3.0) + 7.0 * sin(d * 0.23 - t * 5.0)
 		var cur := Vector2(nx, floor_y - maxf(h, 4.0) + sink)
-		var b0 := Vector2(x, floor_y + 8.0)
-		var b1 := Vector2(nx, floor_y + 8.0)
-		pts.append_array(PackedVector2Array([prev, cur, b1, prev, b1, b0]))
-		cols.append_array(PackedColorArray([top_c, top_c, bot_c, top_c, bot_c, bot_c]))
+		var j := i * 6
+		_sp[j] = prev
+		_sp[j + 1] = cur
+		_sp[j + 2] = Vector2(nx, by)
+		_sp[j + 3] = prev
+		_sp[j + 4] = Vector2(nx, by)
+		_sp[j + 5] = Vector2(x, by)
 		prev = cur
 		x = nx
-	DrawBatch.tris(_world, pts, cols)
+	_gp.append_array(_sp)
+	if k != _strip_k:
+		_strip_k = k
+		var top_c := Color(0.17, 0.09, 0.09, 0.97 * minf(k * 1.6, 1.0))
+		var bot_c := Color(0.03, 0.025, 0.03, 0.98 * minf(k * 1.6, 1.0))
+		_strip_c.resize(_pile_tab.size() * 6)
+		for i in _pile_tab.size():
+			var j := i * 6
+			_strip_c[j] = top_c
+			_strip_c[j + 1] = top_c
+			_strip_c[j + 2] = bot_c
+			_strip_c[j + 3] = top_c
+			_strip_c[j + 4] = bot_c
+			_strip_c[j + 5] = bot_c
+	_gc.append_array(_strip_c.slice(0, nc * 6))
 	# ---- דמויות בתוך הגוש (נסחפות לאט אחורה, נעלמות בקצוות) ----
 	for f in _figs:
 		var d := fposmod(float(f[0]) - 60.0 + t * 22.0, BODY - 60.0) + 60.0
@@ -431,12 +498,16 @@ func _draw_b() -> void:
 		var fy := floor_y + absf(sin(t * 9.0 + float(f[2]))) * -5.0 + sink
 		_fig(Vector2(fx, fy), float(f[1]), 0.32, t * 11.0 + float(f[2]), float(f[3]), int(f[4]), true, k, 1.0)
 	# ---- אבק מקדימה ומתחת ----
+	var da := maxf(k, 0.25)
 	for i in 22:
 		var q := fposmod(t * 0.8 + float(i) / 22.0, 1.0)
 		var dx := 40.0 - q * 300.0 + 30.0 * sin(float(i) * 3.7)
 		var dy := -8.0 - q * (60.0 + float(i % 4) * 30.0)
 		var rr := 16.0 + q * 46.0
-		DrawBatch.circle(_world, Vector2(_hx + dx, floor_y + dy + sink * 0.3), rr, Color(0.42, 0.36, 0.3, 0.16 * (1.0 - q) * maxf(k, 0.25)))
+		_gp.append_array(Transform2D(0.0, Vector2(rr, rr), 0.0, Vector2(_hx + dx, floor_y + dy + sink * 0.3)) * _dust)
+		_cd.fill(Color(0.42, 0.36, 0.3, 0.16 * (1.0 - q) * da))
+		_gc.append_array(_cd)
+	DrawBatch.tris(_world, _gp, _gc)
 	# בהתפוררות: ענן אבק גדול שעולה
 	if _state == CRUMBLE:
 		var e := 1.0 - k
@@ -446,32 +517,52 @@ func _draw_b() -> void:
 			DrawBatch.circle(_world, Vector2(cx, cy), 40.0 + e * 60.0, Color(0.38, 0.33, 0.28, 0.4 * sin(e * PI)))
 
 
-# דמות אחת (פונה ימינה, כפות הרגליים ב-c). eye: 0 אדום, 1 צהוב, 2 ירקרק
+# דמות אחת (פונה ימינה, כפות הרגליים ב-c). eye: 0 אדום, 1 צהוב, 2 ירקרק. נאספת ל-_gp/_gc
 func _fig(c: Vector2, s: float, lean: float, ph: float, arms: float, eye: int, legs: bool, a: float, light: float) -> void:
 	if a <= 0.01:
 		return
-	DrawBatch.set_transform(_world, c, lean, Vector2(s, s))
-	var body := Color(0.05 + 0.08 * light, 0.04 + 0.05 * light, 0.05 + 0.05 * light, a)
-	if legs:
-		var sw := sin(ph) * 13.0
-		DrawBatch.line(_world, Vector2(0, -34), Vector2(sw, 0), body, 6.0)
-		DrawBatch.line(_world, Vector2(0, -34), Vector2(-sw, 0), body, 6.0)
-	DrawBatch.colored_polygon(_world, PackedVector2Array([Vector2(-9, -32), Vector2(9, -32), Vector2(12, -60), Vector2(-10, -62)]), body)
-	DrawBatch.circle(_world, Vector2(4, -70), 9.0, body)
-	# ידיים מושטות קדימה (ולמעלה)
+	var xf := Transform2D(lean, Vector2(s, s), 0.0, c)
+	# ידיים מושטות קדימה (ולמעלה) + אצבעות. רגליים רק לרצים
 	var h1 := Vector2(28.0 + 6.0 * sin(ph), -64.0 - arms * 22.0 + 5.0 * cos(ph * 1.3))
 	var h2 := Vector2(24.0 + 6.0 * cos(ph * 0.9), -54.0 - arms * 14.0 + 5.0 * sin(ph * 1.1))
-	DrawBatch.line(_world, Vector2(6, -58), h1, body, 4.5)
-	DrawBatch.line(_world, Vector2(2, -56), h2, body, 4.5)
-	DrawBatch.line(_world, h1, h1 + Vector2(5, -3), body, 2.0)
-	DrawBatch.line(_world, h2, h2 + Vector2(5, 2), body, 2.0)
+	_limb(0, Vector2(6, -58), h1, 2.25)
+	_limb(6, Vector2(2, -56), h2, 2.25)
+	_limb(12, h1, h1 + Vector2(5, -3), 1.0)
+	_limb(18, h2, h2 + Vector2(5, 2), 1.0)
+	var body := Color(0.05 + 0.08 * light, 0.04 + 0.05 * light, 0.05 + 0.05 * light, a)
+	_gp.append_array(xf * _tpl_body)
+	if legs:
+		var sw := sin(ph) * 13.0
+		_limb(24, Vector2(0, -34), Vector2(sw, 0), 3.0)
+		_limb(30, Vector2(0, -34), Vector2(-sw, 0), 3.0)
+		_gp.append_array(xf * _lim)
+		_cbl.fill(body)
+		_gc.append_array(_cbl)
+	else:
+		_gp.append_array(xf * _lim.slice(0, 24))
+		_cb.fill(body)
+		_gc.append_array(_cb)
 	# עיניים בוהקות
-	var ec: Color = [Color(1.0, 0.22, 0.12), Color(1.0, 0.8, 0.25), Color(0.75, 1.0, 0.35)][eye]
+	var ec: Color = EYE_COLS[eye]
 	var flick := 0.75 + 0.25 * sin(ph * 1.7)
-	DrawBatch.circle(_world, Vector2(9, -72), 5.0, Color(ec, 0.16 * a * flick))
-	DrawBatch.circle(_world, Vector2(7, -72), 1.7, Color(ec, a * flick))
-	DrawBatch.circle(_world, Vector2(11, -72), 1.7, Color(ec, a * flick))
-	DrawBatch.set_transform(_world, Vector2.ZERO)
+	_gp.append_array(xf * _tpl_glow)
+	_cg.fill(Color(ec, 0.16 * a * flick))
+	_gc.append_array(_cg)
+	_gp.append_array(xf * _tpl_eyes)
+	_ce.fill(Color(ec, a * flick))
+	_gc.append_array(_ce)
+
+
+# קו עבה (יד / אצבע / רגל) כשני משולשים ב-_lim, מקומי לדמות. hw = חצי רוחב
+func _limb(i: int, a: Vector2, b: Vector2, hw: float) -> void:
+	var d := b - a
+	var n := Vector2(-d.y, d.x) * (hw / maxf(d.length(), 0.001))
+	_lim[i] = a + n
+	_lim[i + 1] = b + n
+	_lim[i + 2] = b - n
+	_lim[i + 3] = a + n
+	_lim[i + 4] = b - n
+	_lim[i + 5] = a - n
 
 
 # נקודת הביטחון: זיקוק ירוק על הכביש
