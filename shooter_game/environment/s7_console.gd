@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  S7 CONTROL CONSOLE - לוח בקרה עם ידית (שלב 7)
 #  מחובר בכבלים (שרואים!) למכונות בסביבה: מכבשים, צינורות קיטור, כבלי חשמל,
@@ -112,45 +113,50 @@ func _point_on(path: PackedVector2Array, k: float) -> Vector2:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	# כבלים למכונות
 	for m in links:
 		if is_instance_valid(m):
-			draw_polyline(_path(m), Color(0.07, 0.07, 0.08, 0.85), 2.5)
+			DrawBatch.polyline(self, _path(m), Color(0.07, 0.07, 0.08, 0.85), 2.5)
 	for p in _pulses:
 		if is_instance_valid(p[0]):
 			var pt := _point_on(_path(p[0]), float(p[1]))
 			Art.glow(self, pt, 12.0, Color(1.0, 0.5, 0.15, 0.9))
-			draw_circle(pt, 2.5, Color(1.0, 0.85, 0.5))
+			DrawBatch.circle(self, pt, 2.5, Color(1.0, 0.85, 0.5))
 	# עמוד + לוח
 	var dark := Color("1e2024")
-	draw_rect(Rect2(-6, -22, 12, 22), dark)
+	DrawBatch.rect(self, Rect2(-6, -22, 12, 22), dark)
 	Art.fill_shaded(self, PackedVector2Array([Vector2(-20, -54), Vector2(20, -54), Vector2(22, -22), Vector2(-22, -22)]), Color("3a4038"), 0.2, 0.4)
 	# מסך
 	var on := 0.6 + 0.4 * absf(sin(_t * 2.0))
-	draw_rect(Rect2(-15, -50, 20, 13), Color(0.05, 0.12, 0.1))
+	DrawBatch.rect(self, Rect2(-15, -50, 20, 13), Color(0.05, 0.12, 0.1))
 	for i in 3:
 		var lw := 6.0 + 10.0 * absf(sin(_t * 0.9 + float(i) * 1.7))
-		draw_rect(Rect2(-13, -48 + i * 4, minf(lw, 16.0), 1.5), Color(0.3, 1.0, 0.7, 0.6 * on))
+		DrawBatch.rect(self, Rect2(-13, -48 + i * 4, minf(lw, 16.0), 1.5), Color(0.3, 1.0, 0.7, 0.6 * on))
 	# כפתורים
 	for i in 3:
 		var bc := Color(1.0, 0.3, 0.2) if i == 0 else (Color(1.0, 0.8, 0.2) if i == 1 else Color(0.3, 1.0, 0.4))
 		var lit := fmod(_t * 1.5 + float(i) * 0.33, 1.0) < 0.5
-		draw_circle(Vector2(-12 + i * 7, -29), 2.0, bc if lit else bc.darkened(0.6))
+		DrawBatch.circle(self, Vector2(-12 + i * 7, -29), 2.0, bc if lit else bc.darkened(0.6))
 	# ידית: למעלה כרגיל, יורדת כשמושכים
 	var a := -0.9 if _use <= 0.0 else lerpf(0.9, -0.9, clampf(_use / 0.9, 0.0, 1.0))
 	var piv := Vector2(16, -40)
 	var tip := piv + Vector2.from_angle(a - PI * 0.5) * 16.0
-	draw_line(piv, tip, Color("8a9098"), 2.2)
-	draw_circle(tip, 3.2, Color("b02a20"))
-	draw_circle(piv, 2.2, dark)
+	DrawBatch.line(self, piv, tip, Color("8a9098"), 2.2)
+	DrawBatch.circle(self, tip, 3.2, Color("b02a20"))
+	DrawBatch.circle(self, piv, 2.2, dark)
 	# נורת אזעקה למעלה
 	var alarm := _use > 0.0 or not _pulses.is_empty()
 	var bc2 := Vector2(-2, -60)
-	draw_rect(Rect2(bc2.x - 4, bc2.y + 1, 8, 5), dark)
-	draw_circle(bc2, 3.5, Color(1.0, 0.2, 0.1) if alarm else Color(0.35, 0.12, 0.08))
+	DrawBatch.rect(self, Rect2(bc2.x - 4, bc2.y + 1, 8, 5), dark)
+	DrawBatch.circle(self, bc2, 3.5, Color(1.0, 0.2, 0.1) if alarm else Color(0.35, 0.12, 0.08))
 	if alarm:
 		var ang := _t * 10.0
-		draw_colored_polygon(PackedVector2Array([bc2, bc2 + Vector2.from_angle(ang - 0.3) * 80.0, bc2 + Vector2.from_angle(ang + 0.3) * 80.0]), Color(1.0, 0.2, 0.1, 0.16))
+		DrawBatch.colored_polygon(self, PackedVector2Array([bc2, bc2 + Vector2.from_angle(ang - 0.3) * 80.0, bc2 + Vector2.from_angle(ang + 0.3) * 80.0]), Color(1.0, 0.2, 0.1, 0.16))
 		Art.glow(self, bc2, 16.0, Color(1.0, 0.2, 0.1, 0.7))
 	elif _cd > 0.0:
-		draw_circle(bc2, 1.5, Color(1.0, 0.6, 0.2, 0.6))
+		DrawBatch.circle(self, bc2, 1.5, Color(1.0, 0.6, 0.2, 0.6))

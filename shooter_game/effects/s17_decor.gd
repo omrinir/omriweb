@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  קישוטים לשלב 17 ("THE DRY RIVER") - נהר מת בצהרי היום, חום לבן, אוויר רועד.
 #    noon_sky      - שמיים דהויים-לבנים, שמש גבוהה וחזקה, סנוור
@@ -36,18 +37,18 @@ static func noon_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
 	Kit.gradient_sky(ci, v, [Color("7fa6c4"), Color("a8c4d6"), Color("d4e0e2"), Color("f2ece0"), Color("fbf4e4")])
 	var sun := Vector2(v.x * 0.62, 70.0)
 	for i in 6:   # סנוור גדול
-		ci.draw_circle(sun, 260.0 - float(i) * 40.0, Color(1.0, 0.99, 0.9, 0.035 + float(i) * 0.02))
-	ci.draw_circle(sun, 30.0, Color(1.0, 1.0, 0.97))
+		DrawBatch.circle(ci, sun, 260.0 - float(i) * 40.0, Color(1.0, 0.99, 0.9, 0.035 + float(i) * 0.02))
+	DrawBatch.circle(ci, sun, 30.0, Color(1.0, 1.0, 0.97))
 	for i in 8:   # קרניים דקות
 		var a := float(i) * TAU / 8.0 + t * 0.03
-		ci.draw_line(sun + Vector2.from_angle(a) * 40.0, sun + Vector2.from_angle(a) * 110.0, Color(1.0, 1.0, 0.92, 0.12), 2.0)
+		DrawBatch.line(ci, sun + Vector2.from_angle(a) * 40.0, sun + Vector2.from_angle(a) * 110.0, Color(1.0, 1.0, 0.92, 0.12), 2.0)
 	Kit.clouds(ci, t * 4.0, v, t, 130.0, Color(1.0, 1.0, 1.0, 0.35), 3, 3.0)
 	for i in 3:   # נשרים חגים
 		var c := Vector2(v.x * (0.25 + 0.25 * float(i)), 150.0 + float(i) * 22.0)
 		var a := t * (0.25 + 0.07 * float(i)) + float(i) * 2.0
 		var p := c + Vector2(cos(a) * 90.0, sin(a) * 18.0)
 		var fl := sin(t * 2.2 + float(i)) * 3.0
-		ci.draw_polyline(PackedVector2Array([p + Vector2(-12, -2 + fl), p + Vector2(-4, 1), p, p + Vector2(4, 1), p + Vector2(12, -2 + fl)]), Color(0.18, 0.14, 0.1, 0.7), 2.0)
+		DrawBatch.polyline(ci, PackedVector2Array([p + Vector2(-12, -2 + fl), p + Vector2(-4, 1), p, p + Vector2(4, 1), p + Vector2(12, -2 + fl)]), Color(0.18, 0.14, 0.1, 0.7), 2.0)
 
 
 # רכסי מסה רחוקים (שטוחים מלמעלה) + סכר שבור באופק
@@ -63,19 +64,19 @@ static func mesas(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> 
 			var w := r.randf_range(160.0, 380.0)
 			var h := r.randf_range(50.0, 130.0)
 			var poly := PackedVector2Array([Vector2(px, y), Vector2(px + w * 0.12, y - h), Vector2(px + w * 0.88, y - h), Vector2(px + w, y)])
-			ci.draw_colored_polygon(poly, col)
-			ci.draw_line(Vector2(px + w * 0.12, y - h), Vector2(px + w * 0.88, y - h), Color(0.88, 0.78, 0.68, 0.6), 2.0)
+			DrawBatch.colored_polygon(ci, poly, col)
+			DrawBatch.line(ci, Vector2(px + w * 0.12, y - h), Vector2(px + w * 0.88, y - h), Color(0.88, 0.78, 0.68, 0.6), 2.0)
 			px += w + r.randf_range(40.0, 160.0)
 		if k % 2 == 0:   # הסכר השבור (משם הגיע השיטפון של שלב 16)
 			var dx := x + 700.0
-			ci.draw_rect(Rect2(dx, y - 120.0, 230.0, 120.0), Color(0.7, 0.68, 0.64, 0.8))
-			ci.draw_colored_polygon(PackedVector2Array([Vector2(dx + 90.0, y - 120.0), Vector2(dx + 140.0, y - 120.0), Vector2(dx + 125.0, y - 40.0), Vector2(dx + 100.0, y - 60.0)]), Color(0.86, 0.82, 0.74, 1.0))
+			DrawBatch.rect(ci, Rect2(dx, y - 120.0, 230.0, 120.0), Color(0.7, 0.68, 0.64, 0.8))
+			DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(dx + 90.0, y - 120.0), Vector2(dx + 140.0, y - 120.0), Vector2(dx + 125.0, y - 40.0), Vector2(dx + 100.0, y - 60.0)]), Color(0.86, 0.82, 0.74, 1.0))
 			for q in 6:
-				ci.draw_line(Vector2(dx + 10.0 + float(q) * 36.0, y - 116.0), Vector2(dx + 10.0 + float(q) * 36.0, y - 4.0), Color(0.6, 0.58, 0.55, 0.6), 2.0)
-	ci.draw_rect(Rect2(0, y, v.x, 220.0), Color(0.8, 0.7, 0.58, 0.7))
+				DrawBatch.line(ci, Vector2(dx + 10.0 + float(q) * 36.0, y - 116.0), Vector2(dx + 10.0 + float(q) * 36.0, y - 4.0), Color(0.6, 0.58, 0.55, 0.6), 2.0)
+	DrawBatch.rect(ci, Rect2(0, y, v.x, 220.0), Color(0.8, 0.7, 0.58, 0.7))
 	for i in 4:   # פס מיראז' רועד באופק
 		var yy := y - 6.0 + float(i) * 5.0
-		ci.draw_line(Vector2(0, yy + sin(t * 3.0 + float(i)) * 1.5), Vector2(v.x, yy + sin(t * 2.4 + float(i) * 2.0) * 1.5), Color(0.9, 0.95, 1.0, 0.16), 3.0)
+		DrawBatch.line(ci, Vector2(0, yy + sin(t * 3.0 + float(i)) * 1.5), Vector2(v.x, yy + sin(t * 2.4 + float(i) * 2.0) * 1.5), Color(0.9, 0.95, 1.0, 0.16), 3.0)
 
 
 # גדות הנהר: קיר עפר סדוק משני הצדדים (הנהר זורם "לתוך" המסך), עצים מתים, עמודי טלגרף
@@ -92,20 +93,20 @@ static func banks(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> 
 			px += r.randf_range(60.0, 140.0)
 		pts.append(Vector2(x + period + 140.0, y - 30.0))
 		pts.append(Vector2(x + period + 140.0, y + 60.0))
-		ci.draw_colored_polygon(pts, Color("b49a78"))
+		DrawBatch.colored_polygon(ci, pts, Color("b49a78"))
 		for i in range(1, pts.size() - 2):   # שכבות אדמה + סדקים
-			ci.draw_line(pts[i], pts[i] + Vector2(r.randf_range(-6.0, 6.0), r.randf_range(18.0, 40.0)), Color("8e7454"), 1.5)
-		ci.draw_polyline(pts.slice(1, pts.size() - 2), Color("d8c4a0"), 2.0)
+			DrawBatch.line(ci, pts[i], pts[i] + Vector2(r.randf_range(-6.0, 6.0), r.randf_range(18.0, 40.0)), Color("8e7454"), 1.5)
+		DrawBatch.polyline(ci, pts.slice(1, pts.size() - 2), Color("d8c4a0"), 2.0)
 		for q in 2:   # עצים מתים על הגדה
 			var tx := x + r.randf_range(80.0, period - 80.0)
 			S13.dead_tree(ci, Vector2(tx, y - 40.0), r.randf_range(70.0, 120.0), Color("9a8a74"), k * 5 + q)
 		var pole := x + r.randf_range(100.0, 1000.0)   # עמוד טלגרף נוטה
-		ci.draw_line(Vector2(pole, y - 30.0), Vector2(pole + 8.0, y - 150.0), Color("5a4634"), 4.0)
-		ci.draw_line(Vector2(pole - 16.0, y - 138.0), Vector2(pole + 30.0, y - 142.0), Color("5a4634"), 3.0)
-		ci.draw_line(Vector2(pole + 30.0, y - 140.0), Vector2(pole + 230.0, y - 120.0 + sin(t * 0.7) * 2.0), Color(0.2, 0.16, 0.12, 0.5), 1.0)
+		DrawBatch.line(ci, Vector2(pole, y - 30.0), Vector2(pole + 8.0, y - 150.0), Color("5a4634"), 4.0)
+		DrawBatch.line(ci, Vector2(pole - 16.0, y - 138.0), Vector2(pole + 30.0, y - 142.0), Color("5a4634"), 3.0)
+		DrawBatch.line(ci, Vector2(pole + 30.0, y - 140.0), Vector2(pole + 230.0, y - 120.0 + sin(t * 0.7) * 2.0), Color(0.2, 0.16, 0.12, 0.5), 1.0)
 		if r.randf() < 0.7:   # סירה הפוכה על הגדה
 			var bx := x + r.randf_range(200.0, 1000.0)
-			ci.draw_colored_polygon(PackedVector2Array([Vector2(bx, y - 40.0), Vector2(bx + 70.0, y - 40.0), Vector2(bx + 58.0, y - 62.0), Vector2(bx + 10.0, y - 60.0)]), Color("6a5a48"))
+			DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(bx, y - 40.0), Vector2(bx + 70.0, y - 40.0), Vector2(bx + 58.0, y - 62.0), Vector2(bx + 10.0, y - 60.0)]), Color("6a5a48"))
 	Kit.ground_fade(ci, v, y + 20.0)
 
 
@@ -122,14 +123,14 @@ static func reeds(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> 
 				var bx := cx + float(i) * 4.0
 				var h := r.randf_range(30.0, 70.0)
 				var bend := sin(t * 1.3 + float(i) + cx * 0.01) * 3.0
-				ci.draw_line(Vector2(bx, y), Vector2(bx + 6.0 + bend, y - h), Color("a8946a"), 1.5)
+				DrawBatch.line(ci, Vector2(bx, y), Vector2(bx + 6.0 + bend, y - h), Color("a8946a"), 1.5)
 				if i % 3 == 0:
-					ci.draw_line(Vector2(bx + 6.0 + bend, y - h), Vector2(bx + 7.0 + bend, y - h - 9.0), Color("7a6644"), 3.0)
+					DrawBatch.line(ci, Vector2(bx + 6.0 + bend, y - h), Vector2(bx + 7.0 + bend, y - h - 9.0), Color("7a6644"), 3.0)
 		if r.randf() < 0.6:   # שלד סירה (צלעות עץ)
 			var bx2 := x + r.randf_range(100.0, 800.0)
 			for i in 7:
-				ci.draw_arc(Vector2(bx2 + float(i) * 18.0, y + 6.0), 26.0, PI + 0.5, TAU - 0.5, 8, Color("6a5038"), 3.0)
-			ci.draw_line(Vector2(bx2 - 18.0, y - 8.0), Vector2(bx2 + 128.0, y - 10.0), Color("6a5038"), 4.0)
+				DrawBatch.arc(ci, Vector2(bx2 + float(i) * 18.0, y + 6.0), 26.0, PI + 0.5, TAU - 0.5, 8, Color("6a5038"), 3.0)
+			DrawBatch.line(ci, Vector2(bx2 - 18.0, y - 8.0), Vector2(bx2 + 128.0, y - 10.0), Color("6a5038"), 4.0)
 	Kit.ground_fade(ci, v, y - 10.0)
 
 
@@ -145,12 +146,17 @@ class Riverbed extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s17_decor.gd")
-		draw_rect(Rect2(0, 0, w, depth), S.MUD_D)
-		draw_rect(Rect2(0, 0, w, 10.0), S.MUD)
-		draw_rect(Rect2(0, 0, w, 2.5), S.MUD_L)
+		DrawBatch.rect(self, Rect2(0, 0, w, depth), S.MUD_D)
+		DrawBatch.rect(self, Rect2(0, 0, w, 10.0), S.MUD)
+		DrawBatch.rect(self, Rect2(0, 0, w, 2.5), S.MUD_L)
 		# אריחי בוץ סדוקים על הפס העליון (פרספקטיבה: שורות שמצטמצמות)
 		var rows := [[0.0, 10.0, 46.0], [10.0, 30.0, 70.0], [30.0, 62.0, 110.0]]
 		for row in rows:
@@ -162,12 +168,12 @@ class Riverbed extends Node2D:
 				var cw := cell * r.randf_range(0.7, 1.3)
 				var a := Vector2(x, y0)
 				var b := Vector2(x + cw * r.randf_range(0.1, 0.3), y1)
-				draw_line(a, b, S.CRACK, 1.4 if y0 > 0.0 else 1.0)
+				DrawBatch.line(self, a, b, S.CRACK, 1.4 if y0 > 0.0 else 1.0)
 				if r.randf() < 0.5:   # סדק משני
 					var m := a.lerp(b, 0.5)
-					draw_line(m, m + Vector2(cw * 0.35, r.randf_range(-3.0, 3.0)), Color(S.CRACK, 0.7), 1.0)
+					DrawBatch.line(self, m, m + Vector2(cw * 0.35, r.randf_range(-3.0, 3.0)), Color(S.CRACK, 0.7), 1.0)
 				x += cw
-			draw_line(Vector2(0, y1), Vector2(w, y1), Color(S.CRACK, 0.55), 1.2)
+			DrawBatch.line(self, Vector2(0, y1), Vector2(w, y1), Color(S.CRACK, 0.55), 1.2)
 		for i in 26:   # כתמי מלח / חלוקי נחל
 			var p := Vector2(r.randf_range(0.0, w), r.randf_range(4.0, depth - 6.0))
 			if r.randf() < 0.4:
@@ -177,11 +183,11 @@ class Riverbed extends Node2D:
 		for i in 3:   # שלד דג
 			var fx := r.randf_range(20.0, w - 40.0)
 			var fy := r.randf_range(14.0, 40.0)
-			draw_line(Vector2(fx, fy), Vector2(fx + 18.0, fy), S.BONE, 1.2)
+			DrawBatch.line(self, Vector2(fx, fy), Vector2(fx + 18.0, fy), S.BONE, 1.2)
 			for q in 5:
 				var qx := fx + 3.0 + float(q) * 3.0
-				draw_line(Vector2(qx, fy - 3.0), Vector2(qx, fy + 3.0), S.BONE, 0.8)
-			draw_colored_polygon(PackedVector2Array([Vector2(fx + 18.0, fy - 3.5), Vector2(fx + 24.0, fy), Vector2(fx + 18.0, fy + 3.5)]), S.BONE)
+				DrawBatch.line(self, Vector2(qx, fy - 3.0), Vector2(qx, fy + 3.0), S.BONE, 0.8)
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(fx + 18.0, fy - 3.5), Vector2(fx + 24.0, fy), Vector2(fx + 18.0, fy + 3.5)]), S.BONE)
 
 
 # ============================================================
@@ -194,6 +200,11 @@ class RiverJunk extends Node2D:
 		z_index = -3
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s17_decor.gd")
@@ -205,23 +216,23 @@ class RiverJunk extends Node2D:
 				var hull := PackedVector2Array([Vector2(x, 0), Vector2(x + bw, 0), Vector2(x + bw - 8.0, -18.0), Vector2(x + 10.0, -20.0)])
 				Art.fill(self, hull, S.WOOD, Art.OUTLINE, 1.2)
 				for q in 4:
-					draw_line(Vector2(x + 6.0, -4.0 - float(q) * 4.0), Vector2(x + bw - 4.0, -4.0 - float(q) * 4.0), S.WOOD_D, 1.0)
+					DrawBatch.line(self, Vector2(x + 6.0, -4.0 - float(q) * 4.0), Vector2(x + bw - 4.0, -4.0 - float(q) * 4.0), S.WOOD_D, 1.0)
 				x += bw + 30.0
 			elif pick < 0.45:   # צמיג
-				draw_circle(Vector2(x + 14.0, -10.0), 11.0, Color("1e1c1a"))
-				draw_circle(Vector2(x + 14.0, -10.0), 5.0, S.MUD_D)
+				DrawBatch.circle(self, Vector2(x + 14.0, -10.0), 11.0, Color("1e1c1a"))
+				DrawBatch.circle(self, Vector2(x + 14.0, -10.0), 5.0, S.MUD_D)
 				x += 40.0
 			elif pick < 0.7:   # קני סוף יבשים
 				for i in 7:
-					draw_line(Vector2(x + float(i) * 4.0, 0), Vector2(x + float(i) * 4.0 + 5.0, -r.randf_range(26.0, 48.0)), Color("a8946a"), 1.3)
+					DrawBatch.line(self, Vector2(x + float(i) * 4.0, 0), Vector2(x + float(i) * 4.0 + 5.0, -r.randf_range(26.0, 48.0)), Color("a8946a"), 1.3)
 				x += 36.0
 			else:   # עצמות פזורות
 				for i in 4:
 					var bx := x + r.randf_range(0.0, 50.0)
 					var d := Vector2.from_angle(r.randf_range(-0.4, 0.4)) * r.randf_range(5.0, 10.0)
-					draw_line(Vector2(bx, -2) - d, Vector2(bx, -2) + d, S.BONE, 2.2)
-					draw_circle(Vector2(bx, -2) - d, 1.8, S.BONE)
-					draw_circle(Vector2(bx, -2) + d, 1.8, S.BONE)
+					DrawBatch.line(self, Vector2(bx, -2) - d, Vector2(bx, -2) + d, S.BONE, 2.2)
+					DrawBatch.circle(self, Vector2(bx, -2) - d, 1.8, S.BONE)
+					DrawBatch.circle(self, Vector2(bx, -2) + d, 1.8, S.BONE)
 				x += 70.0
 			x += r.randf_range(40.0, 140.0)
 
@@ -252,6 +263,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s17_decor.gd")
@@ -262,45 +278,45 @@ class Obstacle extends Node2D:
 				var hull := PackedVector2Array([Vector2(0, -h * 0.35), Vector2(w * 0.1, 0), Vector2(w * 0.9, 0), Vector2(w, -h * 0.5),
 					Vector2(w * 0.98, -h * 0.78), Vector2(w * 0.02, -h * 0.75)])
 				Art.fill_shaded(self, hull, Color("8a4a32"), 0.12, 0.35, Art.OUTLINE, 1.6)
-				draw_rect(Rect2(w * 0.02, -h * 0.78, w * 0.96, h * 0.08), Color("c8b8a0"))   # פס עליון דהוי
+				DrawBatch.rect(self, Rect2(w * 0.02, -h * 0.78, w * 0.96, h * 0.08), Color("c8b8a0"))   # פס עליון דהוי
 				for i in 9:   # ניטים + פסי חלודה שנוזלים
 					var px := w * (0.08 + 0.1 * float(i))
-					draw_circle(Vector2(px, -h * 0.62), 1.6, Color("5a2e1e"))
-					draw_line(Vector2(px, -h * 0.6), Vector2(px + r.randf_range(-2.0, 2.0), -h * r.randf_range(0.1, 0.4)), Color(0.45, 0.2, 0.08, 0.5), 2.0)
+					DrawBatch.circle(self, Vector2(px, -h * 0.62), 1.6, Color("5a2e1e"))
+					DrawBatch.line(self, Vector2(px, -h * 0.6), Vector2(px + r.randf_range(-2.0, 2.0), -h * r.randf_range(0.1, 0.4)), Color(0.45, 0.2, 0.08, 0.5), 2.0)
 				var wh := Rect2(w * 0.58, -h * 1.0, w * 0.26, h * 0.24)   # בית הגה
-				draw_rect(wh, Color("d8ccb4"))
-				draw_rect(wh, Art.OUTLINE, false, 1.4)
+				DrawBatch.rect(self, wh, Color("d8ccb4"))
+				DrawBatch.rect(self, wh, Art.OUTLINE, false, 1.4)
 				for q in 3:
-					draw_rect(Rect2(wh.position + Vector2(5.0 + float(q) * wh.size.x * 0.3, 4.0), Vector2(wh.size.x * 0.2, wh.size.y * 0.4)), Color("2e3a40"))
-				draw_line(Vector2(w * 0.3, -h * 0.78), Vector2(w * 0.24, -h * 1.45), S.WOOD_D, 4.0)   # תורן
-				draw_line(Vector2(w * 0.24, -h * 1.45), Vector2(w * 0.05, -h * 0.8), Color(0.25, 0.2, 0.15, 0.7), 1.2)   # כבל
+					DrawBatch.rect(self, Rect2(wh.position + Vector2(5.0 + float(q) * wh.size.x * 0.3, 4.0), Vector2(wh.size.x * 0.2, wh.size.y * 0.4)), Color("2e3a40"))
+				DrawBatch.line(self, Vector2(w * 0.3, -h * 0.78), Vector2(w * 0.24, -h * 1.45), S.WOOD_D, 4.0)   # תורן
+				DrawBatch.line(self, Vector2(w * 0.24, -h * 1.45), Vector2(w * 0.05, -h * 0.8), Color(0.25, 0.2, 0.15, 0.7), 1.2)   # כבל
 				for q in 6:   # רשת דייגים קרועה תלויה
 					var nx := w * 0.06 + float(q) * 7.0
-					draw_line(Vector2(nx, -h * 0.82), Vector2(nx + 3.0, -h * 0.5), Color(0.3, 0.32, 0.28, 0.7), 1.0)
-				draw_line(Vector2(w * 0.06, -h * 0.68), Vector2(w * 0.06 + 38.0, -h * 0.66), Color(0.3, 0.32, 0.28, 0.7), 1.0)
+					DrawBatch.line(self, Vector2(nx, -h * 0.82), Vector2(nx + 3.0, -h * 0.5), Color(0.3, 0.32, 0.28, 0.7), 1.0)
+				DrawBatch.line(self, Vector2(w * 0.06, -h * 0.68), Vector2(w * 0.06 + 38.0, -h * 0.66), Color(0.3, 0.32, 0.28, 0.7), 1.0)
 			"boat":   # סירת דייגים על הצד: גוף, פסי צבע דהויים, חלון קבינה, חבל
 				var hull := PackedVector2Array([Vector2(0, -h * 0.25), Vector2(w * 0.08, 0), Vector2(w * 0.92, 0), Vector2(w, -h * 0.35),
 					Vector2(w * 0.97, -h * 0.72), Vector2(w * 0.05, -h * 0.7)])
 				var paint: Color = [Color("4a7a8a"), Color("a84a3a"), Color("d8c8a0")][r.randi() % 3]
 				Art.fill_shaded(self, hull, paint.lerp(Color("c8b89a"), 0.35), 0.1, 0.3, Art.OUTLINE, 1.4)
-				draw_line(Vector2(w * 0.05, -h * 0.55), Vector2(w * 0.97, -h * 0.57), Color(1, 1, 1, 0.35), 2.0)
+				DrawBatch.line(self, Vector2(w * 0.05, -h * 0.55), Vector2(w * 0.97, -h * 0.57), Color(1, 1, 1, 0.35), 2.0)
 				for i in 6:   # קרשים
 					var px := w * (0.12 + 0.14 * float(i))
-					draw_line(Vector2(px, -h * 0.68), Vector2(px + 4.0, -2.0), Color(0, 0, 0, 0.15), 1.0)
+					DrawBatch.line(self, Vector2(px, -h * 0.68), Vector2(px + 4.0, -2.0), Color(0, 0, 0, 0.15), 1.0)
 				var cab := Rect2(w * 0.55, -h, w * 0.28, h * 0.3)   # קבינה קטנה
-				draw_rect(cab, Color("e0d4b8"))
-				draw_rect(cab, Art.OUTLINE, false, 1.2)
-				draw_rect(Rect2(cab.position + Vector2(5, 4), Vector2(cab.size.x * 0.4, cab.size.y * 0.45)), Color("3a4a52"))
-				draw_line(Vector2(w * 0.2, -h * 0.7), Vector2(w * 0.12, -h * 1.15), S.WOOD_D, 3.0)   # תורן שבור
+				DrawBatch.rect(self, cab, Color("e0d4b8"))
+				DrawBatch.rect(self, cab, Art.OUTLINE, false, 1.2)
+				DrawBatch.rect(self, Rect2(cab.position + Vector2(5, 4), Vector2(cab.size.x * 0.4, cab.size.y * 0.45)), Color("3a4a52"))
+				DrawBatch.line(self, Vector2(w * 0.2, -h * 0.7), Vector2(w * 0.12, -h * 1.15), S.WOOD_D, 3.0)   # תורן שבור
 				for i in 8:   # כתמי חלודה / מלח
 					Art.oval(self, Vector2(r.randf_range(8.0, w - 8.0), r.randf_range(-h * 0.6, -6.0)), r.randf_range(2.0, 5.0), r.randf_range(1.0, 2.5), Color(0.5, 0.3, 0.15, 0.35), 0.0, Art.NONE)
 			"log":   # גזע סחף מולבן עם ענפים
 				Art.limb(self, PackedVector2Array([Vector2(4, -h * 0.5), Vector2(w * 0.5, -h * 0.55), Vector2(w - 4.0, -h * 0.45)]), h * 0.8, Color("c8b8a0"))
-				draw_circle(Vector2(w - 4.0, -h * 0.45), h * 0.32, Color("a89880"))
+				DrawBatch.circle(self, Vector2(w - 4.0, -h * 0.45), h * 0.32, Color("a89880"))
 				for i in 3:
-					draw_arc(Vector2(w - 4.0, -h * 0.45), h * 0.1 * float(i + 1), 0.0, TAU, 10, Color("8a7a64"), 1.0)
-				draw_line(Vector2(w * 0.3, -h * 0.8), Vector2(w * 0.22, -h * 1.5), Color("b8a890"), 3.0)
-				draw_line(Vector2(w * 0.65, -h * 0.85), Vector2(w * 0.78, -h * 1.4), Color("b8a890"), 2.5)
+					DrawBatch.arc(self, Vector2(w - 4.0, -h * 0.45), h * 0.1 * float(i + 1), 0.0, TAU, 10, Color("8a7a64"), 1.0)
+				DrawBatch.line(self, Vector2(w * 0.3, -h * 0.8), Vector2(w * 0.22, -h * 1.5), Color("b8a890"), 3.0)
+				DrawBatch.line(self, Vector2(w * 0.65, -h * 0.85), Vector2(w * 0.78, -h * 1.4), Color("b8a890"), 2.5)
 			_:   # סלע נהר חלק
 				var pts := PackedVector2Array()
 				for i in 10:
@@ -309,8 +325,8 @@ class Obstacle extends Node2D:
 				pts.append(Vector2(w, 0))
 				pts.append(Vector2(0, 0))
 				Art.fill_shaded(self, pts, Color("a89a88"), 0.12, 0.35, Art.OUTLINE, 1.4)
-				draw_line(Vector2(w * 0.25, -h * 0.75), Vector2(w * 0.55, -h * 0.9), Color(1, 1, 1, 0.3), 2.0)
-				draw_rect(Rect2(0, -h * 0.18, w, h * 0.18), Color(0.92, 0.9, 0.85, 0.25))   # קו מים ישן (מלח)
+				DrawBatch.line(self, Vector2(w * 0.25, -h * 0.75), Vector2(w * 0.55, -h * 0.9), Color(1, 1, 1, 0.3), 2.0)
+				DrawBatch.rect(self, Rect2(0, -h * 0.18, w, h * 0.18), Color(0.92, 0.9, 0.85, 0.25))   # קו מים ישן (מלח)
 
 
 # ============================================================
@@ -349,6 +365,11 @@ class MudBank extends StaticBody2D:
 		return global_position.y - _height(lx)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s17_decor.gd")
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
@@ -359,7 +380,7 @@ class MudBank extends StaticBody2D:
 		var body := top.duplicate()
 		body.append(Vector2(w, 3.0))
 		body.append(Vector2(0.0, 3.0))
-		draw_colored_polygon(body, S.MUD)
+		DrawBatch.colored_polygon(self, body, S.MUD)
 		for k in 3:   # שכבות בוץ (פסים כהים יותר למטה)
 			var band := PackedVector2Array()
 			for i in N + 1:
@@ -367,19 +388,19 @@ class MudBank extends StaticBody2D:
 				band.append(Vector2(x, -_height(x) * (0.66 - 0.22 * float(k))))
 			band.append(Vector2(w, 3.0))
 			band.append(Vector2(0.0, 3.0))
-			draw_colored_polygon(band, Color(S.MUD_D, 0.25 + 0.15 * float(k)))
-		draw_polyline(top, S.MUD_L, 3.0)
-		draw_polyline(top, Art.OUTLINE, 1.6)
+			DrawBatch.colored_polygon(self, band, Color(S.MUD_D, 0.25 + 0.15 * float(k)))
+		DrawBatch.polyline(self, top, S.MUD_L, 3.0)
+		DrawBatch.polyline(self, top, Art.OUTLINE, 1.6)
 		for i in int(w / 26.0):   # סדקים
 			var x := r.randf_range(10.0, w - 10.0)
 			var y := -_height(x) * r.randf_range(0.1, 0.8)
-			draw_line(Vector2(x, y), Vector2(x + r.randf_range(-8.0, 8.0), y + r.randf_range(5.0, 14.0)), S.CRACK, 1.2)
+			DrawBatch.line(self, Vector2(x, y), Vector2(x + r.randf_range(-8.0, 8.0), y + r.randf_range(5.0, 14.0)), S.CRACK, 1.2)
 		for c in 2:   # קני סוף על הרכס
 			var cx := w * r.randf_range(0.3, 0.7)
 			for i in 7:
 				var bx := cx + float(i) * 4.0
 				var by := -_height(bx)
-				draw_line(Vector2(bx, by), Vector2(bx + 5.0, by - r.randf_range(22.0, 42.0)), Color("a8946a"), 1.4)
+				DrawBatch.line(self, Vector2(bx, by), Vector2(bx + 5.0, by - r.randf_range(22.0, 42.0)), Color("a8946a"), 1.4)
 
 
 # ============================================================

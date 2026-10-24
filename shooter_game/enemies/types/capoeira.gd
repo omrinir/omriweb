@@ -135,9 +135,9 @@ func physics(pl: Node, delta: float) -> bool:
 func draw() -> bool:
 	if state == AU and not z.dead:
 		var k := 1.0 - clampf(_st / AU_T, 0.0, 1.0)
-		z.draw_set_transform(Vector2(0, -24.0 * z.sc), _au_dir * k * TAU, Vector2(z._dir * z.wf * z.sc, z.sc))
+		DrawBatch.set_transform(z, Vector2(0, -24.0 * z.sc), _au_dir * k * TAU, Vector2(z._dir * z.wf * z.sc, z.sc))
 		_body(Vector2(0, 24), true)
-		z.draw_set_transform_matrix(Transform2D.IDENTITY)
+		DrawBatch.set_transform_matrix(z, Transform2D.IDENTITY)
 		return true
 	begin_draw()
 	_body(Vector2.ZERO, false)
@@ -161,16 +161,16 @@ func _body(o: Vector2, au: bool) -> void:
 		rf = hip + Vector2(10, -14)
 	z._leg(hip + Vector2(-2, 0), lf, col(z.pants), col(z.pants), sk)
 	z._leg(hip + Vector2(2, 0), rf, col(z.pants), col(z.pants), sk)
-	z.draw_rect(Rect2(hip + Vector2(-6, -2), Vector2(12, 4)), col(Color("e0c030")))   # קורדאו
+	DrawBatch.rect(z, Rect2(hip + Vector2(-6, -2), Vector2(12, 4)), col(Color("e0c030")))   # קורדאו
 	var ha := sh + Vector2(-8, -4 - g * 4.0) if not au else o + Vector2(-8, -2)
 	var hb := sh + Vector2(10, 2 + g * 4.0) if not au else o + Vector2(8, -2)
 	z._arm(sh + Vector2(-3, 1), ha, Art.shade(sk, 0.25), Art.shade(sk, 0.25))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(6, -2), hip + Vector2(-6, -2)]), sk, 0.15, 0.4)
 	for q in 3:   # שרירים / צלעות
-		z.draw_line(sh + Vector2(-4, 4.0 + float(q) * 3.0), sh + Vector2(4, 4.0 + float(q) * 3.0), sk.darkened(0.3), 1.0)
+		DrawBatch.line(z, sh + Vector2(-4, 4.0 + float(q) * 3.0), sh + Vector2(4, 4.0 + float(q) * 3.0), sk.darkened(0.3), 1.0)
 	Art.oval_shaded(z, head, 5.0, 5.6, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(-1, -3), 5.0, 3.2, 0.0, 10), col(Color("1a1410")))   # שיער
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(-1, -3), 5.0, 3.2, 0.0, 10), col(Color("1a1410")))   # שיער
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))
 	z._arm(sh + Vector2(3, 1), hb, sk, sk)

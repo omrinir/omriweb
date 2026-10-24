@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  אש קטנה (על מכונית הרוסה, בפח, מדורה וכו'). לשונות אש מהבהבות + עשן רך + הילת אור.
 #  width = רוחב האש, life = כמה שניות היא בוערת (-1 = לתמיד)
@@ -51,6 +52,11 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var fd := fade()
 	var tt := t + _seed
 	if smoke:   # עשן רך שעולה
@@ -72,6 +78,11 @@ class _Light extends Node2D:
 	var f: Node2D
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var fd: float = f.fade()
 		var tt: float = f.t + f._seed
 		var w: float = f.width
@@ -80,4 +91,4 @@ class _Light extends Node2D:
 		F.glow(self, Vector2(0, -5.0), Vector2(w * 0.5 + 6.0, 9.0), Color(F.PALETTE[3], 0.4 * fd * flick))
 		for i in 4:   # ניצוצות
 			var k := fmod(float(i) / 4.0 + tt * 0.8, 1.0)
-			draw_circle(Vector2(sin(tt * 3.0 + float(i) * 2.0) * w * 0.5, -f.height * (0.6 + k * 1.5)), 1.2, Color(1.0, 0.7, 0.3, (1.0 - k) * fd))
+			DrawBatch.circle(self, Vector2(sin(tt * 3.0 + float(i) * 2.0) * w * 0.5, -f.height * (0.6 + k * 1.5)), 1.2, Color(1.0, 0.7, 0.3, (1.0 - k) * fd))

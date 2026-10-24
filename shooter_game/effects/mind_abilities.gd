@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  MIND ABILITIES - היכולת המיוחדת של הזומבי שבשליטת MIND CONTROL (effects/mind_control.gd).
 #  לוחצים C / לחצן ימני (בטלפון: SKILL) -> הזומבי עושה את הדבר שלו:
@@ -260,8 +261,13 @@ class ZShot extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_line(Vector2(-18, 0), Vector2(0, 0), Color(0.75, 0.45, 1.0, 0.5), 2.0)
-		draw_line(Vector2(-6, 0), Vector2(2, 0), Color(0.95, 0.85, 1.0), 2.2)
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.line(self, Vector2(-18, 0), Vector2(0, 0), Color(0.75, 0.45, 1.0, 0.5), 2.0)
+		DrawBatch.line(self, Vector2(-6, 0), Vector2(2, 0), Color(0.95, 0.85, 1.0), 2.2)
 
 
 # ---- כדור חומצה ----
@@ -294,8 +300,13 @@ class Glob extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_circle(Vector2.ZERO, 7.0, Color(0.55, 0.85, 0.2, 0.45))
-		draw_circle(Vector2.ZERO, 4.5, Color(0.7, 0.95, 0.3))
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.circle(self, Vector2.ZERO, 7.0, Color(0.55, 0.85, 0.2, 0.45))
+		DrawBatch.circle(self, Vector2.ZERO, 4.5, Color(0.7, 0.95, 0.3))
 
 
 # ---- גל הדף (מכת קרקע / צרחה) ----
@@ -315,5 +326,10 @@ class Shock extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := t / 0.4
-		draw_arc(Vector2.ZERO, max_r * k, PI, TAU, 28, Color(col, 0.8 * (1.0 - k)), 4.0 * (1.0 - k) + 1.0, true)
+		DrawBatch.arc(self, Vector2.ZERO, max_r * k, PI, TAU, 28, Color(col, 0.8 * (1.0 - k)), 4.0 * (1.0 - k) + 1.0, true)

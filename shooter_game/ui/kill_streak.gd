@@ -1,4 +1,5 @@
 extends Node
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  KILL STREAK - מד רצף הריגות מעל השחקן, בצד שמאל שלו.
 #  2 הריגות ומעלה במהירות (כל הריגה בתוך Game.STREAK_WINDOW מהקודמת) מציגים:
@@ -13,6 +14,8 @@ extends Node
 #    * הרצף נשבר: הכל נופל ונעלם. רצף של 5+ = סיכום "x6 CHAIN +900" שעולה למעלה.
 #    * רצף של 5-7: לפעמים (SPREE_SOUND_CHANCE) מתנגן "spree_die" (sounds/streak/spree_die.mp3), מהיר ב-15%.
 #  הלוגיקה (זמן, מד, בונוס) ב-game_state.gd (streak_*). לשנות מראה: TIERS, OFF, BAR_H.
+#  פחות עומס על המסך (2026-10-20): המד מופיע תמיד מ-SHOW_FROM הריגות ברצף, ברצף קטן יותר רק לפעמים
+#  (Game.show_pop). HEADSHOT וכיתוב של הריגה בודדת - רק לפעמים, וחותמת HEADSHOT אחת בכל רגע. הצלילים תמיד.
 # ============================================================
 
 const Art := preload("res://art.gd")
@@ -69,6 +72,7 @@ const OUTLINE := Color(0.08, 0.04, 0.04)
 const SPREE_SOUND_AT := Vector2i(5, 7)   # באיזו הריגה ברצף (נבחר אקראית בכל רצף)
 const SPREE_SOUND_CHANCE := 0.6          # הסיכוי שהצליל יתנגן ברצף הזה
 const SPREE_SOUND_PITCH := 1.15          # 15% מהר יותר
+const SHOW_FROM := 4                     # מכאן המד תמיד מוצג (EXCELLENT ומעלה)
 
 var player: Node2D = null
 var count := 0
@@ -92,6 +96,7 @@ var _word := ""
 var _spree_at := 0                    # באיזו הריגה הצליל של הרצף הזה (0 = לא ברצף הזה)
 var spree_sounds := 0                 # לבדיקות
 var _last_word := ""
+var _shown := false                   # האם הרצף הזה מוצג (נבחר בהריגה השנייה, תמיד מ-SHOW_FROM)
 var _layer: CanvasLayer
 var _ui: Node2D
 static var _font: Font = null
@@ -131,14 +136,15 @@ func _pick(arr: Array) -> String:
 
 
 func _on_kill(n: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void:
-	if head and pos != Vector2.INF:
+	if head and pos != Vector2.INF and _stamps.is_empty() and Game.show_pop(n >= SHOW_FROM):
 		_stamps.append([pos, 0.0])
 	if n == 1:
 		heads = [head]
 		count = 1
 		_spree_at = randi_range(SPREE_SOUND_AT.x, SPREE_SOUND_AT.y) if randf() < SPREE_SOUND_CHANCE else 0
-		for tg in tags:   # הריגה בודדת מיוחדת: כיתוב קטן שעולה
-			if tg in SOLO:
+		_shown = false
+		for tg in tags:   # הריגה בודדת מיוחדת: כיתוב קטן שעולה (לפעמים)
+			if tg in SOLO and Game.show_pop(false):
 				var c: Color = SPECIAL_COL.get(tg, Color(1.0, 0.85, 0.3))
 				_summaries.append([_pick(SPECIAL[tg]), 0.0, _anchor + Vector2(70.0, -175.0), c, true])
 				Sfx.play("streak_tick", null, -6.0, 0.05, 2, 1.2)
@@ -146,6 +152,10 @@ func _on_kill(n: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void
 		return
 	_end_t = 0.0
 	count = n
+	if n == 2:   # רצף קטן: רק לפעמים (הריגה מיוחדת = סיכוי כפול)
+		_shown = randf() < Game.POP_CHANCE * (2.0 if not tags.is_empty() else 1.0)
+	if n >= SHOW_FROM:
+		_shown = true
 	_summaries = _summaries.filter(func(sm): return not sm[4])   # הרצף התחיל: הכיתוב הקטן מפנה מקום למד
 	heads.append(head)
 	if heads.size() > 12:
@@ -160,7 +170,8 @@ func _on_kill(n: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void
 	if t != tier or n == 2:
 		tier = t
 		_spin_v = 9.0
-		_burst_sparks(TIERS[tier][1], 14 + tier * 3)
+		if _shown:
+			_burst_sparks(TIERS[tier][1], 14 + tier * 3)
 		Sfx.play("streak_up", null, -4.0 + float(tier) * 0.4, 0.0, 2, 1.0 + 0.09 * float(tier))
 	else:
 		Sfx.play("streak_tick", null, -8.0, 0.05, 3, 1.0 + 0.03 * float(n))
@@ -172,7 +183,7 @@ func _on_kill(n: int, head: bool, bonus: int, pos: Vector2, tags: Array) -> void
 func _on_end(n: int, total: int) -> void:
 	if n >= 2:
 		_end_t = 0.001
-	if n >= 5 and tier >= 0:
+	if n >= 5 and tier >= 0 and _shown:
 		_summaries.append(["x%d CHAIN  +%d" % [n, total], 0.0, _anchor + Vector2(70.0, -185.0), TIERS[tier][1], false])
 	count = 0
 
@@ -193,7 +204,7 @@ func _process(delta: float) -> void:
 	_spin += _spin_v * delta
 	_bonus_t += delta
 	_meter = move_toward(_meter, Game.streak_meter / Game.STREAK_FULL, delta * 3.0) if Game.streak > 0 else _meter
-	var showing := count >= 2 and Game.streak > 0
+	var showing := count >= 2 and Game.streak > 0 and _shown
 	if _end_t > 0.0:
 		_end_t += delta
 		_alpha = maxf(1.0 - _end_t / 0.45, 0.0)
@@ -229,6 +240,10 @@ func _process(delta: float) -> void:
 #  ציור
 # ============================================================
 func _draw_ui() -> void:
+	if _warm < 2:   # שני הפריימים הראשונים: חימום הגופן
+		_warm += 1
+		_prewarm(_ui, font())
+		_ui.queue_redraw()
 	var ci := _ui
 	var f := font()
 	if _alpha > 0.01 and tier >= 0:
@@ -253,15 +268,15 @@ func _draw_ui() -> void:
 		# קו זמן עד שהרצף נשבר
 		var tk := clampf(Game.streak_t / Game.STREAK_WINDOW, 0.0, 1.0) if Game.streak > 0 else 0.0
 		var tl := Rect2(o + Vector2(92.0, -134.0), Vector2(130.0, 5.0))
-		ci.draw_rect(tl.grow(1.0), Color(0, 0, 0, 0.55 * a))
-		ci.draw_rect(Rect2(tl.position, Vector2(tl.size.x * tk, tl.size.y)), Color(col, a))
+		DrawBatch.rect(ci, tl.grow(1.0), Color(0, 0, 0, 0.55 * a))
+		DrawBatch.rect(ci, Rect2(tl.position, Vector2(tl.size.x * tk, tl.size.y)), Color(col, a))
 		# +נקודות
 		if _bonus > 0 and _bonus_t < 0.9:
 			var bk := _bonus_t / 0.9
 			_text(ci, f, "+%d" % _bonus, o + Vector2(140.0, -108.0 - 26.0 * bk), 22.0, -0.1, Color.WHITE, a * (1.0 - bk * bk), 6, false)
 	for s in _sparks:
 		var sc: Color = s[3]
-		ci.draw_circle(_anchor + s[0], 2.2 * clampf(s[2] / 0.4, 0.3, 1.0), Color(sc, clampf(s[2] * 2.5, 0.0, 1.0)))
+		DrawBatch.circle(ci, _anchor + s[0], 2.2 * clampf(s[2] / 0.4, 0.3, 1.0), Color(sc, clampf(s[2] * 2.5, 0.0, 1.0)))
 	# HEADSHOT מעל הזומבי
 	var xf := ci.get_viewport().get_canvas_transform()
 	for st in _stamps:
@@ -282,8 +297,8 @@ func _draw_bar(ci: CanvasItem, o: Vector2, a: float, col: Color) -> void:
 	var bot := o.y + BAR_Y
 	var top := bot - BAR_H
 	var r := Rect2(x0, top, BAR_W, BAR_H)
-	ci.draw_rect(r.grow(3.0), Color(0.06, 0.05, 0.07, 0.88 * a))
-	ci.draw_rect(r.grow(3.0), Color(1, 1, 1, 0.8 * a), false, 2.0)
+	DrawBatch.rect(ci, r.grow(3.0), Color(0.06, 0.05, 0.07, 0.88 * a))
+	DrawBatch.rect(ci, r.grow(3.0), Color(1, 1, 1, 0.8 * a), false, 2.0)
 	var fy := bot - BAR_H * clampf(_meter, 0.0, 1.0)
 	var y := bot
 	while y > fy:   # מילוי בצבעים לפי הגובה
@@ -292,15 +307,15 @@ func _draw_bar(ci: CanvasItem, o: Vector2, a: float, col: Color) -> void:
 		var fr := t * 7.0 - float(i)
 		var c: Color = (BAR_COLS[i] as Color).lerp(BAR_COLS[mini(i + 1, 6)], fr * 0.6)
 		var h := minf(2.0, y - fy)
-		ci.draw_rect(Rect2(x0, y - h, BAR_W, h), Color(c.lerp(Color.WHITE, _flash * 0.6), a))
+		DrawBatch.rect(ci, Rect2(x0, y - h, BAR_W, h), Color(c.lerp(Color.WHITE, _flash * 0.6), a))
 		y -= 2.0
 	if _meter > 0.0:
-		ci.draw_line(Vector2(x0 + 3.0, fy + 2.0), Vector2(x0 + 3.0, bot - 2.0), Color(1, 1, 1, 0.4 * a), 2.0)
-		ci.draw_rect(Rect2(x0 - 4.0, fy - 2.0, BAR_W + 8.0, 4.0), Color(1.0, 1.0, 0.94, a))
+		DrawBatch.line(ci, Vector2(x0 + 3.0, fy + 2.0), Vector2(x0 + 3.0, bot - 2.0), Color(1, 1, 1, 0.4 * a), 2.0)
+		DrawBatch.rect(ci, Rect2(x0 - 4.0, fy - 2.0, BAR_W + 8.0, 4.0), Color(1.0, 1.0, 0.94, a))
 		Art.glow(ci, Vector2(x0 + BAR_W * 0.5, fy), 16.0 + 10.0 * _flash, Color(col, 0.55 * a))
 	for i in range(1, 7):   # שנתות = דרגות
 		var ny := bot - BAR_H * float(i) / 7.0
-		ci.draw_line(Vector2(x0 - 3.0, ny), Vector2(x0 + 5.0, ny), Color(1, 1, 1, 0.85 * a), 2.0)
+		DrawBatch.line(ci, Vector2(x0 - 3.0, ny), Vector2(x0 + 5.0, ny), Color(1, 1, 1, 0.85 * a), 2.0)
 	# קצה החץ למעלה: נדלק כשהמד מלא
 	var full := _meter >= 0.999
 	var tip := PackedVector2Array([Vector2(x0 - 6.0, top - 3.0), Vector2(x0 + BAR_W + 6.0, top - 3.0), Vector2(x0 + BAR_W * 0.5, top - 24.0)])
@@ -308,9 +323,9 @@ func _draw_bar(ci: CanvasItem, o: Vector2, a: float, col: Color) -> void:
 	if full:
 		tc = tc.lerp(Color.WHITE, 0.4 + 0.4 * sin(Time.get_ticks_msec() * 0.02))
 		Art.glow(ci, Vector2(x0 + BAR_W * 0.5, top - 12.0), 26.0, Color(1.0, 0.9, 0.4, 0.7 * a))
-	ci.draw_colored_polygon(tip, Color(tc, a))
+	DrawBatch.colored_polygon(ci, tip, Color(tc, a))
 	tip.append(tip[0])
-	ci.draw_polyline(tip, Color(1, 1, 1, 0.85 * a), 2.0)
+	DrawBatch.polyline(ci, tip, Color(1, 1, 1, 0.85 * a), 2.0)
 
 
 func _draw_burst(ci: CanvasItem, c: Vector2, r: float, col: Color, a: float) -> void:
@@ -319,36 +334,61 @@ func _draw_burst(ci: CanvasItem, c: Vector2, r: float, col: Color, a: float) -> 
 		var ang := _spin + float(i) * PI / 14.0
 		pts.append(c + Vector2.from_angle(ang) * (r if i % 2 == 0 else r * 0.62))
 	Art.glow(ci, c, r * 1.5, Color(col, 0.45 * a))
-	ci.draw_colored_polygon(pts, Color(col.darkened(0.15), 0.9 * a))
+	DrawBatch.colored_polygon(ci, pts, Color(col.darkened(0.15), 0.9 * a))
 	pts.append(pts[0])
-	ci.draw_polyline(pts, Color(OUTLINE, a), 2.5)
+	DrawBatch.polyline(ci, pts, Color(OUTLINE, a), 2.5)
 
 
 # טקסט עם קו מתאר עבה, צל וזוהר, מסובב סביב נקודת ההתחלה
+# ביצועים: גודל גופן משתנה בכל פריים (אנימציית "טריקה") = Godot מרנדר מחדש את כל האותיות בכל גודל חדש
+# (ועוד פעם לקו המתאר) - זה מה שגרם לתקיעה ב-HEADSHOT / בהריגות ברצף. עכשיו: רק כמה גדלים קבועים (FONT_SIZES),
+# והגודל המדויק בא מהגדלה (scale) של הציור. הגדלים מחוממים מראש (_prewarm).
+const FONT_SIZES := [16, 24, 32, 48, 64, 96]
+
+
+static func _bucket(size: float) -> int:
+	for b in FONT_SIZES:
+		if size <= b:
+			return b
+	return FONT_SIZES[-1]
+
+
 func _text(ci: CanvasItem, f: Font, txt: String, pos: Vector2, size: float, rot: float, col: Color, a: float, ow: int, center: bool) -> void:
-	var fs := int(size)
+	var fs := _bucket(size)
+	var k := size / float(fs)
 	var w := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var org := Vector2(-w * 0.5, 0.0) if center else Vector2.ZERO
-	ci.draw_set_transform(pos, rot, Vector2.ONE)
-	Art.glow(ci, org + Vector2(w * 0.5, -size * 0.35), maxf(w * 0.55, size * 0.6), Color(col, 0.16 * a))
-	ci.draw_string_outline(f, org + Vector2(2.0, 3.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ow, Color(0, 0, 0, 0.45 * a))
-	ci.draw_string_outline(f, org, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ow, Color(OUTLINE, a))
-	ci.draw_string(f, org, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(col, a))
+	var ow2 := ow   # (קבוע - גם עובי קו המתאר הוא חלק מהמטמון של הגופן)
+	DrawBatch.set_transform(ci, pos, rot, Vector2(k, k))
+	Art.glow(ci, org + Vector2(w * 0.5, -fs * 0.35), maxf(w * 0.55, fs * 0.6), Color(col, 0.16 * a))
+	DrawBatch.string_outline(ci, f, org + Vector2(2.0, 3.0) / k, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ow2, Color(0, 0, 0, 0.45 * a))
+	DrawBatch.string_outline(ci, f, org, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ow2, Color(OUTLINE, a))
+	DrawBatch.string(ci, f, org, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(col, a))
 	# הברקה עליונה
-	ci.draw_string(f, org + Vector2(0.0, -size * 0.06), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.18 * a))
-	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	DrawBatch.string(ci, f, org + Vector2(0.0, -fs * 0.06), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.18 * a))
+	DrawBatch.set_transform(ci, Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+# מחמם את הגדלים הקבועים פעם אחת (אותיות שקופות כמעט, מחוץ למסך) - שלא תהיה תקיעה בהריגה הראשונה
+var _warm := 0
+func _prewarm(ci: CanvasItem, f: Font) -> void:
+	const CHARS := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!+x-'?."
+	for fs in FONT_SIZES:
+		for ow in [6, 7, 8, 9]:
+			DrawBatch.string_outline(ci, f, Vector2(-4000, -4000), CHARS, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ow, Color(0, 0, 0, 0.01))
+		DrawBatch.string(ci, f, Vector2(-4000, -4000), CHARS, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.01))
 
 
 func _skull(ci: CanvasItem, c: Vector2, s: float, col: Color, a: float, cross := false) -> void:
 	var o := Color(OUTLINE, a)
-	ci.draw_circle(c, s + 1.5, o)
-	ci.draw_rect(Rect2(c + Vector2(-s * 0.55 - 1.5, s * 0.3), Vector2(s * 1.1 + 3.0, s * 0.85 + 1.5)), o)
-	ci.draw_circle(c, s, Color(col, a))
-	ci.draw_rect(Rect2(c + Vector2(-s * 0.55, s * 0.3), Vector2(s * 1.1, s * 0.85)), Color(col, a))
-	ci.draw_circle(c + Vector2(-s * 0.38, s * 0.05), s * 0.27, o)
-	ci.draw_circle(c + Vector2(s * 0.38, s * 0.05), s * 0.27, o)
+	DrawBatch.circle(ci, c, s + 1.5, o)
+	DrawBatch.rect(ci, Rect2(c + Vector2(-s * 0.55 - 1.5, s * 0.3), Vector2(s * 1.1 + 3.0, s * 0.85 + 1.5)), o)
+	DrawBatch.circle(ci, c, s, Color(col, a))
+	DrawBatch.rect(ci, Rect2(c + Vector2(-s * 0.55, s * 0.3), Vector2(s * 1.1, s * 0.85)), Color(col, a))
+	DrawBatch.circle(ci, c + Vector2(-s * 0.38, s * 0.05), s * 0.27, o)
+	DrawBatch.circle(ci, c + Vector2(s * 0.38, s * 0.05), s * 0.27, o)
 	if cross:
 		var rc := Color(1.0, 0.24, 0.2, a)
-		ci.draw_arc(c, s * 1.55, 0.0, TAU, 24, rc, 2.0)
+		DrawBatch.arc(ci, c, s * 1.55, 0.0, TAU, 24, rc, 2.0)
 		for d in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP]:
-			ci.draw_line(c + d * s * 1.15, c + d * s * 2.0, rc, 2.0)
+			DrawBatch.line(ci, c + d * s * 1.15, c + d * s * 2.0, rc, 2.0)

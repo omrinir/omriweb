@@ -201,15 +201,15 @@ func draw() -> bool:
 		rope_a = _rope_fade / 0.6
 	if rope_a > 0.0:
 		var mid := (rope_from + rope_to) * 0.5 + Vector2(0, 6)
-		z.draw_polyline(PackedVector2Array([rope_from, mid, rope_to]), Color(0.18, 0.28, 0.1, rope_a), 3.2, true)
-		z.draw_polyline(PackedVector2Array([rope_from, mid, rope_to]), Color(0.36, 0.5, 0.2, rope_a), 1.6, true)
+		DrawBatch.polyline(z, PackedVector2Array([rope_from, mid, rope_to]), Color(0.18, 0.28, 0.1, rope_a), 3.2, true)
+		DrawBatch.polyline(z, PackedVector2Array([rope_from, mid, rope_to]), Color(0.36, 0.5, 0.2, rope_a), 1.6, true)
 		for i in 4:   # עלים על הליאנה
 			var lp := rope_to.lerp(rope_from, 0.15 + 0.2 * float(i))
-			z.draw_colored_polygon(PackedVector2Array([lp, lp + Vector2(5, -2), lp + Vector2(2, 3)]), Color(0.3, 0.55, 0.2, rope_a))
+			DrawBatch.colored_polygon(z, PackedVector2Array([lp, lp + Vector2(5, -2), lp + Vector2(2, 3)]), Color(0.3, 0.55, 0.2, rope_a))
 	if state == SWING:   # גוף נוטה לפי המטוטלת
 		var s := Vector2(z._dir * z.wf * z.sc, z.sc)
 		var ang: float = -_th * 0.6 * z._dir
-		z.draw_set_transform_matrix(Transform2D(ang, Vector2(0, -48.0 * z.sc)) * Transform2D(0.0, s, 0.0, Vector2(0, 48.0 * z.sc)))
+		DrawBatch.set_transform_matrix(z, Transform2D(ang, Vector2(0, -48.0 * z.sc)) * Transform2D(0.0, s, 0.0, Vector2(0, 48.0 * z.sc)))
 	else:
 		begin_draw()
 	var sk := col(z.skin)
@@ -233,17 +233,17 @@ func draw() -> bool:
 	# גופייה קרועה + חבל ליאנות על הכתף
 	var body := PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)])
 	Art.fill_shaded(z, body, shirt, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-5, 0), hip + Vector2(5, 0), col(Color("3e5a22")), 2.2)
+	DrawBatch.line(z, sh + Vector2(-5, 0), hip + Vector2(5, 0), col(Color("3e5a22")), 2.2)
 	for i in 3:
-		z.draw_circle(sh.lerp(hip, 0.2 + 0.3 * float(i)) + Vector2(-2.0 + float(i) * 3.5, 0), 1.2, col(Color("5a7a2e")))
+		DrawBatch.circle(z, sh.lerp(hip, 0.2 + 0.3 * float(i)) + Vector2(-2.0 + float(i) * 3.5, 0), 1.2, col(Color("5a7a2e")))
 	# ראש: שיער פרוע עם עלים, צבע מלחמה
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	for i in 5:
 		var a := -PI * 0.9 + float(i) * 0.35
-		z.draw_line(head + Vector2.from_angle(a) * 4.5, head + Vector2.from_angle(a) * 9.0, col(Color("2a2016")), 2.0)
-	z.draw_line(head + Vector2(0.5, -1.0), head + Vector2(5.5, -1.5), col(Color("b03a20")), 1.4)
+		DrawBatch.line(z, head + Vector2.from_angle(a) * 4.5, head + Vector2.from_angle(a) * 9.0, col(Color("2a2016")), 2.0)
+	DrawBatch.line(z, head + Vector2(0.5, -1.0), head + Vector2(5.5, -1.5), col(Color("b03a20")), 1.4)
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.2, -0.6), 1.0, Color(1.0, 0.85, 0.3))
+		DrawBatch.circle(z, head + Vector2(3.2, -0.6), 1.0, Color(1.0, 0.85, 0.3))
 	Art.fill(z, PackedVector2Array([head + Vector2(1, 2.5), head + Vector2(5.5, 2.2), head + Vector2(5, 4.8), head + Vector2(1.5, 4.8)]), col(Color("2a0a0a")), Art.OUTLINE, 0.7)
 	# יד קדמית: למעלה על הליאנה כשמתנדנד / זורק
 	var front_hand := sh + Vector2(11.0, 6.0 + sin(p) * 2.0)

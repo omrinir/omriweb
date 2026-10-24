@@ -228,7 +228,7 @@ func draw() -> bool:
 	begin_draw()
 	if state == SPIN and not z.dead and not z._lying():
 		var k := cos((1.0 - _st / SPIN_T) * TAU * 1.5 * _spin_dir)
-		z.draw_set_transform(Vector2.ZERO, 0.0, Vector2(z._dir * z.wf * z.sc * (0.25 + 0.75 * absf(k)) * signf(k + 0.001), z.sc))
+		DrawBatch.set_transform(z, Vector2.ZERO, 0.0, Vector2(z._dir * z.wf * z.sc * (0.25 + 0.75 * absf(k)) * signf(k + 0.001), z.sc))
 	var sk := col(z.skin)
 	var p: float = z._walk_phase
 	var f: Array = feet(5.0, 2.0)
@@ -254,23 +254,23 @@ func _draw_him(sk: Color, f: Array, hip: Vector2, sh: Vector2, head: Vector2, p:
 	z._leg(hip + Vector2(-2, 0), f[1], col(Art.shade(z.pants, 0.2)), col(z.pants), shoe)
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), col(z.pants), shoe)
 	for ft in [f[0], f[1]]:   # נעליים דו-צבעוניות
-		z.draw_rect(Rect2(ft + Vector2(-1, -2.5), Vector2(4, 2.5)), col(Color("1a1012")))
+		DrawBatch.rect(z, Rect2(ft + Vector2(-1, -2.5), Vector2(4, 2.5)), col(Color("1a1012")))
 	var hb := sh + Vector2(-6.0 - sin(p) * 2.0, 13.0)
 	if _partner_ok() and not heartbroken:
 		hb = sh + Vector2(-9.0, 2.0)   # יד אחורית מושטת לבת הזוג
 	_sleeve_arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(suit, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(6, 2), hip + Vector2(-6, 2)]), suit, 0.12, 0.35)
 	Art.fill(z, PackedVector2Array([sh + Vector2(2, 0), sh + Vector2(6, 0), sh + Vector2(4, 10)]), col(Color("e8e4dc")), Art.NONE)   # חולצה
-	z.draw_line(sh + Vector2(4, 1), sh + Vector2(4, 6), col(Color("8a1018")), 1.4)   # עניבה
-	z.draw_circle(sh + Vector2(-3, 4), 1.4, col(Color("b01822")))   # ציפורן בדש
+	DrawBatch.line(z, sh + Vector2(4, 1), sh + Vector2(4, 6), col(Color("8a1018")), 1.4)   # עניבה
+	DrawBatch.circle(z, sh + Vector2(-3, 4), 1.4, col(Color("b01822")))   # ציפורן בדש
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.2, -0.6))
-	z.draw_line(head + Vector2(1, 3.5), head + Vector2(5.5, 3.0), col(Color("2a1418")), 0.9)   # שפם דק
-	z.draw_circle(head + Vector2(3.5, -1.0), 1.0, Color(0.95, 0.9, 0.7) if not heartbroken else Color(1.0, 0.25, 0.2))
+	DrawBatch.line(z, head + Vector2(1, 3.5), head + Vector2(5.5, 3.0), col(Color("2a1418")), 0.9)   # שפם דק
+	DrawBatch.circle(z, head + Vector2(3.5, -1.0), 1.0, Color(0.95, 0.9, 0.7) if not heartbroken else Color(1.0, 0.25, 0.2))
 	# פדורה
 	Art.fill(z, PackedVector2Array([head + Vector2(-8, -3.5), head + Vector2(8, -4.5), head + Vector2(7, -3), head + Vector2(-8, -2)]), col(Color("1a1a20")), Art.OUTLINE, 0.9)
 	Art.fill(z, PackedVector2Array([head + Vector2(-5, -3.5), head + Vector2(-4, -10), head + Vector2(4, -10.5), head + Vector2(5, -4)]), col(Color("22222a")), Art.OUTLINE, 0.9)
-	z.draw_rect(Rect2(head + Vector2(-4.8, -5.5), Vector2(9.6, 1.6)), col(Color("8a1018")))
+	DrawBatch.rect(z, Rect2(head + Vector2(-4.8, -5.5), Vector2(9.6, 1.6)), col(Color("8a1018")))
 	var hf := sh + (Vector2(11, 4) if not kick else Vector2(9, -4))
 	_sleeve_arm(sh + Vector2(3, 1), hf, sk, suit)
 
@@ -285,7 +285,7 @@ func _draw_her(sk: Color, f: Array, hip: Vector2, sh: Vector2, head: Vector2, p:
 	var skirt := PackedVector2Array([hip + Vector2(-6, -4), hip + Vector2(6, -4), hip + Vector2(8.0 + flare * 0.6, 12.0), hip + Vector2(3.0, 9.0 + (0.0 if kick else 3.0)),
 		hip + Vector2(-2.0, 13.0), hip + Vector2(-8.0 - flare, 11.0 + sin(z._time * 5.0) * 1.5)])
 	Art.fill_shaded(z, skirt, dress, 0.15, 0.4)
-	z.draw_line(hip + Vector2(-6, 10), hip + Vector2(6, 9), col(Color("6a0a10")), 1.0)
+	DrawBatch.line(z, hip + Vector2(-6, 10), hip + Vector2(6, 9), col(Color("6a0a10")), 1.0)
 	var hb := sh + Vector2(-6.0 - sin(p) * 2.0, 13.0)
 	if _partner_ok() and not heartbroken:
 		hb = sh + Vector2(-8.0, 1.0)
@@ -296,8 +296,8 @@ func _draw_her(sk: Color, f: Array, hip: Vector2, sh: Vector2, head: Vector2, p:
 	Art.fill(z, PackedVector2Array([head + Vector2(-5.5, 1), head + Vector2(-4, -5.5), head + Vector2(2, -6.5), head + Vector2(5.5, -3), head + Vector2(0, -3.5), head + Vector2(-2, 2)]), col(Color("120c10")), Art.OUTLINE, 0.8)
 	Art.disc(z, head + Vector2(-6.5, -2.5), 3.0, col(Color("120c10")), Art.OUTLINE, 0.8)   # פקעת
 	Art.disc(z, head + Vector2(-3.5, -6.0), 2.2, col(Color("d01828")), Art.OUTLINE, 0.7)   # ורד
-	z.draw_line(head + Vector2(3.0, 3.5), head + Vector2(5.5, 3.2), col(Color("8a0a14")), 1.2)   # שפתון
-	z.draw_circle(head + Vector2(3.2, -0.8), 0.9, Color(0.95, 0.9, 0.7) if not heartbroken else Color(1.0, 0.25, 0.2))
+	DrawBatch.line(z, head + Vector2(3.0, 3.5), head + Vector2(5.5, 3.2), col(Color("8a0a14")), 1.2)   # שפתון
+	DrawBatch.circle(z, head + Vector2(3.2, -0.8), 0.9, Color(0.95, 0.9, 0.7) if not heartbroken else Color(1.0, 0.25, 0.2))
 	var hf := sh + (Vector2(10, 5) if not kick else Vector2(-4, -12))
 	z._arm(sh + Vector2(3, 1), hf, sk, Color(0, 0, 0, 0))
 
@@ -306,4 +306,4 @@ func _sleeve_arm(shoulder: Vector2, hand: Vector2, sk: Color, sleeve: Color) -> 
 	z._arm(shoulder, hand, sk, sleeve)
 	var elbow := Art.joint(shoulder, hand, 9.0, 9.5, -1.0)
 	Art.limb(z, PackedVector2Array([shoulder, elbow, elbow.lerp(hand, 0.6)]), 6.0, sleeve, Art.OUTLINE, true, false)
-	z.draw_circle(elbow.lerp(hand, 0.62), 1.6, col(Color("e8e4dc")))   # חפת
+	DrawBatch.circle(z, elbow.lerp(hand, 0.62), 1.6, col(Color("e8e4dc")))   # חפת

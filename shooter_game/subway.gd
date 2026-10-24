@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 const DynLights := preload("res://effects/dyn_lights.gd")
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
@@ -7,6 +8,7 @@ const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 #  * מים עד הקרסול: מאטים, ניתזים, והטייזר חזק בהם פי 3
 #  * פסים מחושמלים: זומבי שנכנס אליהם מתחשמל
 #  * רכבת רפאים: מדי פעם אזהרה ואז רכבת שדורסת את מי שעל הריצפה
+#    על הגג שלה רוכב זומבי: כשהיא עוברת הוא קופץ ממנה, מתגלגל, נוחת ליד השחקן ומסתער
 #  * חושך: רק ליד מנורות רואים. שוברים מנורה = חושך,
 #    אבל גם הזומבים רואים אותך פחות
 # ============================================================
@@ -33,6 +35,17 @@ var _splash_t := 0.0
 var _zap_t := {}                    # זומבי -> מתי חושמל לאחרונה
 var _overlay: ColorRect
 var _warn: WarnFx
+# ---- זומבי על גג הרכבת ----
+# לשנות: RIDER_LAND_GAP (כמה רחוק מהשחקן נוחת), RIDER_VX / RIDER_POP (הקפיצה), RIDER_RUNNER (סיכוי לרץ)
+const TRAIN_H := 150.0
+const RIDER_OFF := 220.0            # מרחק מחזית הרכבת
+const RIDER_LAND_GAP := 110.0
+const RIDER_VX := 650.0
+const RIDER_POP := 400.0
+const RIDER_RUNNER := 0.6
+const RIDER_SKIP_END := 1400.0      # לא בקרב הבוס
+var _rider: Node = null
+var _rider_release := -INF
 
 
 func _ready() -> void:
@@ -174,6 +187,7 @@ func _physics_process(delta: float) -> void:
 				_train_x = view.end.x + 80.0
 				Sfx.play("train", null, 4.0, 0.0)
 				_train_hit = false
+				_spawn_rider(player)
 				var cam := vp.get_camera_2d()
 				if cam != null and cam.has_method("shake"):
 					cam.shake(6.0, 1.2)
@@ -187,26 +201,67 @@ func _physics_process(delta: float) -> void:
 				z._drop_down()
 				z._popup("SPLAT", Color("ff5040"), 18, -70.0)
 				z.take_damage(999, z.global_position + Vector2(0, -30), Vector2.LEFT, true, {"source": "train"})
+		_ride(view)
 		if x1 < view.position.x - 100.0:
 			_train_x = INF
 	queue_redraw()
 	_warn.queue_redraw()
 
 
+# זומבי עולה על הגג. מחשבים מראש איפה לקפוץ כדי לנחות RIDER_LAND_GAP ליד השחקן
+func _spawn_rider(player: Node) -> void:
+	if player == null or player.dead or player.global_position.x > level_w - RIDER_SKIP_END:
+		return
+	var main := get_parent()
+	if not main.has_method("_spawn_zombie"):
+		return
+	var side := -1.0 if randf() < 0.5 else 1.0
+	var land: float = player.global_position.x + side * RIDER_LAND_GAP
+	for rl in rails:   # לא נוחת על פס מחושמל
+		if land > rl[0] - 40.0 and land < rl[1] + 40.0:
+			land = player.global_position.x - side * RIDER_LAND_GAP
+	var z = main._spawn_zombie(_train_x + RIDER_OFF, floor_y - TRAIN_H, 1 if randf() < RIDER_RUNNER else 0, null)   # 1 = רץ, 0 = רגיל
+	z.riding = true
+	z._dir = -1.0
+	z.reset_physics_interpolation()
+	var g: float = z.gravity
+	var t := (RIDER_POP + sqrt(RIDER_POP * RIDER_POP + 2.0 * g * TRAIN_H)) / g   # זמן באוויר עד הריצפה
+	_rider_release = land + RIDER_VX * t
+	_rider = z
+
+
+func _ride(view: Rect2) -> void:
+	if _rider == null:
+		return
+	if not is_instance_valid(_rider) or _rider.dead or not _rider.riding:
+		_rider = null
+		return
+	var rx := _train_x + RIDER_OFF
+	_rider.global_position = Vector2(rx, floor_y - TRAIN_H)
+	if rx <= _rider_release or rx < view.position.x + 60.0:
+		_rider.throw_off(Vector2(-RIDER_VX, -RIDER_POP))
+		_rider = null
+
+
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var vp := get_viewport()
 	var view := vp.get_canvas_transform().affine_inverse() * vp.get_visible_rect()
 	var x0 := view.position.x - 10.0
 	var x1 := view.end.x + 10.0
 	# מים: שכבה שקופה + גלים שזזים
-	draw_rect(Rect2(x0, floor_y - 5.0, x1 - x0, 7.0), Color(0.25, 0.35, 0.3, 0.55))
+	DrawBatch.rect(self, Rect2(x0, floor_y - 5.0, x1 - x0, 7.0), Color(0.25, 0.35, 0.3, 0.55))
 	var x := floorf(x0 / 40.0) * 40.0
 	while x < x1:
 		var off := sin(_time * 2.0 + x * 0.05) * 8.0
-		draw_line(Vector2(x + off, floor_y - 5.0), Vector2(x + off + 16.0, floor_y - 5.0), Color(0.75, 0.9, 0.85, 0.3), 1.0)
+		DrawBatch.line(self, Vector2(x + off, floor_y - 5.0), Vector2(x + off + 16.0, floor_y - 5.0), Color(0.75, 0.9, 0.85, 0.3), 1.0)
 		x += 40.0
 	for d in _drops:
-		draw_circle(d[0], 1.4, Color(0.7, 0.85, 0.85, 0.7))
+		DrawBatch.circle(self, d[0], 1.4, Color(0.7, 0.85, 0.85, 0.7))
 	# ניצוצות על הפסים המחושמלים
 	for rl in rails:
 		if rl[1] < x0 or rl[0] > x1:
@@ -216,22 +271,22 @@ func _draw() -> void:
 				var sx: float = randf_range(rl[0], rl[1])
 				var s := Vector2(sx, floor_y - 4.0)
 				for k in 3:
-					draw_line(s, s + Vector2.from_angle(randf_range(-PI, 0.0)) * randf_range(4.0, 12.0), Color(0.7, 0.85, 1.0, 0.9), 1.2)
+					DrawBatch.line(self, s, s + Vector2.from_angle(randf_range(-PI, 0.0)) * randf_range(4.0, 12.0), Color(0.7, 0.85, 1.0, 0.9), 1.2)
 	# רכבת רפאים (שקופה וזוהרת)
 	if _train_x != INF:
 		var tx := _train_x
 		var h := 150.0
 		var top := floor_y - h
 		var ghost := Color(0.55, 0.9, 0.8, 0.45)
-		draw_rect(Rect2(tx, top, train_len, h - 6.0), Color(0.12, 0.2, 0.2, 0.55))
-		draw_rect(Rect2(tx, top, train_len, h - 6.0), ghost, false, 2.0)
-		draw_rect(Rect2(tx, top + 52.0, train_len, 6.0), Color(0.9, 0.3, 0.25, 0.5))   # פס אדום
+		DrawBatch.rect(self, Rect2(tx, top, train_len, h - 6.0), Color(0.12, 0.2, 0.2, 0.55))
+		DrawBatch.rect(self, Rect2(tx, top, train_len, h - 6.0), ghost, false, 2.0)
+		DrawBatch.rect(self, Rect2(tx, top + 52.0, train_len, 6.0), Color(0.9, 0.3, 0.25, 0.5))   # פס אדום
 		var wx := tx + 30.0
 		while wx < tx + train_len - 40.0:   # חלונות מוארים
-			draw_rect(Rect2(wx, top + 14.0, 44.0, 30.0), Color(0.85, 1.0, 0.8, 0.35 + 0.15 * sin(_time * 30.0 + wx)))
+			DrawBatch.rect(self, Rect2(wx, top + 14.0, 44.0, 30.0), Color(0.85, 1.0, 0.8, 0.35 + 0.15 * sin(_time * 30.0 + wx)))
 			wx += 66.0
-		draw_circle(Vector2(tx + 10.0, top + 90.0), 9.0, Color(1.0, 1.0, 0.8, 0.9))   # פנס קדמי
-		draw_rect(Rect2(tx - 260.0, top + 70.0, 260.0, 40.0), Color(1.0, 1.0, 0.8, 0.08))
+		DrawBatch.circle(self, Vector2(tx + 10.0, top + 90.0), 9.0, Color(1.0, 1.0, 0.8, 0.9))   # פנס קדמי
+		DrawBatch.rect(self, Rect2(tx - 260.0, top + 70.0, 260.0, 40.0), Color(1.0, 1.0, 0.8, 0.08))
 
 
 # אזהרה על המסך: אור אדום מהבהב בצד ימין + טקסט
@@ -239,17 +294,22 @@ class WarnFx extends Node2D:
 	var sub: Node
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if sub._warn_t <= 0.0:
 			return
 		var vs := get_viewport().get_visible_rect().size
 		var on := int(sub._warn_t * 6.0) % 2 == 0
 		var a := 0.35 if on else 0.12
 		for i in 8:
-			draw_rect(Rect2(vs.x - 20.0 * float(i + 1), 0, 20.0, vs.y), Color(1.0, 0.1, 0.05, a * (1.0 - float(i) / 8.0)))
+			DrawBatch.rect(self, Rect2(vs.x - 20.0 * float(i + 1), 0, 20.0, vs.y), Color(1.0, 0.1, 0.05, a * (1.0 - float(i) / 8.0)))
 		if on:
 			var f := ThemeDB.fallback_font
-			draw_string(f, Vector2(vs.x * 0.5 - 140.0, 120.0), "!! TRAIN INCOMING !!", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(1.0, 0.3, 0.2))
-			draw_string(f, Vector2(vs.x * 0.5 - 120.0, 150.0), "GET OFF THE TRACKS", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, 0.8))
+			DrawBatch.string(self, f, Vector2(vs.x * 0.5 - 140.0, 120.0), "!! TRAIN INCOMING !!", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(1.0, 0.3, 0.2))
+			DrawBatch.string(self, f, Vector2(vs.x * 0.5 - 120.0, 150.0), "GET OFF THE TRACKS", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, 0.8))
 
 
 # חתיכת תקרה + פסים (1024 פיקסלים, מצויר פעם אחת)
@@ -260,40 +320,45 @@ class Chunk extends Node2D:
 		z_index = -2
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := 1024.0
 		var cy: float = sub.ceil_y
 		var fy: float = sub.floor_y
 		var rng := RandomNumberGenerator.new()
 		rng.seed = int(position.x) + 77
 		# תקרת בטון
-		draw_rect(Rect2(0, cy - 140.0, w, 140.0), Color("1c1d20"))
-		draw_rect(Rect2(0, cy - 10.0, w, 10.0), Color("2a2b2f"))
-		draw_line(Vector2(0, cy), Vector2(w, cy), Color(0, 0, 0, 0.8), 2.0)
+		DrawBatch.rect(self, Rect2(0, cy - 140.0, w, 140.0), Color("1c1d20"))
+		DrawBatch.rect(self, Rect2(0, cy - 10.0, w, 10.0), Color("2a2b2f"))
+		DrawBatch.line(self, Vector2(0, cy), Vector2(w, cy), Color(0, 0, 0, 0.8), 2.0)
 		var x := 0.0
 		while x < w:   # קורות
-			draw_rect(Rect2(x, cy - 30.0, 14.0, 30.0), Color("26272b"))
-			draw_rect(Rect2(x, cy - 2.0, 14.0, 6.0), Color("303136"))
+			DrawBatch.rect(self, Rect2(x, cy - 30.0, 14.0, 30.0), Color("26272b"))
+			DrawBatch.rect(self, Rect2(x, cy - 2.0, 14.0, 6.0), Color("303136"))
 			x += 128.0
 		# צינורות ונטיפות
-		draw_line(Vector2(0, cy - 20.0), Vector2(w, cy - 20.0), Color("3a3328"), 5.0)
-		draw_line(Vector2(0, cy - 12.0), Vector2(w, cy - 12.0), Color("2c3a34"), 3.0)
+		DrawBatch.line(self, Vector2(0, cy - 20.0), Vector2(w, cy - 20.0), Color("3a3328"), 5.0)
+		DrawBatch.line(self, Vector2(0, cy - 12.0), Vector2(w, cy - 12.0), Color("2c3a34"), 3.0)
 		for i in 6:
 			var dx := rng.randf_range(0.0, w)
-			draw_line(Vector2(dx, cy + 4.0), Vector2(dx, cy + rng.randf_range(6.0, 18.0)), Color(0.3, 0.4, 0.3, 0.5), 1.5)
+			DrawBatch.line(self, Vector2(dx, cy + 4.0), Vector2(dx, cy + rng.randf_range(6.0, 18.0)), Color(0.3, 0.4, 0.3, 0.5), 1.5)
 		# פסי רכבת על הריצפה
 		for rl in sub.rails:
 			var a := maxf(float(rl[0]) - position.x, 0.0)
 			var b := minf(float(rl[1]) - position.x, w)
 			if b > a:   # פס שלישי מחושמל: צהוב-שחור
-				draw_rect(Rect2(a, fy - 6.0, b - a, 5.0), Color("c8a020"))
+				DrawBatch.rect(self, Rect2(a, fy - 6.0, b - a, 5.0), Color("c8a020"))
 				var sx := a
 				while sx < b:
-					draw_line(Vector2(sx, fy - 6.0), Vector2(sx + 6.0, fy - 1.0), Color(0, 0, 0, 0.8), 2.0)
+					DrawBatch.line(self, Vector2(sx, fy - 6.0), Vector2(sx + 6.0, fy - 1.0), Color(0, 0, 0, 0.8), 2.0)
 					sx += 14.0
-		draw_line(Vector2(0, fy - 2.0), Vector2(w, fy - 2.0), Color("5a5650"), 2.0)
+		DrawBatch.line(self, Vector2(0, fy - 2.0), Vector2(w, fy - 2.0), Color("5a5650"), 2.0)
 		x = 0.0
 		while x < w:   # אדנים
-			draw_rect(Rect2(x, fy - 1.0, 18.0, 4.0), Color("3a2e24"))
+			DrawBatch.rect(self, Rect2(x, fy - 1.0, 18.0, 4.0), Color("3a2e24"))
 			x += 36.0
 
 
@@ -328,7 +393,7 @@ class TunnelBg extends "res://effects/parallax_backdrop.gd":
 	static func _wall(ci: CanvasItem, sc: float, v: Vector2, t: float) -> void:
 		var y0 := TOP
 		var y1 := HZ - 40.0
-		ci.draw_rect(Rect2(0, y0, v.x, y1 - y0), TILE)
+		DrawBatch.rect(ci, Rect2(0, y0, v.x, y1 - y0), TILE)
 		# אריחים: שורות מוסטות, גוון משתנה קצת
 		var tw := 44.0
 		var th := 22.0
@@ -342,57 +407,57 @@ class TunnelBg extends "res://effects/parallax_backdrop.gd":
 			while x < v.x:
 				var hv := float(posmod((ix * 73856093) ^ (row * 19349663), 100)) * 0.01   # hash שלם (זול יותר מ-sin)
 				if hv < 0.3:
-					ci.draw_rect(Rect2(x + 1.0, y + 1.0, tw - 2.0, th - 2.0), TILE2)
+					DrawBatch.rect(ci, Rect2(x + 1.0, y + 1.0, tw - 2.0, th - 2.0), TILE2)
 				elif hv > 0.93:   # אריח שנפל
-					ci.draw_rect(Rect2(x + 1.0, y + 1.0, tw - 2.0, th - 2.0), Color("26302c"))
+					DrawBatch.rect(ci, Rect2(x + 1.0, y + 1.0, tw - 2.0, th - 2.0), Color("26302c"))
 				x += tw
 				ix += 1
-			ci.draw_line(Vector2(0, y), Vector2(v.x, y), Color(0, 0, 0, 0.25), 1.0)
+			DrawBatch.line(ci, Vector2(0, y), Vector2(v.x, y), Color(0, 0, 0, 0.25), 1.0)
 			y += th
 			row += 1
 		# פס פסיפס צבעוני + פס בורדו
-		ci.draw_rect(Rect2(0, y0 + 98.0, v.x, 16.0), Color("6a2a24"))
-		ci.draw_rect(Rect2(0, y0 + 98.0, v.x, 3.0), Color("c8a050"))
-		ci.draw_rect(Rect2(0, y0 + 111.0, v.x, 3.0), Color("c8a050"))
+		DrawBatch.rect(ci, Rect2(0, y0 + 98.0, v.x, 16.0), Color("6a2a24"))
+		DrawBatch.rect(ci, Rect2(0, y0 + 98.0, v.x, 3.0), Color("c8a050"))
+		DrawBatch.rect(ci, Rect2(0, y0 + 111.0, v.x, 3.0), Color("c8a050"))
 		var period := 900.0
 		var start := int(floor(sc / period)) - 1
 		for k in range(start, start + int(ceil(v.x / period)) + 2):
 			var bx := float(k) * period - sc
 			# שלט תחנה
 			var nm: String = NAMES[posmod(k, NAMES.size())]
-			ci.draw_rect(Rect2(bx + 300.0, y0 + 36.0, 190.0, 40.0), Color("10141a"))
-			ci.draw_rect(Rect2(bx + 303.0, y0 + 39.0, 184.0, 34.0), Color("1c3e78"))
-			ci.draw_string(ThemeDB.fallback_font, Vector2(bx + 316.0, y0 + 64.0), nm, HORIZONTAL_ALIGNMENT_LEFT, 170.0, 19, Color(0.92, 0.92, 0.96, 0.9))
+			DrawBatch.rect(ci, Rect2(bx + 300.0, y0 + 36.0, 190.0, 40.0), Color("10141a"))
+			DrawBatch.rect(ci, Rect2(bx + 303.0, y0 + 39.0, 184.0, 34.0), Color("1c3e78"))
+			DrawBatch.string(ci, ThemeDB.fallback_font, Vector2(bx + 316.0, y0 + 64.0), nm, HORIZONTAL_ALIGNMENT_LEFT, 170.0, 19, Color(0.92, 0.92, 0.96, 0.9))
 			# כרזות (חלקן קרועות)
 			for q in 2:
 				var px := bx + 60.0 + float(q) * 560.0
 				var py := y0 + 160.0
 				var pc: Color = [Color("8a5a2a"), Color("2a5a7a"), Color("7a2a3a"), Color("5a6a2a")][posmod(k * 2 + q, 4)]
-				ci.draw_rect(Rect2(px - 4.0, py - 4.0, 128.0, 168.0), Color("1a1c1e"))
-				ci.draw_rect(Rect2(px, py, 120.0, 160.0), pc)
-				ci.draw_rect(Rect2(px + 10.0, py + 12.0, 100.0, 14.0), Color(1, 1, 1, 0.45))
-				ci.draw_circle(Vector2(px + 60.0, py + 80.0), 30.0, Color(0, 0, 0, 0.25))
-				ci.draw_rect(Rect2(px + 10.0, py + 126.0, 70.0, 8.0), Color(1, 1, 1, 0.3))
+				DrawBatch.rect(ci, Rect2(px - 4.0, py - 4.0, 128.0, 168.0), Color("1a1c1e"))
+				DrawBatch.rect(ci, Rect2(px, py, 120.0, 160.0), pc)
+				DrawBatch.rect(ci, Rect2(px + 10.0, py + 12.0, 100.0, 14.0), Color(1, 1, 1, 0.45))
+				DrawBatch.circle(ci, Vector2(px + 60.0, py + 80.0), 30.0, Color(0, 0, 0, 0.25))
+				DrawBatch.rect(ci, Rect2(px + 10.0, py + 126.0, 70.0, 8.0), Color(1, 1, 1, 0.3))
 				if _h(k, q + 9) < 0.6:   # קרוע: משולש של קיר
-					ci.draw_colored_polygon(PackedVector2Array([Vector2(px + 60, py + 160), Vector2(px + 120, py + 70), Vector2(px + 120, py + 160)]), TILE)
+					DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(px + 60, py + 160), Vector2(px + 120, py + 70), Vector2(px + 120, py + 160)]), TILE)
 				if _h(k, q + 4) < 0.5:   # "X" אדום של שורדים
-					ci.draw_line(Vector2(px + 20, py + 40), Vector2(px + 100, py + 130), Color(0.75, 0.08, 0.06, 0.8), 5.0)
-					ci.draw_line(Vector2(px + 100, py + 40), Vector2(px + 20, py + 130), Color(0.75, 0.08, 0.06, 0.8), 5.0)
+					DrawBatch.line(ci, Vector2(px + 20, py + 40), Vector2(px + 100, py + 130), Color(0.75, 0.08, 0.06, 0.8), 5.0)
+					DrawBatch.line(ci, Vector2(px + 100, py + 40), Vector2(px + 20, py + 130), Color(0.75, 0.08, 0.06, 0.8), 5.0)
 			# גרפיטי (קווים צבעוניים)
 			var gx := bx + 520.0
 			var gc := Color(0.3, 0.85, 0.45, 0.55) if k % 2 == 0 else Color(0.95, 0.45, 0.75, 0.5)
 			var gp := PackedVector2Array()
 			for q in 12:
 				gp.append(Vector2(gx + float(q) * 9.0, y0 + 230.0 + sin(float(q) * 1.9 + float(k)) * 16.0))
-			ci.draw_polyline(gp, gc, 4.0)
-			ci.draw_polyline(gp, Color(0, 0, 0, 0.4), 1.0)
+			DrawBatch.polyline(ci, gp, gc, 4.0)
+			DrawBatch.polyline(ci, gp, Color(0, 0, 0, 0.4), 1.0)
 			# כתמי רטיבות שזולגים
 			for q in 3:
 				var dx := bx + 200.0 + float(q) * 230.0 + 60.0 * _h(k, q)
-				ci.draw_rect(Rect2(dx, y0 + 114.0, 18.0, 160.0 + 120.0 * _h(k, q + 2)), Color(0.05, 0.08, 0.06, 0.25))
+				DrawBatch.rect(ci, Rect2(dx, y0 + 114.0, 18.0, 160.0 + 120.0 * _h(k, q + 2)), Color(0.05, 0.08, 0.06, 0.25))
 		# שוליים תחתונים: קיר כהה מעל המסילה
-		ci.draw_rect(Rect2(0, y1, v.x, v.y - y1), Color("1a201e"))
-		ci.draw_rect(Rect2(0, y1, v.x, 4.0), Color("5a5a50"))
+		DrawBatch.rect(ci, Rect2(0, y1, v.x, v.y - y1), Color("1a201e"))
+		DrawBatch.rect(ci, Rect2(0, y1, v.x, 4.0), Color("5a5a50"))
 
 	# ---- עמודי פלדה ----
 	static func _pillars(ci: CanvasItem, sc: float, v: Vector2, _t: float) -> void:
@@ -400,21 +465,21 @@ class TunnelBg extends "res://effects/parallax_backdrop.gd":
 		var start := int(floor(sc / period)) - 1
 		for k in range(start, start + int(ceil(v.x / period)) + 2):
 			var x := float(k) * period - sc
-			ci.draw_rect(Rect2(x, TOP - 10.0, 40.0, HZ - TOP + 10.0), STEEL)
-			ci.draw_rect(Rect2(x - 6.0, TOP - 10.0, 52.0, 10.0), STEEL.lightened(0.06))
-			ci.draw_rect(Rect2(x + 4.0, TOP, 5.0, HZ - TOP), STEEL.lightened(0.12))   # אור על הקצה
+			DrawBatch.rect(ci, Rect2(x, TOP - 10.0, 40.0, HZ - TOP + 10.0), STEEL)
+			DrawBatch.rect(ci, Rect2(x - 6.0, TOP - 10.0, 52.0, 10.0), STEEL.lightened(0.06))
+			DrawBatch.rect(ci, Rect2(x + 4.0, TOP, 5.0, HZ - TOP), STEEL.lightened(0.12))   # אור על הקצה
 			var ry := TOP + 20.0
 			while ry < HZ - 20.0:   # מסמרות
-				ci.draw_rect(Rect2(x + 29.0, ry - 1.0, 3.0, 3.0), STEEL.lightened(0.2))
+				DrawBatch.rect(ci, Rect2(x + 29.0, ry - 1.0, 3.0, 3.0), STEEL.lightened(0.2))
 				ry += 34.0
 			for s in 4:   # פסי אזהרה בתחתית
-				ci.draw_rect(Rect2(x, HZ - 100.0 + float(s) * 22.0, 40.0, 11.0), Color(0.75, 0.6, 0.15, 0.7))
+				DrawBatch.rect(ci, Rect2(x, HZ - 100.0 + float(s) * 22.0, 40.0, 11.0), Color(0.75, 0.6, 0.15, 0.7))
 			# כבלים שנתלים בין העמודים
 			var cab := PackedVector2Array()
 			for q in 11:
 				var u := float(q) / 10.0
 				cab.append(Vector2(x + 40.0 + u * (period - 40.0), TOP + 30.0 + sin(u * PI) * 26.0))
-			ci.draw_polyline(cab, Color(0.04, 0.04, 0.05, 0.9), 2.0)
+			DrawBatch.polyline(ci, cab, Color(0.04, 0.04, 0.05, 0.9), 2.0)
 
 	# ---- נורות פלורסנט תלויות ----
 	static func _lights(ci: CanvasItem, sc: float, v: Vector2, t: float) -> void:
@@ -426,17 +491,17 @@ class TunnelBg extends "res://effects/parallax_backdrop.gd":
 			var on := 0.0 if dead else 1.0
 			if not dead and _h(k, 2) < 0.4:   # מהבהבת
 				on = 1.0 if fmod(t * 3.0 + float(k) * 1.7, 4.0) > 0.35 and sin(t * 37.0 + float(k)) > -0.7 else 0.15
-			ci.draw_line(Vector2(x + 10.0, 0.0), Vector2(x + 10.0, TOP + 8.0), Color(0.05, 0.05, 0.06), 1.5)
-			ci.draw_line(Vector2(x + 90.0, 0.0), Vector2(x + 90.0, TOP + 8.0), Color(0.05, 0.05, 0.06), 1.5)
-			ci.draw_rect(Rect2(x, TOP + 8.0, 100.0, 8.0), Color("1a1c1e"))
-			ci.draw_rect(Rect2(x + 4.0, TOP + 15.0, 92.0, 4.0), Color(0.85, 1.0, 0.92, 0.25 + 0.7 * on))
+			DrawBatch.line(ci, Vector2(x + 10.0, 0.0), Vector2(x + 10.0, TOP + 8.0), Color(0.05, 0.05, 0.06), 1.5)
+			DrawBatch.line(ci, Vector2(x + 90.0, 0.0), Vector2(x + 90.0, TOP + 8.0), Color(0.05, 0.05, 0.06), 1.5)
+			DrawBatch.rect(ci, Rect2(x, TOP + 8.0, 100.0, 8.0), Color("1a1c1e"))
+			DrawBatch.rect(ci, Rect2(x + 4.0, TOP + 15.0, 92.0, 4.0), Color(0.85, 1.0, 0.92, 0.25 + 0.7 * on))
 			if on > 0.1:
 				Kit.soft_glow(ci, Vector2(x + 50.0, TOP + 20.0), 180.0, Color(0.7, 0.95, 0.85, 0.22 * on), 0.7)
-				ci.draw_colored_polygon(PackedVector2Array([Vector2(x + 4, TOP + 18), Vector2(x + 96, TOP + 18), Vector2(x + 190, HZ), Vector2(x - 90, HZ)]), Color(0.75, 1.0, 0.9, 0.035 * on))
+				DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(x + 4, TOP + 18), Vector2(x + 96, TOP + 18), Vector2(x + 190, HZ), Vector2(x - 90, HZ)]), Color(0.75, 1.0, 0.9, 0.035 * on))
 
 	static func _over(ci: CanvasItem, v: Vector2, _t: float) -> void:
 		Kit.haze_band(ci, v, HZ - 230.0, HZ, Color(0.55, 0.72, 0.66, 0.2))
 		var c0 := Color(0.0, 0.0, 0.0, 0.45)   # צל מתחת לתקרה (אווירה)
 		var c1 := Color(0.0, 0.0, 0.0, 0.0)
-		ci.draw_polygon(PackedVector2Array([Vector2(0, TOP), Vector2(v.x, TOP), Vector2(v.x, TOP + 170.0), Vector2(0, TOP + 170.0)]),
+		DrawBatch.polygon(ci, PackedVector2Array([Vector2(0, TOP), Vector2(v.x, TOP), Vector2(v.x, TOP + 170.0), Vector2(0, TOP + 170.0)]),
 			PackedColorArray([c0, c0, c1, c1]))

@@ -176,11 +176,11 @@ func draw() -> bool:
 		Art.oval(z, lp + Vector2(0, -24.0 * z.sc), 8.0 * z.sc, 18.0 * z.sc, Color(1.0, 0.85, 0.3, a), 0.0, Art.NONE)
 	if state == LEAP and not z.dead:   # סלטה: מסתובב סביב המרכז
 		var s := Vector2(z._dir * z.wf * z.sc, z.sc)
-		z.draw_set_transform_matrix(Transform2D(_spin, Vector2(0.0, -26.0 * z.sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 26.0 * z.sc)))
+		DrawBatch.set_transform_matrix(z, Transform2D(_spin, Vector2(0.0, -26.0 * z.sc)) * Transform2D(0.0, s, 0.0, Vector2(0.0, 26.0 * z.sc)))
 	elif state == DROP and not z.dead:   # שוכב ומחליק
 		var s2 := Vector2(z._dir * z.wf * z.sc, z.sc)
 		var ang := -PI / 2.0 * signf(z._dir) * 0.92
-		z.draw_set_transform_matrix(Transform2D(ang, Vector2(0.0, -8.0 * z.sc)) * Transform2D(0.0, s2, 0.0, Vector2(0.0, 8.0 * z.sc)))
+		DrawBatch.set_transform_matrix(z, Transform2D(ang, Vector2(0.0, -8.0 * z.sc)) * Transform2D(0.0, s2, 0.0, Vector2(0.0, 8.0 * z.sc)))
 	else:
 		begin_draw()
 	var p: float = z._walk_phase
@@ -197,7 +197,7 @@ func draw() -> bool:
 		var c := suit_d if i == 0 else suit
 		z._leg(hp, fp, c, c, col(z.shoe))
 		var knee := Art.joint(hp, fp + Vector2(0, -3), 11.5, 11.5, 1.0)
-		z.draw_line(knee + Vector2(-2.5, 1), knee + Vector2(2.5, 2), stripe, 1.6)
+		DrawBatch.line(z, knee + Vector2(-2.5, 1), knee + Vector2(2.5, 2), stripe, 1.6)
 	# יד אחורית
 	var bh := sh + Vector2(-6.0 + sin(p) * 8.0, 13.0)
 	if z._bite_anim > 0.0:
@@ -206,8 +206,8 @@ func draw() -> bool:
 	# גוף: חליפה כפופה
 	var body := PackedVector2Array([hip + Vector2(-6, 3), hip + Vector2(5, 2), sh + Vector2(5, 4), sh + Vector2(1, -3), sh + Vector2(-6, -2)])
 	Art.fill_shaded(z, body, suit, 0.2, 0.35)
-	z.draw_line(hip.lerp(sh, 0.5) + Vector2(-5, 0), hip.lerp(sh, 0.5) + Vector2(4, -1), stripe, 2.0)   # פס מחזיר
-	z.draw_line(hip.lerp(sh, 0.62) + Vector2(-5, 0), hip.lerp(sh, 0.62) + Vector2(4, -1), col(Color(0.85, 0.85, 0.8)), 1.0)
+	DrawBatch.line(z, hip.lerp(sh, 0.5) + Vector2(-5, 0), hip.lerp(sh, 0.5) + Vector2(4, -1), stripe, 2.0)   # פס מחזיר
+	DrawBatch.line(z, hip.lerp(sh, 0.62) + Vector2(-5, 0), hip.lerp(sh, 0.62) + Vector2(4, -1), col(Color(0.85, 0.85, 0.8)), 1.0)
 	# קרע בחליפה: עור חשוף
 	Art.oval(z, hip.lerp(sh, 0.3) + Vector2(1, 0), 2.5, 1.8, col(z.skin), 0.4, Art.NONE)
 	# מיכל חמצן קטן על הגב
@@ -217,16 +217,16 @@ func draw() -> bool:
 	Art.fill_shaded(z, PackedVector2Array([head + Vector2(0, -4), head + Vector2(7, -3), head + Vector2(8, 3), head + Vector2(2, 5)]), col(Color("2a2c30")), 0.2, 0.3, Art.OUTLINE, 1.0)
 	for e in [Vector2(3.5, -1.5), Vector2(6.5, -1.0)]:
 		var ev: Vector2 = e
-		z.draw_circle(head + ev, 1.8, col(Color("101010")))
-		z.draw_circle(head + ev, 1.2, lens)
+		DrawBatch.circle(z, head + ev, 1.8, col(Color("101010")))
+		DrawBatch.circle(z, head + ev, 1.2, lens)
 		Art.glow(z, head + ev, 3.5, Color(lens, 0.5))
 	Art.disc(z, head + Vector2(6.5, 4.5), 2.3, col(Color("4a4e54")), Art.OUTLINE, 0.9)   # פילטר
-	z.draw_line(head + Vector2(5.5, 4.5), head + Vector2(7.5, 4.5), col(Color("2a2a2a")), 0.8)
+	DrawBatch.line(z, head + Vector2(5.5, 4.5), head + Vector2(7.5, 4.5), col(Color("2a2a2a")), 0.8)
 	# יד קדמית (פרושה לאיזון)
 	var fh := sh + Vector2(10.0 - sin(p) * 8.0, 11.0)
 	if z._bite_anim > 0.0 or _counter_t > 0.0:
 		fh = sh + Vector2(19.0, 0.0)
 	z._arm(sh + Vector2(2, 1), fh, col(z.skin), suit)
-	z.draw_line(sh.lerp(fh, 0.55) + Vector2(-1, -2), sh.lerp(fh, 0.55) + Vector2(1, 2), stripe, 1.5)
+	DrawBatch.line(z, sh.lerp(fh, 0.55) + Vector2(-1, -2), sh.lerp(fh, 0.55) + Vector2(1, 2), stripe, 1.5)
 	end_draw()
 	return true

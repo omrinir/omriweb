@@ -142,43 +142,43 @@ func draw() -> bool:
 	var dark := col(Color("2e3228"))
 	var k := wind_k()
 	# זחלים
-	z.draw_colored_polygon(PackedVector2Array([Vector2(-36, -2), Vector2(36, -2), Vector2(40, -8), Vector2(36, -14), Vector2(-36, -14), Vector2(-40, -8)]), dark)
+	DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(-36, -2), Vector2(36, -2), Vector2(40, -8), Vector2(36, -14), Vector2(-36, -14), Vector2(-40, -8)]), dark)
 	for q in 7:
 		var wx := -30.0 + float(q) * 10.0
-		z.draw_circle(Vector2(wx, -7), 4.0, col(Color("1e201a")))
-		z.draw_circle(Vector2(wx, -7), 1.5, col(Color("5a5e50")))
+		DrawBatch.circle(z, Vector2(wx, -7), 4.0, col(Color("1e201a")))
+		DrawBatch.circle(z, Vector2(wx, -7), 1.5, col(Color("5a5e50")))
 	for q in 18:   # חוליות הזחל
 		var tx := -38.0 + fposmod(float(q) * 4.4 + z._time * 0.0, 78.0)
-		z.draw_line(Vector2(tx, -2), Vector2(tx, -3.5), col(Color("0e0e0c")), 1.0)
+		DrawBatch.line(z, Vector2(tx, -2), Vector2(tx, -3.5), col(Color("0e0e0c")), 1.0)
 	# גוף
 	Art.fill_shaded(z, PackedVector2Array([Vector2(-38, -13), Vector2(34, -13), Vector2(42, -18), Vector2(30, -26), Vector2(-34, -26), Vector2(-40, -19)]), armor, 0.15, 0.4)
-	z.draw_rect(Rect2(Vector2(24, -21), Vector2(6, 3)), col(Color("1a1a1a")))   # מקלע גוף
-	z.draw_line(Vector2(30, -19.5), Vector2(36, -19.5), col(Color("1a1a1a")), 1.5)
+	DrawBatch.rect(z, Rect2(Vector2(24, -21), Vector2(6, 3)), col(Color("1a1a1a")))   # מקלע גוף
+	DrawBatch.line(z, Vector2(30, -19.5), Vector2(36, -19.5), col(Color("1a1a1a")), 1.5)
 	if _left > 0 and not z.dead:
 		Art.glow(z, Vector2(37, -19.5), 4.0, Color(1.0, 0.8, 0.3, 0.8))
 	for q in 4:   # ברגים / פלדות
-		z.draw_circle(Vector2(-28.0 + float(q) * 16.0, -20), 0.9, col(Color("6a705e")))
+		DrawBatch.circle(z, Vector2(-28.0 + float(q) * 16.0, -20), 0.9, col(Color("6a705e")))
 	# צריח + תותח
 	var rc := 4.0 * _recoil
-	z.draw_rect(Rect2(Vector2(12.0 - rc, -33.5), Vector2(44, 4)), dark)   # הקנה
-	z.draw_rect(Rect2(Vector2(52.0 - rc, -34.5), Vector2(6, 6)), dark)   # בולם לוע
+	DrawBatch.rect(z, Rect2(Vector2(12.0 - rc, -33.5), Vector2(44, 4)), dark)   # הקנה
+	DrawBatch.rect(z, Rect2(Vector2(52.0 - rc, -34.5), Vector2(6, 6)), dark)   # בולם לוע
 	if winding == "shell" and not z.dead:
 		Art.glow(z, Vector2(58.0 - rc, -31.5), 4.0 + 6.0 * k, Color(1.0, 0.6, 0.2, 0.25 + 0.4 * k))
 	Art.fill_shaded(z, PackedVector2Array([Vector2(-20, -26), Vector2(16, -26), Vector2(18, -34), Vector2(8, -40), Vector2(-14, -40), Vector2(-22, -34)]), armor.lightened(0.04), 0.15, 0.4)
 	E.emblem(z, Vector2(0, -32), 4.2, col(Color(0.9, 0.88, 0.82)))
 	# צוהר + מפקד
-	z.draw_rect(Rect2(Vector2(-11, -43), Vector2(10, 3)), dark)
+	DrawBatch.rect(z, Rect2(Vector2(-11, -43), Vector2(10, 3)), dark)
 	if _duck <= 0.0 and not z.dead:
 		var head := Vector2(-6, -50)
-		z.draw_rect(Rect2(head + Vector2(-4, 3), Vector2(8, 6)), col(E.UNIFORM_D))
+		DrawBatch.rect(z, Rect2(head + Vector2(-4, 3), Vector2(8, 6)), col(E.UNIFORM_D))
 		Art.oval_shaded(z, head, 4.0, 4.4, col(z.skin), 0.0)
 		E.helmet(z, head + Vector2(0, 1.5), col(E.STEEL))
-		z.draw_rect(Rect2(head + Vector2(1, -1), Vector2(5, 3)), col(Color("1a1a1a")))   # משקפת
-		z.draw_circle(head + Vector2(6.5, 0.5), 1.2, Color(1.0, 0.3, 0.2))
+		DrawBatch.rect(z, Rect2(head + Vector2(1, -1), Vector2(5, 3)), col(Color("1a1a1a")))   # משקפת
+		DrawBatch.circle(z, head + Vector2(6.5, 0.5), 1.2, Color(1.0, 0.3, 0.2))
 	else:
-		z.draw_rect(Rect2(Vector2(-12, -45), Vector2(12, 2)), dark)   # מכסה סגור
+		DrawBatch.rect(z, Rect2(Vector2(-12, -45), Vector2(12, 2)), dark)   # מכסה סגור
 	# אנטנה
-	z.draw_line(Vector2(-16, -40), Vector2(-20, -70), col(Color("2a2a2a")), 0.8)
+	DrawBatch.line(z, Vector2(-16, -40), Vector2(-20, -70), col(Color("2a2a2a")), 0.8)
 	end_draw()
 	if not z.dead:   # הדגל על האנטנה (בעולם)
 		var tip: Vector2 = Vector2(z._dir * -20.0 * z.wf, -70.0) * z.sc

@@ -1,4 +1,5 @@
 extends CanvasLayer
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  TIP BANNER - טיפ קצר על המסך (למשל בשלבים חשוכים: "TIP: USE YOUR FLASHLIGHT").
 #  מופיע אחרי delay שניות, נשאר seconds שניות (נכנס ויוצא בהדרגה), ואז נעלם.
@@ -48,7 +49,7 @@ func _draw_tip() -> void:
 	sb.border_color = Color(1.0, 0.9, 0.62, a)
 	sb.set_border_width_all(3)
 	sb.set_corner_radius_all(12)
-	_ui.draw_style_box(sb, Rect2(c.x - bw * 0.5, c.y - bh * 0.5, bw, bh))
+	DrawBatch.style_box(_ui, sb, Rect2(c.x - bw * 0.5, c.y - bh * 0.5, bw, bh))
 	var tp := Vector2(c.x - w * 0.5, c.y - bh * 0.5 + 38.0)
 	f.draw_string_outline(_ui.get_canvas_item(), tp, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 6, Color(0, 0, 0, a))
 	f.draw_string(_ui.get_canvas_item(), tp, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1.0, 0.93, 0.7, a))

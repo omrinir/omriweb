@@ -193,16 +193,16 @@ func draw() -> bool:
 		Art.limb(z, PackedVector2Array([hip + Vector2(0, side), knee]), 5.2 if side > 0.0 else 4.6, c)   # ירך שרירית
 		Art.limb(z, PackedVector2Array([knee, hock, foot]), 3.2 if side > 0.0 else 2.8, c)
 		# גידים זוהרים
-		z.draw_line(knee, hock, Color(tendon, clampf(glow_k, 0.0, 1.0) * (1.0 if side > 0.0 else 0.6)), 1.2)
+		DrawBatch.line(z, knee, hock, Color(tendon, clampf(glow_k, 0.0, 1.0) * (1.0 if side > 0.0 else 0.6)), 1.2)
 		if glow_k > 0.6:
 			Art.glow(z, hock, 4.0 + squash * 3.0, Color(tendon, 0.4 * glow_k))
 		for k in 3:   # אצבעות ארוכות
-			z.draw_line(foot, foot + Vector2(4.0 + float(k), -1.0 + float(k)), c, 1.2)
+			DrawBatch.line(z, foot, foot + Vector2(4.0 + float(k), -1.0 + float(k)), c, 1.2)
 	# גוף נמוך עם שאריות סרבל
 	Art.fill_shaded(z, PackedVector2Array([hip + Vector2(-4, 4), hip + Vector2(3, 5), sh + Vector2(3, 4), sh + Vector2(-2, -4), hip + Vector2(-5, -3)]), suit, 0.15, 0.4)
-	z.draw_line(hip.lerp(sh, 0.3) + Vector2(0, -3), hip.lerp(sh, 0.3) + Vector2(1, 4), col(Color(0.9, 0.9, 0.8, 0.6)), 1.0)   # פס מחזיר אור
+	DrawBatch.line(z, hip.lerp(sh, 0.3) + Vector2(0, -3), hip.lerp(sh, 0.3) + Vector2(1, 4), col(Color(0.9, 0.9, 0.8, 0.6)), 1.0)   # פס מחזיר אור
 	for i in 5:   # עמוד שדרה בולט
-		z.draw_circle(hip.lerp(sh, float(i) / 4.0) + Vector2(0, -4.5), 1.1, col(Color("d8ccd8")))
+		DrawBatch.circle(z, hip.lerp(sh, float(i) / 4.0) + Vector2(0, -4.5), 1.1, col(Color("d8ccd8")))
 	# ידיים ארוכות שנגררות / מושטות קדימה באוויר
 	var reach: bool = air or z._bite_anim > 0.0
 	for side in [-1.0, 1.0]:
@@ -210,14 +210,14 @@ func draw() -> bool:
 		var hand := sh + (Vector2(20.0, -2.0 + side * 3.0) if reach else Vector2(6.0 + side * 3.0 + sin(p + side) * 3.0, 20.0 - squash * 6.0))
 		Art.limb(z, PackedVector2Array([sh + Vector2(0, side), sh.lerp(hand, 0.5) + Vector2(-2, 3), hand]), 2.6, c2)
 		for k in 3:
-			z.draw_line(hand, hand + Vector2.from_angle(0.3 + float(k) * 0.4 - (0.0 if reach else -1.0)) * 4.0, col(Color("3a2a30")), 1.0)
+			DrawBatch.line(z, hand, hand + Vector2.from_angle(0.3 + float(k) * 0.4 - (0.0 if reach else -1.0)) * 4.0, col(Color("3a2a30")), 1.0)
 	# ראש קטן עם לסת רחבה
 	Art.oval_shaded(z, head, 5.5, 5.0, sk, 0.0)
 	var jaw := 2.0 + (3.5 if reach or charging else sin(t * 5.0))
 	Art.fill(z, PackedVector2Array([head + Vector2(0, 1.5), head + Vector2(8, 1.0), head + Vector2(7, 2.5 + jaw), head + Vector2(0.5, 3.5 + jaw * 0.6)]), Color("2a0a14"), Art.OUTLINE, 0.8)
 	for i in 3:
-		z.draw_line(head + Vector2(2.0 + i * 2.0, 1.4), head + Vector2(2.4 + i * 2.0, 2.8), Color("e0d8c8"), 0.7)
-	z.draw_circle(head + Vector2(3.0, -1.8), 1.1, Color(1.0, 0.25, 0.2))
+		DrawBatch.line(z, head + Vector2(2.0 + i * 2.0, 1.4), head + Vector2(2.4 + i * 2.0, 2.8), Color("e0d8c8"), 0.7)
+	DrawBatch.circle(z, head + Vector2(3.0, -1.8), 1.1, Color(1.0, 0.25, 0.2))
 	Art.glow(z, head + Vector2(3.0, -1.8), 3.0, Color(1.0, 0.2, 0.2, 0.5))
 	end_draw()
 	return true

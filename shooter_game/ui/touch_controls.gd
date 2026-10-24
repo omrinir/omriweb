@@ -1,4 +1,5 @@
 extends CanvasLayer
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  TOUCH CONTROLS (Autoload "Touch") - שליטה במגע לטלפון (אנדרואיד).
 #  פעיל רק בטלפון (OS "mobile") או עם הפרמטר "-- --touch" (בדיקה במחשב).
@@ -259,15 +260,15 @@ func _on_draw() -> void:
 		var c: Vector2 = b[1]
 		var r: float = b[2]
 		var down: bool = held.has(b[0])
-		_draw.draw_circle(c, r, Color(1, 1, 1, 0.32) if down else base)
-		_draw.draw_arc(c, r, 0.0, TAU, 32, ring, 2.0, true)
+		DrawBatch.circle(_draw, c, r, Color(1, 1, 1, 0.32) if down else base)
+		DrawBatch.arc(_draw, c, r, 0.0, TAU, 32, ring, 2.0, true)
 		var label: String = b[4]
 		var fs := 12 if label.length() > 5 else (15 if label.length() > 2 else 20)
 		var w := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		_draw.draw_string(font, c + Vector2(-w * 0.5, fs * 0.35), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.8))
+		DrawBatch.string(_draw, font, c + Vector2(-w * 0.5, fs * 0.35), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.8))
 
 
 func _stick(c: Vector2, v: Vector2, active: bool, tint: Color) -> void:
-	_draw.draw_circle(c, STICK_R, Color(1, 1, 1, 0.1 if active else 0.06))
-	_draw.draw_arc(c, STICK_R, 0.0, TAU, 40, Color(1, 1, 1, 0.35 if active else 0.18), 2.0, true)
-	_draw.draw_circle(c + v * STICK_R, 34.0, Color(tint, 0.55 if active else 0.25))
+	DrawBatch.circle(_draw, c, STICK_R, Color(1, 1, 1, 0.1 if active else 0.06))
+	DrawBatch.arc(_draw, c, STICK_R, 0.0, TAU, 40, Color(1, 1, 1, 0.35 if active else 0.18), 2.0, true)
+	DrawBatch.circle(_draw, c + v * STICK_R, 34.0, Color(tint, 0.55 if active else 0.25))

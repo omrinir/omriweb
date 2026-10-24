@@ -397,7 +397,7 @@ func draw() -> bool:
 	# פונצ'ו קרוע
 	var pts := PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(10, 4), hip + Vector2(6, 9), hip + Vector2(2, 5), hip + Vector2(-3, 10), hip + Vector2(-8, 4)])
 	Art.fill_shaded(z, pts, poncho, 0.15, 0.4)
-	z.draw_line(sh + Vector2(-6, 5), hip + Vector2(-4, 2), col(Color(0.3, 0.2, 0.1, 0.35)), 2.0)   # בוץ
+	DrawBatch.line(z, sh + Vector2(-6, 5), hip + Vector2(-4, 2), col(Color(0.3, 0.2, 0.1, 0.35)), 2.0)   # בוץ
 	if hanging:
 		head = sh + Vector2(0.5, -7.5)
 	Art.oval_shaded(z, head, 5.4 if hanging else 5.0, 6.0 if hanging else 5.8, sk, 0.0)
@@ -407,17 +407,17 @@ func draw() -> bool:
 		Art.fill(z, PackedVector2Array([head + Vector2(-6, 3), head + Vector2(-5, -5), head + Vector2(1, -7), head + Vector2(5, -5), head + Vector2(0, -3), head + Vector2(-2, 4)]), Art.shade(poncho, 0.15), Art.OUTLINE, 0.9)   # ברדס
 	if not z.dead:
 		if hanging:   # שתי עיניים זוהרות שמביטות למעלה, פה פעור
-			z.draw_circle(head + Vector2(-2.0, -1.5), 1.1, Color(0.95, 1.0, 0.6))
-			z.draw_circle(head + Vector2(2.2, -1.5), 1.1, Color(0.95, 1.0, 0.6))
-			z.draw_colored_polygon(Art.ellipse(head + Vector2(0.2, 2.5), 1.6, 2.0, 0.0, 8), col(Color("1a0e0a")))
+			DrawBatch.circle(z, head + Vector2(-2.0, -1.5), 1.1, Color(0.95, 1.0, 0.6))
+			DrawBatch.circle(z, head + Vector2(2.2, -1.5), 1.1, Color(0.95, 1.0, 0.6))
+			DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(0.2, 2.5), 1.6, 2.0, 0.0, 8), col(Color("1a0e0a")))
 		else:
-			z.draw_circle(head + Vector2(3.0, -0.5), 1.0, Color(0.75, 0.8, 0.5))
-			z.draw_line(head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a1a14")), 1.2)
+			DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.0, Color(0.75, 0.8, 0.5))
+			DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a1a14")), 1.2)
 	if not hanging:
 		z._arm(sh + Vector2(3, 1), hf, sk, poncho)
 	for q in 3:   # אצבעות ארוכות
-		z.draw_line(hf, hf + Vector2.from_angle(-PI * 0.5 + float(q - 1) * 0.45) * 4.0, sk, 1.1)
+		DrawBatch.line(z, hf, hf + Vector2.from_angle(-PI * 0.5 + float(q - 1) * 0.45) * 4.0, sk, 1.1)
 		if hanging:
-			z.draw_line(hb, hb + Vector2.from_angle(-PI * 0.5 + float(q - 1) * 0.45) * 4.0, sk, 1.1)
+			DrawBatch.line(z, hb, hb + Vector2.from_angle(-PI * 0.5 + float(q - 1) * 0.45) * 4.0, sk, 1.1)
 	end_draw()
 	return true

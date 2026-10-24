@@ -157,11 +157,11 @@ func draw() -> bool:
 	var head: Vector2 = o.head
 	var sh: Vector2 = o.sh
 	var hf: Vector2 = o.hf
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-4, -7), head + Vector2(5, -7), head + Vector2(7, -3)]), col(E.RED_D))   # כומתה
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-4, -7), head + Vector2(5, -7), head + Vector2(7, -3)]), col(E.RED_D))   # כומתה
 	E.emblem(z, head + Vector2(3.5, -4.5), 1.6)
-	z.draw_colored_polygon(Art.ellipse(sh + Vector2(-10, 9), 6.0, 10.0, 0.0, 10), col(Color("8a7a58")))   # שק
-	z.draw_line(sh + Vector2(-12, 0), sh + Vector2(-8, 0), col(Color("5a4a30")), 1.2)
-	z.draw_line(hf, hf + Vector2(4, -9), col(Color("8a8e96")), 2.2)   # מפתח
-	z.draw_circle(hf + Vector2(4.5, -10), 2.2, col(Color("8a8e96")))
+	DrawBatch.colored_polygon(z, Art.ellipse(sh + Vector2(-10, 9), 6.0, 10.0, 0.0, 10), col(Color("8a7a58")))   # שק
+	DrawBatch.line(z, sh + Vector2(-12, 0), sh + Vector2(-8, 0), col(Color("5a4a30")), 1.2)
+	DrawBatch.line(z, hf, hf + Vector2(4, -9), col(Color("8a8e96")), 2.2)   # מפתח
+	DrawBatch.circle(z, hf + Vector2(4.5, -10), 2.2, col(Color("8a8e96")))
 	end_draw()
 	return true

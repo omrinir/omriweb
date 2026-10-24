@@ -210,11 +210,16 @@ class IceSpikes extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for s in _spikes:
 			var age: float = _t - float(s[1])
 			var x: float = dir * float(s[0])
 			if age < RISE + STAY + 0.4:   # הסדק
-				draw_line(Vector2(x - 6, -1), Vector2(x + 6, 1), Color(0.3, 0.55, 0.85, 0.7), 2.0)
+				DrawBatch.line(self, Vector2(x - 6, -1), Vector2(x + 6, 1), Color(0.3, 0.55, 0.85, 0.7), 2.0)
 			var k := 0.0
 			if age < RISE:
 				k = age / RISE
@@ -226,9 +231,9 @@ class IceSpikes extends Node2D:
 				continue
 			var h := (34.0 + fposmod(float(s[0]) * 0.37, 1.0) * 22.0) * k
 			var p := PackedVector2Array([Vector2(x - 9, 0), Vector2(x + 2, -h), Vector2(x + 9, 0)])
-			draw_colored_polygon(p, Color(0.75, 0.9, 1.0, 0.95))
-			draw_colored_polygon(PackedVector2Array([Vector2(x + 2, -h), Vector2(x + 9, 0), Vector2(x + 3, 0)]), Color(0.45, 0.7, 0.92, 0.95))
-			draw_line(Vector2(x - 4, -2), Vector2(x + 1, -h * 0.85), Color(1, 1, 1, 0.7), 1.2)
+			DrawBatch.colored_polygon(self, p, Color(0.75, 0.9, 1.0, 0.95))
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(x + 2, -h), Vector2(x + 9, 0), Vector2(x + 3, 0)]), Color(0.45, 0.7, 0.92, 0.95))
+			DrawBatch.line(self, Vector2(x - 4, -2), Vector2(x + 1, -h * 0.85), Color(1, 1, 1, 0.7), 1.2)
 
 
 # ============================================================
@@ -247,35 +252,35 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-8, 2), Vector2(-20, -12), Art.shade(sk, 0.3), Art.shade(sk, 0.25))
 	# גו
 	var torso := PackedVector2Array([sh + Vector2(-15, -3), sh + Vector2(-4, -8), sh + Vector2(14, -5), sh + Vector2(18, 4), hip + Vector2(14, 2), hip + Vector2(-14, 2)])
-	z.draw_rect(Rect2(sh + Vector2(1, -10), Vector2(9, 6)), Art.shade(sk, 0.2))   # צוואר
+	DrawBatch.rect(z, Rect2(sh + Vector2(1, -10), Vector2(9, 6)), Art.shade(sk, 0.2))   # צוואר
 	Art.fill_shaded(z, torso, sk, 0.2, 0.45)
 	for q in 5:   # כפור / גבישים על העור
-		z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-12.0 + float(q) * 5.0, 4.0 + float(q % 2) * 10.0), sh + Vector2(-10.0 + float(q) * 5.0, 1.0 + float(q % 2) * 10.0), sh + Vector2(-8.0 + float(q) * 5.0, 5.0 + float(q % 2) * 10.0)]), Color(0.9, 0.97, 1.0, 0.8))
+		DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-12.0 + float(q) * 5.0, 4.0 + float(q % 2) * 10.0), sh + Vector2(-10.0 + float(q) * 5.0, 1.0 + float(q % 2) * 10.0), sh + Vector2(-8.0 + float(q) * 5.0, 5.0 + float(q % 2) * 10.0)]), Color(0.9, 0.97, 1.0, 0.8))
 	# הלב (מתחת לצלעות)
 	if not z.dead:
 		var pulse := 0.6 + 0.4 * sin(z._time * (5.0 + 6.0 * k))
 		Art.glow(z, heart, 14.0 + 6.0 * pulse, Color(0.3, 0.7, 1.0, 0.35 * pulse))
-		z.draw_colored_polygon(PackedVector2Array([heart + Vector2(0, 5), heart + Vector2(-5, -1), heart + Vector2(-3, -5), heart + Vector2(0, -3), heart + Vector2(3, -5), heart + Vector2(5, -1)]), Color(0.45, 0.8, 1.0).lightened(0.3 * pulse))
+		DrawBatch.colored_polygon(z, PackedVector2Array([heart + Vector2(0, 5), heart + Vector2(-5, -1), heart + Vector2(-3, -5), heart + Vector2(0, -3), heart + Vector2(3, -5), heart + Vector2(5, -1)]), Color(0.45, 0.8, 1.0).lightened(0.3 * pulse))
 	for q in 4:   # צלעות קרח
 		var yy := -46.0 + float(q) * 4.5
-		z.draw_line(Vector2(-10, yy), Vector2(-3, yy - 1.5), Color(0.85, 0.95, 1.0, 0.9), 2.0)
-		z.draw_line(Vector2(9, yy - 1.5), Vector2(16, yy), Color(0.85, 0.95, 1.0, 0.9), 2.0)
-	z.draw_line(Vector2(3, -49), Vector2(3, -30), Color(0.85, 0.95, 1.0, 0.7), 1.5)   # עצם החזה
+		DrawBatch.line(z, Vector2(-10, yy), Vector2(-3, yy - 1.5), Color(0.85, 0.95, 1.0, 0.9), 2.0)
+		DrawBatch.line(z, Vector2(9, yy - 1.5), Vector2(16, yy), Color(0.85, 0.95, 1.0, 0.9), 2.0)
+	DrawBatch.line(z, Vector2(3, -49), Vector2(3, -30), Color(0.85, 0.95, 1.0, 0.7), 1.5)   # עצם החזה
 	# ראש גולגולת + כתר נטיפים
 	Art.oval_shaded(z, head, 8.0, 8.5, col(Color("d8e4ec")), 0.0)
-	z.draw_rect(Rect2(head + Vector2(-4, 5), Vector2(11, 6)), col(Color("d8e4ec")))   # לסת
+	DrawBatch.rect(z, Rect2(head + Vector2(-4, 5), Vector2(11, 6)), col(Color("d8e4ec")))   # לסת
 	var jaw := 3.0 * k if winding == "breath" else 0.0
 	for q in 4:
-		z.draw_line(head + Vector2(-3.0 + float(q) * 3.0, 6.0 + jaw), head + Vector2(-3.0 + float(q) * 3.0, 9.0 + jaw), col(Color("7a8a9a")), 1.0)
+		DrawBatch.line(z, head + Vector2(-3.0 + float(q) * 3.0, 6.0 + jaw), head + Vector2(-3.0 + float(q) * 3.0, 9.0 + jaw), col(Color("7a8a9a")), 1.0)
 	if not z.dead:
 		for e in [Vector2(-1, -1), Vector2(5, -1)]:
-			z.draw_colored_polygon(Art.ellipse(head + e, 2.4, 2.8, 0.0, 8), Color("10202e"))
-			z.draw_circle(head + e, 1.2, Color(0.5, 0.9, 1.0))
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(2, 3), head + Vector2(4, 3), head + Vector2(3, 0)]), Color("10202e"))
+			DrawBatch.colored_polygon(z, Art.ellipse(head + e, 2.4, 2.8, 0.0, 8), Color("10202e"))
+			DrawBatch.circle(z, head + e, 1.2, Color(0.5, 0.9, 1.0))
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(2, 3), head + Vector2(4, 3), head + Vector2(3, 0)]), Color("10202e"))
 	for q in 5:   # כתר נטיפים
 		var cx := -7.0 + float(q) * 3.6
 		var hh := 6.0 + float((q * 7) % 5) * 1.6
-		z.draw_colored_polygon(PackedVector2Array([head + Vector2(cx - 1.6, -6.5), head + Vector2(cx + 0.4, -6.5 - hh), head + Vector2(cx + 1.8, -6.5)]), Color(0.8, 0.94, 1.0, 0.95))
+		DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(cx - 1.6, -6.5), head + Vector2(cx + 0.4, -6.5 - hh), head + Vector2(cx + 1.8, -6.5)]), Color(0.8, 0.94, 1.0, 0.95))
 	if winding == "breath" and not z.dead:   # אדי כפור מהפה
 		Art.glow(z, head + Vector2(10, 7), 6.0 + 8.0 * k, Color(0.85, 0.95, 1.0, 0.5 * k))
 	# יד קדמית: מכסה את הלב / מורמת לזריקה / אגרופים למטה למכה
@@ -287,20 +292,20 @@ func draw() -> bool:
 	elif guarding():
 		hf = heart + Vector2(2, 0)
 	z._arm(sh + Vector2(13, 3), hf, sk, Art.shade(sk, 0.1))
-	z.draw_circle(hf, 5.0, sk)
+	DrawBatch.circle(z, hf, 5.0, sk)
 	if guarding() and not z.dead:
-		z.draw_circle(hf, 5.0, Color(0.85, 0.95, 1.0, 0.35))
+		DrawBatch.circle(z, hf, 5.0, Color(0.85, 0.95, 1.0, 0.35))
 	if winding == "boulder":   # גוש קרח ביד
 		var bp := hf + Vector2(0, -6)
 		var pts := PackedVector2Array()
 		for q in 7:
 			pts.append(bp + Vector2.from_angle(float(q) * TAU / 7.0) * (5.0 + float(q % 2) * 1.5) * (0.5 + 0.5 * k))
-		z.draw_colored_polygon(pts, Color(0.78, 0.92, 1.0))
+		DrawBatch.colored_polygon(z, pts, Color(0.78, 0.92, 1.0))
 	# גבעת הקרח שקוברת אותו עד המותניים
 	var mound := PackedVector2Array([Vector2(-34, 0), Vector2(-28, -12), Vector2(-16, -20), Vector2(-2, -16), Vector2(12, -21), Vector2(26, -13), Vector2(34, 0)])
 	Art.fill_shaded(z, mound, col(Color("8cc4e8")), 0.25, 0.4, Art.OUTLINE, 1.2)
-	z.draw_colored_polygon(PackedVector2Array([Vector2(-28, -12), Vector2(-16, -20), Vector2(-2, -16), Vector2(12, -21), Vector2(26, -13), Vector2(12, -17), Vector2(-2, -13), Vector2(-16, -17)]), Color("f0f6fc"))
+	DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(-28, -12), Vector2(-16, -20), Vector2(-2, -16), Vector2(12, -21), Vector2(26, -13), Vector2(12, -17), Vector2(-2, -13), Vector2(-16, -17)]), Color("f0f6fc"))
 	for q in 3:
-		z.draw_line(Vector2(-22.0 + float(q) * 18.0, -10), Vector2(-18.0 + float(q) * 18.0, -2), Color(1, 1, 1, 0.4), 1.2)
+		DrawBatch.line(z, Vector2(-22.0 + float(q) * 18.0, -10), Vector2(-18.0 + float(q) * 18.0, -2), Color(1, 1, 1, 0.4), 1.2)
 	end_draw()
 	return true

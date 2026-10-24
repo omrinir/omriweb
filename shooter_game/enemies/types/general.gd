@@ -281,28 +281,28 @@ func draw() -> bool:
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 3.0, 15.0), Art.shade(sk, 0.25), coat_d)
 	if _final():   # יד חבושה
-		z.draw_line(sh + Vector2(-5, 8), sh + Vector2(-6, 12), col(Color("d8d0c0")), 3.0)
+		DrawBatch.line(z, sh + Vector2(-5, 8), sh + Vector2(-6, 12), col(Color("d8d0c0")), 3.0)
 	# מעיל ארוך עם כנפיים
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(8, 10), hip + Vector2(-8, 10)]), coat, 0.15, 0.4)
-	z.draw_rect(Rect2(hip + Vector2(-7, -3), Vector2(15, 3)), col(Color("3a2a1a")))   # חגורה
-	z.draw_rect(Rect2(hip + Vector2(0, -3.5), Vector2(3, 4)), col(Color("c8a040")))
-	z.draw_rect(Rect2(sh + Vector2(-9, -2), Vector2(6, 3)), col(Color("c8a040")))   # כותפות
-	z.draw_rect(Rect2(sh + Vector2(4, -2), Vector2(6, 3)), col(Color("c8a040")))
+	DrawBatch.rect(z, Rect2(hip + Vector2(-7, -3), Vector2(15, 3)), col(Color("3a2a1a")))   # חגורה
+	DrawBatch.rect(z, Rect2(hip + Vector2(0, -3.5), Vector2(3, 4)), col(Color("c8a040")))
+	DrawBatch.rect(z, Rect2(sh + Vector2(-9, -2), Vector2(6, 3)), col(Color("c8a040")))   # כותפות
+	DrawBatch.rect(z, Rect2(sh + Vector2(4, -2), Vector2(6, 3)), col(Color("c8a040")))
 	if _final():   # שריון
 		Art.fill(z, PackedVector2Array([sh + Vector2(-5, 2), sh + Vector2(6, 2), sh + Vector2(5, 12), sh + Vector2(-4, 12)]), col(Color("5a5e60")), Art.OUTLINE, 1.0)
 	else:
 		for q in 3:   # מדליות
-			z.draw_rect(Rect2(sh + Vector2(-4.0 + float(q) * 3.0, 4), Vector2(2, 3)), col([Color("c03030"), Color("3060c0"), Color("e0c040")][q]))
-			z.draw_circle(sh + Vector2(-3.0 + float(q) * 3.0, 8.5), 1.0, col(Color("e0c040")))
+			DrawBatch.rect(z, Rect2(sh + Vector2(-4.0 + float(q) * 3.0, 4), Vector2(2, 3)), col([Color("c03030"), Color("3060c0"), Color("e0c040")][q]))
+			DrawBatch.circle(z, sh + Vector2(-3.0 + float(q) * 3.0, 8.5), 1.0, col(Color("e0c040")))
 	# ראש + כובע
 	Art.oval_shaded(z, head, 5.6, 6.0, sk, 0.0)
-	z.draw_rect(Rect2(head + Vector2(0, -2.5), Vector2(7, 2.2)), col(Color("101010")))   # משקפי שמש
+	DrawBatch.rect(z, Rect2(head + Vector2(0, -2.5), Vector2(7, 2.2)), col(Color("101010")))   # משקפי שמש
 	if not z.dead:
-		z.draw_circle(head + Vector2(4.5, -1.5), 0.8, Color(1.0, 0.3, 0.2))
+		DrawBatch.circle(z, head + Vector2(4.5, -1.5), 0.8, Color(1.0, 0.3, 0.2))
 	Art.fill(z, PackedVector2Array([head + Vector2(-7, -4), head + Vector2(-6, -9), head + Vector2(5, -11), head + Vector2(8, -6), head + Vector2(7, -4)]), coat, Art.OUTLINE, 1.0)
-	z.draw_rect(Rect2(head + Vector2(-6.5, -6), Vector2(14, 2.4)), col(Color("b02020")))
-	z.draw_circle(head + Vector2(1, -8), 1.6, col(Color("e0c040")))
-	z.draw_line(head + Vector2(4, -4), head + Vector2(11, -3), col(Color("101010")), 2.0)   # מצחייה
+	DrawBatch.rect(z, Rect2(head + Vector2(-6.5, -6), Vector2(14, 2.4)), col(Color("b02020")))
+	DrawBatch.circle(z, head + Vector2(1, -8), 1.6, col(Color("e0c040")))
+	DrawBatch.line(z, head + Vector2(4, -4), head + Vector2(11, -3), col(Color("101010")), 2.0)   # מצחייה
 	# יד קדמית: אקדח / חרב
 	var hand: Vector2
 	if rage:
@@ -315,9 +315,9 @@ func draw() -> bool:
 		z._arm(sh + Vector2(3, 1), hand, sk, coat)
 		var ang := -2.2 if state == WIND else (0.1 if state == DASH else -0.9)
 		var tip := hand + Vector2.from_angle(ang) * 26.0
-		z.draw_line(hand, tip, Art.OUTLINE, 3.2)
-		z.draw_line(hand, tip, col(Color("c8ccd0")), 1.8)
-		z.draw_line(hand + Vector2.from_angle(ang + 1.57) * 3.0, hand - Vector2.from_angle(ang + 1.57) * 3.0, col(Color("c8a040")), 2.0)
+		DrawBatch.line(z, hand, tip, Art.OUTLINE, 3.2)
+		DrawBatch.line(z, hand, tip, col(Color("c8ccd0")), 1.8)
+		DrawBatch.line(z, hand + Vector2.from_angle(ang + 1.57) * 3.0, hand - Vector2.from_angle(ang + 1.57) * 3.0, col(Color("c8a040")), 2.0)
 	else:
 		if state == AIM:   # כיוון בעולם -> מקומי (מוראה לפי הכיוון)
 			var la: float = _aim if z._dir > 0.0 else PI - _aim
@@ -328,7 +328,7 @@ func draw() -> bool:
 		var ga: float = 0.0
 		if state == AIM:
 			ga = _aim if z._dir > 0.0 else PI - _aim
-		z.draw_line(hand, hand + Vector2.from_angle(ga) * 8.0, col(Color("2a2a2c")), 3.0)
+		DrawBatch.line(z, hand, hand + Vector2.from_angle(ga) * 8.0, col(Color("2a2a2c")), 3.0)
 	end_draw()
 	return true
 
@@ -364,13 +364,18 @@ class Shell extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := clampf(_t / delay, 0.0, 1.0)
 		var blink := fmod(_t * 8.0, 1.0) < 0.6
-		draw_colored_polygon(preload("res://art.gd").ellipse(Vector2.ZERO, radius, radius * 0.2, 0.0, 20), Color(1.0, 0.4, 0.1, 0.12 + 0.18 * k))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.2))
-		draw_arc(Vector2.ZERO, radius, 0, TAU, 24, Color(1.0, 0.5, 0.2, 0.9 if blink else 0.5), 3.0)
-		draw_arc(Vector2.ZERO, radius * (1.0 - k) + 4.0, 0, TAU, 20, Color(1, 0.9, 0.7, 0.7), 2.0)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		DrawBatch.colored_polygon(self, preload("res://art.gd").ellipse(Vector2.ZERO, radius, radius * 0.2, 0.0, 20), Color(1.0, 0.4, 0.1, 0.12 + 0.18 * k))
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(1.0, 0.2))
+		DrawBatch.arc(self, Vector2.ZERO, radius, 0, TAU, 24, Color(1.0, 0.5, 0.2, 0.9 if blink else 0.5), 3.0)
+		DrawBatch.arc(self, Vector2.ZERO, radius * (1.0 - k) + 4.0, 0, TAU, 20, Color(1, 0.9, 0.7, 0.7), 2.0)
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
 		var sy := -600.0 * (1.0 - k)   # הפגז שנופל
 		if k > 0.6:
-			draw_line(Vector2(0, sy - 14.0), Vector2(0, sy), Color(0.2, 0.2, 0.2, 0.9), 3.0)
+			DrawBatch.line(self, Vector2(0, sy - 14.0), Vector2(0, sy), Color(0.2, 0.2, 0.2, 0.9), 3.0)

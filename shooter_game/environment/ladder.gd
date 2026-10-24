@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  LADDER - סולם בין קומות. השחקן עומד עליו ולוחץ W (למעלה) / S (למטה).
 #  SPACE = קופץ מהסולם. position = תחתית הסולם, height = גובה.
@@ -21,9 +22,14 @@ func top_y() -> float:
 
 
 func _draw() -> void:
-	draw_line(Vector2(-9, 0), Vector2(-9, -height - 10.0), color, 2.5)
-	draw_line(Vector2(9, 0), Vector2(9, -height - 10.0), color, 2.5)
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
+	DrawBatch.line(self, Vector2(-9, 0), Vector2(-9, -height - 10.0), color, 2.5)
+	DrawBatch.line(self, Vector2(9, 0), Vector2(9, -height - 10.0), color, 2.5)
 	var y := -10.0
 	while y > -height - 4.0:
-		draw_line(Vector2(-9, y), Vector2(9, y), color.darkened(0.15), 2.0)
+		DrawBatch.line(self, Vector2(-9, y), Vector2(9, y), color.darkened(0.15), 2.0)
 		y -= 16.0

@@ -153,13 +153,13 @@ func draw() -> bool:
 				for i in 9:
 					var u := float(i) / 8.0
 					pts.append(from.lerp(mid, u).lerp(mid.lerp(to, u), u))
-				z.draw_polyline(pts, Color(1.0, 0.6, 0.2, 0.55 * a), 1.5, true)
-				z.draw_circle(to, 3.0, Color(1.0, 0.7, 0.3, 0.7 * a))
+				DrawBatch.polyline(z, pts, Color(1.0, 0.6, 0.2, 0.55 * a), 1.5, true)
+				DrawBatch.circle(z, to, 3.0, Color(1.0, 0.7, 0.3, 0.7 * a))
 	if not z.dead:   # הילה חלשה על הריצפה: טווח ההשפעה
 		var pulse := 0.5 + 0.5 * sin(z._time * 2.0)
 		var ring := Art.ellipse(Vector2.ZERO, 24.0 * z.sc, 5.0 * z.sc, 0.0, 22)
 		ring.append(ring[0])
-		z.draw_polyline(ring, Color(1.0, 0.55, 0.2, 0.2 + 0.15 * pulse), 1.6, true)
+		DrawBatch.polyline(z, ring, Color(1.0, 0.55, 0.2, 0.2 + 0.15 * pulse), 1.6, true)
 	begin_draw()
 	var sk := col(z.skin)
 	var sk_d := col(Art.shade(z.skin, 0.3))
@@ -182,7 +182,7 @@ func draw() -> bool:
 	Art.fill(z, PackedVector2Array([sh + Vector2(2, -2), sh + Vector2(4, -2), sh.lerp(hip, 0.55) + Vector2(4, 0), sh.lerp(hip, 0.62) + Vector2(2.5, 1), sh.lerp(hip, 0.55) + Vector2(1.5, 0)]), col(Color("b01818")), Art.OUTLINE, 0.8)
 	for i in 3:   # קרעים בז'קט
 		var tp: Vector2 = hip.lerp(sh, 0.15 + float(i) * 0.2) + Vector2(-6, 0)
-		z.draw_line(tp, tp + Vector2(-2, 3), suit_d, 1.2)
+		DrawBatch.line(z, tp, tp + Vector2(-2, 3), suit_d, 1.2)
 	# ראש + כתר קוצי עצם
 	Art.oval_shaded(z, head, 6.5, 7.5, sk, 0.0)
 	for i in 4:
@@ -191,17 +191,17 @@ func draw() -> bool:
 		var tip := head + Vector2.from_angle(a) * (11.0 + float(i % 2) * 3.5)
 		Art.fill(z, PackedVector2Array([base + Vector2.from_angle(a + 1.57) * 2.0, tip, base - Vector2.from_angle(a + 1.57) * 2.0]), col(Color("ece4cc")), Color(0.15, 0.12, 0.1, 0.8), 0.6)
 	# צבע מלחמה כתום על הפנים + עיניים כתומות
-	z.draw_line(head + Vector2(-1, -1), head + Vector2(6, 0), paint, 1.4)
-	z.draw_line(head + Vector2(0, 2), head + Vector2(5, 3), paint, 1.0)
+	DrawBatch.line(z, head + Vector2(-1, -1), head + Vector2(6, 0), paint, 1.4)
+	DrawBatch.line(z, head + Vector2(0, 2), head + Vector2(5, 3), paint, 1.0)
 	var eye := Color(1.0, 0.6, 0.15)
 	Art.glow(z, head + Vector2(3.5, -2.0), 4.5 if cmd else 3.0, Color(eye, 0.75 if cmd else 0.5))
-	z.draw_circle(head + Vector2(3.5, -2.0), 1.1, eye)
+	DrawBatch.circle(z, head + Vector2(3.5, -2.0), 1.1, eye)
 	var jaw := 2.0 + (5.0 if cmd else sin(z._time * 2.0))
 	Art.fill(z, PackedVector2Array([head + Vector2(1, 3), head + Vector2(6.5, 2.5), head + Vector2(6, 4.0 + jaw), head + Vector2(1.5, 4.5 + jaw * 0.6)]), Color("2a0a0c"), Art.OUTLINE, 0.9)
 	# יד קדמית: מורמת ומצביעה בזמן פקודה
 	var hand := sh + (Vector2(10, -22) if cmd else Vector2(8, 18 + sin(p) * 2.0))
 	z._arm(sh + Vector2(3, 1), hand, sk, suit)
-	z.draw_line(hand + Vector2(-2, 1), hand + Vector2(3, -1), paint, 1.2)
+	DrawBatch.line(z, hand + Vector2(-2, 1), hand + Vector2(3, -1), paint, 1.2)
 	if cmd:
 		Art.glow(z, hand, 8.0, Color(1.0, 0.6, 0.2, 0.5 * clampf(_arm / 0.9, 0.0, 1.0)))
 	end_draw()

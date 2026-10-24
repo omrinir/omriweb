@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  EMPIRE KIT - כלים משותפים ל"אימפריית המתים" (שלבים 40-45).
 #  הזומבים התארגנו: מדים, דרגות, דגלים אדומים - ומטרה אחת: לכבוש את העולם.
@@ -27,12 +28,12 @@ const BRASS := Color("c8a040")
 
 # ---- הסמל: אורובורוס סביב גולגולת ----
 static func emblem(ci: CanvasItem, c: Vector2, r: float, bg := Color(0.95, 0.93, 0.88)) -> void:
-	ci.draw_circle(c, r, bg)
+	DrawBatch.circle(ci, c, r, bg)
 	var black := Color("141010")
 	var rr := r * 0.72
 	var a0 := -PI * 0.5 + 0.3             # קצה הזנב (מימין למעלה)
 	var a1 := a0 + TAU - 0.62             # הצוואר (משמאל למעלה)
-	ci.draw_arc(c, rr, a0 + 0.25, a1, 28, black, r * 0.17)
+	DrawBatch.arc(ci, c, rr, a0 + 0.25, a1, 28, black, r * 0.17)
 	# זנב מתחדד שנכנס לפה
 	var tail := PackedVector2Array()
 	for q in 5:
@@ -45,30 +46,30 @@ static func emblem(ci: CanvasItem, c: Vector2, r: float, bg := Color(0.95, 0.93,
 		var a := a0 + 0.25 - u * 0.33
 		var wdt := r * 0.085 * (1.0 - u)
 		tail.append(c + Vector2.from_angle(a) * (rr - wdt))
-	ci.draw_colored_polygon(tail, black)
+	DrawBatch.colored_polygon(ci, tail, black)
 	# ראש הנחש: אליפסה לאורך המעגל, עין, לסת פתוחה סביב הזנב
 	var ha := a1 + 0.2
 	var hc := c + Vector2.from_angle(ha) * rr
 	var tang := Vector2.from_angle(ha + PI * 0.5)   # כיוון ההתקדמות (עם השעון)
-	ci.draw_colored_polygon(Art.ellipse(hc, r * 0.24, r * 0.15, tang.angle(), 12), black)
+	DrawBatch.colored_polygon(ci, Art.ellipse(hc, r * 0.24, r * 0.15, tang.angle(), 12), black)
 	var jaw := hc + tang * r * 0.16
-	ci.draw_colored_polygon(PackedVector2Array([jaw + Vector2.from_angle(ha) * r * 0.1, jaw + tang * r * 0.1 + Vector2.from_angle(ha) * r * 0.06, jaw + tang * r * 0.02]), black)
-	ci.draw_colored_polygon(PackedVector2Array([jaw - Vector2.from_angle(ha) * r * 0.1, jaw + tang * r * 0.1 - Vector2.from_angle(ha) * r * 0.06, jaw + tang * r * 0.02]), black)
+	DrawBatch.colored_polygon(ci, PackedVector2Array([jaw + Vector2.from_angle(ha) * r * 0.1, jaw + tang * r * 0.1 + Vector2.from_angle(ha) * r * 0.06, jaw + tang * r * 0.02]), black)
+	DrawBatch.colored_polygon(ci, PackedVector2Array([jaw - Vector2.from_angle(ha) * r * 0.1, jaw + tang * r * 0.1 - Vector2.from_angle(ha) * r * 0.06, jaw + tang * r * 0.02]), black)
 	if r > 8.0:
-		ci.draw_circle(hc + Vector2.from_angle(ha) * r * 0.05 + tang * r * 0.04, r * 0.035, bg)   # עין
+		DrawBatch.circle(ci, hc + Vector2.from_angle(ha) * r * 0.05 + tang * r * 0.04, r * 0.035, bg)   # עין
 		var q := a0 + 0.6
 		while q < a1 - 0.1:   # קשקשים
-			ci.draw_circle(c + Vector2.from_angle(q) * rr, r * 0.022, Color(bg, 0.55))
+			DrawBatch.circle(ci, c + Vector2.from_angle(q) * rr, r * 0.022, Color(bg, 0.55))
 			q += 0.45
 	# גולגולת
 	var sk := c + Vector2(0, -r * 0.06)
-	ci.draw_circle(sk, r * 0.32, black)
-	ci.draw_rect(Rect2(sk + Vector2(-r * 0.18, r * 0.16), Vector2(r * 0.36, r * 0.2)), black)
-	ci.draw_circle(sk + Vector2(-r * 0.12, -r * 0.01), r * 0.09, bg)
-	ci.draw_circle(sk + Vector2(r * 0.12, -r * 0.01), r * 0.09, bg)
-	ci.draw_colored_polygon(PackedVector2Array([sk + Vector2(0, r * 0.08), sk + Vector2(-r * 0.04, r * 0.15), sk + Vector2(r * 0.04, r * 0.15)]), bg)
+	DrawBatch.circle(ci, sk, r * 0.32, black)
+	DrawBatch.rect(ci, Rect2(sk + Vector2(-r * 0.18, r * 0.16), Vector2(r * 0.36, r * 0.2)), black)
+	DrawBatch.circle(ci, sk + Vector2(-r * 0.12, -r * 0.01), r * 0.09, bg)
+	DrawBatch.circle(ci, sk + Vector2(r * 0.12, -r * 0.01), r * 0.09, bg)
+	DrawBatch.colored_polygon(ci, PackedVector2Array([sk + Vector2(0, r * 0.08), sk + Vector2(-r * 0.04, r * 0.15), sk + Vector2(r * 0.04, r * 0.15)]), bg)
 	for q in 3:
-		ci.draw_line(sk + Vector2(-r * 0.1 + float(q) * r * 0.1, r * 0.22), sk + Vector2(-r * 0.1 + float(q) * r * 0.1, r * 0.35), bg, maxf(r * 0.03, 1.0))
+		DrawBatch.line(ci, sk + Vector2(-r * 0.1 + float(q) * r * 0.1, r * 0.22), sk + Vector2(-r * 0.1 + float(q) * r * 0.1, r * 0.35), bg, maxf(r * 0.03, 1.0))
 
 
 # ---- דגל מתנופף ----
@@ -81,8 +82,8 @@ static func flag(ci: CanvasItem, pole_top: Vector2, w: float, h: float, t: float
 	for q in range(n, -1, -1):   # קצה תחתון
 		var u := float(q) / float(n)
 		pts.append(pole_top + Vector2(u * w, h + sin(t * 4.0 + u * 5.0 + float(s) + 0.6) * h * 0.08 * u))
-	ci.draw_colored_polygon(pts, RED)
-	ci.draw_line(pole_top + Vector2(0, 1), pole_top + Vector2(0, h - 1), RED_D, 2.0)   # שרוול לתורן
+	DrawBatch.colored_polygon(ci, pts, RED)
+	DrawBatch.line(ci, pole_top + Vector2(0, 1), pole_top + Vector2(0, h - 1), RED_D, 2.0)   # שרוול לתורן
 	if with_emblem:
 		var c := pole_top + Vector2(w * 0.45, h * 0.5 + sin(t * 4.0 + 2.25 + float(s)) * h * 0.04)
 		emblem(ci, c, h * 0.3)
@@ -92,25 +93,25 @@ static func flag(ci: CanvasItem, pole_top: Vector2, w: float, h: float, t: float
 static func banner(ci: CanvasItem, top: Vector2, w: float, h: float, t: float) -> void:
 	var sway := sin(t * 1.3 + top.x * 0.01) * w * 0.04
 	var pts := PackedVector2Array([top + Vector2(-w * 0.5, 0), top + Vector2(w * 0.5, 0), top + Vector2(w * 0.5 + sway, h), top + Vector2(sway, h - w * 0.25), top + Vector2(-w * 0.5 + sway, h)])
-	ci.draw_colored_polygon(pts, RED)
-	ci.draw_line(top + Vector2(-w * 0.5 - 3.0, 0), top + Vector2(w * 0.5 + 3.0, 0), Color("2a2420"), maxf(w * 0.05, 2.0))
-	ci.draw_line(top + Vector2(-w * 0.42, 2), top + Vector2(-w * 0.42 + sway * 0.8, h - w * 0.08), Color(0, 0, 0, 0.15), maxf(w * 0.04, 1.0))
+	DrawBatch.colored_polygon(ci, pts, RED)
+	DrawBatch.line(ci, top + Vector2(-w * 0.5 - 3.0, 0), top + Vector2(w * 0.5 + 3.0, 0), Color("2a2420"), maxf(w * 0.05, 2.0))
+	DrawBatch.line(ci, top + Vector2(-w * 0.42, 2), top + Vector2(-w * 0.42 + sway * 0.8, h - w * 0.08), Color(0, 0, 0, 0.15), maxf(w * 0.04, 1.0))
 	emblem(ci, top + Vector2(sway * 0.4, h * 0.3), w * 0.34)
 
 
 # ---- סרט זרוע ----
 static func armband(ci: CanvasItem, p: Vector2, w := 5.0) -> void:
-	ci.draw_rect(Rect2(p - Vector2(w * 0.5, w * 0.35), Vector2(w, w * 0.7)), RED)
-	ci.draw_circle(p, w * 0.22, Color(0.95, 0.93, 0.88))
+	DrawBatch.rect(ci, Rect2(p - Vector2(w * 0.5, w * 0.35), Vector2(w, w * 0.7)), RED)
+	DrawBatch.circle(ci, p, w * 0.22, Color(0.95, 0.93, 0.88))
 
 
 # ---- קסדה ----
 static func helmet(ci: CanvasItem, head: Vector2, col := STEEL) -> void:
-	ci.draw_line(head + Vector2(-3.5, -1.0), head + Vector2(1.5, 4.8), Color("2a2418"), 0.9)   # רצועת סנטר
+	DrawBatch.line(ci, head + Vector2(-3.5, -1.0), head + Vector2(1.5, 4.8), Color("2a2418"), 0.9)   # רצועת סנטר
 	Art.fill_shaded(ci, PackedVector2Array([head + Vector2(-6.5, -1.5), head + Vector2(-5.5, -6.0), head + Vector2(0, -8.0), head + Vector2(5.5, -6.0), head + Vector2(7.0, -1.5)]), col, 0.25, 0.25, Art.OUTLINE, 1.0)
-	ci.draw_line(head + Vector2(-7.0, -1.2), head + Vector2(7.5, -1.2), col.darkened(0.3), 1.6)
-	ci.draw_line(head + Vector2(-3.5, -6.0), head + Vector2(0.5, -7.2), Color(1, 1, 1, 0.22), 1.0)   # ברק על הקסדה
-	ci.draw_circle(head + Vector2(-2.5, -4.5), 1.2, RED)
+	DrawBatch.line(ci, head + Vector2(-7.0, -1.2), head + Vector2(7.5, -1.2), col.darkened(0.3), 1.6)
+	DrawBatch.line(ci, head + Vector2(-3.5, -6.0), head + Vector2(0.5, -7.2), Color(1, 1, 1, 0.22), 1.0)   # ברק על הקסדה
+	DrawBatch.circle(ci, head + Vector2(-2.5, -4.5), 1.2, RED)
 
 
 # ---- ירייה של חייל ----
@@ -216,41 +217,41 @@ static func soldier(t, z: Node, hf_off: Vector2, hat := "helmet", coat := UNIFOR
 	var hb := sh + Vector2(-5.0 - sin(p) * 2.0, 15.0) if back_off.x > 900.0 else sh + back_off
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(cc, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(8, 5), hip + Vector2(-8, 5)]), cc, 0.12, 0.4)   # מעיל
-	z.draw_line(sh + Vector2(1, 0), hip + Vector2(1.5, 4), cc.darkened(0.3), 1.0)
-	z.draw_rect(Rect2(hip + Vector2(-8, -2), Vector2(16, 2.5)), t.col(Color("2a2018")))   # חגורה
-	z.draw_circle(sh + Vector2(1.5, 4), 0.9, t.col(BRASS))
-	z.draw_circle(sh + Vector2(1.6, 9), 0.9, t.col(BRASS))
+	DrawBatch.line(z, sh + Vector2(1, 0), hip + Vector2(1.5, 4), cc.darkened(0.3), 1.0)
+	DrawBatch.rect(z, Rect2(hip + Vector2(-8, -2), Vector2(16, 2.5)), t.col(Color("2a2018")))   # חגורה
+	DrawBatch.circle(z, sh + Vector2(1.5, 4), 0.9, t.col(BRASS))
+	DrawBatch.circle(z, sh + Vector2(1.6, 9), 0.9, t.col(BRASS))
 	# פרטי מעיל: צווארון, כיסים, אור על הכתפיים, כתם דם / חור קליע (שונה לכל זומבי)
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-4.5, -1.2), sh + Vector2(5.5, -0.8), sh + Vector2(1.2, 4.0)]), cc.darkened(0.35))
-	z.draw_line(sh + Vector2(-7.0, 0.2), sh + Vector2(6.5, 0.6), Color(cc.lightened(0.35), 0.7), 1.0)
-	z.draw_rect(Rect2(sh + Vector2(-6.5, 4.5), Vector2(5.0, 1.5)), cc.darkened(0.3))
-	z.draw_rect(Rect2(hip + Vector2(-7.0, -7.5), Vector2(5.5, 1.6)), cc.darkened(0.3))
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-4.5, -1.2), sh + Vector2(5.5, -0.8), sh + Vector2(1.2, 4.0)]), cc.darkened(0.35))
+	DrawBatch.line(z, sh + Vector2(-7.0, 0.2), sh + Vector2(6.5, 0.6), Color(cc.lightened(0.35), 0.7), 1.0)
+	DrawBatch.rect(z, Rect2(sh + Vector2(-6.5, 4.5), Vector2(5.0, 1.5)), cc.darkened(0.3))
+	DrawBatch.rect(z, Rect2(hip + Vector2(-7.0, -7.5), Vector2(5.5, 1.6)), cc.darkened(0.3))
 	if not z.dead and z._det[0]:
 		Art.oval(z, sh + Vector2(-3.0 + z._det[3] * 0.5, 10.0 + z._det[4] * 0.5), 2.6, 2.0, Color(0.42, 0.03, 0.03, 0.8), 0.3, Art.NONE)
-		z.draw_circle(sh + Vector2(-3.0 + z._det[3] * 0.5, 10.0 + z._det[4] * 0.5), 0.9, Color(0.12, 0.0, 0.0))
+		DrawBatch.circle(z, sh + Vector2(-3.0 + z._det[3] * 0.5, 10.0 + z._det[4] * 0.5), 0.9, Color(0.12, 0.0, 0.0))
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	# פנים של זומבי: ארובה שקועה, לסת עם שיניים, ריקבון בלחי
 	Art.oval(z, head + Vector2(2.8, -0.6), 2.4, 1.8, Color(0.12, 0.0, 0.04, 0.45), 0.0, Art.NONE)
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(1.2, 2.4), head + Vector2(5.4, 1.8), head + Vector2(4.8, 4.6), head + Vector2(1.6, 4.4)]), t.col(Color("2a0a0c")))
-	z.draw_line(head + Vector2(2.0, 2.6), head + Vector2(4.8, 2.2), t.col(Color("d8d0a8")), 0.8)
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(1.2, 2.4), head + Vector2(5.4, 1.8), head + Vector2(4.8, 4.6), head + Vector2(1.6, 4.4)]), t.col(Color("2a0a0c")))
+	DrawBatch.line(z, head + Vector2(2.0, 2.6), head + Vector2(4.8, 2.2), t.col(Color("d8d0a8")), 0.8)
 	if z._det[5]:
 		Art.oval(z, head + Vector2(-1.0, 1.6), 1.6, 1.2, Color(0.4, 0.05, 0.05, 0.85), 0.0, Art.NONE)
 	match hat:
 		"helmet":
 			helmet(z, head, t.col(STEEL))
 		"cap":   # כובע קצינים: מצחייה שחורה, פס אדום, הסמל
-			z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -3), head + Vector2(-5, -8), head + Vector2(6, -9), head + Vector2(7, -4)]), t.col(UNIFORM_D))
-			z.draw_rect(Rect2(head + Vector2(-6, -4.5), Vector2(13, 2)), t.col(RED))
-			z.draw_rect(Rect2(head + Vector2(2, -3), Vector2(8, 1.6)), t.col(Color("141414")))
-			z.draw_circle(head + Vector2(1, -6.5), 1.4, t.col(Color(0.92, 0.9, 0.85)))
+			DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-6, -3), head + Vector2(-5, -8), head + Vector2(6, -9), head + Vector2(7, -4)]), t.col(UNIFORM_D))
+			DrawBatch.rect(z, Rect2(head + Vector2(-6, -4.5), Vector2(13, 2)), t.col(RED))
+			DrawBatch.rect(z, Rect2(head + Vector2(2, -3), Vector2(8, 1.6)), t.col(Color("141414")))
+			DrawBatch.circle(z, head + Vector2(1, -6.5), 1.4, t.col(Color(0.92, 0.9, 0.85)))
 		"gasmask":
 			helmet(z, head, t.col(STEEL))
-			z.draw_circle(head + Vector2(3.0, 1.5), 3.6, t.col(Color("2a2a2a")))
-			z.draw_circle(head + Vector2(3.6, -0.8), 1.3, Color(0.6, 0.8, 0.5, 0.9))
-			z.draw_rect(Rect2(head + Vector2(4.5, 2.5), Vector2(3, 3)), t.col(Color("3a3a3a")))
+			DrawBatch.circle(z, head + Vector2(3.0, 1.5), 3.6, t.col(Color("2a2a2a")))
+			DrawBatch.circle(z, head + Vector2(3.6, -0.8), 1.3, Color(0.6, 0.8, 0.5, 0.9))
+			DrawBatch.rect(z, Rect2(head + Vector2(4.5, 2.5), Vector2(3, 3)), t.col(Color("3a3a3a")))
 	if hat != "gasmask" and not z.dead:
 		Art.glow(z, head + Vector2(3.0, -0.5), 3.0, Color(1.0, 0.2, 0.15, 0.5))
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.25, 0.2))   # עיניים אדומות - "מאורגנים"
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.25, 0.2))   # עיניים אדומות - "מאורגנים"
 	armband(z, sh + Vector2(-4, 6), 4.5)
 	var hf := sh + hf_off
 	z._arm(sh + Vector2(3, 1), hf, sk, cc)
@@ -260,6 +261,6 @@ static func soldier(t, z: Node, hf_off: Vector2, hat := "helmet", coat := UNIFOR
 # רובה ביד (מכוון לכיוון aim המקומי)
 static func rifle(z: Node, hf: Vector2, aim := Vector2.RIGHT, col := Color("2a2420")) -> void:
 	var d := aim.normalized()
-	z.draw_line(hf - d * 8.0, hf + d * 12.0, col, 2.4)   # גוף
-	z.draw_line(hf + d * 12.0, hf + d * 17.0, Color("1a1a1a"), 1.4)   # קנה
-	z.draw_line(hf - d * 8.0, hf - d * 8.0 + d.orthogonal() * -3.0, col, 2.0)   # קת
+	DrawBatch.line(z, hf - d * 8.0, hf + d * 12.0, col, 2.4)   # גוף
+	DrawBatch.line(z, hf + d * 12.0, hf + d * 17.0, Color("1a1a1a"), 1.4)   # קנה
+	DrawBatch.line(z, hf - d * 8.0, hf - d * 8.0 + d.orthogonal() * -3.0, col, 2.0)   # קת

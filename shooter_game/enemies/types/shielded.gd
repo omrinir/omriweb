@@ -188,10 +188,10 @@ func draw() -> bool:
 	# גוף רחב + סינר עור
 	Art.fill_shaded(z, PackedVector2Array([hip + Vector2(-8, 3), hip + Vector2(7, 3), sh + Vector2(8, 1), sh + Vector2(-8, -2)]), sk, 0.15, 0.4)
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-2, 2), sh + Vector2(7, 2), hip + Vector2(8, 8), hip + Vector2(-2, 8)]), apron, 0.15, 0.4)
-	z.draw_line(sh + Vector2(-4, -1), sh + Vector2(6, 6), col(Art.shade(z.shirt, 0.4)), 1.0)   # רצועה
+	DrawBatch.line(z, sh + Vector2(-4, -1), sh + Vector2(6, 6), col(Art.shade(z.shirt, 0.4)), 1.0)   # רצועה
 	# ראש (מוסתר מאחורי הלוח כשהוא מגן)
 	Art.oval_shaded(z, head, 6.8, 7.0, sk, 0.0)
-	z.draw_circle(head + Vector2(3.5, -1.0), 1.1, Color(1.0, 0.75, 0.3))
+	DrawBatch.circle(z, head + Vector2(3.5, -1.0), 1.1, Color(1.0, 0.75, 0.3))
 	Art.glow(z, head + Vector2(3.5, -1.0), 3.5, Color(1.0, 0.6, 0.2, 0.5))
 	Art.fill(z, PackedVector2Array([head + Vector2(1, 3), head + Vector2(6.5, 2.5), head + Vector2(6, 5.5), head + Vector2(1.5, 5.5)]), Color("2a0a0c"), Art.OUTLINE, 0.8)
 	# ידיים אוחזות בלוח
@@ -205,15 +205,15 @@ func draw() -> bool:
 	Art.fill_shaded(z, tr * PackedVector2Array([Vector2(-4, -26), Vector2(5, -24), Vector2(5, 24), Vector2(-4, 26)]), steel, 0.25, 0.45, Art.OUTLINE, 1.4)
 	for i in 5:   # פסי אזהרה בחלק העליון
 		var y := -24.0 + float(i) * 3.2
-		z.draw_colored_polygon(tr * PackedVector2Array([Vector2(-4, y), Vector2(5, y - 1.5), Vector2(5, y + 1.5), Vector2(-4, y + 3)]), col(Color("d0a020")) if i % 2 == 0 else col(Color("1a1a1a")))
+		DrawBatch.colored_polygon(z, tr * PackedVector2Array([Vector2(-4, y), Vector2(5, y - 1.5), Vector2(5, y + 1.5), Vector2(-4, y + 3)]), col(Color("d0a020")) if i % 2 == 0 else col(Color("1a1a1a")))
 	Art.disc(z, tr * Vector2(0.5, 2.0), 3.6, col(Color("2a3034")), Art.OUTLINE, 1.0)   # אשנב
-	z.draw_circle(tr * Vector2(-0.5, 1.0), 1.2, Color(0.7, 0.85, 0.9, 0.5))
+	DrawBatch.circle(z, tr * Vector2(-0.5, 1.0), 1.2, Color(0.7, 0.85, 0.9, 0.5))
 	for rv in [Vector2(-2.5, -6), Vector2(3.5, -6), Vector2(-2.5, 18), Vector2(3.5, 18)]:
-		z.draw_circle(tr * rv, 0.8, col(Color("9a9ea0")))
+		DrawBatch.circle(z, tr * rv, 0.8, col(Color("9a9ea0")))
 	Art.oval(z, tr * Vector2(1.0, 12.0), 2.5, 3.5, Color(0.5, 0.25, 0.08, 0.6), 0.0, Art.NONE)   # חלודה
 	for sp in _scars:   # שריטות מקליעים (נוצצות)
 		var sv: Vector2 = sp
 		var lp := Vector2((sv.x - plate_c.x) * 0.4, sv.y - plate_c.y)
-		z.draw_circle(tr * lp, 1.0, Color(0.95, 0.9, 0.75, 0.8))
+		DrawBatch.circle(z, tr * lp, 1.0, Color(0.95, 0.9, 0.75, 0.8))
 	end_draw()
 	return true

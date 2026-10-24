@@ -26,6 +26,11 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/handheld/orientation=4
 
+[physics]
+
+common/physics_interpolation=true
+common/physics_jitter_fix=0.0
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

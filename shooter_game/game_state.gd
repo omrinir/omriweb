@@ -1,4 +1,5 @@
 extends Node
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  מצב המשחק (Autoload בשם Game - זמין מכל מקום):
 #  * ניקוד, קומבו (מכפיל), סטטיסטיקות של השלב
@@ -103,6 +104,7 @@ var _banner: Node2D
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # רק מה שזז בפיזיקה מוחלק (effects/smooth_motion.gd)
 	_load()
 	_migrate_old_upgrades()
 	var layer := CanvasLayer.new()
@@ -135,7 +137,7 @@ func _process(delta: float) -> void:
 # שלבים זוגיים = רכבת תחתית
 # העולמות מתחלפים: 0 = רחוב, 1 = רכבת תחתית, 2 = מפעל
 # איזה עולם בכל שלב: 0 רחוב, 1 רכבת תחתית, 2 מפעל, 3 רחוב בלילה עם גשם
-const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12, 14: 13, 15: 14, 16: 15, 17: 16, 18: 17, 19: 18, 20: 19, 21: 20, 22: 21, 23: 22, 24: 23, 25: 24, 26: 25, 27: 26, 28: 27, 29: 28, 30: 29, 31: 30, 32: 31, 33: 32, 34: 33, 35: 34, 36: 35, 37: 36, 38: 37, 39: 38, 40: 39, 41: 40, 42: 41, 43: 42, 44: 43, 45: 44, 46: 45, 47: 46, 48: 47, 49: 48, 50: 49, 51: 50, 52: 51, 53: 52, 54: 53}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
+const LEVEL_WORLD := {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 12: 11, 13: 12, 14: 13, 15: 14, 16: 15, 17: 16, 18: 17, 19: 18, 20: 19, 21: 20, 22: 21, 23: 22, 24: 23, 25: 24, 26: 25, 27: 26, 28: 27, 29: 28, 30: 29, 31: 30, 32: 31, 33: 32, 34: 33, 35: 34, 36: 35, 37: 36, 38: 37, 39: 38, 40: 39, 41: 40, 42: 41, 43: 42, 44: 43, 45: 44, 46: 45, 47: 46, 48: 47, 49: 48, 50: 49, 51: 50, 52: 51, 53: 52, 54: 53, 55: 54, 56: 55, 57: 56, 58: 57, 59: 58, 60: 59, 61: 60, 62: 61, 63: 62}   # 4-8 = עולמות של שלבים 5-9 (levels/stage_N.gd)
 func world() -> int:
 	return LEVEL_WORLD.get(level, (level - 1) % 4)
 
@@ -160,7 +162,7 @@ func is_factory() -> bool:
 #  מפה: 7 אזורים, 9 שלבים בכל אזור (כרגע 3 השלבים הראשונים קיימים)
 # ============================================================
 const LEVELS_PER_REGION := 9
-const IMPLEMENTED := 54           # כמה שלבים כבר בנויים
+const IMPLEMENTED := 63           # כמה שלבים כבר בנויים
 const REGIONS := [
 	{"name": "NORTHERN AMAZON", "color": Color(0.45, 0.85, 0.3), "desc": "Where it started. The first ones only hunger.",
 		"levels": ["Fallen City", "The Red Line", "Rust Works", "River of Teeth", "Ruined District", "Highrise", "The Works", "Research Site", "Zone Zero"]},
@@ -171,7 +173,7 @@ const REGIONS := [
 	{"name": "ANDES", "color": Color(0.78, 0.5, 1.0), "desc": "Thin air, deep mines. They learned to climb.",
 		"levels": ["Death Road", "Mine of Echoes", "Frozen Village", "Floating Islands", "Devil's Carnival", "Sulfur Crater", "Observatory", "Skull Glacier", "The Summit"]},
 	{"name": "SOUTHEAST", "color": Color(1.0, 0.55, 0.2), "desc": "The megacities. They learned to use our machines.",
-		"levels": ["Favela Heights", "Megacity Core", "The Stadium", "Harbor of War", "The Parade", "Metro Barracks", "War Factory", "The Dam", "The Red Palace"]},
+		"levels": ["Favela Heights", "Megacity Core", "The Stadium", "Harbor of War", "The Parade", "Metro Barracks", "War Factory", "Itaipu Dam", "The Red Palace"]},
 	{"name": "SOUTHERN CONE", "color": Color(0.25, 0.9, 0.75), "desc": "Plains and old cities. They learned to plan.",
 		"levels": ["Wine Valley", "Pampas Storm", "Old Quarter", "River Delta", "Tango Cemetery", "The Ranch", "Rail Yard", "Capital Siege", "Last Bridge"]},
 	{"name": "PATAGONIA", "color": Color(1.0, 0.4, 0.35), "desc": "The end of the world. They learned to think.",
@@ -282,9 +284,11 @@ func end_practice() -> void:
 	_practice_backup = {}
 
 
-func reach_checkpoint(x: float, player: Node) -> void:
+# extra: עוד שדות (HOLD THE LINE שומר {"hold": [x0, x1, cx]} - מתחילים מחדש לפני הזירה, levels/events/hold.gd)
+func reach_checkpoint(x: float, player: Node, extra := {}) -> void:
 	checkpoint = {"level": level, "x": x, "slots": player.slots.duplicate(true), "special": player.special, "special_uses": int(player.special_uses),
 		"seed": attempt_seed, "run_score": run_score + level_score, "scrap": scrap, "time": level_time}
+	checkpoint.merge(extra, true)
 	_save()
 
 
@@ -402,7 +406,7 @@ const LEVEL_TITLES := [
 	["THEY LEARNED TO HOLD THE LINE", "Out of the tunnel, into the dawn. He ran to the gate. End it there."],
 	["THEY LEARNED TO WAIT", "The most dangerous road in the world. Mind the edges - something is holding on down there."],
 	["THEY LEARNED TO LISTEN", "The blind ones hear every shot. Crouch, stay quiet, and don't bring the mountain down."],
-	["THEY LEARNED THE COLD", "Fire breaks ice. Stay off the frozen puddles. And if the church bell rings - they're coming."],
+	["THEY LEARNED THE WINTER", "Fire breaks ice. Stay off the frozen puddles. And if the church bell rings - they're coming."],
 	["THEY LEARNED TO SWIM", "Lake Titicaca. Stay on the reeds - the water is theirs now. Bullets can't reach what's under it."],
 	["THEY LEARNED TO DANCE", "The music from across the lake. The band never stopped playing. Learn the beat - and kill the tuba first."],
 	["THEY LEARNED THE FIRE", "He ran up the volcano. When the mountain roars, get inside a refugio - they will try too. Put out the embers."],
@@ -417,7 +421,7 @@ const LEVEL_TITLES := [
 	["THEY LEARNED TO DIG IN", "Under the capital, the metro is a barracks now. They man the guns, carry the ammo, burn the tunnels - and rebuild every wall you break."],
 	["THEY LEARNED TO BUILD", "The train went to Volta Redonda, the steel city. The furnaces never stop: they build tanks now. Stop the line - and kill the welders first."],
 	["THEY LEARNED THE SKY", "Itaipu. The biggest dam in the Americas powers their war now. They drop from the sky behind you, and when the floodgates open - climb."],
-	["THEY LEARNED YOU", "Petropolis. The old imperial palace is red now, and the Emperor of the Dead sits on the throne. His army knows every trick you used. End it."],
+	["THEY LEARNED YOUR TRICKS", "Petropolis. The old imperial palace is red now, and the Emperor of the Dead sits on the throne. His army knows every trick you used. End it."],
 	["THEY LEARNED THE BLADE", "Mendoza at harvest. The vineyards run red, and not with wine. When the big sword goes up - step aside. When it goes low - jump."],
 	["THEY LEARNED TO WRESTLE", "The endless pampas in a thunderstorm. Never let the big one get his hands on you - and stay off the iron rods when the sky turns white."],
 	["THEY LEARNED STEEL", "Buenos Aires. Tango in the painted streets of La Boca - and the dead have bolted guns to their arms. Shoot the arms off."],
@@ -427,6 +431,15 @@ const LEVEL_TITLES := [
 	["THEY LEARNED THE TIMETABLE", "The great rail yard at dusk. The dead are boarding the trains south - and some of the dead are breathing. Never turn your back on the ones that stand still."],
 	["THEY LEARNED TO BESIEGE", "Montevideo, the last free capital. They stack themselves into towers, they spread a word that rots the mind - and one of them was sent for you."],
 	["THEY LEARNED TO FOLLOW", "The last bridge to Patagonia, at night. Blow it before the herd crosses. Find the one who thinks for them - kill him, and his many fall with him."],
+	["THEY LEARNED THE WIND", "The Patagonian steppe. Their leader is dead and they did not stop. They ride the gale now, roll with it, hide in the flocks - every one you kill teaches the rest."],
+	["THEY LEARNED THE COLD", "A frozen fjord. Heads break, so they armored them in ice. They float over the water and swim beneath it. Fire is your friend here."],
+	["THEY LEARNED TO BE MANY", "The penguin coast at the end of the world. A body can be shot - so some of them stopped needing one. Listen. For the first time, they are talking."],
+	["THEY LEARNED TO WEAR THE DEAD", "An old whaling station full of bones. Skulls break, whale bone does not - so they wear it. ECHO grows in any dead thing now."],
+	["THEY LEARNED TO BURN", "A burnt forest. You burned thousands of them, and each one breathed out what fire feels like. Now they wear the ash."],
+	["THEY LEARNED WHERE THEY CAME FROM", "The Glacier Lab, where Project ECHO began. The hive guards its cradle - and in here is a file with your name on it."],
+	["THEY LEARNED TO MOVE AS ONE", "Ushuaia, the city at the end of the world. Every road is cut. The whole region walks one way now - toward you."],
+	["THEY LEARNED TO THINK AS ONE", "The ROOT, under the prison at the end of the world. Every lesson you ever taught them lives here. All at once."],
+	["THEY LEARNED YOU", "The heart of the ROOT. It knows every move you ever made. And it has one last thing to ask you."],
 ]
 func level_title() -> Array:
 	var t: Array = LEVEL_TITLES[(level - 1) % LEVEL_TITLES.size()].duplicate()
@@ -436,6 +449,22 @@ func level_title() -> Array:
 
 
 # כמה הזומבים "חכמים" בשלב הזה (מתכופפים, מתחבאים, מכוונים לאן שאתה הולך)
+# קושי (2026-10-20): שלבים 1-57 קשים ב-25% (יותר זומבים, בוס עם יותר חיים, קצת יותר מהירים).
+# שלבים 58-63 כבר קשים - לא נוגעים. חיי זומבי רגיל לא משתנים (שההריגה תישאר מהירה).
+const HARDER_UNTIL := 57
+const HARDER := 1.25
+
+func harder() -> float:
+	return HARDER if level <= HARDER_UNTIL else 1.0
+
+
+# פופאפים של ניקוד: לא כל הריגה. גדול = תמיד, קטן = לפעמים (POP_CHANCE)
+const POP_CHANCE := 0.3
+
+func show_pop(big: bool) -> bool:
+	return big or randf() < POP_CHANCE
+
+
 func intelligence() -> float:
 	return 1.0 + 0.25 * float(level - 1)
 
@@ -875,6 +904,11 @@ class TrophyBanner extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if _t < 0.0:
 			return
 		var vp := get_viewport_rect().size
@@ -883,21 +917,21 @@ class TrophyBanner extends Node2D:
 		var w := 420.0
 		var h := 70.0
 		var pos := Vector2((vp.x - w) / 2.0, -h + (h + 14.0) * k)
-		draw_rect(Rect2(pos + Vector2(4, 5), Vector2(w, h)), Color(0, 0, 0, 0.5))
-		draw_rect(Rect2(pos, Vector2(w, h)), Color(0.08, 0.06, 0.05, 0.95))
-		draw_rect(Rect2(pos, Vector2(w, h)), Color("d8a033"), false, 2.0)
+		DrawBatch.rect(self, Rect2(pos + Vector2(4, 5), Vector2(w, h)), Color(0, 0, 0, 0.5))
+		DrawBatch.rect(self, Rect2(pos, Vector2(w, h)), Color(0.08, 0.06, 0.05, 0.95))
+		DrawBatch.rect(self, Rect2(pos, Vector2(w, h)), Color("d8a033"), false, 2.0)
 		_cup(pos + Vector2(38, 36))
 		var f := ThemeDB.fallback_font
-		draw_string(f, pos + Vector2(72, 26), "TROPHY UNLOCKED", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("d8a033"))
-		draw_string_outline(f, pos + Vector2(72, 48), _name, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 4, Color(0, 0, 0, 0.8))
-		draw_string(f, pos + Vector2(72, 48), _name, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
-		draw_string(f, pos + Vector2(72, 64), _desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.8, 0.78, 0.75))
+		DrawBatch.string(self, f, pos + Vector2(72, 26), "TROPHY UNLOCKED", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("d8a033"))
+		DrawBatch.string_outline(self, f, pos + Vector2(72, 48), _name, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 4, Color(0, 0, 0, 0.8))
+		DrawBatch.string(self, f, pos + Vector2(72, 48), _name, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
+		DrawBatch.string(self, f, pos + Vector2(72, 64), _desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.8, 0.78, 0.75))
 
 	func _cup(c: Vector2) -> void:
 		var gold := Color("e0b040")
-		draw_colored_polygon(PackedVector2Array([c + Vector2(-13, -16), c + Vector2(13, -16), c + Vector2(9, 0), c + Vector2(3, 4), c + Vector2(-3, 4), c + Vector2(-9, 0)]), gold)
-		draw_arc(c + Vector2(-13, -9), 6.0, PI * 0.5, PI * 1.5, 10, gold, 2.5, true)
-		draw_arc(c + Vector2(13, -9), 6.0, -PI * 0.5, PI * 0.5, 10, gold, 2.5, true)
-		draw_rect(Rect2(c + Vector2(-2, 4), Vector2(4, 7)), gold)
-		draw_rect(Rect2(c + Vector2(-9, 11), Vector2(18, 4)), gold.darkened(0.2))
-		draw_line(c + Vector2(-8, -13), c + Vector2(-5, -3), Color(1, 1, 1, 0.5), 2.0, true)
+		DrawBatch.colored_polygon(self, PackedVector2Array([c + Vector2(-13, -16), c + Vector2(13, -16), c + Vector2(9, 0), c + Vector2(3, 4), c + Vector2(-3, 4), c + Vector2(-9, 0)]), gold)
+		DrawBatch.arc(self, c + Vector2(-13, -9), 6.0, PI * 0.5, PI * 1.5, 10, gold, 2.5, true)
+		DrawBatch.arc(self, c + Vector2(13, -9), 6.0, -PI * 0.5, PI * 0.5, 10, gold, 2.5, true)
+		DrawBatch.rect(self, Rect2(c + Vector2(-2, 4), Vector2(4, 7)), gold)
+		DrawBatch.rect(self, Rect2(c + Vector2(-9, 11), Vector2(18, 4)), gold.darkened(0.2))
+		DrawBatch.line(self, c + Vector2(-8, -13), c + Vector2(-5, -3), Color(1, 1, 1, 0.5), 2.0, true)

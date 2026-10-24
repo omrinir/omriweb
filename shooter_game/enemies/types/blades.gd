@@ -162,18 +162,18 @@ func _blade(root: Vector2, tip_dir: Vector2, length: float, flat: float) -> void
 	var w := 4.6 * maxf(flat, 0.3)
 	var n := tip_dir.orthogonal()
 	var grip := root - tip_dir * 3.0
-	z.draw_line(grip, root + tip_dir * 4.0, Art.OUTLINE, 5.0)   # ידית
-	z.draw_line(grip, root + tip_dir * 4.0, col(Color("5a3a22")), 3.2)
-	z.draw_line(root + tip_dir * 3.5 - n * 4.0, root + tip_dir * 3.5 + n * 4.0, col(Color("3a3a40")), 2.4)   # מגן
+	DrawBatch.line(z, grip, root + tip_dir * 4.0, Art.OUTLINE, 5.0)   # ידית
+	DrawBatch.line(z, grip, root + tip_dir * 4.0, col(Color("5a3a22")), 3.2)
+	DrawBatch.line(z, root + tip_dir * 3.5 - n * 4.0, root + tip_dir * 3.5 + n * 4.0, col(Color("3a3a40")), 2.4)   # מגן
 	var b0 := root + tip_dir * 4.0
 	var tip := root + tip_dir * length + n * w * 0.6
 	var belly := b0 + tip_dir * length * 0.62 + n * w * 1.5
 	var poly := PackedVector2Array([b0 + n * w * 0.5, belly, tip, b0 + tip_dir * length * 0.7 - n * w * 0.35, b0 - n * w * 0.5])
 	Art.fill(z, poly, col(Color("e6eaf0").lerp(Color("9aa2ac"), 1.0 - flat)), Art.OUTLINE, 1.5)
-	z.draw_line(b0 - n * w * 0.25, b0 + tip_dir * length * 0.68 - n * w * 0.2, col(Color("6a727c")), 1.2)   # גב הלהב
-	z.draw_line(b0 + n * w * 0.6, belly, Color(1, 1, 1, 0.85 * flat + 0.15), 1.0)   # קצה חד מבריק
-	z.draw_line(belly, tip, Color(1, 1, 1, 0.85 * flat + 0.15), 1.0)
-	z.draw_line(tip - tip_dir * 6.0 + n * w * 0.5, tip, col(Color("8a1010")), 2.0)   # דם בקצה
+	DrawBatch.line(z, b0 - n * w * 0.25, b0 + tip_dir * length * 0.68 - n * w * 0.2, col(Color("6a727c")), 1.2)   # גב הלהב
+	DrawBatch.line(z, b0 + n * w * 0.6, belly, Color(1, 1, 1, 0.85 * flat + 0.15), 1.0)   # קצה חד מבריק
+	DrawBatch.line(z, belly, tip, Color(1, 1, 1, 0.85 * flat + 0.15), 1.0)
+	DrawBatch.line(z, tip - tip_dir * 6.0 + n * w * 0.5, tip, col(Color("8a1010")), 2.0)   # דם בקצה
 	var gl := 0.5 + 0.5 * sin(z._time * 3.0 + root.x)
 	if gl > 0.92 and flat > 0.5:   # ברק שעובר על הלהב
 		Art.glow(z, b0 + tip_dir * length * 0.45 + n * w, 4.0, Color(1, 1, 1, 0.8))
@@ -197,25 +197,25 @@ func draw() -> bool:
 	var blen := 32.0
 	if state == SPIN:
 		# מערבולת: שני להבים מסתובבים סביב הגוף (בצד: האורך שלהם "מתקצר" כשהם פונים אלינו)
-		z.draw_arc(Vector2(0, -32.0), blen + 2.0, 0.0, TAU, 24, Color(0.85, 0.9, 1.0, 0.12), 6.0)
+		DrawBatch.arc(z, Vector2(0, -32.0), blen + 2.0, 0.0, TAU, 24, Color(0.85, 0.9, 1.0, 0.12), 6.0)
 		for k in 6:   # טשטוש תנועה
 			var a := _ang - float(k) * 0.35
 			var c := cos(a)
-			z.draw_line(Vector2(0, -32.0), Vector2(c * (blen + 4.0), -32.0 + sin(a * 2.0) * 2.0), Color(0.9, 0.95, 1.0, 0.07 * float(6 - k)), 3.0)
+			DrawBatch.line(z, Vector2(0, -32.0), Vector2(c * (blen + 4.0), -32.0 + sin(a * 2.0) * 2.0), Color(0.9, 0.95, 1.0, 0.07 * float(6 - k)), 3.0)
 	# גוף: חולצה קרועה, צלעות, כתפיים עם חיבור עצם-להב
 	var body := PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)])
 	Art.fill_shaded(z, body, shirt, 0.12, 0.4)
 	for i in 3:
-		z.draw_arc(Vector2(sh.x, sh.y + 5.0 + float(i) * 3.5), 4.0, -2.4, -0.7, 6, col(Color("c8c0a8")), 1.2)
+		DrawBatch.arc(z, Vector2(sh.x, sh.y + 5.0 + float(i) * 3.5), 4.0, -2.4, -0.7, 6, col(Color("c8c0a8")), 1.2)
 	Art.oval_shaded(z, head, 5.6, 6.0, sk, 0.0)
-	z.draw_line(head + Vector2(-5, -3), head + Vector2(-1, 1), col(Color("4a1010")), 1.2)   # צלקת
+	DrawBatch.line(z, head + Vector2(-5, -3), head + Vector2(-1, 1), col(Color("4a1010")), 1.2)   # צלקת
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.8), 1.1, Color(1.0, 0.25, 0.15) if state != DIZZY else Color(1.0, 0.9, 0.3))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.8), 1.1, Color(1.0, 0.25, 0.15) if state != DIZZY else Color(1.0, 0.9, 0.3))
 	Art.fill(z, PackedVector2Array([head + Vector2(1, 2.5), head + Vector2(6, 2), head + Vector2(5.5, 5), head + Vector2(1.5, 5)]), col(Color("2a0a0a")), Art.OUTLINE, 0.7)
 	if state == DIZZY:   # כוכבים מעל הראש
 		for i in 3:
 			var a2: float = z._time * 5.0 + float(i) * TAU / 3.0
-			z.draw_circle(head + Vector2(cos(a2) * 8.0, -10.0 + sin(a2) * 2.0), 1.3, Color(1.0, 0.95, 0.4, 0.9))
+			DrawBatch.circle(z, head + Vector2(cos(a2) * 8.0, -10.0 + sin(a2) * 2.0), 1.3, Color(1.0, 0.95, 0.4, 0.9))
 	# הלהבים (במקום ידיים)
 	var shoulder_f := sh + Vector2(3, 1)
 	var shoulder_b := sh + Vector2(-4, 1)

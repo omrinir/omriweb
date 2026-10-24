@@ -108,7 +108,7 @@ func draw() -> bool:
 	Art.fill_shaded(z, cape, cloth, 0.15, 0.4)
 	for i in 3:   # קרעים
 		var tp: Vector2 = hip + Vector2(-6 + i * 4, 6 + (i % 2) * 3)
-		z.draw_line(tp, tp + Vector2(sin(z._time * 4.0 + float(i)) * 1.5, 5), dark, 1.2)
+		DrawBatch.line(z, tp, tp + Vector2(sin(z._time * 4.0 + float(i)) * 1.5, 5), dark, 1.2)
 	# יד מורמת כשהוא "מדווח" / יד שמצביעה
 	var hand := sh + (Vector2(4, -18) if _arm_up > 0.0 else Vector2(13, 6))
 	Art.limb(z, PackedVector2Array([sh + Vector2(2, 1), sh + Vector2(6, 4) if _arm_up <= 0.0 else sh + Vector2(6, -8), hand]), 3.4, sk)
@@ -121,6 +121,6 @@ func draw() -> bool:
 	var eye := Color(1.0, 0.85, 0.2)
 	for e in [Vector2(3.0, -1.0), Vector2(5.5, -0.5)]:
 		Art.glow(z, head + e, 3.0, Color(eye, 0.7))
-		z.draw_circle(head + e, 1.0, eye)
+		DrawBatch.circle(z, head + e, 1.0, eye)
 	end_draw()
 	return true

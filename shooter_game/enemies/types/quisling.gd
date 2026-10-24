@@ -517,16 +517,16 @@ func draw() -> bool:
 		Vector2(-9, hip.y)])
 	Art.fill_shaded(z, cloak, cl, 0.12, 0.38)
 	# טלאים ותפרים
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-6, 4), sh + Vector2(1, 3), sh + Vector2(2, 11), sh + Vector2(-5, 12)]), col(Art.shade(_cloak, -0.12)))
-	z.draw_colored_polygon(PackedVector2Array([Vector2(1, hip.y - 4), Vector2(8, hip.y - 3), Vector2(8, hip.y + 7), Vector2(2, hip.y + 8)]), col(Art.shade(_cloak, 0.18)))
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-6, 4), sh + Vector2(1, 3), sh + Vector2(2, 11), sh + Vector2(-5, 12)]), col(Art.shade(_cloak, -0.12)))
+	DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(1, hip.y - 4), Vector2(8, hip.y - 3), Vector2(8, hip.y + 7), Vector2(2, hip.y + 8)]), col(Art.shade(_cloak, 0.18)))
 	var stc := col(Color(0.18, 0.1, 0.08))
 	for q in 5:
 		var a := sh + Vector2(-6.0 + float(q) * 1.8, 3.5 + float(q) * 1.7)
-		z.draw_line(a + Vector2(-1.2, -1), a + Vector2(1.2, 1), stc, 0.7)
+		DrawBatch.line(z, a + Vector2(-1.2, -1), a + Vector2(1.2, 1), stc, 0.7)
 	for q in 4:
 		var a := Vector2(1.5, hip.y - 3.0 + float(q) * 2.8)
-		z.draw_line(a + Vector2(-1, -0.8), a + Vector2(1, 0.8), stc, 0.7)
-	z.draw_line(sh + Vector2(-2, 0), Vector2(-3 + sway * 0.5, hem), col(Art.shade(_cloak, 0.45)), 0.8)
+		DrawBatch.line(z, a + Vector2(-1, -0.8), a + Vector2(1, 0.8), stc, 0.7)
+	DrawBatch.line(z, sh + Vector2(-2, 0), Vector2(-3 + sway * 0.5, hem), col(Art.shade(_cloak, 0.45)), 0.8)
 	# רגל קדמית
 	z._leg(hip + Vector2(3, 0), ff, pa, sk, shoe)
 	_draw_head(head, hidden, actor, tt)
@@ -536,10 +536,10 @@ func draw() -> bool:
 	if not hidden and not z.dead:
 		if state == THROW:
 			var bc := hf + Vector2(0, -4)
-			z.draw_colored_polygon(PackedVector2Array([bc + Vector2(-2.5, 4), bc + Vector2(2.5, 4), bc + Vector2(2.5, -3), bc + Vector2(1, -5), bc + Vector2(1, -8),
+			DrawBatch.colored_polygon(z, PackedVector2Array([bc + Vector2(-2.5, 4), bc + Vector2(2.5, 4), bc + Vector2(2.5, -3), bc + Vector2(1, -5), bc + Vector2(1, -8),
 				bc + Vector2(-1, -8), bc + Vector2(-1, -5), bc + Vector2(-2.5, -3)]), col(Color(0.22, 0.42, 0.2, 0.95)))
 			Art.glow(z, bc + Vector2(0, -10), 6.0 + sin(tt * 30.0), Color(1.0, 0.55, 0.15, 0.7))
-			z.draw_circle(bc + Vector2(0, -10), 1.8, Color(1.0, 0.85, 0.4))
+			DrawBatch.circle(z, bc + Vector2(0, -10), 1.8, Color(1.0, 0.85, 0.4))
 		else:
 			var gv := (hf - (sh + Vector2(2, 2))).normalized()
 			if state == RUN:
@@ -547,9 +547,9 @@ func draw() -> bool:
 			var gn := Vector2(-gv.y, gv.x)
 			var g0 := hf
 			var g1 := hf + gv * 11.0
-			z.draw_line(g0, g1, col(Color("2a2a2e")), 2.6)                       # קנה
-			z.draw_colored_polygon(PackedVector2Array([g0 - gv * 2.0 + gn * 1.5, g0 + gv * 4.0 + gn * 1.8, g0 + gv * 4.0 - gn * 2.2, g0 - gv * 2.0 - gn * 2.0]), col(Color("3a3a40")))   # תוף
-			z.draw_line(g0 - gv * 1.0, g0 - gv * 3.0 - gn * 5.0, col(Color("5a3a22")), 2.4)   # ידית
+			DrawBatch.line(z, g0, g1, col(Color("2a2a2e")), 2.6)                       # קנה
+			DrawBatch.colored_polygon(z, PackedVector2Array([g0 - gv * 2.0 + gn * 1.5, g0 + gv * 4.0 + gn * 1.8, g0 + gv * 4.0 - gn * 2.2, g0 - gv * 2.0 - gn * 2.0]), col(Color("3a3a40")))   # תוף
+			DrawBatch.line(z, g0 - gv * 1.0, g0 - gv * 3.0 - gn * 5.0, col(Color("5a3a22")), 2.4)   # ידית
 			if _recoil > 0.08 and state == AIM:
 				Art.glow(z, g1 + gv * 3.0, 7.0, Color(1.0, 0.8, 0.4, 0.8))
 	end_draw()
@@ -559,8 +559,8 @@ func draw() -> bool:
 		var to: Vector2 = _aim_to - z.global_position
 		var k := clampf(1.0 - _st / AIM_T, 0.0, 1.0)
 		var dirv: Vector2 = (to - mz).normalized()
-		z.draw_line(mz, mz + dirv * 900.0, Color(1.0, 0.25, 0.15, 0.15 + 0.45 * k), 1.0 + k)
-		z.draw_circle(mz, 2.0 + 2.0 * k, Color(1.0, 0.6, 0.3, 0.5 + 0.5 * k))
+		DrawBatch.line(z, mz, mz + dirv * 900.0, Color(1.0, 0.25, 0.15, 0.15 + 0.45 * k), 1.0 + k)
+		DrawBatch.circle(z, mz, 2.0 + 2.0 * k, Color(1.0, 0.6, 0.3, 0.5 + 0.5 * k))
 	return true
 
 
@@ -579,33 +579,33 @@ func _draw_head(head: Vector2, hidden: bool, actor: bool, tt: float) -> void:
 		face[i] = _H(face[i])
 	Art.fill_shaded(z, face, sk, 0.16, 0.28)
 	# שיער
-	z.draw_colored_polygon(PackedVector2Array([_H(Vector2(-5.8, -1)), _H(Vector2(-5, -5.5)), _H(Vector2(-1, -7)), _H(Vector2(4, -6)), _H(Vector2(5.4, -3.5)),
+	DrawBatch.colored_polygon(z, PackedVector2Array([_H(Vector2(-5.8, -1)), _H(Vector2(-5, -5.5)), _H(Vector2(-1, -7)), _H(Vector2(4, -6)), _H(Vector2(5.4, -3.5)),
 		_H(Vector2(1, -4.6)), _H(Vector2(-2.5, -3.8)), _H(Vector2(-4.2, 0.5))]), col(_hair))
 	if mo > 0.05:
 		# פנים חיות: גבות מורמות, עיניים פקוחות לרווחה, זיעה, פה פתוח
 		var by := -3.6 - (0.6 if scared else 0.0)
-		z.draw_line(_H(Vector2(1.6 + eye_dx * 0.4, by + 0.4)), _H(Vector2(4.4 + eye_dx * 0.4, by - 0.4)), col(Color("3a2418")), 1.0)
+		DrawBatch.line(z, _H(Vector2(1.6 + eye_dx * 0.4, by + 0.4)), _H(Vector2(4.4 + eye_dx * 0.4, by - 0.4)), col(Color("3a2418")), 1.0)
 		var ec := _H(Vector2(3.4 + eye_dx * 0.3, -1.4))
 		var shut := _blink < 0.0 and not actor
 		if shut:
-			z.draw_line(ec + Vector2(-1.4, 0), ec + Vector2(1.4, 0), col(Color("3a2418")), 0.9)
+			DrawBatch.line(z, ec + Vector2(-1.4, 0), ec + Vector2(1.4, 0), col(Color("3a2418")), 0.9)
 		else:
-			z.draw_circle(ec, 1.5, col(Color("f4f0e8")))
-			z.draw_circle(ec + Vector2(0.4 + eye_dx * 0.25, 0.1), 0.75, Color(0.15, 0.1, 0.08))
-		z.draw_line(_H(Vector2(5.6, -0.5)), _H(Vector2(6.4, 1.2)), col(Art.shade(z.skin, 0.25)), 1.0)   # אף
+			DrawBatch.circle(z, ec, 1.5, col(Color("f4f0e8")))
+			DrawBatch.circle(z, ec + Vector2(0.4 + eye_dx * 0.25, 0.1), 0.75, Color(0.15, 0.1, 0.08))
+		DrawBatch.line(z, _H(Vector2(5.6, -0.5)), _H(Vector2(6.4, 1.2)), col(Art.shade(z.skin, 0.25)), 1.0)   # אף
 		var mo_y := 3.0
 		var mo_open := (1.4 if scared else 0.0) + talk
 		if smile > 0.05 and not scared:
-			z.draw_polyline(PackedVector2Array([_H(Vector2(1.4, mo_y - smile * 0.6)), _H(Vector2(3.0, mo_y + 0.5)), _H(Vector2(4.8, mo_y - smile * 1.0))]), col(Color("5a2a22")), 0.9)
+			DrawBatch.polyline(z, PackedVector2Array([_H(Vector2(1.4, mo_y - smile * 0.6)), _H(Vector2(3.0, mo_y + 0.5)), _H(Vector2(4.8, mo_y - smile * 1.0))]), col(Color("5a2a22")), 0.9)
 		elif mo_open > 0.2:
-			z.draw_colored_polygon(PackedVector2Array([_H(Vector2(2.0, mo_y - 0.4)), _H(Vector2(4.6, mo_y - 0.4)), _H(Vector2(4.2, mo_y + mo_open)), _H(Vector2(2.4, mo_y + mo_open))]), col(Color("3a1010")))
+			DrawBatch.colored_polygon(z, PackedVector2Array([_H(Vector2(2.0, mo_y - 0.4)), _H(Vector2(4.6, mo_y - 0.4)), _H(Vector2(4.2, mo_y + mo_open)), _H(Vector2(2.4, mo_y + mo_open))]), col(Color("3a1010")))
 		else:
-			z.draw_line(_H(Vector2(2.0, mo_y)), _H(Vector2(4.6, mo_y)), col(Color("5a2a22")), 0.9)
+			DrawBatch.line(z, _H(Vector2(2.0, mo_y)), _H(Vector2(4.6, mo_y)), col(Color("5a2a22")), 0.9)
 		if scared or actor:   # טיפות זיעה (מבריקות)
 			for q in 2:
 				var sy := fmod(tt * 0.8 + float(q) * 0.5, 1.0)
 				var sp := _H(Vector2(-1.0 + float(q) * 3.5, -3.0 + sy * 6.0))
-				z.draw_circle(sp, 0.8, Color(0.85, 0.95, 1.0, 0.75 * (1.0 - sy) * mo))
+				DrawBatch.circle(z, sp, 0.8, Color(0.85, 0.95, 1.0, 0.75 * (1.0 - sy) * mo))
 	# המסכה: עור של מת, תפור. mask_off מוריד אותה לצוואר
 	var drop := mo * 10.0
 	var squash := 1.0 - mo * 0.55
@@ -616,38 +616,38 @@ func _draw_head(head: Vector2, hidden: bool, actor: bool, tt: float) -> void:
 		mpts.append(_H(Vector2(p.x * (1.0 + mo * 0.1), p.y * squash + drop)))
 	if mo >= 0.95:   # מורדת לגמרי: נתלית על הצוואר כמו צעיף
 		Art.fill_shaded(z, mpts, mk, 0.1, 0.35)
-		z.draw_line(_H(Vector2(-5, drop - 1)), _H(Vector2(5, drop - 1.5)), col(Color(0.2, 0.12, 0.1)), 0.7)
+		DrawBatch.line(z, _H(Vector2(-5, drop - 1)), _H(Vector2(5, drop - 1.5)), col(Color(0.2, 0.12, 0.1)), 0.7)
 		return
 	Art.fill_shaded(z, mpts, mk, 0.12, 0.36)
 	# תפרים בצד המסכה ובמצח
 	var stc := col(Color(0.2, 0.1, 0.08))
-	z.draw_polyline(PackedVector2Array([_H(Vector2(-4.5, -6 * squash + drop)), _H(Vector2(-5.5, -1 * squash + drop)), _H(Vector2(-4.8, 4 * squash + drop))]), stc, 0.7)
+	DrawBatch.polyline(z, PackedVector2Array([_H(Vector2(-4.5, -6 * squash + drop)), _H(Vector2(-5.5, -1 * squash + drop)), _H(Vector2(-4.8, 4 * squash + drop))]), stc, 0.7)
 	for q in 4:
 		var a := _H(Vector2(-5.2 + (0.3 if q % 2 == 0 else -0.3), (-5.0 + float(q) * 2.6) * squash + drop))
-		z.draw_line(a + Vector2(-1, 0), a + Vector2(1, 0), stc, 0.7)
+		DrawBatch.line(z, a + Vector2(-1, 0), a + Vector2(1, 0), stc, 0.7)
 	# שיער מת מודבק למסכה
 	for q in 4:
 		var hp0 := _H(Vector2(-4.0 + float(q) * 2.6, -6.4 * squash + drop))
-		z.draw_line(hp0, hp0 + Vector2(-1.0 + float(q) * 0.3, 6.0 + float(q % 2) * 3.0), col(Color("3a3a30")), 0.8)
+		DrawBatch.line(z, hp0, hp0 + Vector2(-1.0 + float(q) * 0.3, 6.0 + float(q % 2) * 3.0), col(Color("3a3a30")), 0.8)
 	# ריקבון / כתמים על המסכה
 	Art.oval(z, _H(Vector2(-2.0, 2.2 * squash + drop)), 1.6, 1.1, Color(0.35, 0.2, 0.15, 0.7 * (1.0 - mo)), 0.0, Art.NONE)
 	if mo < 0.5:
 		# חורי עיניים - ובתוכם עיניים לבנות של בן אדם (ממצמצות!)
 		var ep := _H(Vector2(3.4, -1.4 + drop))
-		z.draw_colored_polygon(Art.ellipse(ep, 2.2, 1.7 * squash, _ht, 10), col(Color("1a1410")))
+		DrawBatch.colored_polygon(z, Art.ellipse(ep, 2.2, 1.7 * squash, _ht, 10), col(Color("1a1410")))
 		var shut2 := _blink < 0.0 and not actor
 		if shut2:
-			z.draw_line(ep + Vector2(-1.2, 0), ep + Vector2(1.2, 0), sk, 0.9)
+			DrawBatch.line(z, ep + Vector2(-1.2, 0), ep + Vector2(1.2, 0), sk, 0.9)
 		elif not z.dead:
-			z.draw_circle(ep, 1.25, Color(0.96, 0.95, 0.9))
-			z.draw_circle(ep + Vector2(0.35 + eye_dx * 0.25, 0.1), 0.6, Color(0.1, 0.08, 0.06))
+			DrawBatch.circle(z, ep, 1.25, Color(0.96, 0.95, 0.9))
+			DrawBatch.circle(z, ep + Vector2(0.35 + eye_dx * 0.25, 0.1), 0.6, Color(0.1, 0.08, 0.06))
 		# פה המסכה: חתך רפוי
 		var mo2 := talk
-		z.draw_colored_polygon(PackedVector2Array([_H(Vector2(1.6, 3.0 + drop)), _H(Vector2(5.0, 2.6 + drop)), _H(Vector2(4.6, 4.0 + drop + mo2)),
+		DrawBatch.colored_polygon(z, PackedVector2Array([_H(Vector2(1.6, 3.0 + drop)), _H(Vector2(5.0, 2.6 + drop)), _H(Vector2(4.6, 4.0 + drop + mo2)),
 			_H(Vector2(2.2, 4.2 + drop + mo2))]), col(Color("2a1a14")))
 		if smile > 0.05:
-			z.draw_polyline(PackedVector2Array([_H(Vector2(1.2, 2.6 + drop)), _H(Vector2(3.2, 3.6 + drop)), _H(Vector2(5.4, 2.2 + drop - smile))]), col(Color("1a0c08")), 0.8)
-		z.draw_line(_H(Vector2(5.8, -0.6 + drop)), _H(Vector2(6.8, 1.4 + drop)), mk_d, 1.0)
+			DrawBatch.polyline(z, PackedVector2Array([_H(Vector2(1.2, 2.6 + drop)), _H(Vector2(3.2, 3.6 + drop)), _H(Vector2(5.4, 2.2 + drop - smile))]), col(Color("1a0c08")), 0.8)
+		DrawBatch.line(z, _H(Vector2(5.8, -0.6 + drop)), _H(Vector2(6.8, 1.4 + drop)), mk_d, 1.0)
 	# אדי נשימה: בן אדם חי נושם (למד: עוצר נשימה כשמסתכלים עליו)
 	if not z.dead and not (_learned() and _watched and state == HIDDEN):
 		var bp := fmod(_breath if not actor else tt, 2.4)

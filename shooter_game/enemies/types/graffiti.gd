@@ -170,7 +170,12 @@ class Puff extends Node2D:   # ענן ספריי
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_circle(Vector2.ZERO, 4.0 + _t * 22.0, Color(col, 0.45 * (1.0 - _t / 0.6)))
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.circle(self, Vector2.ZERO, 4.0 + _t * 22.0, Color(col, 0.45 * (1.0 - _t / 0.6)))
 
 
 # כתמי צבע על המסך (שכבה מעל הכל)
@@ -207,13 +212,13 @@ class PaintSplats extends CanvasLayer:
 			var c: Color = s[2]
 			var p: Vector2 = s[0]
 			var rad: float = s[1]
-			_node.draw_circle(p, rad, Color(c, 0.85 * a))
+			DrawBatch.circle(_node, p, rad, Color(c, 0.85 * a))
 			for q in 7:   # טיפות ונזילות
 				var ang := r.randf() * TAU
-				_node.draw_circle(p + Vector2.from_angle(ang) * rad * r.randf_range(0.9, 1.3), rad * r.randf_range(0.12, 0.25), Color(c, 0.85 * a))
+				DrawBatch.circle(_node, p + Vector2.from_angle(ang) * rad * r.randf_range(0.9, 1.3), rad * r.randf_range(0.12, 0.25), Color(c, 0.85 * a))
 			for q in 3:
 				var dx := r.randf_range(-rad * 0.6, rad * 0.6)
-				_node.draw_line(p + Vector2(dx, rad * 0.5), p + Vector2(dx, rad + 30.0 + 60.0 * minf(_t, 1.0)), Color(c, 0.8 * a), 8.0)
+				DrawBatch.line(_node, p + Vector2(dx, rad * 0.5), p + Vector2(dx, rad + 30.0 + 60.0 * minf(_t, 1.0)), Color(c, 0.8 * a), 8.0)
 
 
 # ============================================================
@@ -230,21 +235,21 @@ func draw() -> bool:
 	var head := sh + Vector2(3.5, -8)
 	z._leg(hip + Vector2(-2, 0), f[1], col(Art.shade(z.pants, 0.25)), sk, col(z.shoe))
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
-	z.draw_rect(Rect2(sh + Vector2(-12, 0), Vector2(6, 14)), col(Color("3a5a3a")))   # תיק
+	DrawBatch.rect(z, Rect2(sh + Vector2(-12, 0), Vector2(6, 14)), col(Color("3a5a3a")))   # תיק
 	for q in 3:
-		z.draw_rect(Rect2(sh + Vector2(-11.0 + float(q) * 2.0, -4), Vector2(1.6, 5)), col(PAINTS[q]))
+		DrawBatch.rect(z, Rect2(sh + Vector2(-11.0 + float(q) * 2.0, -4), Vector2(1.6, 5)), col(PAINTS[q]))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 2.0, 15.0), Art.shade(sk, 0.25), Art.shade(hood, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(7, 3), hip + Vector2(-7, 3)]), hood, 0.12, 0.4)
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-3, 8), sh + Vector2(4, 9), sh + Vector2(1, 14)]), col(_paint))   # כתם צבע על הקפוצ'ון
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-3, 8), sh + Vector2(4, 9), sh + Vector2(1, 14)]), col(_paint))   # כתם צבע על הקפוצ'ון
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-7, 2), head + Vector2(-6, -6), head + Vector2(2, -8), head + Vector2(6, -4), head + Vector2(-2, -4), head + Vector2(-4, 3)]), hood)   # כובע קפוצ'ון
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-2, 0), head + Vector2(6, 0), head + Vector2(5, 5), head + Vector2(-1, 5)]), col(_paint.darkened(0.2)))   # בנדנה
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-7, 2), head + Vector2(-6, -6), head + Vector2(2, -8), head + Vector2(6, -4), head + Vector2(-2, -4), head + Vector2(-4, 3)]), hood)   # כובע קפוצ'ון
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-2, 0), head + Vector2(6, 0), head + Vector2(5, 5), head + Vector2(-1, 5)]), col(_paint.darkened(0.2)))   # בנדנה
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -2.0), 1.1, Color(1.0, 0.85, 0.4))
+		DrawBatch.circle(z, head + Vector2(3.0, -2.0), 1.1, Color(1.0, 0.85, 0.4))
 	var hf := sh + Vector2(13, -2) if state == SPRAY or state == RUSH else sh + Vector2(11, 6)
 	z._arm(sh + Vector2(3, 1), hf, sk, hood)
 	if state != POPPED:   # פחית
-		z.draw_rect(Rect2(hf + Vector2(-2, -6), Vector2(5, 9)), col(Color("c0c4cc")))
-		z.draw_rect(Rect2(hf + Vector2(-2, -8), Vector2(5, 2)), col(_paint))
+		DrawBatch.rect(z, Rect2(hf + Vector2(-2, -6), Vector2(5, 9)), col(Color("c0c4cc")))
+		DrawBatch.rect(z, Rect2(hf + Vector2(-2, -8), Vector2(5, 2)), col(_paint))
 	end_draw()
 	return true

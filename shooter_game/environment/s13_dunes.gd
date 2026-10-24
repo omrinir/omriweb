@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  שלב 13 (צפון-מזרח, "DUNES OF BONE") - הדיונות עצמן + סופת החול.
 #  * Dune      - גבעת חול מוצקה שהולכים עליה (StaticBody2D + CollisionPolygon2D, שכבה 1).
@@ -46,6 +47,11 @@ class Dune extends StaticBody2D:
 		return global_position.y - _height(lx)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := Art_rng(seed_v)
 		var top := PackedVector2Array()
 		for i in N + 1:
@@ -54,7 +60,7 @@ class Dune extends StaticBody2D:
 		var body := top.duplicate()
 		body.append(Vector2(w, 2.0))
 		body.append(Vector2(0.0, 2.0))
-		draw_colored_polygon(body, Color("e2d2b0"))
+		DrawBatch.colored_polygon(self, body, Color("e2d2b0"))
 		# צד מוצל (הצד שמאחורי הרוח)
 		var shade := PackedVector2Array()
 		for i in range(N / 2, N + 1):
@@ -62,7 +68,7 @@ class Dune extends StaticBody2D:
 			shade.append(Vector2(x, -_height(x) + 2.0))
 		shade.append(Vector2(w, 2.0))
 		shade.append(Vector2(w * 0.5, 2.0))
-		draw_colored_polygon(shade, Color("c8b48e"))
+		DrawBatch.colored_polygon(self, shade, Color("c8b48e"))
 		for k in 5:   # אדוות רוח
 			var yk := 8.0 + float(k) * 9.0
 			var line := PackedVector2Array()
@@ -72,7 +78,7 @@ class Dune extends StaticBody2D:
 				if hy + yk < 0.0:
 					line.append(Vector2(x, hy + yk + sin(x * 0.05 + float(k)) * 1.5))
 			if line.size() > 1:
-				draw_polyline(line, Color(0.6, 0.5, 0.35, 0.35), 1.0)
+				DrawBatch.polyline(self, line, Color(0.6, 0.5, 0.35, 0.35), 1.0)
 		for q in int(w / 140.0):   # עצמות בולטות מהחול
 			var bx := r.randf_range(w * 0.1, w * 0.9)
 			var by := -_height(bx) + 6.0
@@ -80,18 +86,18 @@ class Dune extends StaticBody2D:
 				0:   # צלעות
 					for i in 4:
 						var x0 := bx + float(i) * 7.0
-						draw_arc(Vector2(x0, by), 10.0, PI + 0.3, TAU - 0.6, 8, Color("efe8d6"), 2.2)
+						DrawBatch.arc(self, Vector2(x0, by), 10.0, PI + 0.3, TAU - 0.6, 8, Color("efe8d6"), 2.2)
 				1:   # גולגולת שור
 					Art.oval(self, Vector2(bx, by - 4.0), 6.0, 5.0, Color("efe8d6"), 0.0, Art.OUTLINE, 1.0)
-					draw_circle(Vector2(bx - 2.0, by - 5.0), 1.4, Color("2a2018"))
-					draw_circle(Vector2(bx + 2.0, by - 5.0), 1.4, Color("2a2018"))
-					draw_arc(Vector2(bx - 9.0, by - 10.0), 6.0, 0.2, 1.6, 6, Color("efe8d6"), 2.0)
-					draw_arc(Vector2(bx + 9.0, by - 10.0), 6.0, PI - 1.6, PI - 0.2, 6, Color("efe8d6"), 2.0)
+					DrawBatch.circle(self, Vector2(bx - 2.0, by - 5.0), 1.4, Color("2a2018"))
+					DrawBatch.circle(self, Vector2(bx + 2.0, by - 5.0), 1.4, Color("2a2018"))
+					DrawBatch.arc(self, Vector2(bx - 9.0, by - 10.0), 6.0, 0.2, 1.6, 6, Color("efe8d6"), 2.0)
+					DrawBatch.arc(self, Vector2(bx + 9.0, by - 10.0), 6.0, PI - 1.6, PI - 0.2, 6, Color("efe8d6"), 2.0)
 				_:   # עצם ארוכה
-					draw_line(Vector2(bx - 8.0, by), Vector2(bx + 8.0, by - 6.0), Color("efe8d6"), 3.0)
-					draw_circle(Vector2(bx - 8.0, by), 2.4, Color("efe8d6"))
-					draw_circle(Vector2(bx + 8.0, by - 6.0), 2.4, Color("efe8d6"))
-		draw_polyline(top, Color(0.12, 0.09, 0.06, 0.9), 3.0)   # קו מתאר (במקום המלבן של collision_outlines)
+					DrawBatch.line(self, Vector2(bx - 8.0, by), Vector2(bx + 8.0, by - 6.0), Color("efe8d6"), 3.0)
+					DrawBatch.circle(self, Vector2(bx - 8.0, by), 2.4, Color("efe8d6"))
+					DrawBatch.circle(self, Vector2(bx + 8.0, by - 6.0), 2.4, Color("efe8d6"))
+		DrawBatch.polyline(self, top, Color(0.12, 0.09, 0.06, 0.9), 3.0)   # קו מתאר (במקום המלבן של collision_outlines)
 
 	static func Art_rng(s: int) -> RandomNumberGenerator:
 		var rr := RandomNumberGenerator.new()
@@ -203,14 +209,19 @@ class SandStorm extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if k <= 0.0:
 			return
-		draw_rect(Rect2(Vector2.ZERO, vp), Color(0.82, 0.68, 0.45, 0.42 * k))
+		DrawBatch.rect(self, Rect2(Vector2.ZERO, vp), Color(0.82, 0.68, 0.45, 0.42 * k))
 		for s in _streaks:
-			draw_line(s[0], s[0] + Vector2(float(s[2]), 0.0), Color(0.95, 0.85, 0.6, 0.45 * k), 1.5)
+			DrawBatch.line(self, s[0], s[0] + Vector2(float(s[2]), 0.0), Color(0.95, 0.85, 0.6, 0.45 * k), 1.5)
 		var f := ThemeDB.fallback_font
 		if k > 0.3 and fmod(_t, 1.0) < 0.6 and _left > SANDSTORM_T - 2.5:
-			draw_string_outline(f, Vector2(0, 150), "SANDSTORM", HORIZONTAL_ALIGNMENT_CENTER, vp.x, 26, 5, Color(0, 0, 0, 0.6))
-			draw_string(f, Vector2(0, 150), "SANDSTORM", HORIZONTAL_ALIGNMENT_CENTER, vp.x, 26, Color(1.0, 0.85, 0.5, 0.9))
+			DrawBatch.string_outline(self, f, Vector2(0, 150), "SANDSTORM", HORIZONTAL_ALIGNMENT_CENTER, vp.x, 26, 5, Color(0, 0, 0, 0.6))
+			DrawBatch.string(self, f, Vector2(0, 150), "SANDSTORM", HORIZONTAL_ALIGNMENT_CENTER, vp.x, 26, Color(1.0, 0.85, 0.5, 0.9))
 
 	const Sfx := preload("res://sfx.gd")

@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  תפריט ראשי. ברקע: העיר ההרוסה זזה לאט, הדמות הראשית עומדת ונושמת,
 #  וזומבים מסתובבים ברחוב. בצד שמאל: כותרת, כפתור PLAY, רמת קושי ו-QUIT.
@@ -15,6 +16,7 @@ const PropScript := preload("res://prop.gd")
 const StreetPropScript := preload("res://street_prop.gd")
 const RoadDecorScript := preload("res://road_decor.gd")
 const ButtonScript := preload("res://menu_button.gd")
+const PauseScript := preload("res://pause_menu.gd")
 
 const GAME_SCENE := "res://main.tscn"
 const MAP_SCENE := "res://map.tscn"
@@ -58,6 +60,7 @@ func _show_trophies() -> void:
 
 func _ready() -> void:
 	Game.end_practice()   # חזרה מתרגול: השמירה האמיתית חוזרת
+	Settings.menu_music(true)   # music_db.gd -> MENU
 	preload("res://sfx.gd").warm_up()   # מייצר את הצלילים כבר בתפריט
 	get_tree().paused = false
 	var vp := get_viewport_rect().size
@@ -160,17 +163,20 @@ func _build_ui(vp: Vector2) -> void:
 		play.pressed.connect(_open_map)   # PLAY = מפת היבשת
 		first = play
 
-	# תרגול: קפיצה ישר לשלב 2-22 עם ציוד מתאים (לא נשמר, לא נוגע בשמירה)
+	# תרגול: קפיצה ישר לכל שלב עם ציוד מתאים (לא נשמר, לא נוגע בשמירה).
+	# רק כשמריצים מתוך העורך של Godot (בדיקות) - במשחק שמשחררים השחקן רואה מסך פתיחה נקי
+	var dev := OS.has_feature("editor")
 	var plbl := Caption.new()
 	plbl.text = "PRACTICE  (NOT SAVED)"
 	plbl.size = 15
 	plbl.position = Vector2(396, 250)
+	plbl.visible = dev
 	ui.add_child(plbl)
 	var accents := [Color("3a8acc"), Color("d8902a"), Color("6a5acd"), Color("c04a3a"), Color("4a90a0"), Color("c0a030"), Color("40b0a0"), Color("d02040"), Color("e8b84a"), Color("8a6ad0"), Color("c03a2a"), Color("d8c49c"), Color("5a8aa0"), Color("e8483a"), Color("d89a5a"), Color("e0c070"), Color("f0a020"), Color("4aa060"), Color("2e7a40"), Color("d8784a"), Color("5a8ab0"), Color("d86a2a"), Color("e0a040"), Color("7a8ad8")]
-	var n: int = Game.IMPLEMENTED - 1
+	var n: int = Game.IMPLEMENTED - 1 if dev else 0
 	var rows := 1 if n <= 24 else 2   # הרבה שלבים -> שתי שורות (שהמספרים יישארו קריאים)
 	var per_row := int(ceil(float(n) / float(rows)))
-	var step: float = minf(41.0, 864.0 / float(per_row))
+	var step: float = minf(41.0, 864.0 / float(maxi(per_row, 1)))
 	var bh := 44.0 if rows == 1 else 38.0
 	for i in n:
 		var col := i % per_row
@@ -213,7 +219,7 @@ func _build_ui(vp: Vector2) -> void:
 	var hint := Caption.new()
 	hint.size = 15
 	hint.color = Color(1, 1, 1, 0.55)
-	hint.text = "A/D move   W jump   S crouch   MOUSE aim   LMB fire   Q wheel   1-5 weapons   G drop   E grenade   SHIFT roll   F grapple   ESC pause"
+	hint.text = PauseScript.CONTROLS_SHORT
 	hint.position = Vector2(20, vp.y - 18.0)
 	hint.visible = not TouchAPI.on()
 	ui.add_child(hint)
@@ -223,6 +229,7 @@ func _build_ui(vp: Vector2) -> void:
 	build.color = Color(0.6, 1.0, 0.6, 0.8)
 	build.text = "LEVELS INSTALLED: %d" % Game.IMPLEMENTED
 	build.position = Vector2(vp.x - 190.0, vp.y - 42.0)
+	build.visible = dev
 	ui.add_child(build)
 
 	first.call_deferred("grab_focus")
@@ -305,10 +312,15 @@ func _process(delta: float) -> void:
 # ---- הצללה כהה בצד שמאל ----
 class Shade extends Node2D:
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var s := get_viewport_rect().size
 		var a := Color(0, 0, 0, 0.72)
 		var b := Color(0, 0, 0, 0.0)
-		draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(s.x * 0.55, 0), Vector2(s.x * 0.55, s.y), Vector2(0, s.y)]),
+		DrawBatch.polygon(self, PackedVector2Array([Vector2(0, 0), Vector2(s.x * 0.55, 0), Vector2(s.x * 0.55, s.y), Vector2(0, s.y)]),
 			PackedColorArray([a, b, b, a]))
 
 
@@ -331,10 +343,15 @@ class Caption extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var f := ThemeDB.fallback_font
 		var p := Vector2(_flash * 12.0, 0.0)
-		draw_string_outline(f, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 5, Color(0, 0, 0, 0.85))
-		draw_string(f, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(color, 1.0 - _flash * 0.7))
+		DrawBatch.string_outline(self, f, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 5, Color(0, 0, 0, 0.85))
+		DrawBatch.string(self, f, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(color, 1.0 - _flash * 0.7))
 
 
 # ---- כותרת המשחק: אותיות עם דם שמטפטף ומהבהב ----
@@ -355,6 +372,11 @@ class Title extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var f := ThemeDB.fallback_font
 		var size := 92
 		var appear := clampf(_t / 0.8, 0.0, 1.0)
@@ -363,11 +385,11 @@ class Title extends Node2D:
 			flick = 0.55
 		var p := Vector2(0, -40.0 * (1.0 - appear))
 		var red := Color(0.72, 0.05, 0.07, appear * flick)
-		draw_string_outline(f, p + Vector2(5, 6), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 14, Color(0, 0, 0, 0.6 * appear))
-		draw_string_outline(f, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 10, Color(0.05, 0.0, 0.0, appear))
-		draw_string(f, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, red)
+		DrawBatch.string_outline(self, f, p + Vector2(5, 6), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 14, Color(0, 0, 0, 0.6 * appear))
+		DrawBatch.string_outline(self, f, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 10, Color(0.05, 0.0, 0.0, appear))
+		DrawBatch.string(self, f, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, red)
 		# הארה בהירה בחלק העליון של האותיות
-		draw_string(f, p + Vector2(0, -2), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(1.0, 0.45, 0.4, 0.18 * appear))
+		DrawBatch.string(self, f, p + Vector2(0, -2), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(1.0, 0.45, 0.4, 0.18 * appear))
 		# טפטופי דם שגדלים ונופלים
 		for d in _drips:
 			var k := fmod(_t * float(d[3]) + float(d[1]), 3.0) / 3.0
@@ -375,13 +397,13 @@ class Title extends Node2D:
 			var x: float = d[0]
 			var y0 := p.y + 4.0
 			if k < 0.8:
-				draw_line(Vector2(x, y0), Vector2(x, y0 + dl), red.darkened(0.2), 4.0, true)
-				draw_circle(Vector2(x, y0 + dl), 3.2, red.darkened(0.2))
+				DrawBatch.line(self, Vector2(x, y0), Vector2(x, y0 + dl), red.darkened(0.2), 4.0, true)
+				DrawBatch.circle(self, Vector2(x, y0 + dl), 3.2, red.darkened(0.2))
 			else:   # הטיפה נופלת
 				var fall := (k - 0.8) / 0.2
-				draw_circle(Vector2(x, y0 + dl + fall * 60.0), 2.6 * (1.0 - fall * 0.5), Color(red.darkened(0.2), 1.0 - fall))
-		draw_string_outline(f, p + Vector2(4, 44), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 6, Color(0, 0, 0, 0.9 * appear))
-		draw_string(f, p + Vector2(4, 44), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.85, 0.8, 0.75, appear))
+				DrawBatch.circle(self, Vector2(x, y0 + dl + fall * 60.0), 2.6 * (1.0 - fall * 0.5), Color(red.darkened(0.2), 1.0 - fall))
+		DrawBatch.string_outline(self, f, p + Vector2(4, 44), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 6, Color(0, 0, 0, 0.9 * appear))
+		DrawBatch.string(self, f, p + Vector2(4, 44), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.85, 0.8, 0.75, appear))
 
 
 # ---- חדר הגביעים ----
@@ -394,12 +416,17 @@ class TrophyRoom extends Node2D:
 
 	func _txt(p: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0) -> void:
 		var f := ThemeDB.fallback_font
-		draw_string_outline(f, p, t, align, w, size, 5, Color(0, 0, 0, 0.85))
-		draw_string(f, p, t, align, w, size, col)
+		DrawBatch.string_outline(self, f, p, t, align, w, size, 5, Color(0, 0, 0, 0.85))
+		DrawBatch.string(self, f, p, t, align, w, size, col)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var vp := get_viewport_rect().size
-		draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 0.82))
+		DrawBatch.rect(self, Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 0.82))
 		var got := 0
 		for t in Game.TROPHIES:
 			if Game.trophies.get(t.id, false):
@@ -414,17 +441,17 @@ class TrophyRoom extends Node2D:
 			var unlocked: bool = Game.trophies.get(t.id, false)
 			var a := clampf((_t - float(i) * 0.06) / 0.25, 0.0, 1.0)
 			var p := Vector2(x0 + float(i % 4) * (cw + 18.0), 140.0 + float(i / 4) * (ch + 18.0) + (1.0 - a) * 20.0)
-			draw_rect(Rect2(p, Vector2(cw, ch)), Color(0.08, 0.07, 0.07, 0.95 * a))
-			draw_rect(Rect2(p, Vector2(cw, ch)), Color("d8a033") if unlocked else Color(0.3, 0.28, 0.27), false, 2.0)
+			DrawBatch.rect(self, Rect2(p, Vector2(cw, ch)), Color(0.08, 0.07, 0.07, 0.95 * a))
+			DrawBatch.rect(self, Rect2(p, Vector2(cw, ch)), Color("d8a033") if unlocked else Color(0.3, 0.28, 0.27), false, 2.0)
 			var c := p + Vector2(cw / 2.0, 62)
 			var gold := Color("e0b040") if unlocked else Color(0.18, 0.17, 0.17)
 			if unlocked:
-				draw_circle(c, 34.0 + 3.0 * sin(_t * 3.0 + float(i)), Color(1.0, 0.8, 0.3, 0.12))
-			draw_colored_polygon(PackedVector2Array([c + Vector2(-20, -24), c + Vector2(20, -24), c + Vector2(14, 0), c + Vector2(4, 6), c + Vector2(-4, 6), c + Vector2(-14, 0)]), gold)
-			draw_arc(c + Vector2(-20, -13), 9.0, PI * 0.5, PI * 1.5, 10, gold, 3.5, true)
-			draw_arc(c + Vector2(20, -13), 9.0, -PI * 0.5, PI * 0.5, 10, gold, 3.5, true)
-			draw_rect(Rect2(c + Vector2(-3, 6), Vector2(6, 10)), gold)
-			draw_rect(Rect2(c + Vector2(-14, 16), Vector2(28, 6)), gold.darkened(0.2))
+				DrawBatch.circle(self, c, 34.0 + 3.0 * sin(_t * 3.0 + float(i)), Color(1.0, 0.8, 0.3, 0.12))
+			DrawBatch.colored_polygon(self, PackedVector2Array([c + Vector2(-20, -24), c + Vector2(20, -24), c + Vector2(14, 0), c + Vector2(4, 6), c + Vector2(-4, 6), c + Vector2(-14, 0)]), gold)
+			DrawBatch.arc(self, c + Vector2(-20, -13), 9.0, PI * 0.5, PI * 1.5, 10, gold, 3.5, true)
+			DrawBatch.arc(self, c + Vector2(20, -13), 9.0, -PI * 0.5, PI * 0.5, 10, gold, 3.5, true)
+			DrawBatch.rect(self, Rect2(c + Vector2(-3, 6), Vector2(6, 10)), gold)
+			DrawBatch.rect(self, Rect2(c + Vector2(-14, 16), Vector2(28, 6)), gold.darkened(0.2))
 			if not unlocked:
 				_txt(c + Vector2(-8, -2), "?", 22, Color(0.5, 0.48, 0.45))
 			_txt(p + Vector2(0, 122), t.name if unlocked else "???", 18, Color.WHITE if unlocked else Color(0.6, 0.58, 0.55), HORIZONTAL_ALIGNMENT_CENTER, cw)

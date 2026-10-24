@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  גשם + ברקים (שלב לילה). מצויר על המסך, מעל העולם.
 # ============================================================
@@ -33,12 +34,15 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-func _draw() -> void:
+func _draw() -> void:   # UI / קווים דקים: בלי batch (Godot כבר מאחד מלבנים וקווים, וה-batch רק עולה CPU)
+	_draw_b()
+
+func _draw_b() -> void:
 	var vs := get_viewport_rect().size
 	for i in _n:
 		var d: Array = _drops[i]
 		var p := Vector2(d[0], d[1])
-		draw_line(p, p + Vector2(-d[3] * 0.22, d[3]), Color(0.7, 0.78, 0.9, 0.35), 1.0)
+		DrawBatch.line(self, p, p + Vector2(-d[3] * 0.22, d[3]), Color(0.7, 0.78, 0.9, 0.35), 1.0)
 	if _flash > 0.0:
 		var a := _flash * (0.55 if int(_flash * 20.0) % 3 != 0 else 0.2)
-		draw_rect(Rect2(Vector2.ZERO, vs), Color(0.85, 0.9, 1.0, a * 0.5))
+		DrawBatch.rect(self, Rect2(Vector2.ZERO, vs), Color(0.85, 0.9, 1.0, a * 0.5))

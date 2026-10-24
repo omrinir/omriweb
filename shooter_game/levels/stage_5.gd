@@ -1,4 +1,5 @@
 extends "res://levels/stage_base.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  STAGE 5 - "THE CITY REMEMBERS"
 #  רובע עירוני הרוס. רוב השלב אופקי, עם קטע מוגבה אחד (גשר עילי שקרס)
@@ -63,7 +64,7 @@ func build_background(layer: CanvasLayer) -> Node:
 	bg.level_w = level_w
 	bg.sky = func(ci: CanvasItem, v: Vector2, t: float):
 		Kit.gradient_sky(ci, v, [Color("2a2230"), Color("4a3038"), Color("8a4a32"), Color("b8693a"), Color("5a3a30")])
-		ci.draw_circle(Vector2(v.x * 0.72, 250), 70, Color(1.0, 0.55, 0.25, 0.18))   # שמש חולה מאחורי העשן
+		DrawBatch.circle(ci, Vector2(v.x * 0.72, 250), 70, Color(1.0, 0.55, 0.25, 0.18))   # שמש חולה מאחורי העשן
 		Kit.clouds(ci, 0.0, v, t, 90.0, Color(0.2, 0.15, 0.15, 0.35), 4, 6.0)
 		Kit.birds(ci, v, t, 11)
 	# שכבה 1 (רחוקה): גורדי שחקים
@@ -91,25 +92,25 @@ func build_background(layer: CanvasLayer) -> Node:
 			# עמודי חשמל + כבלים
 			for j in 3:
 				var px := x + float(j) * 380.0
-				ci.draw_rect(Rect2(px, 330, 6, 260), Color("161216"))
-				ci.draw_line(Vector2(px - 18, 342), Vector2(px + 24, 342), Color("161216"), 3.0)
+				DrawBatch.rect(ci, Rect2(px, 330, 6, 260), Color("161216"))
+				DrawBatch.line(ci, Vector2(px - 18, 342), Vector2(px + 24, 342), Color("161216"), 3.0)
 				var sag := 30.0 + sin(t * 0.8 + float(j)) * 3.0
 				var pts := PackedVector2Array()
 				for q in 9:
 					var u := float(q) / 8.0
 					pts.append(Vector2(px + 3.0 + u * 380.0, 342.0 + sin(u * PI) * sag))
-				ci.draw_polyline(pts, Color(0.05, 0.05, 0.06, 0.9), 1.5)
+				DrawBatch.polyline(ci, pts, Color(0.05, 0.05, 0.06, 0.9), 1.5)
 				if r.randf() < 0.5:   # כבל קרוע תלוי
-					ci.draw_line(Vector2(px + 120, 360), Vector2(px + 120 + sin(t * 1.5 + float(j)) * 6.0, 450), Color(0.05, 0.05, 0.06, 0.9), 1.5)
+					DrawBatch.line(ci, Vector2(px + 120, 360), Vector2(px + 120 + sin(t * 1.5 + float(j)) * 6.0, 450), Color(0.05, 0.05, 0.06, 0.9), 1.5)
 			# שלט חוצות שבור
 			var bx := x + 560.0
-			ci.draw_rect(Rect2(bx, 360, 8, 200), Color("1a161a"))
-			ci.draw_colored_polygon(PackedVector2Array([Vector2(bx - 70, 300), Vector2(bx + 80, 290), Vector2(bx + 76, 370), Vector2(bx - 66, 380)]), Color("2a2228"))
-			ci.draw_colored_polygon(PackedVector2Array([Vector2(bx - 60, 310), Vector2(bx + 20, 302), Vector2(bx + 10, 360), Vector2(bx - 58, 368)]), Color(0.55, 0.25, 0.15, 0.6))
+			DrawBatch.rect(ci, Rect2(bx, 360, 8, 200), Color("1a161a"))
+			DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(bx - 70, 300), Vector2(bx + 80, 290), Vector2(bx + 76, 370), Vector2(bx - 66, 380)]), Color("2a2228"))
+			DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(bx - 60, 310), Vector2(bx + 20, 302), Vector2(bx + 10, 360), Vector2(bx - 58, 368)]), Color(0.55, 0.25, 0.15, 0.6))
 			# גשר עילי שבור ברקע
-			ci.draw_rect(Rect2(x + 800, 420, 260, 22), Color("1c181c"))
-			ci.draw_rect(Rect2(x + 830, 442, 18, 150), Color("1c181c"))
-			ci.draw_colored_polygon(PackedVector2Array([Vector2(x + 1060, 420), Vector2(x + 1100, 452), Vector2(x + 1060, 442)]), Color("1c181c"))
+			DrawBatch.rect(ci, Rect2(x + 800, 420, 260, 22), Color("1c181c"))
+			DrawBatch.rect(ci, Rect2(x + 830, 442, 18, 150), Color("1c181c"))
+			DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(x + 1060, 420), Vector2(x + 1100, 452), Vector2(x + 1060, 442)]), Color("1c181c"))
 		Kit.ground_fade(ci, v, 570.0))
 	layer.add_child(bg)
 	return bg
@@ -175,6 +176,11 @@ class Storefronts extends Node2D:
 		z_index = -3
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var x := 0.0
@@ -183,37 +189,37 @@ class Storefronts extends Node2D:
 			var w := r.randf_range(150.0, 230.0)
 			var h := r.randf_range(150.0, 240.0)
 			var wall := Color("3a3230").lerp(Color("4a3a34"), r.randf())
-			draw_rect(Rect2(x, -h, w, h), wall)
-			draw_rect(Rect2(x, -h, w, 6), Color("2a2422"))
+			DrawBatch.rect(self, Rect2(x, -h, w, h), wall)
+			DrawBatch.rect(self, Rect2(x, -h, w, 6), Color("2a2422"))
 			# חלון ראווה שבור
 			var gw := w - 40.0
-			draw_rect(Rect2(x + 20, -96, gw, 70), Color("141218"))
+			DrawBatch.rect(self, Rect2(x + 20, -96, gw, 70), Color("141218"))
 			for k in 6:   # שברי זכוכית
 				var sx := x + 20 + r.randf_range(0, gw)
-				draw_colored_polygon(PackedVector2Array([Vector2(sx, -96), Vector2(sx + r.randf_range(6, 18), -96), Vector2(sx + r.randf_range(-4, 8), -96 + r.randf_range(14, 40))]), Color(0.6, 0.7, 0.75, 0.35))
+				DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(sx, -96), Vector2(sx + r.randf_range(6, 18), -96), Vector2(sx + r.randf_range(-4, 8), -96 + r.randf_range(14, 40))]), Color(0.6, 0.7, 0.75, 0.35))
 			if r.randf() < 0.5:   # תריס חצי סגור
 				var sh := r.randf_range(20, 60)
-				draw_rect(Rect2(x + 20, -96, gw, sh), Color("4a4a4c"))
+				DrawBatch.rect(self, Rect2(x + 20, -96, gw, sh), Color("4a4a4c"))
 				for q in int(sh / 5.0):
-					draw_line(Vector2(x + 20, -96 + q * 5), Vector2(x + 20 + gw, -96 + q * 5), Color("383838"), 1.0)
+					DrawBatch.line(self, Vector2(x + 20, -96 + q * 5), Vector2(x + 20 + gw, -96 + q * 5), Color("383838"), 1.0)
 			# סוכך קרוע
 			var aw := Color(0.5 + r.randf() * 0.3, 0.15, 0.12)
-			draw_colored_polygon(PackedVector2Array([Vector2(x + 10, -112), Vector2(x + w - 10, -112), Vector2(x + w - 2, -98), Vector2(x + w * 0.6, -100), Vector2(x + w * 0.5, -92), Vector2(x + 2, -98)]), aw)
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(x + 10, -112), Vector2(x + w - 10, -112), Vector2(x + w - 2, -98), Vector2(x + w * 0.6, -100), Vector2(x + w * 0.5, -92), Vector2(x + 2, -98)]), aw)
 			# שלט
-			draw_rect(Rect2(x + 26, -140, w - 52, 20), Color("1e1a1a"))
-			draw_rect(Rect2(x + 30, -136, (w - 60) * r.randf_range(0.3, 0.9), 12), Color(0.8, 0.7, 0.4, 0.4))
+			DrawBatch.rect(self, Rect2(x + 26, -140, w - 52, 20), Color("1e1a1a"))
+			DrawBatch.rect(self, Rect2(x + 30, -136, (w - 60) * r.randf_range(0.3, 0.9), 12), Color(0.8, 0.7, 0.4, 0.4))
 			# חלונות דירות למעלה
 			var wy := -h + 20.0
 			while wy < -150.0:
 				for q in 3:
 					var lit := r.randf() < 0.12
-					draw_rect(Rect2(x + 22 + q * (w - 50) / 3.0, wy, 22, 18), Color(1.0, 0.75, 0.4, 0.7) if lit else Color("181418"))
+					DrawBatch.rect(self, Rect2(x + 22 + q * (w - 50) / 3.0, wy, 22, 18), Color(1.0, 0.75, 0.4, 0.7) if lit else Color("181418"))
 				wy += 34.0
 			# גרפיטי
 			if r.randf() < 0.6:
 				var f := ThemeDB.fallback_font
 				var tag: String = tags[r.randi() % tags.size()]
-				draw_string(f, Vector2(x + 24, -30 + r.randf_range(-6, 0)), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(r.randf_range(0.6, 1.0), r.randf_range(0.1, 0.4), r.randf_range(0.1, 0.5), 0.75))
+				DrawBatch.string(self, f, Vector2(x + 24, -30 + r.randf_range(-6, 0)), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(r.randf_range(0.6, 1.0), r.randf_range(0.1, 0.4), r.randf_range(0.1, 0.5), 0.75))
 			x += w + r.randf_range(0, 20)
 
 
@@ -221,6 +227,11 @@ class TrashPile extends Node2D:
 	var seed_v := 0
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		for i in 6:

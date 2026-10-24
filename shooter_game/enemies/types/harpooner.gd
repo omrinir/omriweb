@@ -142,22 +142,22 @@ func draw() -> bool:
 	var head := sh + Vector2(3.5, -8.0)
 	# בלון חמצן על הגב
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-11, -2), sh + Vector2(-5, -3), hip + Vector2(-5, -4), hip + Vector2(-11, -3)]), col(Color("c8c040")), 0.15, 0.4)
-	z.draw_line(sh + Vector2(-8, -3), head + Vector2(-3, -3), col(Color("2a2a2a")), 1.4)   # צינור
+	DrawBatch.line(z, sh + Vector2(-8, -3), head + Vector2(-3, -3), col(Color("2a2a2a")), 1.4)   # צינור
 	_leg_flipper(hip + Vector2(-2, 0), f[1], col(Art.shade(z.pants, 0.25)))
 	_leg_flipper(hip + Vector2(2, 0), f[0], col(z.pants))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 2.0, 14.0), Art.shade(suit, 0.2), Art.shade(suit, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)]), suit, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-5, 3), hip + Vector2(4, 0), col(Color("e0b020")), 1.2)   # פס צהוב
-	z.draw_rect(Rect2(hip + Vector2(-5, -2), Vector2(10, 2)), col(Color("2a2a2a")))     # חגורת משקולות
+	DrawBatch.line(z, sh + Vector2(-5, 3), hip + Vector2(4, 0), col(Color("e0b020")), 1.2)   # פס צהוב
+	DrawBatch.rect(z, Rect2(hip + Vector2(-5, -2), Vector2(10, 2)), col(Color("2a2a2a")))     # חגורת משקולות
 	# ראש: מסכת צלילה + שנורקל
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(0, -4), head + Vector2(6.5, -4), head + Vector2(6.5, 1.5), head + Vector2(0, 1.5)]), col(Color("3a3a40")), Art.OUTLINE, 1.0)
-	z.draw_rect(Rect2(head + Vector2(1, -3), Vector2(4.8, 3.6)), Color(0.55, 0.8, 0.9, 0.85))
-	z.draw_line(head + Vector2(1.5, -2.5), head + Vector2(3, -2.5), Color(1, 1, 1, 0.8), 1.0)   # ברק
+	DrawBatch.rect(z, Rect2(head + Vector2(1, -3), Vector2(4.8, 3.6)), Color(0.55, 0.8, 0.9, 0.85))
+	DrawBatch.line(z, head + Vector2(1.5, -2.5), head + Vector2(3, -2.5), Color(1, 1, 1, 0.8), 1.0)   # ברק
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -1.2), 0.8, Color(1.0, 0.45, 0.2))
-	z.draw_line(head + Vector2(-5, -1), head + Vector2(5, -1), col(Color("2a2a2a")), 1.0)   # רצועה
-	z.draw_line(head + Vector2(-4, 2), head + Vector2(-5, -9), col(Color("e0b020")), 1.6)   # שנורקל
+		DrawBatch.circle(z, head + Vector2(3.5, -1.2), 0.8, Color(1.0, 0.45, 0.2))
+	DrawBatch.line(z, head + Vector2(-5, -1), head + Vector2(5, -1), col(Color("2a2a2a")), 1.0)   # רצועה
+	DrawBatch.line(z, head + Vector2(-4, 2), head + Vector2(-5, -9), col(Color("e0b020")), 1.6)   # שנורקל
 	# רובה הצלצל
 	var a := _aim if state == AIM or state == SHOT else (0.3 if z._dir > 0.0 else PI - 0.3)
 	var la := Vector2(cos(a) * z._dir, sin(a)).normalized()
@@ -166,14 +166,14 @@ func draw() -> bool:
 	var tr := Transform2D(la.angle(), hand)
 	Art.fill(z, tr * PackedVector2Array([Vector2(-6, -1.5), Vector2(20, -1.5), Vector2(20, 1.5), Vector2(-6, 1.5)]), col(Color("3a3a3e")), Art.OUTLINE, 1.0)   # קנה
 	Art.fill(z, tr * PackedVector2Array([Vector2(-1, 1.5), Vector2(3, 1.5), Vector2(1, 7), Vector2(-3, 6.5)]), col(Color("2a2a2a")), Art.OUTLINE, 0.8)   # ידית
-	z.draw_circle(tr * Vector2(-4, 3.5), 2.8, col(Color("8a8a90")))   # גלגלת
-	z.draw_circle(tr * Vector2(-4, 3.5), 1.2, col(Color("4a4a50")))
+	DrawBatch.circle(z, tr * Vector2(-4, 3.5), 2.8, col(Color("8a8a90")))   # גלגלת
+	DrawBatch.circle(z, tr * Vector2(-4, 3.5), 1.2, col(Color("4a4a50")))
 	if state != SHOT:   # הצלצל טעון
-		z.draw_line(tr * Vector2(4, -2.4), tr * Vector2(27, -2.4), col(Color("c8ccd4")), 1.4)
-		z.draw_colored_polygon(PackedVector2Array([tr * Vector2(27, -4.4), tr * Vector2(32, -2.4), tr * Vector2(27, -0.4)]), col(Color("e0e4ec")))
+		DrawBatch.line(z, tr * Vector2(4, -2.4), tr * Vector2(27, -2.4), col(Color("c8ccd4")), 1.4)
+		DrawBatch.colored_polygon(z, PackedVector2Array([tr * Vector2(27, -4.4), tr * Vector2(32, -2.4), tr * Vector2(27, -0.4)]), col(Color("e0e4ec")))
 	if state == AIM and not z.dead:
 		var m := tr * Vector2(32, -2.4)
-		z.draw_line(m, m + la * 110.0, Color(1.0, 0.2, 0.1, 0.3), 1.0)
+		DrawBatch.line(z, m, m + la * 110.0, Color(1.0, 0.2, 0.1, 0.3), 1.0)
 		if int(z._time * 12.0) % 2 == 0:
 			Art.glow(z, m, 4.0, Color(1.0, 0.3, 0.1, 0.8))
 	z._arm(sh + Vector2(3, 1), hand, sk, suit)
@@ -274,13 +274,18 @@ class Spear extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var m := _muzzle() - global_position
 		var mid := m * 0.5 + Vector2(0, 8.0 if _phase != 2 else 2.0)
 		var rope := PackedVector2Array([Vector2.ZERO, mid, m])
-		draw_set_transform(Vector2.ZERO, -rotation, Vector2.ONE)   # החבל במרחב העולם
-		draw_polyline(rope, Color(0.85, 0.82, 0.7, 0.9), 1.2, true)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		draw_line(Vector2(-22, 0), Vector2(0, 0), Color("c8ccd4"), 1.6)
-		draw_colored_polygon(PackedVector2Array([Vector2(0, -2.5), Vector2(7, 0), Vector2(0, 2.5)]), Color("e8ecf4"))
-		draw_line(Vector2(-2, 0), Vector2(-6, -3), Color("c8ccd4"), 1.2)   # חוד חוזר
-		draw_line(Vector2(-2, 0), Vector2(-6, 3), Color("c8ccd4"), 1.2)
+		DrawBatch.set_transform(self, Vector2.ZERO, -rotation, Vector2.ONE)   # החבל במרחב העולם
+		DrawBatch.polyline(self, rope, Color(0.85, 0.82, 0.7, 0.9), 1.2, true)
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
+		DrawBatch.line(self, Vector2(-22, 0), Vector2(0, 0), Color("c8ccd4"), 1.6)
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(0, -2.5), Vector2(7, 0), Vector2(0, 2.5)]), Color("e8ecf4"))
+		DrawBatch.line(self, Vector2(-2, 0), Vector2(-6, -3), Color("c8ccd4"), 1.2)   # חוד חוזר
+		DrawBatch.line(self, Vector2(-2, 0), Vector2(-6, 3), Color("c8ccd4"), 1.2)

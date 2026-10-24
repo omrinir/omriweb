@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  פנס רחוב שעובד.
@@ -165,36 +166,41 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var hd := head()
 	var metal := Color("2a2a30")
 	if ceiling:   # כבל מהתקרה + מנורת פלורסנט
-		draw_line(hd + Vector2(-8.0, -36.0), hd + Vector2(-8.0, -7.0), Color("2a2a30"), 1.2)
-		draw_line(hd + Vector2(8.0, -36.0), hd + Vector2(8.0, -7.0), Color("2a2a30"), 1.2)
-		draw_rect(Rect2(hd + Vector2(-16.0, -8.0), Vector2(32.0, 6.0)), Color("34343a"))
+		DrawBatch.line(self, hd + Vector2(-8.0, -36.0), hd + Vector2(-8.0, -7.0), Color("2a2a30"), 1.2)
+		DrawBatch.line(self, hd + Vector2(8.0, -36.0), hd + Vector2(8.0, -7.0), Color("2a2a30"), 1.2)
+		DrawBatch.rect(self, Rect2(hd + Vector2(-16.0, -8.0), Vector2(32.0, 6.0)), Color("34343a"))
 	else:
 		_draw_pole(hd, metal)
 	if _broken:   # נורה שבורה: שאריות זכוכית
-		draw_colored_polygon(PackedVector2Array([hd + Vector2(-8.0, -2.0), hd + Vector2(-5.0, 2.0), hd + Vector2(-2.0, -1.0), hd + Vector2(2.0, 1.5), hd + Vector2(5.0, -1.0), hd + Vector2(8.0, -2.0)]), Color("3a3830"))
+		DrawBatch.colored_polygon(self, PackedVector2Array([hd + Vector2(-8.0, -2.0), hd + Vector2(-5.0, 2.0), hd + Vector2(-2.0, -1.0), hd + Vector2(2.0, 1.5), hd + Vector2(5.0, -1.0), hd + Vector2(8.0, -2.0)]), Color("3a3830"))
 	else:
 		var bulb := light_color.lerp(Color.WHITE, 0.5) if _on > 0.5 else Color("4a4436")
-		draw_rect(Rect2(hd + Vector2(-8.0, -2.0), Vector2(16.0, 3.0)), bulb)
+		DrawBatch.rect(self, Rect2(hd + Vector2(-8.0, -2.0), Vector2(16.0, 3.0)), bulb)
 	# ניצוצות (צהוב-לבן) ושברי זכוכית (תכלת)
 	for s in _sparks:
 		var a: float = clampf(s[2] * 2.0, 0.0, 1.0)
 		if s[3]:
-			draw_line(s[0], s[0] - s[1] * 0.025, Color(1.0, 0.85, 0.4, a), 1.5, true)
+			DrawBatch.line(self, s[0], s[0] - s[1] * 0.025, Color(1.0, 0.85, 0.4, a), 1.5, true)
 		else:
-			draw_rect(Rect2(s[0], Vector2(2, 2)), Color(0.75, 0.85, 0.9, a))
+			DrawBatch.rect(self, Rect2(s[0], Vector2(2, 2)), Color(0.75, 0.85, 0.9, a))
 
 
 func _draw_pole(hd: Vector2, metal: Color) -> void:
 	# עמוד + זרוע
-	draw_rect(Rect2(-5.0, -10.0, 10.0, 10.0), Color("1e1e22"))
-	draw_line(Vector2(0.0, -4.0), Vector2(0.0, -height + 12.0), metal, 4.0)
-	draw_line(Vector2(1.2, -4.0), Vector2(1.2, -height + 12.0), Color(1, 1, 1, 0.08), 1.0)
-	draw_polyline(PackedVector2Array([Vector2(0.0, -height + 12.0), Vector2(_arm * 6.0, -height - 2.0), hd + Vector2(-_arm * 6.0, -6.0), hd + Vector2(0.0, -6.0)]), metal, 3.0, true)
+	DrawBatch.rect(self, Rect2(-5.0, -10.0, 10.0, 10.0), Color("1e1e22"))
+	DrawBatch.line(self, Vector2(0.0, -4.0), Vector2(0.0, -height + 12.0), metal, 4.0)
+	DrawBatch.line(self, Vector2(1.2, -4.0), Vector2(1.2, -height + 12.0), Color(1, 1, 1, 0.08), 1.0)
+	DrawBatch.polyline(self, PackedVector2Array([Vector2(0.0, -height + 12.0), Vector2(_arm * 6.0, -height - 2.0), hd + Vector2(-_arm * 6.0, -6.0), hd + Vector2(0.0, -6.0)]), metal, 3.0, true)
 	# ראש הפנס
-	draw_colored_polygon(PackedVector2Array([hd + Vector2(-11.0, -2.0), hd + Vector2(-7.0, -8.0), hd + Vector2(7.0, -8.0), hd + Vector2(11.0, -2.0)]), Color("34343a"))
+	DrawBatch.colored_polygon(self, PackedVector2Array([hd + Vector2(-11.0, -2.0), hd + Vector2(-7.0, -8.0), hd + Vector2(7.0, -8.0), hd + Vector2(11.0, -2.0)]), Color("34343a"))
 
 
 # קונוס אור באוויר + עיגול אור על הריצפה (מצויר חיבורי, מעל הכל)
@@ -202,25 +208,30 @@ class ConeFx extends Node2D:
 	var lamp: Node2D
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k: float = lamp._on
 		if lamp._broken:
 			# הבזק קצר ברגע השבירה
 			if not lamp._sparks.is_empty():
-				draw_circle(Vector2.ZERO, 18.0, Color(1.0, 0.9, 0.6, 0.25 * clampf(lamp._sparks[0][2], 0.0, 1.0)))
+				DrawBatch.circle(self, Vector2.ZERO, 18.0, Color(1.0, 0.9, 0.6, 0.25 * clampf(lamp._sparks[0][2], 0.0, 1.0)))
 			return
 		var h: float = lamp.height
 		var w: float = lamp.cone_w
 		var c: Color = lamp.light_color
 		var top := Color(c.r, c.g, c.b, 0.16 * k)
 		var bot := Color(c.r, c.g, c.b, 0.0)
-		draw_polygon(PackedVector2Array([Vector2(-7.0, 1.0), Vector2(7.0, 1.0), Vector2(w, h), Vector2(-w, h)]),
+		DrawBatch.polygon(self, PackedVector2Array([Vector2(-7.0, 1.0), Vector2(7.0, 1.0), Vector2(w, h), Vector2(-w, h)]),
 			PackedColorArray([top, top, bot, bot]))
 		# עיגול אור על הכביש
-		draw_set_transform(Vector2(0.0, h + 2.0), 0.0, Vector2(1.0, 0.12))
+		DrawBatch.set_transform(self, Vector2(0.0, h + 2.0), 0.0, Vector2(1.0, 0.12))
 		for i in 4:
 			var r := w * (1.0 - float(i) * 0.22)
-			draw_circle(Vector2.ZERO, r, Color(c.r, c.g, c.b, 0.07 * k))
-		draw_set_transform_matrix(Transform2D.IDENTITY)
+			DrawBatch.circle(self, Vector2.ZERO, r, Color(c.r, c.g, c.b, 0.07 * k))
+		DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 		# הילה סביב הנורה
 		for i in 3:
-			draw_circle(Vector2.ZERO, 6.0 + float(i) * 6.0, Color(c.r, c.g, c.b, 0.12 * k / float(i + 1)))
+			DrawBatch.circle(self, Vector2.ZERO, 6.0 + float(i) * 6.0, Color(c.r, c.g, c.b, 0.12 * k / float(i + 1)))

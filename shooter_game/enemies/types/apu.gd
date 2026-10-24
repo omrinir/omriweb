@@ -144,19 +144,19 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-10, 2), sling_h, Art.shade(sk, 0.3), Art.shade(sk, 0.25))
 	var sa: float = z._time * (4.0 + (14.0 * k if winding == "sling" else 0.0))
 	var sp := sling_h + Vector2.from_angle(sa) * 9.0
-	z.draw_line(sling_h, sp, col(Color("c8b080")), 1.0)
-	z.draw_circle(sp, 2.0, col(Color("7a7068")))
+	DrawBatch.line(z, sling_h, sp, col(Color("c8b080")), 1.0)
+	DrawBatch.circle(z, sp, 2.0, col(Color("7a7068")))
 	# גוף
 	var torso := PackedVector2Array([sh + Vector2(-16, -2), sh + Vector2(-6, -8), sh + Vector2(14, -6), sh + Vector2(18, 4), hip + Vector2(16, 0), hip + Vector2(-16, 0)])
 	Art.fill_shaded(z, torso, sk, 0.2, 0.45)
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-16, -2), sh + Vector2(-11, -12), sh + Vector2(-5, -8)]), col(Color("e8eaf2")))   # כתפיים מושלגות (פסגות)
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(11, -6), sh + Vector2(16, -13), sh + Vector2(19, 3)]), col(Color("e8eaf2")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-16, -2), sh + Vector2(-11, -12), sh + Vector2(-5, -8)]), col(Color("e8eaf2")))   # כתפיים מושלגות (פסגות)
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(11, -6), sh + Vector2(16, -13), sh + Vector2(19, 3)]), col(Color("e8eaf2")))
 	var unku := PackedVector2Array([sh + Vector2(-12, 2), sh + Vector2(13, 2), hip + Vector2(14, -2), hip + Vector2(-14, -2)])
 	Art.fill_shaded(z, unku, col(z.shirt), 0.15, 0.4)
 	for q in 4:   # רצועת טוקאפו
 		for r in 2:
-			z.draw_rect(Rect2(-9.0 + float(q) * 5.0, -38.0 + float(r) * 4.5, 3.5, 3.5), col(gold if (q + r) % 2 == 0 else Color("1a1a1a")))
-	z.draw_line(sh + Vector2(-12, 2), sh + Vector2(13, 2), col(gold), 1.5)
+			DrawBatch.rect(z, Rect2(-9.0 + float(q) * 5.0, -38.0 + float(r) * 4.5, 3.5, 3.5), col(gold if (q + r) % 2 == 0 else Color("1a1a1a")))
+	DrawBatch.line(z, sh + Vector2(-12, 2), sh + Vector2(13, 2), col(gold), 1.5)
 	# ראש: מסכת שמש
 	if not z.dead:
 		Art.glow(z, head, 16.0 + 10.0 * k, Color(1.0, 0.8, 0.3, 0.2 + 0.3 * k))
@@ -164,20 +164,20 @@ func draw() -> bool:
 		var a := float(q) / 14.0 * TAU
 		var r0 := 9.0
 		var r1 := 13.0 + float(q % 2) * 2.0
-		z.draw_colored_polygon(PackedVector2Array([head + Vector2.from_angle(a - 0.16) * r0, head + Vector2.from_angle(a) * r1, head + Vector2.from_angle(a + 0.16) * r0]), col(gold.darkened(0.1)))
+		DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2.from_angle(a - 0.16) * r0, head + Vector2.from_angle(a) * r1, head + Vector2.from_angle(a + 0.16) * r0]), col(gold.darkened(0.1)))
 	Art.oval_shaded(z, head, 9.5, 9.5, col(gold), 0.0)
-	z.draw_arc(head, 7.5, 0.0, TAU, 18, col(gold.darkened(0.3)), 1.0)
+	DrawBatch.arc(z, head, 7.5, 0.0, TAU, 18, col(gold.darkened(0.3)), 1.0)
 	var ec := Color(1.0, 0.95, 0.8) if winding == "lightning" else Color(0.95, 0.85, 0.5)
 	if not z.dead:
 		for e in [Vector2(-3, -1), Vector2(4, -1)]:
-			z.draw_rect(Rect2(head + e - Vector2(2, 1), Vector2(4, 2.4)), col(Color("2a1a10")))
-			z.draw_circle(head + e, 0.9 + 0.8 * k, ec)
-	z.draw_rect(Rect2(head + Vector2(-3, 4), Vector2(7, 2)), col(Color("2a1a10")))   # פה
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-1, 0), head + Vector2(1, 0), head + Vector2(0, 3)]), col(gold.darkened(0.25)))
+			DrawBatch.rect(z, Rect2(head + e - Vector2(2, 1), Vector2(4, 2.4)), col(Color("2a1a10")))
+			DrawBatch.circle(z, head + e, 0.9 + 0.8 * k, ec)
+	DrawBatch.rect(z, Rect2(head + Vector2(-3, 4), Vector2(7, 2)), col(Color("2a1a10")))   # פה
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-1, 0), head + Vector2(1, 0), head + Vector2(0, 3)]), col(gold.darkened(0.25)))
 	# מסקאפאיצ'ה: גדיל אדום על המצח + נוצות
-	z.draw_rect(Rect2(head + Vector2(-6, -12), Vector2(12, 3)), col(Color("c02a20")))
+	DrawBatch.rect(z, Rect2(head + Vector2(-6, -12), Vector2(12, 3)), col(Color("c02a20")))
 	for q in 3:
-		z.draw_line(head + Vector2(-3.0 + float(q) * 3.0, -12), head + Vector2(-5.0 + float(q) * 4.0, -21), col([Color("2a2a2a"), Color("e8e8e8"), Color("2a2a2a")][q]), 2.0)
+		DrawBatch.line(z, head + Vector2(-3.0 + float(q) * 3.0, -12), head + Vector2(-5.0 + float(q) * 4.0, -21), col([Color("2a2a2a"), Color("e8e8e8"), Color("2a2a2a")][q]), 2.0)
 	# יד קדמית: מטה זהב (מורם בזמן ברק)
 	var hf := sh + Vector2(18, -8)
 	if winding == "lightning":
@@ -185,22 +185,22 @@ func draw() -> bool:
 	elif winding == "rocks":
 		hf = sh + Vector2(10, -24)
 	z._arm(sh + Vector2(12, 2), hf, sk, Art.shade(sk, 0.1))
-	z.draw_line(hf + Vector2(0, 14), hf + Vector2(2, -26), col(gold.darkened(0.2)), 2.0)
+	DrawBatch.line(z, hf + Vector2(0, 14), hf + Vector2(2, -26), col(gold.darkened(0.2)), 2.0)
 	var top := hf + Vector2(2, -28)
-	z.draw_circle(top, 3.5, col(gold))
+	DrawBatch.circle(z, top, 3.5, col(gold))
 	if winding == "lightning" and not z.dead:
 		Art.glow(z, top, 8.0 + 14.0 * k, Color(0.8, 0.9, 1.0, 0.5 * k))
 		for q in 3:
 			var a: float = z._time * 30.0 + float(q) * 2.1
-			z.draw_line(top, top + Vector2.from_angle(a) * (6.0 + 6.0 * k), Color(0.9, 0.95, 1.0, 0.8), 1.0)
+			DrawBatch.line(z, top, top + Vector2.from_angle(a) * (6.0 + 6.0 * k), Color(0.9, 0.95, 1.0, 0.8), 1.0)
 	if winding == "rocks":   # סלע ביד
-		z.draw_circle(hf + Vector2(0, -5), 4.0 * (0.5 + 0.5 * k), col(Color("6a6058")))
+		DrawBatch.circle(z, hf + Vector2(0, -5), 4.0 * (0.5 + 0.5 * k), col(Color("6a6058")))
 	# הכס: גבעת סלע עם שלג
 	var mound := PackedVector2Array([Vector2(-30, 0), Vector2(-26, -10), Vector2(-14, -18), Vector2(0, -15), Vector2(14, -19), Vector2(26, -11), Vector2(30, 0)])
 	Art.fill_shaded(z, mound, col(Color("4a4448")), 0.2, 0.4, Art.OUTLINE, 1.2)
-	z.draw_colored_polygon(PackedVector2Array([Vector2(-26, -10), Vector2(-14, -18), Vector2(0, -15), Vector2(-6, -12), Vector2(-16, -14)]), col(Color("e8eaf2")))
-	z.draw_colored_polygon(PackedVector2Array([Vector2(14, -19), Vector2(26, -11), Vector2(18, -12)]), col(Color("e8eaf2")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(-26, -10), Vector2(-14, -18), Vector2(0, -15), Vector2(-6, -12), Vector2(-16, -14)]), col(Color("e8eaf2")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(14, -19), Vector2(26, -11), Vector2(18, -12)]), col(Color("e8eaf2")))
 	for q in 3:   # אבנים מצולעות בבסיס
-		z.draw_line(Vector2(-20.0 + float(q) * 16.0, -6), Vector2(-12.0 + float(q) * 16.0, -6), col(Color("2e2a2e")), 1.0)
+		DrawBatch.line(z, Vector2(-20.0 + float(q) * 16.0, -6), Vector2(-12.0 + float(q) * 16.0, -6), col(Color("2e2a2e")), 1.0)
 	end_draw()
 	return true

@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  טיפת דם. עפה, נופלת בכבידה, וכשהיא פוגעת בלבנה / ריצפה
 #  היא משאירה שם כתם (brick.gd -> add_blood).
@@ -47,5 +48,10 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_line(-velocity * 0.012, Vector2.ZERO, color, radius * 2.0, true)
-	draw_circle(Vector2.ZERO, radius, color)
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
+	DrawBatch.line(self, -velocity * 0.012, Vector2.ZERO, color, radius * 2.0, true)
+	DrawBatch.circle(self, Vector2.ZERO, radius, color)

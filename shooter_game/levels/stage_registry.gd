@@ -54,10 +54,21 @@ const STAGES := {
 	52: "res://levels/stage_52.gd",   # אזור שישי, שלב 7 (מגרש הרכבות)
 	53: "res://levels/stage_53.gd",   # אזור שישי, שלב 8 (המצור על הבירה - מונטווידאו)
 	54: "res://levels/stage_54.gd",   # אזור שישי, שלב 9 (הגשר האחרון - סוף האזור)
+	55: "res://levels/stage_55.gd",   # אזור שביעי - פטגוניה, שלב 1 (ערבת הרוח)
+	56: "res://levels/stage_56.gd",   # אזור שביעי, שלב 2 (פיורד הקרח)
+	57: "res://levels/stage_57.gd",   # אזור שביעי, שלב 3 (חוף הפינגווינים)
+	58: "res://levels/stage_58.gd",   # אזור שביעי, שלב 4 (בית הקברות של הלווייתנים)
+	59: "res://levels/stage_59.gd",   # אזור שביעי, שלב 5 (היער השחור)
+	60: "res://levels/stage_60.gd",   # אזור שביעי, שלב 6 (מעבדת הקרחון - פרויקט ECHO)
+	61: "res://levels/stage_61.gd",   # אזור שביעי, שלב 7 (סוף העולם - אושואיה)
+	62: "res://levels/stage_62.gd",   # אזור שביעי, שלב 8 (מוח הכוורת - ה-ROOT)
+	63: "res://levels/stage_63.gd",   # אזור שביעי, שלב 9 (הסוף - THEY LEARNED)
 }
 
 
 static func make(level: int) -> Node:
 	if not STAGES.has(level) or not ResourceLoader.exists(STAGES[level]):
 		return null
-	return load(STAGES[level]).new()
+	var sc: Script = load(STAGES[level])
+	preload("res://sfx.gd").register_script(sc)   # הצלילים של השלב (sfx.gd לא טוען את כל השלבים בפתיחה)
+	return sc.new()

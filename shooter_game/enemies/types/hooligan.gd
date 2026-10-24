@@ -128,9 +128,14 @@ class Flare extends Node2D:   # הזיקוק באוויר -> אש על הקרק�
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_line(Vector2(-5, 0), Vector2(5, 0), Color("c03020"), 3.0)
-		draw_circle(Vector2(5, 0), 3.0, Color(1.0, 0.7, 0.5))
-		draw_circle(Vector2(5, 0), 7.0, Color(1.0, 0.3, 0.2, 0.35))
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.line(self, Vector2(-5, 0), Vector2(5, 0), Color("c03020"), 3.0)
+		DrawBatch.circle(self, Vector2(5, 0), 3.0, Color(1.0, 0.7, 0.5))
+		DrawBatch.circle(self, Vector2(5, 0), 7.0, Color(1.0, 0.3, 0.2, 0.35))
 
 
 class FlareFire extends Node2D:   # אש סינליזדור על הקרקע
@@ -168,13 +173,18 @@ class FlareFire extends Node2D:   # אש סינליזדור על הקרקע
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf((T - _t) / 1.0, 0.0, 1.0)
 		Art.glow(self, Vector2(0, -12), 50.0, Color(1.0, 0.25, 0.15, 0.35 * a))
 		for q in 5:   # לשונות אש אדומות
 			var x := -W * 0.4 + float(q) * W * 0.2
 			var h := (18.0 + 10.0 * sin(_t * 14.0 + float(q) * 1.7)) * a
-			draw_colored_polygon(PackedVector2Array([Vector2(x - 6, 0), Vector2(x + 1, -h), Vector2(x + 7, 0)]), Color(1.0, 0.25 + 0.2 * float(q % 2), 0.15, 0.85))
-		draw_line(Vector2(-6, -2), Vector2(6, -1), Color("c03020"), 3.0)
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(x - 6, 0), Vector2(x + 1, -h), Vector2(x + 7, 0)]), Color(1.0, 0.25 + 0.2 * float(q % 2), 0.15, 0.85))
+		DrawBatch.line(self, Vector2(-6, -2), Vector2(6, -1), Color("c03020"), 3.0)
 
 
 # ============================================================
@@ -190,22 +200,22 @@ func draw() -> bool:
 	var head := sh + Vector2(3.5, -8)
 	z._leg(hip + Vector2(-2, 0), f[1], sk.darkened(0.2), sk, col(z.shoe))
 	z._leg(hip + Vector2(2, 0), f[0], sk, sk, col(z.shoe))
-	z.draw_rect(Rect2(hip + Vector2(-6, -2), Vector2(12, 9)), col(z.pants))
+	DrawBatch.rect(z, Rect2(hip + Vector2(-6, -2), Vector2(12, 9)), col(z.pants))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-6.0 - sin(p) * 2.0, 14.0), Art.shade(sk, 0.25), Art.shade(sk, 0.25))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(6, -1), hip + Vector2(-6, -1)]), sk, 0.15, 0.4)
-	z.draw_line(sh + Vector2(-5, 6), sh + Vector2(5, 6), sk.darkened(0.3), 1.0)
+	DrawBatch.line(z, sh + Vector2(-5, 6), sh + Vector2(5, 6), sk.darkened(0.3), 1.0)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-5, 0), head + Vector2(6, 0), head + Vector2(6, 5), head + Vector2(-5, 5)]), col(Color("e0d020")))   # צעיף
-	z.draw_line(head + Vector2(-5, 3), head + Vector2(6, 3), col(Color("2a8a3a")), 1.5)
-	z.draw_line(sh + Vector2(-6, -1), sh + Vector2(-9, 12), col(Color("e0d020")), 2.5)   # קצה הצעיף
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-5, 0), head + Vector2(6, 0), head + Vector2(6, 5), head + Vector2(-5, 5)]), col(Color("e0d020")))   # צעיף
+	DrawBatch.line(z, head + Vector2(-5, 3), head + Vector2(6, 3), col(Color("2a8a3a")), 1.5)
+	DrawBatch.line(z, sh + Vector2(-6, -1), sh + Vector2(-9, 12), col(Color("e0d020")), 2.5)   # קצה הצעיף
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -2.0), 1.1, Color(1.0, 0.85, 0.4))
+		DrawBatch.circle(z, head + Vector2(3.0, -2.0), 1.1, Color(1.0, 0.85, 0.4))
 	var hf := sh + Vector2(6, -16) if _wind > 0.0 else sh + Vector2(10, -10)
 	z._arm(sh + Vector2(3, 1), hf, sk, sk)
 	if flares > 0:   # הזיקוק
-		z.draw_line(hf, hf + Vector2(0, -8), col(Color("c03020")), 2.5)
+		DrawBatch.line(z, hf, hf + Vector2(0, -8), col(Color("c03020")), 2.5)
 		if not z.dead:
 			Art.glow(z, hf + Vector2(0, -10), 9.0 + 2.0 * sin(z._time * 30.0), Color(1.0, 0.3, 0.2, 0.6))
-			z.draw_circle(hf + Vector2(0, -10), 2.0, Color(1.0, 0.85, 0.7))
+			DrawBatch.circle(z, hf + Vector2(0, -10), 2.0, Color(1.0, 0.85, 0.7))
 	end_draw()
 	return true

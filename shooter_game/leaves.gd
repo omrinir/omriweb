@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  עיתונים שעפים ברוח ואפר שנופל לאט מהשריפות.
 #  נמצא בשכבה קבועה (CanvasLayer) - לא זז עם המצלמה.
@@ -58,6 +59,11 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var amb := Quality.ambient()   # המשחק איטי: מציירים רק חלק (quality.gd)
 	for i in _items.size():
 		var it: Dictionary = _items[i]
@@ -71,11 +77,11 @@ func _draw() -> void:
 			var xf := Transform2D(float(it["rot"]), Vector2(1.0, fl), 0.0, pos)
 			var pts := xf * PackedVector2Array([Vector2(-sz, -sz * 0.7), Vector2(sz, -sz * 0.7), Vector2(sz, sz * 0.7), Vector2(-sz, sz * 0.7)])
 			var c: float = it["shade"]
-			draw_colored_polygon(pts, Color(c, c * 0.97, c * 0.9, 0.9))
+			DrawBatch.colored_polygon(self, pts, Color(c, c * 0.97, c * 0.9, 0.9))
 			# שורות טקסט
 			for k in 3:
 				var y := -sz * 0.4 + float(k) * sz * 0.35
-				draw_line(xf * Vector2(-sz * 0.7, y), xf * Vector2(sz * 0.7, y), Color(0.2, 0.2, 0.2, 0.5), 0.8)
+				DrawBatch.line(self, xf * Vector2(-sz * 0.7, y), xf * Vector2(sz * 0.7, y), Color(0.2, 0.2, 0.2, 0.5), 0.8)
 		else:
 			var col := Color(1.0, 0.55, 0.2, 0.8) if it["glow"] else Color(0.55, 0.52, 0.5, 0.6)
-			draw_circle(pos, float(it["size"]), col)
+			DrawBatch.circle(self, pos, float(it["size"]), col)

@@ -177,16 +177,16 @@ func draw() -> bool:
 	var o: Dictionary = E.soldier(self, z, Vector2(12, -18) if set_up else Vector2(9, 6), "helmet", E.UNIFORM)
 	var sh: Vector2 = o.sh
 	var hip: Vector2 = o.hip
-	z.draw_rect(Rect2(hip + Vector2(-10, -4), Vector2(7, 9)), col(Color("4a4a30")))   # תיק פצצות
+	DrawBatch.rect(z, Rect2(hip + Vector2(-10, -4), Vector2(7, 9)), col(Color("4a4a30")))   # תיק פצצות
 	if set_up:
 		var base := Vector2(16, -2)
-		z.draw_line(base, base + Vector2(8, -26), col(Color("2a2a2a")), 3.5)   # הצינור
-		z.draw_line(base + Vector2(4, -10), base + Vector2(-2, 0), col(Color("2a2a2a")), 1.2)   # חצובה
-		z.draw_line(base + Vector2(4, -10), base + Vector2(10, 0), col(Color("2a2a2a")), 1.2)
-		z.draw_rect(Rect2(base + Vector2(-5, -1), Vector2(10, 2)), col(Color("3a3a3a")))
+		DrawBatch.line(z, base, base + Vector2(8, -26), col(Color("2a2a2a")), 3.5)   # הצינור
+		DrawBatch.line(z, base + Vector2(4, -10), base + Vector2(-2, 0), col(Color("2a2a2a")), 1.2)   # חצובה
+		DrawBatch.line(z, base + Vector2(4, -10), base + Vector2(10, 0), col(Color("2a2a2a")), 1.2)
+		DrawBatch.rect(z, Rect2(base + Vector2(-5, -1), Vector2(10, 2)), col(Color("3a3a3a")))
 		if state == SETUP and not z.dead:
-			z.draw_string(ThemeDB.fallback_font, Vector2(-6, -60), "...", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.7))
+			DrawBatch.string(z, ThemeDB.fallback_font, Vector2(-6, -60), "...", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.7))
 	else:
-		z.draw_line(sh + Vector2(-10, -6), sh + Vector2(-4, 18), col(Color("2a2a2a")), 3.0)   # הצינור על הגב
+		DrawBatch.line(z, sh + Vector2(-10, -6), sh + Vector2(-4, 18), col(Color("2a2a2a")), 3.0)   # הצינור על הגב
 	end_draw()
 	return true

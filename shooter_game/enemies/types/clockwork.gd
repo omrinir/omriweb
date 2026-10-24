@@ -288,22 +288,22 @@ func draw() -> bool:
 	var head := sh + Vector2(2.5 + droop * 3.0, -9.0 + droop * 4.0)
 	# מפתח בגב (מאחורי הגוף): הרוחב משתנה = מסתובב
 	var kc := sh + Vector2(-9, 8)
-	z.draw_line(kc, kc + Vector2(-6, 0), brass, 2.4)
+	DrawBatch.line(z, kc, kc + Vector2(-6, 0), brass, 2.4)
 	if key_hp > 0 or state != HAYWIRE:
 		var kw := cos(_key_a) * 6.5
 		Art.fill(z, PackedVector2Array([kc + Vector2(-6, -1), kc + Vector2(-6 - absf(kw) * 0.3, -8), kc + Vector2(-10, -9), kc + Vector2(-10, 9), kc + Vector2(-6 - absf(kw) * 0.3, 8), kc + Vector2(-6, 1)]), brass, Art.OUTLINE, 1.0)
-		z.draw_circle(kc + Vector2(-9, -5.5), 1.6, col(Color("5a4010")))
-		z.draw_circle(kc + Vector2(-9, 5.5), 1.6, col(Color("5a4010")))
+		DrawBatch.circle(z, kc + Vector2(-9, -5.5), 1.6, col(Color("5a4010")))
+		DrawBatch.circle(z, kc + Vector2(-9, 5.5), 1.6, col(Color("5a4010")))
 		if key_hp < KEY_HP:
-			z.draw_line(kc + Vector2(-7, -4), kc + Vector2(-9, 2), col(Color(0.2, 0.1, 0.05)), 1.0)   # סדק
+			DrawBatch.line(z, kc + Vector2(-7, -4), kc + Vector2(-9, 2), col(Color(0.2, 0.1, 0.05)), 1.0)   # סדק
 	else:   # קפיץ שבור קופץ החוצה
 		var pts := PackedVector2Array()
 		for q in 10:
 			pts.append(kc + Vector2(-6.0 - float(q) * 1.4, sin(float(q) * 1.8 + _key_a) * 3.5))
-		z.draw_polyline(pts, brass, 1.2)
+		DrawBatch.polyline(z, pts, brass, 1.2)
 	z._leg(hip + Vector2(-2, 0), f[1], col(Art.shade(z.pants, 0.25)), col(z.pants), col(z.shoe))
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), col(z.pants), col(z.shoe))
-	z.draw_line(hip + Vector2(2.5, 1), f[0] + Vector2(1, -4), col(Color("d8b040")), 1.0)   # פס על המכנס
+	DrawBatch.line(z, hip + Vector2(2.5, 1), f[0] + Vector2(1, -4), col(Color("d8b040")), 1.0)   # פס על המכנס
 	var hb := sh + (Vector2(-3, 15) if state == STOPPED else Vector2(-6.0 - sin(z._walk_phase) * 3.0, 12.0))
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.2), coat)
 	# מעיל אדום
@@ -311,27 +311,27 @@ func draw() -> bool:
 	Art.fill_shaded(z, torso, coat, 0.15, 0.35)
 	# חזה פתוח: גלגלי שיניים
 	var gc := sh + Vector2(1, 8)
-	z.draw_colored_polygon(Art.ellipse(gc, 4.5, 5.5, 0.0, 12), col(Color("2a1a14")))
+	DrawBatch.colored_polygon(z, Art.ellipse(gc, 4.5, 5.5, 0.0, 12), col(Color("2a1a14")))
 	_gear(gc + Vector2(-1, -1.5), 3.0, _gear_a, brass)
 	_gear(gc + Vector2(2, 2.5), 2.2, -_gear_a * 1.4, col(Color("a87a30")))
 	for q in 3:   # כפתורים
-		z.draw_circle(sh + Vector2(6, 3 + q * 5), 1.0, brass)
-	z.draw_line(sh + Vector2(-7, -1), sh + Vector2(7, 0), brass, 1.4)   # כתפיות מוזהבות
-	z.draw_line(hip + Vector2(-7, 3), hip + Vector2(6, 3), brass, 1.2)
+		DrawBatch.circle(z, sh + Vector2(6, 3 + q * 5), 1.0, brass)
+	DrawBatch.line(z, sh + Vector2(-7, -1), sh + Vector2(7, 0), brass, 1.4)   # כתפיות מוזהבות
+	DrawBatch.line(z, hip + Vector2(-7, 3), hip + Vector2(6, 3), brass, 1.2)
 	# ראש: מסכת חרסינה סדוקה
 	Art.oval_shaded(z, head, 5.0, 6.0, col(Color("ece6dc")), 0.0)
-	z.draw_circle(head + Vector2(3.2, 3.5), 1.4, col(Color("d8606a", 0.5)))   # לחי צבועה
-	z.draw_line(head + Vector2(1.5, -5.0), head + Vector2(3.5, -1.0), col(Color("3a2a24")), 0.8)   # סדק
-	z.draw_line(head + Vector2(3.5, -1.0), head + Vector2(2.0, 2.5), col(Color("3a2a24")), 0.8)
+	DrawBatch.circle(z, head + Vector2(3.2, 3.5), 1.4, col(Color("d8606a", 0.5)))   # לחי צבועה
+	DrawBatch.line(z, head + Vector2(1.5, -5.0), head + Vector2(3.5, -1.0), col(Color("3a2a24")), 0.8)   # סדק
+	DrawBatch.line(z, head + Vector2(3.5, -1.0), head + Vector2(2.0, 2.5), col(Color("3a2a24")), 0.8)
 	Art.fill(z, PackedVector2Array([head + Vector2(2.2, -2.5), head + Vector2(5.0, -2.0), head + Vector2(4.4, 0.0), head + Vector2(2.6, 0.2)]), col(Color("5a7a5a")), Art.NONE)   # בשר מתחת לחרסינה
 	var eye := Color(1.0, 0.85, 0.3) if state == HAYWIRE else Color(0.95, 0.9, 0.7)
 	if not z.dead and state != STOPPED:
-		z.draw_circle(head + Vector2(3.6, -1.2), 0.9, eye)
-	z.draw_line(head + Vector2(2.5, 3.8), head + Vector2(5.0, 3.6), col(Color("6a1a1a")), 0.9)
+		DrawBatch.circle(z, head + Vector2(3.6, -1.2), 0.9, eye)
+	DrawBatch.line(z, head + Vector2(2.5, 3.8), head + Vector2(5.0, 3.6), col(Color("6a1a1a")), 0.9)
 	# כובע מתופף קטן
 	Art.fill(z, PackedVector2Array([head + Vector2(-4, -4.5), head + Vector2(4.5, -5), head + Vector2(4, -10), head + Vector2(-3.5, -9.5)]), coat, Art.OUTLINE, 0.9)
-	z.draw_line(head + Vector2(-4, -5), head + Vector2(4.5, -5.5), brass, 1.2)
-	z.draw_circle(head + Vector2(0.5, -10.5), 1.3, brass)
+	DrawBatch.line(z, head + Vector2(-4, -5), head + Vector2(4.5, -5.5), brass, 1.2)
+	DrawBatch.circle(z, head + Vector2(0.5, -10.5), 1.3, brass)
 	var hf := sh + (Vector2(4, 15) if state == STOPPED else (Vector2(13, 2) if state == HAYWIRE else Vector2(10.0 + sin(z._walk_phase) * 2.0, 8.0)))
 	z._arm(sh + Vector2(3, 1), hf, sk, coat)
 	end_draw()
@@ -343,5 +343,5 @@ func _gear(c: Vector2, r: float, a: float, c1: Color) -> void:
 	for q in 16:
 		var ang := a + float(q) / 16.0 * TAU
 		pts.append(c + Vector2.from_angle(ang) * (r if q % 2 == 0 else r * 0.7))
-	z.draw_colored_polygon(pts, c1)
-	z.draw_circle(c, r * 0.3, col(Color("3a2a14")))
+	DrawBatch.colored_polygon(z, pts, c1)
+	DrawBatch.circle(z, c, r * 0.3, col(Color("3a2a14")))

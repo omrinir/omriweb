@@ -118,23 +118,23 @@ func draw() -> bool:
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 4.0, 14.0), Art.shade(sk, 0.25), Art.shade(suit, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)]), suit, 0.12, 0.4)
-	z.draw_rect(Rect2(hip + Vector2(-6, -3), Vector2(13, 4)), col(Color("4a3a24")))   # חגורת כלים
-	z.draw_rect(Rect2(hip + Vector2(-5, 0), Vector2(3, 5)), col(Color("5a4a30")))
-	z.draw_rect(Rect2(hip + Vector2(2, 0), Vector2(3, 4)), col(Color("5a4a30")))
-	z.draw_rect(Rect2(sh + Vector2(-3, 4), Vector2(5, 3)), col(Color("c8b030")))   # תג
+	DrawBatch.rect(z, Rect2(hip + Vector2(-6, -3), Vector2(13, 4)), col(Color("4a3a24")))   # חגורת כלים
+	DrawBatch.rect(z, Rect2(hip + Vector2(-5, 0), Vector2(3, 5)), col(Color("5a4a30")))
+	DrawBatch.rect(z, Rect2(hip + Vector2(2, 0), Vector2(3, 4)), col(Color("5a4a30")))
+	DrawBatch.rect(z, Rect2(sh + Vector2(-3, 4), Vector2(5, 3)), col(Color("c8b030")))   # תג
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	face(head, Vector2(INF, 0))
 	# משקפי ראיית לילה
-	z.draw_rect(Rect2(head + Vector2(-5, -6), Vector2(10, 2)), col(Color("1a1a1a")))   # רצועה
-	z.draw_rect(Rect2(head + Vector2(1, -3.5), Vector2(6, 4)), col(Color("2a2e2a")))
+	DrawBatch.rect(z, Rect2(head + Vector2(-5, -6), Vector2(10, 2)), col(Color("1a1a1a")))   # רצועה
+	DrawBatch.rect(z, Rect2(head + Vector2(1, -3.5), Vector2(6, 4)), col(Color("2a2e2a")))
 	for ex in [2.5, 5.5]:
 		var gc := head + Vector2(ex + 1.0, -1.5)
-		z.draw_circle(gc, 1.6, Color(0.4, 1.0, 0.4) if not z.dead else Color(0.2, 0.25, 0.2))
+		DrawBatch.circle(z, gc, 1.6, Color(0.4, 1.0, 0.4) if not z.dead else Color(0.2, 0.25, 0.2))
 	if not z.dead and in_dark():
 		Art.glow(z, head + Vector2(5, -1.5), 12.0, Color(0.3, 1.0, 0.3, 0.6))
 	var hand := sh + (Vector2(4, -14) if state == PULL and _st > PULL_T * 0.5 else (Vector2(8, 8) if state == PULL else Vector2(9.0 + sin(p) * 3.0, 13.0)))
 	z._arm(sh + Vector2(3, 1), hand, sk, suit)
-	z.draw_line(hand, hand + Vector2(6, -2), col(Color("c03020")), 2.0)   # צבת
-	z.draw_line(hand + Vector2(6, -2), hand + Vector2(9, -4), col(Color("8a8e90")), 1.6)
+	DrawBatch.line(z, hand, hand + Vector2(6, -2), col(Color("c03020")), 2.0)   # צבת
+	DrawBatch.line(z, hand + Vector2(6, -2), hand + Vector2(9, -4), col(Color("8a8e90")), 1.6)
 	end_draw()
 	return true

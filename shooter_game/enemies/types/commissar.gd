@@ -128,9 +128,9 @@ func draw() -> bool:
 	var hf: Vector2 = o.hf
 	var hip: Vector2 = o.hip
 	var sh: Vector2 = o.sh
-	z.draw_colored_polygon(PackedVector2Array([hip + Vector2(-8, 4), hip + Vector2(8, 4), hip + Vector2(10, 16), hip + Vector2(-10, 16)]), col(Color("161414")))
-	z.draw_line(sh + Vector2(-6, 0), hip + Vector2(6, 2), col(Color("3a2a1a")), 1.6)   # רצועת כתף
-	z.draw_rect(Rect2(hf + Vector2(0, -2), Vector2(8, 3)), col(Color("1a1a1a")))
-	z.draw_rect(Rect2(sh + Vector2(-2, 3), Vector2(4, 3)), col(E.RED))   # סמל על החזה
+	DrawBatch.colored_polygon(z, PackedVector2Array([hip + Vector2(-8, 4), hip + Vector2(8, 4), hip + Vector2(10, 16), hip + Vector2(-10, 16)]), col(Color("161414")))
+	DrawBatch.line(z, sh + Vector2(-6, 0), hip + Vector2(6, 2), col(Color("3a2a1a")), 1.6)   # רצועת כתף
+	DrawBatch.rect(z, Rect2(hf + Vector2(0, -2), Vector2(8, 3)), col(Color("1a1a1a")))
+	DrawBatch.rect(z, Rect2(sh + Vector2(-2, 3), Vector2(4, 3)), col(E.RED))   # סמל על החזה
 	end_draw()
 	return true
