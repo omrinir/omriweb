@@ -4531,11 +4531,13 @@ Screenshots were checked on 13, 34, 44 and 52 for: waiting, following with heart
   about what % of the zombies there are him. Parts are ids from the lists in `parts.gd`. Hand items are looks only.
 - **ATTACK = HAND** (`attack` in the .tres, STATS tab; default `bite`): instead of biting he winds up (`SWING_WIND` 0.24 s,
   front arm up behind his head), swings forward and down (`SWING_HIT` 0.09 s) and pulls back (`SWING_BACK` 0.2 s), with
-  whatever he holds in that hand. The hit lands at the end of the wind-up if the target is still in front of him and in
-  reach (`custom_character.gd _reach()`: 22 + 12 × width, +8 with a hand item; a bite reaches 16 + 10 × width): `damage`
+  whatever he holds in that hand (the item turns with the arm while swinging: `Parts.item(..., swing)`, `_swing_k()`).
+  The hit lands 60% into the downswing (`SWING_LAND`) if the target is still in front of him and in reach
+  (`custom_character.gd _reach()`: 22 + 12 × width, +8 with a hand item; a bite reaches 16 + 10 × width): `damage`
   hearts (+1 while charging), a bigger push than a bite, `brain.on_bite`, a "whoosh". Next one after `bite_delay` + the wind-up.
-  He slows to a quarter speed while swinging. Code: `custom_character.gd` `can_bite()` (false), `logic()` (the timing and the
-  hit), `swing_hand()` (the arm pose; zombie.gd `_draw_body` asks for it when `cust.swing_t > 0`).
+  He slows to a quarter speed while swinging, and is redrawn every frame during the swing (zombie.gd `_maybe_redraw`;
+  normally every 2nd-6th frame) so the fast downswing shows. Code: `custom_character.gd` `can_bite()` (false), `logic()`
+  (the timing and the hit), `swing_hand()` (the arm pose; zombie.gd `_draw_body` asks for it when `cust.swing_t > 0`).
 - **How a saved character gets into the game:** `zombie_registry.gd` sends kinds ≥ 1000 to `characters/custom_characters.gd`,
   which loads every file in `characters/saved/` (`live` = presets the maker is editing right now, they win over the files).
   Each kind is a type module `characters/custom_character.gd` with `base_body()` = true: zombie.gd draws him with its own

@@ -27,6 +27,7 @@ var pic_xf := {}          # מספר הציור -> הטרנספורם שלו ב�
 const SWING_WIND := 0.24
 const SWING_HIT := 0.09
 const SWING_BACK := 0.2
+const SWING_LAND := 0.6   # הפגיעה: כשהיד כבר באמצע הדרך למטה (חלק מ-SWING_HIT)
 var swing_t := 0.0        # זמן מתחילת המכה (0 = לא מכה)
 var _swung := false
 var _swing_frame := 0
@@ -125,7 +126,7 @@ func logic(player: Node, d: Vector2, delta: float, speed: float) -> float:
 	_swing_frame = Engine.get_physics_frames()
 	if swing_t > 0.0:
 		swing_t += delta
-		if not _swung and swing_t >= SWING_WIND:   # המכה
+		if not _swung and swing_t >= SWING_WIND + SWING_HIT * SWING_LAND:   # המכה
 			_swung = true
 			Sfx.play("whoosh", z.global_position, 0.0, 0.1, 3, z._vp)
 			var tp: Node = z._target_for_brain(player)
@@ -161,6 +162,17 @@ func swing_hand(fs: Vector2, normal: Vector2) -> Vector2:
 		var k := (swing_t - SWING_WIND) / SWING_HIT
 		return up.lerp(mid, k).lerp(mid.lerp(hit, k), k)
 	return hit.lerp(normal, ease((swing_t - SWING_WIND - SWING_HIT) / SWING_BACK, 0.6))
+
+
+# כמה החפץ ביד ממשיך את הזרוע בזמן מכה (0 = זקוף כרגיל, 1 = בקו הזרוע): מאחורי הראש בהנפה, קדימה ולמטה במכה
+func _swing_k() -> float:
+	if swing_t <= 0.0:
+		return 0.0
+	if swing_t < SWING_WIND:
+		return ease(swing_t / SWING_WIND, 0.5)
+	if swing_t < SWING_WIND + SWING_HIT:
+		return 1.0
+	return 1.0 - clampf((swing_t - SWING_WIND - SWING_HIT) / SWING_BACK, 0.0, 1.0)
 
 
 # צבע של חלק: לבן כשנפגע, משחיר כשנשרף (כמו הגוף - effects/char_bones.gd)
@@ -204,7 +216,7 @@ func draw_torso(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color) -> void:
 
 # חפץ ביד הקדמית. d = כיוון הזרוע
 func draw_hand(hand: Vector2, d: Vector2) -> void:
-	Parts.item(z, preset.item, hand, d, _tone, z._time, z.lod())
+	Parts.item(z, preset.item, hand, d, _tone, z._time, z.lod(), _swing_k())
 	if not preset.drawings.is_empty():
 		pic_ang["hand"] = d.angle()
 		Drawings.draw_slots(z, preset, ["hand"], false, hand, pic_ang.hand, _pic_mod(), pic_xf)

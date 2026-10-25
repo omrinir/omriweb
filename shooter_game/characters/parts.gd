@@ -413,11 +413,13 @@ static func _tie(ci: CanvasItem, sh: Vector2, g: Color) -> void:
 # ============================================================
 #  חפץ ביד הקדמית (רק מראה - הזומבי עדיין נושך). hand = כף היד, d = כיוון הזרוע (מהכתף ליד)
 # ============================================================
-static func item(ci: CanvasItem, id: String, hand: Vector2, d: Vector2, t: Callable, time: float, lo: bool) -> void:
+static func item(ci: CanvasItem, id: String, hand: Vector2, d: Vector2, t: Callable, time: float, lo: bool, swing := 0.0) -> void:
 	if id == "none":
 		return
 	# ציר החפץ: נטוי קצת קדימה לפי הזרוע. P(x, y): y = לאורך הידית (למעלה), x = קדימה
 	var u := (Vector2(0.0, -1.0) * 0.8 + d * 0.35).normalized()
+	if swing > 0.0:   # מכה ביד (CHARACTER MAKER: ATTACK = HAND): החפץ ממשיך את הזרוע
+		u = u.slerp(d, swing)
 	var s := u.rotated(PI / 2.0)
 	var P := func(x: float, y: float) -> Vector2: return hand + s * x + u * y
 	var metal: Color = t.call(METAL)

@@ -2443,7 +2443,8 @@ func _maybe_redraw() -> void:
 		return
 	var every := (2 if _vis_prev <= 3 else (3 if _vis_prev <= 10 else (4 if _vis_prev <= 20 else (5 if _vis_prev <= 32 else 6)))) + Quality.redraw_extra()   # הרבה זומבים על המסך: כל אחד מתעדכן פחות (חוסך ציור; התזוזה עצמה נשארת חלקה)
 	_redraw_tick += 1
-	if _redraw_tick % every == 0 or _flash > 0.0 or (_react_t > 0.0 and (_vis_prev <= 20 or _redraw_tick % 2 == 0)) or (_burn_t > 0.0 and _redraw_tick % 2 == 0):   # בוער: הלהבות זזות
+	if _redraw_tick % every == 0 or _flash > 0.0 or (_react_t > 0.0 and (_vis_prev <= 20 or _redraw_tick % 2 == 0)) or (_burn_t > 0.0 and _redraw_tick % 2 == 0) \
+			or (cust != null and cust.swing_t > 0.0):   # בוער: הלהבות זזות. מכה ביד (CHARACTER MAKER): כל פריים, שיראו את ההנפה
 		queue_redraw()
 
 
