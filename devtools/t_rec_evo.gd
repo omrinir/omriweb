@@ -12,11 +12,21 @@ extends SceneTree
 #      EVO_GAP (default 24), EVO_RANGE (default 520), EVO_END (frames, default 600), EVO_AFTER (frames after the last kill, default 70),
 #      EVO_META=<key=int,...> (main meta set before the spawn, e.g. sep_beaten=3 = the SEEPER already learned to rise behind you),
 #      EVO_ADOPT=1 (no spawn: adopt the level's own boss of EVO_KIND near the player, e.g. HOLLOW = SUBJECT ZERO in the hall),
+#      EVO_BOSS_DX=<px> (with EVO_ADOPT: the player starts this far left of the level's own boss, wherever the level put it),
+#      EVO_BOSS_HP=<int> + EVO_HP_AT=<frame> (at that frame a staged boss has at most this much life left: the fight fits a clip;
+#      EVO_BOSS_MAX=1 = that is also his full life, so life-fraction stages such as GOLIATH's limbs restart from there),
+#      EVO_TM_CALL=<method>:<int>@<frame>[;...] (calls the staged zombie's type_mod method with that int at that frame (EVO_SPAWN_F or later),
+#      e.g. _begin_phase:4@200 = the ROOT jumps to its last phase),
+#      EVO_TM_SET=<field>=<float>@<frame>[;...] (sets a field of the staged zombie's type_mod (EVO_SPAWN_F or later): what it already learned, e.g.
+#      run_bias=180@30 = the RED ZEPPELIN already knows you run right, so its carpet lands there),
+#      EVO_RUN=<frame>:<dir>:<frames>[;...] (the player runs left (-1) / right (1) for that many frames: dodging like a person),
+#      EVO_CAM_ZOOM=<float> (the game camera's zoom, e.g. 0.75 = a giant boss and the player both fit a portrait crop),
 #      EVO_LIQUID_AIM=0 (the player loses a zombie that turned into a puddle: no tracking, no shots until it rises),
 #      EVO_AIM_Y2 (aim height once it has risen again, e.g. -30 = the SEEPER's core after headshots melted it),
 #      EVO_MEM=<key=float,...> (PlayerMemory at the start: a weapon_use category such as precision=0 = the zombies have not
 #      learned yet that you snipe, so no zigzag hops in front of a railgun; or a field such as avg_distance=300),
 #      EVO_SEED=<int> (the level layout seed, Game.attempt_seed: previews and recordings get the same pits / crates / rails),
+#      EVO_RSEED=<int> (seeds the global random numbers: a take can be recorded again the same way),
 #      EVO_CALM=1 (the subway's electrified rail strips are switched off: no random ZAP kills in the clip),
 #      EVO_SLOTS=<int> (the squad director's attack slots, 99 = every zombie charges at once instead of 3 attacking and the rest holding back),
 #      EVO_TEXT_ONCE=1 (one pop-up per spot, the newest, e.g. one MULTI KILL for a railgun line, not ten stacked),
@@ -26,7 +36,7 @@ extends SceneTree
 #      EVO_AIM_UP / EVO_AIM_DOWN (aim limits in radians, default 0.45 / 0.35), EVO_AIM_Y (aim height on the zombie, default -30,
 #      -50 = the head), EVO_SURVIVORS=1 (keep the level's survivors), EVO_HELPERS=0 (also clear zombies that walk up next to ours), EVO_TEXT_MAX (longer floating texts are hidden, default 24), EVO_STAY=1 (never steps back), EVO_GOD=1 (GOD MODE),
 #      REC_POS=<csv>: t, player x, y, target x, y (screen, 1280 space), fired (0/1), fresh corpses "id/age/x/y|..." (as t_rec_god.gd)
-#      SNAP=<dir>: save a png every SNAP_EVERY (default 20) frames (previews; run with a 1280x720 window)
+#      SNAP=<dir>: save a png every SNAP_EVERY (default 20) frames (previews; run with a 1280x720 window), SNAP_FULL=1 = the whole screen
 # usage: EVO_LEVEL=12 EVO_KIND=MIMIC REC_POS=/tmp/m.csv xvfb-run -a -s "-screen 0 2560x1440x24" godot --path . --rendering-driver opengl3 \
 #        --resolution 2560x1440 --write-movie /tmp/m.avi --fixed-fps 60 -s res://t_rec_evo.gd
 var f := 0
@@ -67,6 +77,8 @@ func _initialize() -> void:
 	g.level = _env("EVO_LEVEL", 1)
 	if _env("EVO_SEED", 0) != 0:   # the level's layout (pits, crates, rails) - the same in the preview and in the recording
 		g.attempt_seed = _env("EVO_SEED", 0)
+	if _env("EVO_RSEED", 0) != 0:
+		seed(_env("EVO_RSEED", 0))
 	main_node = load("res://main.tscn").instantiate()
 	root.add_child(main_node)
 	current_scene = main_node
@@ -143,6 +155,18 @@ func _physics_process(_d: float) -> bool:
 			for sq in main_node.get_tree().get_nodes_in_group("squad_director"):
 				sq.max_slots = _env("EVO_SLOTS", 0)
 	if f == 3:
+		if _env("EVO_CAM_ZOOM", 0.0) > 0.0:
+			var cam = main_node.get_viewport().get_camera_2d()
+			if cam != null:
+				cam.zoom = Vector2.ONE * float(_env("EVO_CAM_ZOOM", 1.0))
+				if "_base_zoom" in cam:
+					cam._base_zoom = cam.zoom
+		if _env("EVO_BOSS_DX", 0.0) != 0.0:   # next to the level's own boss (stationary bosses stand where their stage put them)
+			for o in main_node.get_tree().get_nodes_in_group("zombies"):
+				if int(o.kind) == _kind() and float(o.chase_range) > 600.0:
+					at_x = o.global_position.x - float(_env("EVO_BOSS_DX", 0.0))
+					print("boss at x=%d y=%d -> player x=%d" % [o.global_position.x, o.global_position.y, at_x])
+					break
 		pl.global_position.x = at_x
 		var w: int = _env("EVO_WEAPON", 0)
 		if w > 0:
@@ -197,6 +221,27 @@ func _physics_process(_d: float) -> bool:
 		if _env("EVO_GOD", 0) == 1:
 			pl._drink_god()
 		print("f=%d spawned %d of kind %d" % [f, ours.size(), _kind()])
+	if f == int(_env("EVO_HP_AT", spawn_f + 1)) and _env("EVO_BOSS_HP", 0) > 0:
+		for z in ours:
+			if is_instance_valid(z) and not z.dead and z.is_boss():
+				z.hp = mini(int(z.hp), int(_env("EVO_BOSS_HP", 0)))
+				if _env("EVO_BOSS_MAX", 0) == 1:   # ...and that is his full life (GOLIATH loses a limb per fraction of it)
+					z.max_hp = z.hp
+				print("f=%d boss hp -> %d" % [f, z.hp])
+	for spec in str(_env("EVO_TM_SET", "")).split(";", false):
+		if f == int(spec.get_slice("@", 1)):
+			var kv := spec.get_slice("@", 0)
+			for z in ours:
+				if is_instance_valid(z) and not z.dead and z.type_mod != null and kv.get_slice("=", 0) in z.type_mod:
+					z.type_mod.set(kv.get_slice("=", 0), float(kv.get_slice("=", 1)))
+					print("f=%d set %s" % [f, kv])
+	for spec in str(_env("EVO_TM_CALL", "")).split(";", false):
+		if f == int(spec.get_slice("@", 1)):
+			var call := spec.get_slice("@", 0)
+			for z in ours:
+				if is_instance_valid(z) and not z.dead and z.type_mod != null and z.type_mod.has_method(call.get_slice(":", 0)):
+					z.type_mod.call(call.get_slice(":", 0), int(call.get_slice(":", 1)))
+					print("f=%d %s" % [f, call])
 	# ---- keep the stage to ourselves (no survivors either: firing next to one drains her, which needs its own story) ----
 	if f % 5 == 0 and _env("EVO_CALM", 0) == 1:
 		for n in main_node.find_children("*", "Node2D", true, false):
@@ -221,7 +266,7 @@ func _physics_process(_d: float) -> bool:
 	if pl.slots[0] != null:
 		pl.slots[0].ammo = 999
 		if _env("EVO_REAL_MAG", 0) == 0:
-			pl.slots[0].mag = maxi(int(pl.slots[0].mag), 6)
+			pl.slots[0]["mag"] = maxi(int(pl.slots[0].get("mag", 0)), 6)
 	# ---- the player ----
 	var tgt = null
 	var bd := INF
@@ -273,6 +318,10 @@ func _physics_process(_d: float) -> bool:
 		_move = 0
 		_aim = _aim.slerp(Vector2(pl._face(), -0.04).normalized(), 0.1)
 		pl._aim = _aim
+	for spec in str(_env("EVO_RUN", "")).split(";", false):   # a scripted dodge wins over the step back
+		var r0 := int(spec.get_slice(":", 0))
+		if f >= r0 and f < r0 + int(spec.get_slice(":", 2)):
+			_move = int(spec.get_slice(":", 1))
 	_key(KEY_A, _move < 0)
 	_key(KEY_D, _move > 0)
 	# between shots the game aims at the mouse: keep it on the aim line
@@ -323,7 +372,8 @@ func _physics_process(_d: float) -> bool:
 		var ch := int(360 * sx)
 		var cx := clampi(int(mid.x * sx) - cw / 2, 0, img.get_width() - cw)
 		var cy := clampi(int((mid.y - 60.0) * sx) - ch / 2, 0, img.get_height() - ch)
-		img = img.get_region(Rect2i(cx, cy, cw, ch))
+		if OS.get_environment("SNAP_FULL") == "":   # (SNAP_FULL=1: the whole screen, e.g. a boss bigger than the crop)
+			img = img.get_region(Rect2i(cx, cy, cw, ch))
 		img.resize(640, 360)
 		img.save_png("%s/s_%04d.png" % [OS.get_environment("SNAP"), f])
 	if tgt != null and f % 15 == 0:
