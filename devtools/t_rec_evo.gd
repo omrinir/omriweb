@@ -26,7 +26,7 @@ extends SceneTree
 #      EVO_MEM=<key=float,...> (PlayerMemory at the start: a weapon_use category such as precision=0 = the zombies have not
 #      learned yet that you snipe, so no zigzag hops in front of a railgun; or a field such as avg_distance=300),
 #      EVO_SEED=<int> (the level layout seed, Game.attempt_seed: previews and recordings get the same pits / crates / rails),
-#      EVO_RSEED=<int> (seeds the global random numbers: a take can be recorded again the same way),
+#      EVO_RSEED=<int> (seeds the global random numbers: another seed = another street layout and boss timing, pick the best take),
 #      EVO_CALM=1 (the subway's electrified rail strips are switched off: no random ZAP kills in the clip),
 #      EVO_SLOTS=<int> (the squad director's attack slots, 99 = every zombie charges at once instead of 3 attacking and the rest holding back),
 #      EVO_TEXT_ONCE=1 (one pop-up per spot, the newest, e.g. one MULTI KILL for a railgun line, not ten stacked),
