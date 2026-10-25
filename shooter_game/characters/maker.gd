@@ -1029,7 +1029,7 @@ func _sync_pic_box() -> void:
 
 
 func _pic_val(d: Dictionary, key: String) -> float:
-	return -float(d.get("y", 0.0)) if key == "up" else float(d.get(key, 0.0))
+	return 0.0 - float(d.get("y", 0.0)) if key == "up" else float(d.get(key, 0.0))   # (0 - y: לא "-0.0")
 
 
 func _pic_slider_text(key: String) -> void:
