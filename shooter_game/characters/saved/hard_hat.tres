@@ -1,0 +1,44 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://characters/character_preset.gd" id="1_sxu1q"]
+
+[resource]
+script = ExtResource("1_sxu1q")
+id = "hard_hat"
+kind = 1001
+name = "HARD HAT"
+build = "normal"
+height = 1.0
+width = 1.0
+head_size = 1.0
+hunch = 3.0
+barefoot = false
+hair = "short"
+hat = "hardhat"
+face = "none"
+top = "shirt"
+extras = PackedStringArray("vest", "belt")
+item = "wrench"
+gore = PackedStringArray("rot", "flesh")
+skin_color = Color(0.52549, 0.627451, 0.415686, 1)
+shirt_color = Color(0.309804, 0.4, 0.533333, 1)
+pants_color = Color(0.203922, 0.27451, 0.415686, 1)
+shoe_color = Color(0.290196, 0.196078, 0.12549, 1)
+hair_color = Color(0.352941, 0.27451, 0.188235, 1)
+eye_color = Color(1, 0.85098, 0.25098, 1)
+hat_color = Color(0.909804, 0.721569, 0.12549, 1)
+gear_color = Color(0.909804, 0.439216, 0.12549, 1)
+variety = true
+hp = 40
+walk_speed = 45.0
+run_speed = 95.0
+damage = 1
+bite_delay = 0.8
+duck = 0.25
+cover = 0.45
+notice = 520.0
+points = 200
+boss = false
+voice = 1.0
+levels = PackedInt32Array()
+share = 10

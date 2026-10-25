@@ -7,6 +7,7 @@ const DrawBatch := preload("res://effects/draw_batch.gd")
 const ButtonScript := preload("res://menu_button.gd")
 const VolumeScript := preload("res://ui/volume_sliders.gd")
 const MENU_SCENE := "res://menu.tscn"
+const MAKER_SCENE := "res://characters/maker.tscn"   # בדיקת דמות (TRY IN LEVEL): "MAIN MENU" חוזר לעורך
 # המקשים - מקור אחד: שורת העזרה בשלבים הראשונים (main.gd), תפריט ההשהיה ומסך הפתיחה (menu.gd)
 const CONTROLS := "A/D move (x2 run)  W jump/climb  S crouch (SxS drop)  LMB fire  R reload  Q wheel  1-5  C use power  E next power  G drop  SHIFT roll  RMB scope  L aim"
 const CONTROLS_SHORT := "A/D move   W jump   S crouch   MOUSE aim   LMB fire   R reload   Q wheel   1-5 weapons   C power   E next power   SHIFT roll   ESC pause"
@@ -55,7 +56,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _open_pause() -> void:
 	get_tree().paused = true
-	_show("PAUSED", [["RESUME", _resume, Color("b3121a")], ["RESTART", _restart, Color("b3121a")], ["MAIN MENU", _to_menu, Color("5a5a62")],
+	_show("PAUSED", [["RESUME", _resume, Color("b3121a")], ["RESTART", _restart, Color("b3121a")], [_menu_text(), _to_menu, Color("5a5a62")],
 		["EFFECTS: " + Settings.QUALITY_NAMES[int(Settings.quality_mode)], _cycle_quality, Color("2f6a8a")]])
 
 
@@ -70,7 +71,7 @@ func show_game_over() -> void:
 	_game_over = true
 	Game.finish_run()
 	await get_tree().create_timer(1.3).timeout
-	_show("", [["TRY AGAIN", _restart, Color("b3121a")], ["MAIN MENU", _to_menu, Color("5a5a62")]], 470.0)
+	_show("", [["TRY AGAIN", _restart, Color("b3121a")], [_menu_text(), _to_menu, Color("5a5a62")]], 470.0)
 	_dim.visible = false   # ה-HUD כבר מחשיך את המסך ומציג GAME OVER
 
 
@@ -130,7 +131,12 @@ func _restart() -> void:
 func _to_menu() -> void:
 	if not _game_over:
 		Game.finish_run()
-	_leave(func(): get_tree().change_scene_to_file(MENU_SCENE))
+	var to := MENU_SCENE if Game.custom_test.is_empty() else MAKER_SCENE
+	_leave(func(): get_tree().change_scene_to_file(to))
+
+
+func _menu_text() -> String:
+	return "MAIN MENU" if Game.custom_test.is_empty() else "BACK TO MAKER"
 
 
 func _leave(then: Callable) -> void:

@@ -20,6 +20,7 @@ const PauseScript := preload("res://pause_menu.gd")
 
 const GAME_SCENE := "res://main.tscn"
 const MAP_SCENE := "res://map.tscn"
+const MAKER_SCENE := "res://characters/maker.tscn"   # CHARACTER MAKER (רק מתוך העורך)
 const ZOOM := 2.0
 const FLOOR_Y := 300.0
 
@@ -232,6 +233,11 @@ func _build_ui(vp: Vector2) -> void:
 	build.visible = dev
 	ui.add_child(build)
 
+	if dev:   # CHARACTER MAKER (characters/maker.gd) - רק מתוך העורך: הוא שומר קבצים לתוך תיקיית המשחק
+		var mk := _button(root, "CHARACTER MAKER", Vector2(70, 610), Vector2(250, 46), 22, 0.65)
+		mk.accent = Color("6aa84f")
+		mk.pressed.connect(_open_maker)
+
 	first.call_deferred("grab_focus")
 
 	# מסך שחור שנעלם בכניסה (ומופיע ביציאה)
@@ -293,6 +299,16 @@ func _start_game(start_level := 1) -> void:
 	tw.tween_interval(0.15)
 	tw.tween_property(_fade, "color:a", 1.0, 0.6)
 	tw.tween_callback(func(): get_tree().change_scene_to_file(GAME_SCENE))
+
+
+func _open_maker() -> void:
+	if _leaving:
+		return
+	_leaving = true
+	var tw := create_tween()
+	tw.tween_interval(0.15)
+	tw.tween_property(_fade, "color:a", 1.0, 0.6)
+	tw.tween_callback(func(): get_tree().change_scene_to_file(MAKER_SCENE))
 
 
 func _quit() -> void:

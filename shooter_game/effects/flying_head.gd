@@ -26,6 +26,7 @@ var hair := Color("3a3026")
 var bald := false
 var kind := 0
 var sc := 1.0
+var cust = null                   # דמות מ-CHARACTER MAKER: השיער / הכובע שלה (characters/custom_character.gd)
 var _spin := 0.0
 var _life := LIFE
 var _trail := 0.0
@@ -43,6 +44,7 @@ func setup(pos: Vector2, vel: Vector2, z: Node) -> void:
 	bald = z._bald
 	kind = z.kind
 	sc = z.sc
+	cust = z.cust
 	_spin = randf_range(9.0, 15.0) * signf(vel.x if vel.x != 0.0 else 1.0)
 	z_index = 6
 
@@ -102,19 +104,25 @@ func _draw() -> void:
 
 func _draw_b() -> void:
 	# כמו הראש של הגופה (effects/ragdoll.gd): x קדימה, y למטה, הצוואר למטה
-	var k := Ragdoll.HEAD_K * sc
+	var hs: float = cust.head_k if cust != null else 1.0
+	var k := Ragdoll.HEAD_K * sc * hs
 	var L := func(x: float, y: float) -> Vector2: return Vector2(x * k, y * k)
+	var hx := Transform2D(0.0, Vector2(k, k), 0.0, Vector2.ZERO)
 	# צוואר קרוע: בשר אדום + חוליה
 	Art.fill(self, PackedVector2Array([L.call(-3.5, 5.5), L.call(-1.0, 9.5), L.call(1.0, 7.0), L.call(3.0, 10.0), L.call(4.0, 5.5)]), Color("8a0d0d"), Art.OUTLINE, 1.0)
 	Art.limb(self, PackedVector2Array([L.call(0.3, 6.0), L.call(0.6, 10.5)]), 1.8 * sc, Color("e8dcc4"), Art.NONE)
-	if kind == 1:   # RUNNER: שיער ארוך פרוע
+	if cust != null:
+		DrawBatch.set_transform_matrix(self, hx)
+		cust.draw_dead_head(self, true)
+		DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
+	elif kind == 1:   # RUNNER: שיער ארוך פרוע
 		for i in 5:
 			var a: Vector2 = L.call(-4.0 + float(i) * 1.2, -6.5 + float(i) * 0.4)
 			DrawBatch.line(self, a, a + Vector2(-8.0 - float(i), 4.0 + float(i)) * sc, hair, 2.0 * sc, true)
 	elif kind != 2 and not bald:
 		Art.oval(self, L.call(-2.5, -2.5), 6.0 * k, 5.5 * k, hair, 0.0, Art.OUTLINE, 1.0)
-	Art.oval_shaded(self, Vector2.ZERO, 6.0 * sc, 6.6 * sc, skin, 0.0)
-	if kind != 2 and kind != 5 and kind != 7 and kind != 9:
+	Art.oval_shaded(self, Vector2.ZERO, 6.0 * sc * hs, 6.6 * sc * hs, skin, 0.0)
+	if cust == null and kind != 2 and kind != 5 and kind != 7 and kind != 9:
 		if not bald:
 			var cap := PackedVector2Array()
 			for v: Vector2 in Ragdoll.HAIR_CAP:
@@ -127,3 +135,7 @@ func _draw_b() -> void:
 	DrawBatch.line(self, eye + Vector2(-1.4, 1.4) * sc, eye + Vector2(1.4, -1.4) * sc, Color(0.1, 0.05, 0.05), 1.2)
 	DrawBatch.line(self, Vector2(3.5, 2.5) * sc, Vector2(1.0, 3.0) * sc, Color(0.25, 0.05, 0.05), 1.4)   # פה פעור
 	Art.oval(self, Vector2(2.4, 3.2) * sc, 1.6 * sc, 1.0 * sc, Color(0.2, 0.02, 0.03), 0.0, Art.NONE)
+	if cust != null:
+		DrawBatch.set_transform_matrix(self, hx)
+		cust.draw_dead_head(self, false)
+		DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)

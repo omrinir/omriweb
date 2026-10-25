@@ -49,3 +49,14 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
   shield) and where each body lands (on its back by the feet), then checks the bodies stop being redrawn:
   `-- [level 1] [pack 5]`, headless. Env `SLAM_CASES=god,front`, `SLAM_SHOT=/tmp/slam` (pictures of the front/behind slams,
   xvfb, opengl3), `SLAM_TRACE=1`.
+- `t_maker.gd` - the CHARACTER MAKER (characters/maker.gd) end to end: opens it (the first saved character must open), NEW, then
+  STAND / WALK / RUN / ATTACK, the 3 shots that don't kill, all 7 KILL buttons (checks each death really happened), RANDOM,
+  every tab, CROWD + NIGHT, SAVE (`characters/saved/zz_maker_test.tres` must load back the same), TRY IN LEVEL (level 3 must
+  have him), pause BACK TO MAKER, DELETE, BACK TO MENU. Ends with `MAKER OK`. Pictures of every step:
+  `xvfb-run -a -s "-screen 0 1280x720x24" godot --fixed-fps 60 --rendering-driver opengl3 --path . -s res://t_maker.gd -- /tmp/m`
+  (headless with `-- none`).
+- `t_characters.gd` - CHARACTER MAKER parts: 14 test characters that together use every part, walking and biting on a grid
+  (`CHAR_MODE=zoo`, default; `CHAR_DARK=1` dark background), every special death on them in level 3 (`CHAR_MODE=deaths`), or
+  the saved characters (`CHAR_MODE=saved`). `-- <png prefix>`, xvfb + opengl3.
+- `make_example_characters.gd` - writes the 6 example characters (BUTCHER ... TOURIST, kinds 1000-1005, in no level) to
+  `characters/saved/`: `godot --headless --path . -s res://make_example_characters.gd`.

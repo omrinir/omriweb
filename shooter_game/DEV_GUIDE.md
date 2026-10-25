@@ -4511,3 +4511,38 @@ Screenshots were checked on 13, 34, 44 and 52 for: waiting, following with heart
 - `sounds/sfx_cache.res` (about 23 MB) holds every synthesized sound already rendered: `{name: [recipe hash, 16-bit bytes]}`. `Sfx._stream` uses it when the recipe hash matches, otherwise it synthesizes as before, so a changed sound is never played stale.
 - Type and stage `SOUNDS` are now registered when the script is loaded (`zombie_registry.make`, `stage_registry.make` -> `Sfx.register_script`). Sounds of types not loaded yet are still playable from the cache (`has_sound` checks it). Without the cache file, sfx.gd falls back to the old full scan (`Sfx.scan_all`).
 - After adding or changing sounds, rebuild the cache: copy `devtools/build_sfx_cache.gd` into the game folder and run `godot --headless --path . -s res://build_sfx_cache.gd` (about 45 s). If you forget, it still works, but changed sounds are synthesized at load time (slower start).
+
+# CHARACTER MAKER: zombies built from parts (2026-10-25)
+- **Open it:** main menu → CHARACTER MAKER. The button only shows when the game runs from the Godot editor (F5), because the
+  maker saves files into the project folder (an exported game can't write there).
+- **What it does** (`characters/maker.tscn` / `maker.gd`): build a zombie from parts (`characters/parts.gd`: 3 builds, 7 hair
+  styles, 14 hats, 8 faces, 8 tops, 8 extras, 13 hand items, 8 gore marks), sizes (height, width, head, hunch), 8 colors,
+  stats (HP, walk / run speed, bite damage and delay, ducking, cover, sight range, points, voice, BOSS bar) and levels.
+  On the left he is alive on a street next to the hero: STAND / WALK / RUN / ATTACK, TURN, CROWD (6 of him, VARIETY shades),
+  NIGHT, NEW ONE. SHOOT head / body / legs = hits that don't kill (the reactions). KILL = SHOT, HEADSHOT (both can still roll
+  a random special death, like in the game), NO HEAD, TORN, EXPLODE, BURN, LEGS OFF (always that death).
+  NEW / COPY / RANDOM / SAVE (Ctrl+S) / DELETE at the top. TRY IN LEVEL plays the chosen level in practice (nothing saved)
+  with him as ~40% of the zombies, even if he isn't saved yet; ESC → BACK TO MAKER (or MAIN MENU on the results screen)
+  returns to the maker with the same character.
+- **The file** (`characters/saved/<id>.tres`, script `characters/character_preset.gd`): a small text file with every field
+  written out. `id` = the file name (made from the name on the first save; renaming later keeps the file), `kind` = his
+  zombie number (1000 and up, `enemies/zombie_registry.gd CUSTOM_FIRST`), `levels` + `share` = the levels he appears in and
+  about what % of the zombies there are him. Parts are ids from the lists in `parts.gd`. Hand items are looks only: he still bites.
+- **How a saved character gets into the game:** `zombie_registry.gd` sends kinds ≥ 1000 to `characters/custom_characters.gd`,
+  which loads every file in `characters/saved/` (`live` = presets the maker is editing right now, they win over the files).
+  Each kind is a type module `characters/custom_character.gd` with `base_body()` = true: zombie.gd draws him with its own
+  walker body, so all the gore works (ragdoll, torn in half, headless walk + flying head, burst, burned to bones, crawling
+  torso), and the module adds the parts through hooks (`draw_back`, `draw_torso`, `draw_hand`, `draw_hair_back` /
+  `draw_hair_front`, `draw_head_gear`; `draw_dead_head` for the ragdoll and the flying head). zombie.gd checks `cust != null`.
+- **Putting one in a level:** tick levels in the LEVELS tab (main.gd `_custom_weights()` → `add_weights`: every preset whose
+  `levels` has this level gets `share`% of the level's zombie weight, all of them together at most 90%). Or from code:
+  edit `levels` / `share` in his .tres, or name his kind in a stage's `zombie_weights()` (`{1003: 0.2, 0: 0.5, ...}`).
+  Since every spawn goes through `main._pick_kind`, he also shows up in pace waves, HOLD THE LINE and ESCAPE.
+- **Example characters** (all in no level, `levels = []`): BUTCHER 1000, HARD HAT 1001, SURGEON 1002, PARTY GUY 1003,
+  CONVICT 1004, TOURIST 1005. Made by `devtools/make_example_characters.gd`.
+- **New part:** add its id to the list in `parts.gd` (and to `LABELS` for a nicer button name), then draw it in the matching
+  static function there (`hat`, `face`, `torso_over`, `item`, ...). The maker's buttons are built from those lists.
+- `force_*` metas (t_tear.gd, the maker's KILL buttons) now mean exactly that death: `_die` skips the random special deaths
+  when one is set (`lucky`). Nothing in the game sets them.
+- Tests: `devtools/t_maker.gd` (the whole maker: moves, shots, every kill, save → file → try in level → back → delete),
+  `devtools/t_characters.gd` (all parts on a grid, every special death in a level, or the saved characters).

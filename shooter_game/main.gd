@@ -150,6 +150,7 @@ func _ready() -> void:
 	zombies_per_screen *= Game.harder()   # שלבים 1-57: +25% זומבים
 	if _stage == null:
 		zombie_weights[2] += 0.04 * float(Game.level - 1)
+	_custom_weights()
 	var vp := get_viewport_rect().size
 	level_w = vp.x * float(maxi(level_screens, 8))
 	Game.clock_pars = LevelClock.pars(Game.level, level_w, Settings.difficulty)
@@ -966,6 +967,16 @@ func _spawn_survivors(rng: RandomNumberGenerator, floor_y: float) -> void:
 # רחוב: שלבים 1, 4 ושלבים חדשים שמבקשים (stage.street_props)
 func _streety() -> bool:
 	return Game.is_street() or (_stage != null and _stage.street_props())
+
+
+# דמויות מ-CHARACTER MAKER (characters/saved/*.tres) שסימנו להן את השלב הזה (levels / share),
+# ובדיקה מהעורך (TRY IN LEVEL: Game.custom_test - הדמות שבבדיקה, גם לפני שנשמרה)
+func _custom_weights() -> void:
+	var cc: GDScript = preload("res://enemies/zombie_registry.gd").custom()
+	var test: Dictionary = Game.custom_test
+	if not test.is_empty() and test.get("preset") != null:
+		cc.live[int(test.kind)] = test.preset
+	cc.add_weights(zombie_weights, Game.level, test)
 
 
 # {kind: weight} -> מערך לפי מספר סוג (כמו zombie_weights)

@@ -4,6 +4,7 @@ extends RefCounted
 #  סוגים 0-19 נמצאים ב-zombie.gd (KINDS). מ-20 והלאה כל סוג = קובץ ב-enemies/types/.
 #
 #  ****  להוספת זומבי חדש: מוסיפים שורה ל-TYPES (מספר חדש + נתיב)  ****
+#  סוגים מ-1000 (CUSTOM_FIRST) = דמויות מ-CHARACTER MAKER (characters/custom_characters.gd, הקבצים ב-characters/saved/).
 # ============================================================
 
 enum {
@@ -68,6 +69,7 @@ enum {
 }
 
 const FIRST := 20
+const CUSTOM_FIRST := 1000   # דמויות מ-CHARACTER MAKER
 const TYPES := {
 	CLIMBER: "res://enemies/types/climber.gd",
 	SCOUT: "res://enemies/types/scout.gd",
@@ -255,14 +257,25 @@ const TYPES := {
 }
 
 static var _stats_cache := {}
+static var _custom: GDScript = null   # characters/custom_characters.gd - נטען רק כשצריך (ונשאר טעון: הדמויות שבבדיקה ב-live)
+
+
+static func custom() -> GDScript:
+	if _custom == null:
+		_custom = load("res://characters/custom_characters.gd")
+	return _custom
 
 
 static func has(kind: int) -> bool:
+	if kind >= CUSTOM_FIRST:
+		return custom().has(kind)
 	return TYPES.has(kind) and ResourceLoader.exists(TYPES[kind])
 
 
 # יוצר את המודול של הסוג (או null)
 static func make(kind: int) -> RefCounted:
+	if kind >= CUSTOM_FIRST:
+		return custom().make(kind)
 	if not has(kind):
 		return null
 	var sc: Script = load(TYPES[kind])
@@ -271,6 +284,8 @@ static func make(kind: int) -> RefCounted:
 
 
 static func stats(kind: int) -> Dictionary:
+	if kind >= CUSTOM_FIRST:   # (לא בזיכרון: העורך משנה אותן תוך כדי)
+		return custom().stats(kind)
 	if _stats_cache.has(kind):
 		return _stats_cache[kind]
 	var m := make(kind)

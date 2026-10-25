@@ -143,6 +143,12 @@ func draw() -> bool:
 	return false
 
 
+# true = הגוף הרגיל של zombie.gd מצייר אותו (כמו WALKER), עם כל הגור (ראש עף, זוחל, נשרף...).
+# רק דמויות מ-CHARACTER MAKER (characters/custom_character.gd), שמוסיפות חלקים דרך draw_back / draw_torso / ...
+func base_body() -> bool:
+	return false
+
+
 # ---- עזרים לציור ----
 # מסדר את הטרנספורם: גודל, היפוך לפי כיוון, סיבוב כשמת, צל על הריצפה
 func begin_draw(shadow := true) -> void:

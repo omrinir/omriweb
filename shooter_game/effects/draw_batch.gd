@@ -101,6 +101,8 @@ static func set_transform(ci: CanvasItem, pos: Vector2, rot := 0.0, scale := Vec
 		_xf = Transform2D(rot, scale, 0.0, pos)
 	else:
 		ci.draw_set_transform(pos, rot, scale)
+		_live_ci = ci
+		_live_xf = Transform2D(rot, scale, 0.0, pos)
 
 
 static func set_transform_matrix(ci: CanvasItem, xf: Transform2D) -> void:
@@ -108,6 +110,17 @@ static func set_transform_matrix(ci: CanvasItem, xf: Transform2D) -> void:
 		_xf = xf
 	else:
 		ci.draw_set_transform_matrix(xf)
+		_live_ci = ci
+		_live_xf = xf
+
+
+# הטרנספורם הנוכחי (לציור יחסי אליו - zombie.gd _cust_head: ראש מוגדל ונוטה סביב המרכז שלו)
+static var _live_ci: CanvasItem = null
+static var _live_xf := Transform2D.IDENTITY
+static func current_transform(ci: CanvasItem) -> Transform2D:
+	if ci == _ci:
+		return _xf
+	return _live_xf if ci == _live_ci else Transform2D.IDENTITY
 
 
 # אליפסה מלאה (מהיר: מניפה קבועה + טרנספורם אחד, בלי חישוב לכל נקודה)

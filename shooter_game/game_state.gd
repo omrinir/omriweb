@@ -225,6 +225,7 @@ func level_playable(lv: int) -> bool:
 #   * כפתורי השלבים בתפריט = PRACTICE: ציוד מתאים לשלב, לא נשמר כלום ולא נוגע בשמירה שלך.
 # ============================================================
 var practice := false             # תרגול: לא שומרים לקובץ
+var custom_test := {}             # TRY IN LEVEL מ-CHARACTER MAKER: {"preset", "kind", "share", "level", ...} (main.gd _custom_weights)
 var _practice_backup := {}
 var attempt_seed := 0             # מבנה השלב בניסיון הזה (0 = אקראי)
 var checkpoint := {}              # {"level", "x", "slots", "special", "special_uses", "seed", "run_score", "scrap"}
@@ -274,6 +275,7 @@ func start_practice(lv: int) -> void:
 
 # יוצאים מתרגול: מחזירים את השמירה האמיתית
 func end_practice() -> void:
+	custom_test = {}
 	if not practice:
 		return
 	practice = false

@@ -351,9 +351,17 @@ func draw(ci: CanvasItem) -> void:
 		var hk := int(z.kind)
 		var hair: Color = z.hair
 		var bald: bool = z._bald
-		var k := HEAD_K * sc   # נקודה בראש של zombie.gd (x קדימה, y למטה) -> בגופה
+		var cu = z.cust   # דמות מ-CHARACTER MAKER: השיער / הכובע שלה (characters/custom_character.gd draw_dead_head)
+		var hs: float = cu.head_k if cu != null else 1.0
+		var k := HEAD_K * sc * hs   # נקודה בראש של zombie.gd (x קדימה, y למטה) -> בגופה
 		var L := func(x: float, y: float) -> Vector2: return p[HEAD] + side * (x * k) - hd * (y * k)
 		var rot := hd.angle() + PI / 2.0
+		var base := DrawBatch.current_transform(ci)
+		var hx := base * Transform2D(side * k, -hd * k, p[HEAD])
+		if cu != null:
+			DrawBatch.set_transform_matrix(ci, hx)
+			cu.draw_dead_head(ci, true)
+			DrawBatch.set_transform_matrix(ci, base)
 		if hk < 20:   # שיער כמו בזומבי החי (zombie.gd -> _head): צבע לכל זומבי, קרחים בלי
 			if hk == 1:   # RUNNER: שיער ארוך פרוע - נשפך אחורה ולמטה (כבידה)
 				for i in 5:
@@ -361,7 +369,7 @@ func draw(ci: CanvasItem) -> void:
 					DrawBatch.line(ci, a, a + (-side * (8.0 + float(i)) + Vector2(0, 5.0 + float(i) * 1.4)) * sc, hair, 2.0 * sc, true)
 			elif hk != 2 and not bald:   # שיער מאחור (לא BRUTE)
 				Art.oval(ci, L.call(-2.5, -2.5), 6.0 * k, 5.5 * k, hair, rot, Art.OUTLINE, 1.0)
-		Art.oval_shaded(ci, p[HEAD], 6.0 * sc, 6.6 * sc, sk, rot)
+		Art.oval_shaded(ci, p[HEAD], 6.0 * sc * hs, 6.6 * sc * hs, sk, rot)
 		if hk < 20 and hk != 2 and hk != 5 and hk != 7 and hk != 9:   # כיפת שיער / קרחת (לא BRUTE, BOSS, CONDUCTOR, COP)
 			if not bald:
 				var cap := PackedVector2Array()
@@ -375,6 +383,10 @@ func draw(ci: CanvasItem) -> void:
 		DrawBatch.line(ci, eye + Vector2(-1.4, -1.4) * sc, eye + Vector2(1.4, 1.4) * sc, Color(0.1, 0.05, 0.05), 1.2)   # עין X
 		DrawBatch.line(ci, eye + Vector2(-1.4, 1.4) * sc, eye + Vector2(1.4, -1.4) * sc, Color(0.1, 0.05, 0.05), 1.2)
 		DrawBatch.line(ci, p[HEAD] + side * 3.5 * sc - hd * 2.5 * sc, p[HEAD] + side * 1.0 * sc - hd * 3.0 * sc, Color(0.25, 0.05, 0.05), 1.4)   # פה
+		if cu != null:
+			DrawBatch.set_transform_matrix(ci, hx)
+			cu.draw_dead_head(ci, false)
+			DrawBatch.set_transform_matrix(ci, base)
 	_arm(ci, NECK, ELBOW_F, HAND_F, sk, shirt, 5.0 * sc * w)
 
 

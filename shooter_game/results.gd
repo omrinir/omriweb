@@ -104,7 +104,8 @@ func _map() -> void:
 
 
 func _menu() -> void:
-	_leave(func(): get_tree().change_scene_to_file(MENU_SCENE))
+	var to := MENU_SCENE if Game.custom_test.is_empty() else "res://characters/maker.tscn"   # בדיקת דמות: חוזרים לעורך
+	_leave(func(): get_tree().change_scene_to_file(to))
 
 
 func _leave(then: Callable) -> void:

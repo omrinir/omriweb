@@ -52,6 +52,7 @@ const GrenadeScript := preload("res://grenade.gd")
 const Boom := preload("res://explosion.gd")
 const Brain := preload("res://ai/zombie_brain.gd")             # המוח (טקטיקה, תורות, איגוף) - ai/zombie_brain.gd
 const Registry := preload("res://enemies/zombie_registry.gd")  # סוגי זומבים חדשים (20+) - enemies/types/*.gd
+const Parts := preload("res://characters/parts.gd")   # חלקים של דמויות מ-CHARACTER MAKER (cust)
 # סוגים שהמוח מזיז (לשאר יש לוגיקת תנועה משלהם)
 const BRAIN_KINDS := [0, 1, 2, 4, 9, 14, 16]
 var DOG_TEX: Texture2D = preload("res://tex_load.gd").get_tex("res://sprites/dog.png")   # ספרייט כלב זומבי (נטען בזמן ריצה)
@@ -231,6 +232,7 @@ var _last_info := {}
 var brain = null                 # ai/zombie_brain.gd
 var goal_x := INF                # INF = רגיל. אחרת: הולך לנקודה הזו ומתעלם מהשחקן (effects/s33_decor.gd Volcano)
 var type_mod = null              # enemies/types/*.gd (סוגים 20+)
+var cust = null                  # דמות מ-CHARACTER MAKER (characters/custom_character.gd, סוגים 1000+): הגוף הרגיל + חלקים
 var _drop_t := 0.0               # יורד דרך קומה (one-way)
 var _stagger_t := 0.0
 # שלב 2: רוכב על גג רכבת הרפאים (subway.gd מזיז אותו), נזרק ממנה ונוחת ליד השחקן
@@ -356,6 +358,8 @@ func _ready() -> void:
 		type_mod.z = self
 		k = type_mod.stats()
 		_mod_boss = k.get("boss", false)
+		if type_mod.base_body():
+			cust = type_mod
 	else:
 		k = KINDS[clampi(kind, 0, KINDS.size() - 1)]
 	hp = k.hp + (100 * (mini(Game.level, 5) - 1) if is_boss() else 0)   # שלבים מאוחרים: הבוס לא "ספוג" יותר - הוא חכם יותר
@@ -1586,11 +1590,13 @@ func _die(dir: Vector2) -> void:
 		_spin = 0.0
 		velocity = Vector2(velocity.x * 0.3, -60.0)
 	# מוות מיוחד, כל אחד 20% כשהתנאי שלו מתקיים (אחד לכל היותר): פיצוץ / שוטגאן מקרוב -> חתיכות, אש -> עצמות,
-	# כל הריגה -> נקרע לשניים, ירייה בראש -> הולך בלי ראש. (force_*: devtools/t_tear.gd)
-	var burst := _can_burst() and (randf() < BURST_CHANCE or has_meta("force_burst"))
-	var burn := not burst and _can_char() and (randf() < CHAR_CHANCE or has_meta("force_char"))
-	var tear := not burst and not burn and _can_tear() and (randf() < TEAR_CHANCE or has_meta("force_tear"))
-	var hwalk := not burst and not burn and not tear and _can_headless_walk() and (randf() < HEADLESS_WALK_CHANCE or has_meta("force_hw"))
+	# כל הריגה -> נקרע לשניים, ירייה בראש -> הולך בלי ראש.
+	# force_* (devtools/t_tear.gd, CHARACTER MAKER): בדיוק המוות הזה, בלי מוות מיוחד אקראי אחר במקומו
+	var lucky := not (has_meta("force_burst") or has_meta("force_char") or has_meta("force_tear") or has_meta("force_hw"))
+	var burst := _can_burst() and ((lucky and randf() < BURST_CHANCE) or has_meta("force_burst"))
+	var burn := not burst and _can_char() and ((lucky and randf() < CHAR_CHANCE) or has_meta("force_char"))
+	var tear := not burst and not burn and _can_tear() and ((lucky and randf() < TEAR_CHANCE) or has_meta("force_tear"))
+	var hwalk := not burst and not burn and not tear and _can_headless_walk() and ((lucky and randf() < HEADLESS_WALK_CHANCE) or has_meta("force_hw"))
 	if burst:
 		_burst_into_chunks(dir)
 	elif burn:
@@ -1678,7 +1684,7 @@ const HW_SPURT := 0.05
 
 
 func _can_headless_walk() -> bool:
-	if not _headless or type_mod != null or is_boss() or not _ragdoll_kind() or _one_leg or _legless or not is_on_floor():
+	if not _headless or (type_mod != null and cust == null) or is_boss() or not _ragdoll_kind() or _one_leg or _legless or not is_on_floor():
 		return false
 	if kind in [CRAWLER, IMP]:
 		return false
@@ -1795,7 +1801,7 @@ const CRAWL_SPEED := 55.0
 
 
 func _can_crawl() -> bool:
-	return type_mod == null and not is_boss() and not _legless and not dead and is_on_floor() and _ragdoll_kind() \
+	return (type_mod == null or cust != null) and not is_boss() and not _legless and not dead and is_on_floor() and _ragdoll_kind() \
 		and not kind in [CRAWLER, IMP, COP] and not on_ceiling and not dormant and _carry == null
 
 
@@ -1853,7 +1859,7 @@ const CHAR_CHANCE := 0.2
 
 
 func _can_char() -> bool:
-	if not _ragdoll_kind() or type_mod != null or is_boss() or _legless or not is_on_floor():
+	if not _ragdoll_kind() or (type_mod != null and cust == null) or is_boss() or _legless or not is_on_floor():
 		return false
 	return str(_last_info.get("source", "")) == "fire" or _burn_t > 0.2
 
@@ -2177,6 +2183,8 @@ func _draw_body() -> void:
 			lean = 3.0 + sin(_time * 1.7) * 7.0
 		_:
 			lean = 3.0
+	if cust != null:
+		lean = cust.lean()
 	if _climbing and not dead:   # מטפס: הגוף נשען אל הקיר
 		lean = 8.0
 	elif dead and (_hw_t > 0.0 or _char != null):   # בלי ראש / בוער: מתנדנד
@@ -2188,7 +2196,7 @@ func _draw_body() -> void:
 	# תגובת פגיעה
 	var rk := _react_k() * _react_push
 	var hop := react_hop()
-	var thin := kind == RUNNER or kind == SCREAMER   # גוף צר: מתקפל פחות (אחרת הפוליגון של הגופייה מתהפך)
+	var thin: bool = kind == RUNNER or kind == SCREAMER or (cust != null and cust.thin)   # גוף צר: מתקפל פחות (אחרת הפוליגון של הגופייה מתהפך)
 	if rk > 0.0 and _react_zone == "body":   # כדור בבטן: מתקפל קדימה
 		if thin:
 			sh.x += 3.0 * rk
@@ -2209,8 +2217,10 @@ func _draw_body() -> void:
 		sh.x += _react_dx * 2.5 * rk
 
 	# כפות רגליים
-	var stride := 7.0 if kind == RUNNER and _chasing else 5.0
-	var lift := 4.0 if kind == RUNNER else 2.5
+	var runner: bool = kind == RUNNER or (cust != null and cust.thin)   # (דמות רזה מ-CHARACTER MAKER רצה כמו RUNNER)
+	var fast: bool = _chasing or (cust != null and goal_x < INF)   # (CHARACTER MAKER: RUN = רץ לנקודה)
+	var stride := 7.0 if runner and fast else 5.0
+	var lift := 4.0 if runner else 2.5
 	var f1 := Vector2(sin(p) * stride + 1.0, -maxf(0.0, cos(p)) * lift)
 	var f2 := Vector2(sin(p + PI) * stride - 1.0, -maxf(0.0, cos(p + PI)) * lift)
 	if _one_leg:
@@ -2237,7 +2247,7 @@ func _draw_body() -> void:
 	var fs := sh + Vector2(2.5, 2.0)
 	var back_hand := bs + Vector2(16.0, 1.0 - reach)
 	var front_hand := fs + Vector2(17.0, 3.0 + reach)
-	if (kind == RUNNER and _chasing) or _cover_state == 1:   # רץ (או בורח) - ידיים מתנופפות
+	if (runner and fast) or _cover_state == 1:   # רץ (או בורח) - ידיים מתנופפות
 		back_hand = bs + Vector2(-8.0 + sin(p) * 10.0, 12.0)
 		front_hand = fs + Vector2(8.0 - sin(p) * 10.0, 10.0)
 	if ck > 0.5:   # מתכופף: ידיים מגינות על הראש
@@ -2295,13 +2305,16 @@ func _draw_body() -> void:
 		Art.limb(self, PackedVector2Array([st + Vector2(0.5, 0.0), st + Vector2(0.5, 3.5)]), 1.6, Color("e8dcc4"), Art.NONE)   # עצם
 
 	# ---- גוף ----
-	match kind:
-		BRUTE, BOSS, CONDUCTOR:
-			_torso_brute(sh, hip, sk, sh_col, pa)
-		RUNNER, SCREAMER:
-			_torso_runner(sh, hip, sk, sh_col)
-		_:
-			_torso_walker(sh, hip, sk, sh_col)
+	if cust != null:
+		_cust_torso(sh, hip, sk, sh_col, pa)
+	else:
+		match kind:
+			BRUTE, BOSS, CONDUCTOR:
+				_torso_brute(sh, hip, sk, sh_col, pa)
+			RUNNER, SCREAMER:
+				_torso_runner(sh, hip, sk, sh_col)
+			_:
+				_torso_walker(sh, hip, sk, sh_col)
 	if kind == DRUNK and not dead:   # חליפה קרועה: חולצה לבנה ועניבה אדומה
 		Art.fill(self, PackedVector2Array([sh + Vector2(-1, 1), sh + Vector2(5, 1), sh + Vector2(2, 12)]), Color(0.85, 0.82, 0.75), Art.NONE)
 		DrawBatch.line(self, sh + Vector2(2, 2), sh + Vector2(1, 15), Color("8a1a1a"), 2.4)
@@ -2343,8 +2356,10 @@ func _draw_body() -> void:
 			var a := float(v) * 2.1 + 0.4
 			DrawBatch.line(self, c + Vector2.from_angle(a) * r * 0.3, c + Vector2.from_angle(a + 0.4) * r * 0.85, Color(0.4, 0.15, 0.2, 0.6), 1.0, true)
 		Art.glow(self, c, r * 1.4, Color(0.7, 1.0, 0.3, 0.12 + 0.2 * _swell))
-	if kind in [WALKER, RUNNER, BRUTE, SPITTER, SCREAMER, BLOATER, CRAWLER, COP, DRUNK, HURLER, IMP, JETPACK, CONDUCTOR, BOSS] and not dead:
+	if (cust != null or kind in [WALKER, RUNNER, BRUTE, SPITTER, SCREAMER, BLOATER, CRAWLER, COP, DRUNK, HURLER, IMP, JETPACK, CONDUCTOR, BOSS]) and not dead:
 		_details(sh, hip, sk)
+	if cust != null:   # הבגד והתוספות (מעיל, סינר, אפוד...)
+		cust.draw_torso(sh, hip, sk, sh_col)
 	for w in _wounds:
 		Art.oval(self, w, 2.4, 1.8, Color("7a0a0a"), 0.0, Art.NONE)
 		Art.oval(self, w + Vector2(0.3, 0.2), 1.1, 0.8, Color("2a0303"), 0.0, Art.NONE)
@@ -2364,6 +2379,8 @@ func _draw_body() -> void:
 	if kind == SCREAMER and _scream_t > 0.0:   # ידיים פתוחות לצדדים בזמן הצרחה
 		front_hand = fs + Vector2(12.0, -10.0)
 	_arm(fs, front_hand, sk, sh_col, _gore_arm and not dead)
+	if cust != null and (not dead or _hw_t > 0.0 or _char != null):   # חפץ ביד (רק מראה - הוא עדיין נושך)
+		cust.draw_hand(front_hand, (front_hand - fs).normalized())
 	if (kind == DRUNK or kind == JETPACK) and not dead:   # אקדח / תת-מקלע
 		var gl := 7.0 if kind == DRUNK else 11.0
 		DrawBatch.rect(self, Rect2(front_hand + Vector2(-1.0, -2.5), Vector2(gl, 3.2)), Color("1a1a1e"))
@@ -2429,7 +2446,7 @@ func _maybe_redraw() -> void:
 
 
 func _big() -> bool:
-	return kind == BRUTE or kind == BOSS
+	return kind == BRUTE or kind == BOSS or (cust != null and cust.big)
 
 
 # בוס: מחזיק דלת של מכונית כמגן. במכה הוא מרים אותה מעל הראש
@@ -2464,9 +2481,9 @@ func _leg(hip: Vector2, foot: Vector2, pa: Color, sk: Color, shoe_col: Color) ->
 
 
 func _arm(shoulder: Vector2, hand: Vector2, sk: Color, sleeve: Color, gore := false) -> void:
-	var w := 7.0 if _big() else (4.2 if kind == RUNNER or kind == SCREAMER else 5.2)
+	var w := 7.0 if _big() else (4.2 if kind == RUNNER or kind == SCREAMER or (cust != null and cust.thin) else 5.2)
 	var elbow := Art.joint(shoulder, hand, 9.0, 9.5, -1.0)
-	if kind != WALKER:   # בלי שרוולים (גופייה)
+	if kind != WALKER and (cust == null or not cust.sleeves):   # בלי שרוולים (גופייה)
 		Art.limb(self, PackedVector2Array([shoulder, elbow, hand]), w, sk, Art.OUTLINE, true, false)   # (כף היד מכסה את הקצה)
 	else:
 		var cuff := shoulder.lerp(elbow, 0.75)
@@ -2554,10 +2571,55 @@ func _torso_brute(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color, pa: Colo
 	Art.fill(self, PackedVector2Array([hip + Vector2(-1.0, -8.0), hip + Vector2(5.0, -8.0), hip + Vector2(5.0, -4.0), hip + Vector2(-1.0, -4.0)]), Art.shade(pa, 0.15), Art.OUTLINE, 0.7)   # כיס
 
 
+# דמות מ-CHARACTER MAKER: הגוף של zombie.gd שמתחת לבגד (characters/parts.gd torso_base)
+func _cust_torso(sh: Vector2, hip: Vector2, sk: Color, sh_col: Color, pa: Color) -> void:
+	cust.draw_back(sh)   # תיק גב (מאחורי הגוף)
+	match cust.torso:
+		"brute":
+			_torso_brute(sh, hip, sk, sh_col, pa)
+		"runner":
+			_torso_runner(sh, hip, sk, sh_col)
+		"bare":
+			Parts.torso_bare(self, sh, hip, sk, pa)
+		_:
+			_torso_walker(sh, hip, sk, sh_col)
+
+
+# ראש של דמות מ-CHARACTER MAKER: אותו ראש של זומבי רגיל (פנים, לסת, עין זוהרת), בגודל head_size, וכל הראש נוטה ביחד
+# (גם הכובע עף אחורה בירייה בראש). השיער / הפנים / הכובע מ-characters/parts.gd: (0,0) = מרכז הראש.
+func _cust_head(c: Vector2, sk: Color, tilt: float) -> void:
+	var base := DrawBatch.current_transform(self)
+	var hk: float = cust.head_k
+	var rx := 8.0 if _big() else 7.2
+	var ry := 7.5 if _big() else 8.2
+	var around := base * Transform2D(tilt, Vector2(hk, hk), 0.0, c) * Transform2D(0.0, -c)   # ציור רגיל (c + ...) מוגדל ונוטה סביב מרכז הראש
+	var local := base * Transform2D(tilt, Vector2(hk * rx / 7.2, hk * ry / 8.2), 0.0, c)     # החלקים: (0,0) = מרכז הראש
+	var lo := lod()
+	DrawBatch.set_transform_matrix(self, local)
+	cust.draw_hair_back()
+	DrawBatch.set_transform_matrix(self, around)
+	Art.oval_shaded(self, c, rx, ry, sk, 0.0, Art.OUTLINE, 1.4)
+	DrawBatch.set_transform_matrix(self, local)
+	cust.draw_hair_front()
+	DrawBatch.set_transform_matrix(self, around)
+	Art.oval(self, c + Vector2(2.5, -0.5), 4.5, 3.0, Color(0.1, 0.0, 0.05, 0.22), 0.1, Art.NONE)   # עיניים שקועות
+	if not lo:
+		_head_micro(c, sk)
+	else:
+		DrawBatch.circle(self, c + Vector2(4.0, -1.0), 1.1, Color(0.85, 0.88, 0.75, 0.85))
+	_head_rest(c, sk, lo)
+	DrawBatch.set_transform_matrix(self, local)
+	cust.draw_head_gear(lo)
+	DrawBatch.set_transform_matrix(self, base)
+
+
 func _head(c: Vector2, sk: Color) -> void:
 	var tilt := sin(_time * 1.3) * 0.08
 	if _react_zone == "head":   # ירייה בראש: הפנים מסתובבות למעלה
 		tilt += _react_dx * 0.7 * _react_k() * _react_push
+	if cust != null:
+		_cust_head(c, sk, tilt)
+		return
 	match kind:
 		RUNNER:   # שיער ארוך ופרוע מאחור
 			for i in 6:
@@ -2632,10 +2694,12 @@ func _head_rest(c: Vector2, sk: Color, lo: bool) -> void:
 		eye_col = Color(1.0, 0.15, 0.1, 0.9)
 	elif kind == SPITTER:
 		eye_col = Color(0.6, 1.0, 0.2, 0.8)
+	elif cust != null:
+		eye_col = cust.eye_col
 	Art.glow(self, eye, 5.0, eye_col)
 	Art.disc(self, eye, 1.2, eye_col.lightened(0.5), Art.NONE)
 	DrawBatch.circle(self, c + Vector2(0.8, -1.4), 0.7, Color(eye_col.lightened(0.2), 0.55))   # העין השנייה: ניצוץ עמום (הפנים נקראות)
-	if _det[0] and kind < 20:   # ריר דם מהפה
+	if _det[0] and (kind < 20 or cust != null):   # ריר דם מהפה
 		var lip := c + Vector2(3.0, 6.8 + jaw_open * 0.7)
 		DrawBatch.line(self, lip, lip + Vector2(-0.4, 3.2), Color(0.5, 0.02, 0.02, 0.9), 1.2, true)
 		DrawBatch.circle(self, lip + Vector2(-0.4, 3.4), 0.8, Color(0.55, 0.03, 0.03, 0.9))
