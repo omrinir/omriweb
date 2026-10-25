@@ -53,7 +53,9 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
   STAND / WALK / RUN / ATTACK, the 3 shots that don't kill, all 7 KILL buttons (checks each death really happened), RANDOM,
   every tab, CROWD + NIGHT, DRAW (a drawing on white paper on his hat: paper cut, the white inside kept; a JPG "photo" of
   paper that darkens to one side dropped onto his hand, moved to his body; CUT BACKGROUND off / on, sliders, mouse drag, wheel;
-  headshot, NO HEAD flying head and a corpse wearing the pictures), SAVE (`characters/saved/zz_maker_test.tres` must load
+  LOOK 45 (the middle turns forward, the edges stay); WARP: 9 dots show, a dot pressed and dragged with the real mouse
+  follows it, a press away from the dots moves the whole picture, STRAIGHTEN; headshot, NO HEAD flying head and a corpse
+  wearing the pictures), ATTACK = HAND with a bat (he swings, at least 2 hits land, he can't bite), SAVE (`characters/saved/zz_maker_test.tres` must load
   back the same, the replaced picture file cleaned), TRY IN LEVEL (level 3 must have him, wearing the pictures), pause BACK
   TO MAKER, DELETE (his picture files go too), NEW + a picture, BACK TO MENU (the unsaved picture goes). Ends with
   `MAKER OK`. Pictures of every step:

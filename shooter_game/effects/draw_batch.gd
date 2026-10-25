@@ -430,6 +430,15 @@ static func polyline_colors(ci: CanvasItem, points: PackedVector2Array, colors: 
 	_unpass(ci)
 
 
+# משולשים עם טקסטורה (characters/drawings.gd: ציור כפוף - LOOK / WARP). כמו טקסטורה רגילה: ה-batch נשלח קודם
+static func textured_tris(ci: CanvasItem, texture: Texture2D, pts: PackedVector2Array, uvs: PackedVector2Array, indices: PackedInt32Array, modulate := Color.WHITE) -> void:
+	_pass(ci)
+	if sig_on and ci == _ci:
+		_sig = hash([_sig, _xf, texture, pts, modulate])
+	RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), indices, pts, PackedColorArray([modulate]), uvs, PackedInt32Array(), PackedFloat32Array(), texture.get_rid())
+	_unpass(ci)
+
+
 # משולשים מוכנים (כמו RenderingServer.canvas_item_add_triangle_array): נכנסים ל-batch עם הטרנספורם הנוכחי
 static func tris(ci: CanvasItem, pts: PackedVector2Array, cols: PackedColorArray) -> void:
 	if ci != _ci:

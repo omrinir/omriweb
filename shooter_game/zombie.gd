@@ -2256,6 +2256,8 @@ func _draw_body() -> void:
 	if _bite_anim > 0.0:
 		front_hand = fs + Vector2(18.0, -3.0)
 		back_hand = bs + Vector2(18.0, -1.0)
+	if cust != null and cust.swing_t > 0.0:   # מכה ביד (CHARACTER MAKER: ATTACK = HAND)
+		front_hand = cust.swing_hand(fs, front_hand)
 	if _carry != null or _throw_anim > 0.0:
 		var k := clampf(_throw_anim / 0.35, 0.0, 1.0)
 		front_hand = fs + Vector2(4.0 + 14.0 * k, -16.0 + 18.0 * k)

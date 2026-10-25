@@ -22,6 +22,15 @@ var hair_col := Color("3a3026")
 var _st := {}
 var _tone := Callable()
 var pic_ang := {}         # הזווית האחרונה של הגוף / היד (העורך: גרירה של ציור עם העכבר)
+var pic_xf := {}          # מספר הציור -> הטרנספורם שלו בציור האחרון (העורך: הנקודות של WARP)
+# ATTACK = HAND: מכה ביד במקום נשיכה. מניף אחורה ולמעלה (SWING_WIND), מכה קדימה ולמטה (הפגיעה), חוזר
+const SWING_WIND := 0.24
+const SWING_HIT := 0.09
+const SWING_BACK := 0.2
+var swing_t := 0.0        # זמן מתחילת המכה (0 = לא מכה)
+var _swung := false
+var _swing_frame := 0
+var hits := 0             # מכות שפגעו (לבדיקות)
 
 
 func bind(p: Resource) -> void:
@@ -98,6 +107,62 @@ func running() -> bool:
 	return z._chasing or z._cover_state == 1 or z.goal_x < INF
 
 
+# ---- ATTACK = HAND: מכה ביד (ובמה שהוא מחזיק) במקום נשיכה ----
+func can_bite() -> bool:
+	return preset.attack != "hand"
+
+
+func _reach() -> float:
+	return 22.0 + 12.0 * z.wf + (8.0 if preset.item != "none" else 0.0)
+
+
+# כל פריים שהוא רודף (zombie.gd, אחרי המוח). d = עד המטרה
+func logic(player: Node, d: Vector2, delta: float, speed: float) -> float:
+	if preset.attack != "hand":
+		return speed
+	if Engine.get_physics_frames() - _swing_frame > 3:   # (הפסיק לרדוף באמצע מכה: מתחילים מחדש)
+		swing_t = 0.0
+	_swing_frame = Engine.get_physics_frames()
+	if swing_t > 0.0:
+		swing_t += delta
+		if not _swung and swing_t >= SWING_WIND:   # המכה
+			_swung = true
+			Sfx.play("whoosh", z.global_position, 0.0, 0.1, 3, z._vp)
+			var tp: Node = z._target_for_brain(player)
+			var dd: Vector2 = tp.global_position - z.global_position
+			if signf(dd.x) == signf(z._dir) and absf(dd.x) < _reach() + 8.0 and absf(dd.y) < 50.0:
+				var charging: bool = z.brain != null and z.brain.is_charging()
+				tp.hurt(int(z.damage) + (1 if charging else 0), Vector2(z._dir * (2.0 if charging else 1.4), 0.0))
+				hits += 1
+				if z.brain != null:
+					z.brain.on_bite(z)
+		if swing_t >= SWING_WIND + SWING_HIT + SWING_BACK:
+			swing_t = 0.0
+		return speed * 0.25   # (עוצר כמעט בזמן המכה)
+	if z._charge_t <= 0.0 and z._attack_t <= 0.0 and absf(d.x) < _reach() and absf(d.y) < 50.0:
+		swing_t = 0.0001
+		_swung = false
+		z._attack_t = z.bite_delay + SWING_WIND
+		z._voice("zscream", 0.25, 0.0)
+	return speed
+
+
+# איפה היד הקדמית בזמן המכה (fs = הכתף, normal = איפה שהיא הייתה). zombie.gd קורא כש-swing_t > 0
+func swing_hand(fs: Vector2, normal: Vector2) -> Vector2:
+	if swing_t <= 0.0 or Engine.get_physics_frames() - _swing_frame > 3:   # (הפסיק לרדוף באמצע / מת)
+		swing_t = 0.0
+		return normal
+	var up := fs + Vector2(-6.0, -16.0)      # מעל הראש, מאחור (באורך היד: 9 + 9.5)
+	var mid := fs + Vector2(12.0, -13.0)     # מעל הפנים
+	var hit := fs + Vector2(17.0, 7.0)       # קדימה ולמטה
+	if swing_t < SWING_WIND:
+		return normal.lerp(up, ease(swing_t / SWING_WIND, 0.4))
+	if swing_t < SWING_WIND + SWING_HIT:
+		var k := (swing_t - SWING_WIND) / SWING_HIT
+		return up.lerp(mid, k).lerp(mid.lerp(hit, k), k)
+	return hit.lerp(normal, ease((swing_t - SWING_WIND - SWING_HIT) / SWING_BACK, 0.6))
+
+
 # צבע של חלק: לבן כשנפגע, משחיר כשנשרף (כמו הגוף - effects/char_bones.gd)
 func tone(c: Color) -> Color:
 	if z == null or not is_instance_valid(z):
@@ -126,7 +191,7 @@ func _torso_ang(sh: Vector2, hip: Vector2) -> float:
 func draw_back(sh: Vector2, hip: Vector2) -> void:
 	Parts.back_gear(z, preset.extras, sh, preset.gear_color, _tone)
 	if not preset.drawings.is_empty():
-		Drawings.draw_slots(z, preset, Drawings.BODY_SLOTS, true, (sh + hip) * 0.5, _torso_ang(sh, hip), _pic_mod())
+		Drawings.draw_slots(z, preset, Drawings.BODY_SLOTS, true, (sh + hip) * 0.5, _torso_ang(sh, hip), _pic_mod(), pic_xf)
 
 
 # מעל הגוף: הבגד והתוספות
@@ -134,7 +199,7 @@ func draw_torso(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color) -> void:
 	Parts.torso_over(z, preset.top, preset.extras, preset.gore, sh, hip, sk, shirt_c, preset.gear_color, _tone, z._time, z._legless, preset.hat, z.lod())
 	if not preset.drawings.is_empty():
 		pic_ang["body"] = _torso_ang(sh, hip)
-		Drawings.draw_slots(z, preset, Drawings.BODY_SLOTS, false, (sh + hip) * 0.5, pic_ang.body, _pic_mod())
+		Drawings.draw_slots(z, preset, Drawings.BODY_SLOTS, false, (sh + hip) * 0.5, pic_ang.body, _pic_mod(), pic_xf)
 
 
 # חפץ ביד הקדמית. d = כיוון הזרוע
@@ -142,14 +207,14 @@ func draw_hand(hand: Vector2, d: Vector2) -> void:
 	Parts.item(z, preset.item, hand, d, _tone, z._time, z.lod())
 	if not preset.drawings.is_empty():
 		pic_ang["hand"] = d.angle()
-		Drawings.draw_slots(z, preset, ["hand"], false, hand, pic_ang.hand, _pic_mod())
+		Drawings.draw_slots(z, preset, ["hand"], false, hand, pic_ang.hand, _pic_mod(), pic_xf)
 
 
 # ראש: (0,0) = מרכז הראש (zombie.gd _cust_head מסדר את הטרנספורם)
 func draw_hair_back() -> void:
 	Parts.hair_back(z, preset.hair, hair_col, _tone, z._time, preset.hat)
 	if not preset.drawings.is_empty():
-		Drawings.draw_slots(z, preset, Drawings.HEAD_SLOTS, true, Vector2.ZERO, 0.0, _pic_mod())
+		Drawings.draw_slots(z, preset, Drawings.HEAD_SLOTS, true, Vector2.ZERO, 0.0, _pic_mod(), pic_xf)
 
 
 func draw_hair_front() -> void:
@@ -171,7 +236,7 @@ func draw_head_gear(lo: bool) -> void:
 	if preset.hat != "none":
 		Parts.hat(z, preset.hat, preset.hat_color, eye_col, _tone, z._time, lo)
 	if not preset.drawings.is_empty():
-		Drawings.draw_slots(z, preset, Drawings.HEAD_SLOTS, false, Vector2.ZERO, 0.0, _pic_mod())
+		Drawings.draw_slots(z, preset, Drawings.HEAD_SLOTS, false, Vector2.ZERO, 0.0, _pic_mod(), pic_xf)
 
 
 # הראש העף / הגופה הרכה (effects/flying_head.gd, effects/ragdoll.gd): שיער וכובע בלי האנימציה של החי

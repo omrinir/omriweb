@@ -109,6 +109,10 @@ var _pic_sliders := {}            # "size" / "x" / "up" / "rot" -> [HSlider, Lab
 var _pic_flags := {}              # "flip" / "behind" / "cut" -> כפתור
 var _file_dlg: FileDialog
 var _dragging := false
+var _warp_on := false             # WARP: 9 נקודות על הציור שבחרת, גוררים אותן כדי לכופף אותו
+var _handle := -1                 # הנקודה שגוררים עכשיו (-1 = אף אחת)
+var _handles: Node2D              # מצייר את הנקודות מעל הזומבי
+var _warp_btn: Button
 
 
 # מצלמה שיודעת לרעוד (פיצוצים) כמו במשחק
@@ -256,6 +260,9 @@ func _physics_process(delta: float) -> void:
 	var k := 1.0 - exp(-5.0 * delta)
 	cam.zoom = cam.zoom.lerp(Vector2(zm, zm), k)
 	cam.position = cam.position.lerp(_cam_target(fx, cam.zoom.x), k)
+	_handles.visible = _warp_on and drawing and _pic() != null and _alive()
+	if _handles.visible:
+		_handles.queue_redraw()
 
 
 func _alive() -> bool:
@@ -610,17 +617,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _drawing() or _pic() == null:   # לשונית DRAW: גוררים את הציור על הזומבי, גלגלת = גודל, Shift + גלגלת = סיבוב
 		return
 	var mb := event as InputEventMouseButton
-	if mb != null and mb.button_index == MOUSE_BUTTON_LEFT:
-		_dragging = mb.pressed
+	if mb != null and mb.button_index == MOUSE_BUTTON_LEFT:   # WARP: ליד נקודה גוררים אותה, אחרת את כל הציור
+		_handle = _nearest_handle(mb.position) if mb.pressed and _handles.visible else -1
+		_dragging = mb.pressed and _handle < 0
 		get_viewport().set_input_as_handled()
 	elif mb != null and mb.pressed and mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT]:
 		var up := mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_RIGHT
 		_wheel_pic(up, mb.shift_pressed or mb.button_index == MOUSE_BUTTON_WHEEL_LEFT or mb.button_index == MOUSE_BUTTON_WHEEL_RIGHT)
 		get_viewport().set_input_as_handled()
 	var mm := event as InputEventMouseMotion
-	if mm != null and _dragging and mm.button_mask & MOUSE_BUTTON_MASK_LEFT:
-		_drag_pic(mm.relative)
-		get_viewport().set_input_as_handled()
+	if mm != null and mm.button_mask & MOUSE_BUTTON_MASK_LEFT:
+		if _handle >= 0:
+			_move_handle(_handle, mm.relative)
+			get_viewport().set_input_as_handled()
+		elif _dragging:
+			_drag_pic(mm.relative)
+			get_viewport().set_input_as_handled()
 
 
 # ============================================================
@@ -796,7 +808,7 @@ func _add_picture(src: String, slot: String) -> bool:
 		return false
 	var st: Dictionary = Drawings.START[slot]
 	arr.append({"slot": slot, "name": Drawings.nice_name(src), "file": r.file, "original": r.original,
-		"x": st.x, "y": st.y, "size": st["size"], "rot": 0.0, "flip": false, "behind": false, "cut": true})
+		"x": st.x, "y": st.y, "size": st["size"], "rot": 0.0, "flip": false, "behind": false, "cut": true, "look": 0.0, "warp": []})
 	cur.drawings = arr
 	_pic_i = arr.size() - 1
 	_pic_slot = slot
@@ -923,6 +935,98 @@ func _wheel_pic(up: bool, turn: bool) -> void:
 	_pic_changed()
 
 
+# ---- WARP: 9 נקודות על הציור שבחרת (3x3: פינות, אמצעי הצלעות, מרכז) ----
+func _toggle_warp() -> void:
+	_warp_on = not _warp_on
+	_warp_btn.set_pressed_no_signal(_warp_on)
+	_handle = -1
+	if _warp_on:
+		_set_mode("stand")   # (קל לגרור נקודות כשהוא עומד)
+
+
+# STRAIGHTEN: ישר שוב - בלי LOOK ובלי WARP
+func _straighten() -> void:
+	var d = _pic()
+	if d == null:
+		return
+	d["look"] = 0.0
+	d["warp"] = []
+	_sync_pic_box()
+	_pic_changed()
+
+
+# מהציור שבחרת (פיקסלים של הציור, סביב המרכז שלו) אל המסך. null = הוא לא מצויר עכשיו
+func _pic_screen_xf():
+	if not _alive() or z.cust == null or not z.cust.pic_xf.has(_pic_i):
+		return null
+	return z.get_global_transform_with_canvas() * (z.cust.pic_xf[_pic_i] as Transform2D)
+
+
+# 9 הנקודות על המסך, שורה אחרי שורה משמאל-למעלה (כמו warp)
+func _handle_points() -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var d = _pic()
+	var xf = _pic_screen_xf()
+	if d == null or xf == null:
+		return pts
+	var s := Drawings.pic_size(d)
+	for j in 3:
+		for i in 3:
+			pts.append(xf * Drawings.bend_point(d, s.x, s.y, i * 0.5, j * 0.5))
+	return pts
+
+
+func _nearest_handle(pos: Vector2) -> int:
+	var pts := _handle_points()
+	var best := -1
+	var bd := 18.0   # (פיקסלים על המסך)
+	for k in pts.size():
+		if pts[k].distance_to(pos) < bd:
+			bd = pts[k].distance_to(pos)
+			best = k
+	return best
+
+
+# גוררים נקודה: מהמסך לפיקסלים של הציור (אחרי הגודל, הסיבוב וההיפוך), ביחידות של גובה הציור
+func _move_handle(k: int, rel: Vector2) -> void:
+	var d = _pic()
+	var xf = _pic_screen_xf()
+	if d == null or xf == null:
+		return
+	var loc: Vector2 = (xf as Transform2D).affine_inverse().basis_xform(rel) / Drawings.pic_size(d).y
+	var wp: Array = (d.get("warp", []) as Array).duplicate()
+	if wp.size() != 18:
+		wp.resize(18)
+		wp.fill(0.0)
+	wp[k * 2] = snappedf(clampf(float(wp[k * 2]) + loc.x, -1.5, 1.5), 0.0001)
+	wp[k * 2 + 1] = snappedf(clampf(float(wp[k * 2 + 1]) + loc.y, -1.5, 1.5), 0.0001)
+	d["warp"] = wp
+	_pic_changed()
+
+
+# הרשת (מתכופפת עם הציור) והנקודות
+func _draw_handles() -> void:
+	var d = _pic()
+	var xf = _pic_screen_xf()
+	if d == null or xf == null:
+		return
+	var s := Drawings.pic_size(d)
+	var line := Color(1.0, 0.85, 0.3, 0.55)
+	for j in 3:
+		var row := PackedVector2Array()
+		var col := PackedVector2Array()
+		for n in 9:
+			row.append(xf * Drawings.bend_point(d, s.x, s.y, n / 8.0, j * 0.5))
+			col.append(xf * Drawings.bend_point(d, s.x, s.y, j * 0.5, n / 8.0))
+		_handles.draw_polyline(row, line, 1.5, true)
+		_handles.draw_polyline(col, line, 1.5, true)
+	var pts := _handle_points()
+	for k in pts.size():
+		var on := k == _handle
+		_handles.draw_circle(pts[k], 8.0 if on else 6.5, Color(0.0, 0.0, 0.0, 0.75))
+		_handles.draw_circle(pts[k], 5.5 if on else 4.5, Color(1.0, 0.45, 0.35) if on else Color(1.0, 0.85, 0.3))
+
+
 # הזומבי מצייר את cur.drawings בכל פריים: לא צריך לבנות אותו מחדש
 func _pic_changed() -> void:
 	_dirty = true
@@ -1025,6 +1129,7 @@ func _sync_pic_box() -> void:
 	for key in _pic_flags:
 		_pic_flags[key].set_pressed_no_signal(bool(d.get(key, key == "cut")))
 	_pic_flags.behind.disabled = str(d.slot) == "hand"
+	_warp_btn.set_pressed_no_signal(_warp_on)
 	_syncing = was
 
 
@@ -1158,6 +1263,10 @@ func _build_ui() -> void:
 	var ui := CanvasLayer.new()
 	ui.layer = 3
 	add_child(ui)
+	_handles = Node2D.new()   # הנקודות של WARP (מעל הזומבי, מתחת ללוחות)
+	_handles.visible = false
+	_handles.draw.connect(_draw_handles)
+	ui.add_child(_handles)
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1217,7 +1326,7 @@ func _build_ui() -> void:
 	_tag(m, "MOVE")
 	for spec in [["stand", "STAND"], ["walk", "WALK"], ["run", "RUN"], ["attack", "ATTACK"]]:
 		var b := _button(m, spec[1], _set_mode.bind(spec[0]), 74.0, {"stand": "Stands in place", "walk": "Walks at his walk speed",
-			"run": "Runs at his run speed", "attack": "Goes for the hero and bites (the hero can't die here)"}[spec[0]])
+			"run": "Runs at his run speed", "attack": "Goes for the hero and attacks: bites, or hits with his hand (the hero can't die here)"}[spec[0]])
 		b.toggle_mode = true
 		_mode_btns[spec[0]] = b
 	_button(m, "TURN", _turn, 62.0, "Turn around")
@@ -1251,7 +1360,9 @@ func _build_ui() -> void:
 	tabs.position = Vector2(VIEW_W + 4, 8)
 	tabs.size = Vector2(1280 - VIEW_W - 12, 628)
 	tabs.focus_mode = Control.FOCUS_NONE
-	tabs.tab_changed.connect(func(_i): _dragging = false)
+	tabs.tab_changed.connect(func(_i):
+		_dragging = false
+		_handle = -1)
 	root.add_child(tabs)
 	_tabs = tabs
 	_tab_body(_tab(tabs, "BODY"))
@@ -1467,7 +1578,7 @@ func _tab_body(v: VBoxContainer) -> void:
 	v.add_child(row)
 	_flag(row, "BAREFOOT", "barefoot", "No shoes")
 	_flag(row, "VARIETY", "variety", "In the game every one of him is a bit different (skin, shirt and hair shade)")
-	_choices(v, "IN HIS HAND (LOOKS ONLY - HE STILL BITES)", "item", Parts.ITEMS, 3)
+	_choices(v, "IN HIS HAND", "item", Parts.ITEMS, 3, "Looks only. With ATTACK = HAND (in STATS) he hits you with it.")
 
 
 func _tab_head(v: VBoxContainer) -> void:
@@ -1519,8 +1630,10 @@ func _tab_stats(v: VBoxContainer) -> void:
 	_slider(v, "HP", "hp", 5, 400, 5, "%d", "A normal headshot does 30")
 	_slider(v, "WALK SPEED", "walk_speed", 10, 120, 1, "%d")
 	_slider(v, "RUN SPEED", "run_speed", 30, 260, 1, "%d", "Speed when he chases you")
-	_slider(v, "BITE DAMAGE", "damage", 1, 4, 1, "%d", "Hearts per bite")
-	_slider(v, "BITE EVERY", "bite_delay", 0.3, 2.0, 0.05, "%.2f s")
+	_choices(v, "ATTACK", "attack", ["bite", "hand"], 2, "BITE: like every zombie. HAND: he swings his arm (and what he holds) and hits you from a bit further away.")
+	_groups.attack.hand.text = "HAND (HITS)"
+	_slider(v, "DAMAGE", "damage", 1, 4, 1, "%d", "Hearts per bite or hit")
+	_slider(v, "ATTACK EVERY", "bite_delay", 0.3, 2.0, 0.05, "%.2f s", "Seconds between bites or hits")
 	_slider(v, "DUCKS", "duck", 0.0, 0.9, 0.05, "%.2f", "Chance to duck when you shoot at him")
 	_slider(v, "TAKES COVER", "cover", 0.0, 0.9, 0.05, "%.2f", "Chance to run for cover when hit")
 	_slider(v, "SEES YOU FROM", "notice", 150, 900, 10, "%d", "Distance where he starts chasing you")
@@ -1620,6 +1733,16 @@ func _tab_draw(v: VBoxContainer) -> void:
 	_flag(fr, "FLIP", "flip", "Mirror it", true)
 	_flag(fr, "BEHIND", "behind", "Behind his head or body (long hair, a cape, a backpack)", true)
 	_flag(fr, "CUT BACKGROUND", "cut", "Cut away the paper around your drawing", true)
+	_section(_pic_box, "BEND IT", "LOOK turns it like a round head: a face you drew looking at you turns to look where he walks, at the hero. WARP puts 9 dots on it: drag them on the zombie to bend it.")
+	_slider(_pic_box, "LOOK", "look", -80.0, 80.0, 1.0, "%d", "+ = looks forward (where he walks), - = looks back", true)
+	var wr := HBoxContainer.new()
+	wr.add_theme_constant_override("separation", 6)
+	_pic_box.add_child(wr)
+	_warp_btn = _button(wr, "WARP: DRAG THE DOTS", _toggle_warp, 0.0, "Shows 9 dots on your picture. Drag them on the zombie to bend it")
+	_warp_btn.toggle_mode = true
+	_warp_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var sb := _button(wr, "STRAIGHTEN", _straighten, 0.0, "Flat again: no LOOK, no WARP")
+	sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var br := HBoxContainer.new()
 	br.add_theme_constant_override("separation", 6)
 	_pic_box.add_child(br)

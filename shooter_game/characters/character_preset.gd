@@ -47,6 +47,7 @@ extends Resource
 @export var walk_speed := 45.0
 @export var run_speed := 95.0
 @export var damage := 1
+@export_enum("bite", "hand") var attack: String = "bite"   # hand = מכה ביד (ובמה שהוא מחזיק) במקום נשיכה
 @export var bite_delay := 0.8                 # שניות בין נשיכות
 @export_range(0.0, 0.9) var duck := 0.25      # סיכוי להתכופף מיריות
 @export_range(0.0, 0.9) var cover := 0.45     # סיכוי לרוץ למחסה

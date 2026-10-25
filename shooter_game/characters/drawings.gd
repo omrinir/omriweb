@@ -4,13 +4,18 @@ const Preset := preload("res://characters/character_preset.gd")
 # ============================================================
 #  DRAWINGS - "הציור שלך" ב-CHARACTER MAKER (לשונית DRAW): תמונה (ציור על נייר, בצייר, מה שרוצים) שיושבת על חלק
 #  של הדמות - כובע, פנים, שיער, גוף, תוספת או ביד - כמו שהיא, עד ש-Claude מצייר אותה כחלק אמיתי ב-characters/parts.gd.
-#  preset.drawings = [{"slot", "name", "file", "original", "x", "y", "size", "rot", "flip", "behind", "cut"}]
+#  preset.drawings = [{"slot", "name", "file", "original", "x", "y", "size", "rot", "flip", "behind", "cut", "look", "warp"}]
 #    slot = החלק (SLOTS). name = מה זה ("VIKING HELMET")
 #    file = התמונה שהזומבי לובש: res://characters/drawings/<שם>.res (Image מוקטנת, הרקע נחתך, חתוכה צמוד לציור,
 #           עם mipmaps). קובץ .res ולא .png: נטען מיד, בלי הייבוא של העורך, וגם במשחק המיוצא
 #    original = הקובץ בדיוק כמו שהועלה: characters/drawings/originals/ (עם .gdignore: Godot לא מייבא, לא נכנס למשחק המיוצא)
 #    x / y = איפה (פיקסלים של הדמות, ביחס לעוגן של החלק - START), size = הגובה שלו, rot = סיבוב במעלות,
 #    flip = הפוך, behind = מאחורי הראש / הגוף, cut = לחתוך את הרקע (ציור על דף לבן)
+#    look = מסובב כמו ראש עגול (מעלות, + = מסתכל קדימה - אל השחקן שהוא הולך אליו). ראש שצויר מסתכל אליך -> מסתכל הצידה.
+#           כל שורה של הציור מסתובבת בתוך הרוחב של הציור באותה שורה (ראש עגול נשאר עגול): הפנים זזות קדימה ונדחסות,
+#           הצד האחורי נמתח
+#    warp = 9 נקודות (3x3: פינות, אמצעי הצלעות, מרכז) שגוררים כדי לכופף: 18 מספרים, ההזזה של כל נקודה (x, y) ביחידות
+#           של גובה הציור, שורה אחרי שורה. ריק = ישר. הציור עובר בדיוק דרך הנקודות (אינטרפולציה ריבועית)
 #  ****  Claude: "make my drawings"  ****
 #   קוראים את characters/saved/*.tres ואת התמונות ב-characters/drawings/originals/, מציירים כל ציור כחלק חדש
 #   ב-parts.gd באותו מקום ובאותו גודל (אותן מערכות צירים, ראו למטה), שמים אותו בדמות (FIELD) ומוחקים את הציור מ-drawings.
@@ -44,6 +49,13 @@ const STEP := 12
 const DRIFT := 110
 
 static var _tex := {}             # קובץ -> טקסטורה
+# ציור כפוף (look / warp): רשת משולשים במקום מלבן
+const COLS := 20
+const ROWS := 16
+static var _mesh := {}            # (קובץ, look, flip, warp, w, h) -> [נקודות, uv]
+static var _idx := PackedInt32Array()
+static var _spans := {}           # קובץ -> לכל שורה של הרשת: איפה הציור מתחיל ונגמר (u, לפי השקיפות)
+const LOOK_STRETCH := 2.0         # LOOK: כמה הצד האחורי נמתח לכל היותר
 
 
 static func texture(file: String) -> Texture2D:
@@ -230,25 +242,146 @@ static func clean(presets: Array) -> void:
 			if gone:
 				DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 				_tex.erase(path)
+				_spans.erase(path)
 
 
-# ציור אחד. at = העוגן של החלק, ang = הזווית שלו (גוף: הנטייה, יד: כיוון הזרוע). mod = צבע (נפגע / נשרף)
-static func draw(ci: CanvasItem, d: Dictionary, at: Vector2, ang: float, mod: Color) -> void:
+# הגודל של ציור על הדמות (רוחב, גובה) בפיקסלים של הדמות
+static func pic_size(d: Dictionary) -> Vector2:
 	var tex := texture(str(d.get("file", "")))
-	if tex == null:
-		return
 	var h := maxf(1.0, float(d.get("size", 12.0)))
-	var w := h * float(tex.get_width()) / maxf(1.0, float(tex.get_height()))
+	if tex == null:
+		return Vector2(h, h)
+	return Vector2(h * float(tex.get_width()) / maxf(1.0, float(tex.get_height())), h)
+
+
+# לכל שורה של הרשת (ROWS + 1): [תחילת הציור, סוף הציור] ב-u, מפס של שורות סביבה
+static func _row_spans(file: String) -> PackedVector2Array:
+	if _spans.has(file):
+		return _spans[file]
+	var out := PackedVector2Array()
+	var img = load(file) if ResourceLoader.exists(file) else null
+	if img is Image and not img.is_empty():
+		var im: Image = img
+		if im.has_mipmaps():
+			im = im.duplicate()
+			im.clear_mipmaps()
+		var w := im.get_width()
+		var h := im.get_height()
+		var band := maxi(1, int(ceil(float(h) / ROWS)))
+		for r in ROWS + 1:
+			var y0 := clampi(int(round(float(r) / ROWS * (h - 1))) - band / 2, 0, h - 1)
+			var u := im.get_region(Rect2i(0, y0, w, mini(band, h - y0))).get_used_rect()
+			if u.size.x <= 1:
+				out.append(Vector2(0.5, 0.5))   # (שורה ריקה: לא מסובבים)
+			else:
+				out.append(Vector2(float(u.position.x) / maxf(1.0, w - 1.0), float(u.end.x - 1) / maxf(1.0, w - 1.0)))
+	else:
+		for r in ROWS + 1:
+			out.append(Vector2(0.0, 1.0))
+	_spans[file] = out
+	return out
+
+
+# LOOK בשורה אחת: u בתוך [a, b] מסתובב על גליל (הקצוות נשארים). הצד שאליו מסתכלים נדחס, הצד האחורי נמתח -
+# לכל היותר פי LOOK_STRETCH (גליל אמיתי מותח את הקצה בלי סוף: הקו השחור בקצה של הציור היה נהיה פס עבה)
+static func _turn_u(u: float, a: float, b: float, th: float) -> float:
+	if b - a < 0.02 or u <= a or u >= b:
+		return u
+	return a + (_turn_x((u - a) / (b - a) * 2.0 - 1.0, th) + 1.0) * 0.5 * (b - a)
+
+
+static func _turn_x(x: float, th: float) -> float:
+	if th < 0.0:
+		return -_turn_x(-x, -th)
+	var lo := -cos(th)
+	var k := 2.0 / (1.0 - lo)                        # הגליל: (sin(asin(x) + th) - lo) * k - 1, מ-1- עד 1
+	var pk := atan((cos(th) - LOOK_STRETCH / k) / sin(th))   # מכאן ואחורה המתיחה הייתה עולה על LOOK_STRETCH: ישר
+	var xk := sin(pk)
+	var fk := (sin(pk + th) - lo) * k - 1.0
+	var g0 := fk - LOOK_STRETCH * (1.0 + xk)         # לאן מגיע הקצה האחורי
+	var g := fk + LOOK_STRETCH * (x - xk)
+	if x > xk:
+		g = (sin(minf(asin(clampf(x, -1.0, 1.0)) + th, PI / 2.0)) - lo) * k - 1.0
+	return (g - g0) / (1.0 - g0) * 2.0 - 1.0
+
+
+static func bent(d: Dictionary) -> bool:
+	return absf(float(d.get("look", 0.0))) > 0.01 or (d.get("warp", []) as Array).size() == 18
+
+
+# נקודה בציור (u, v מ-0 עד 1: שמאל-למעלה עד ימין-למטה) אחרי LOOK ו-WARP, בפיקסלים של הדמות סביב מרכז הציור
+# (לפני ההזזה, הסיבוב וההיפוך). LOOK: כל שורה מסתובבת בתוך הרוחב של הציור באותה שורה (_row_spans), כמו ראש עגול
+static func bend_point(d: Dictionary, w: float, h: float, u: float, v: float) -> Vector2:
+	var th := deg_to_rad(float(d.get("look", 0.0))) * (-1.0 if bool(d.get("flip", false)) else 1.0)   # (הפוך: קדימה נשאר קדימה)
+	if absf(th) > 0.0001:
+		var sp := _row_spans(str(d.get("file", "")))
+		var fr := clampf(v, 0.0, 1.0) * ROWS
+		var r := mini(int(fr), ROWS - 1)
+		var ab := sp[r].lerp(sp[r + 1], fr - r)
+		u = _turn_u(u, ab.x, ab.y, th)
+	var p := Vector2((2.0 * u - 1.0) * w * 0.5, (v - 0.5) * h)
+	var wp: Array = d.get("warp", [])
+	if wp.size() == 18:
+		var lu := [2.0 * u * u - 3.0 * u + 1.0, 4.0 * u - 4.0 * u * u, 2.0 * u * u - u]
+		var lv := [2.0 * v * v - 3.0 * v + 1.0, 4.0 * v - 4.0 * v * v, 2.0 * v * v - v]
+		for j in 3:
+			for i in 3:
+				var k: float = lu[i] * lv[j]
+				p += Vector2(float(wp[(j * 3 + i) * 2]), float(wp[(j * 3 + i) * 2 + 1])) * (h * k)
+	return p
+
+
+static func _bent_mesh(d: Dictionary, w: float, h: float) -> Array:
+	var key := hash([str(d.get("file", "")), float(d.get("look", 0.0)), bool(d.get("flip", false)), d.get("warp", []), w, h])
+	if _mesh.has(key):
+		return _mesh[key]
+	if _mesh.size() > 64:
+		_mesh.clear()
+	var pts := PackedVector2Array()
+	var uvs := PackedVector2Array()
+	for r in ROWS + 1:
+		for c in COLS + 1:
+			var u := float(c) / COLS
+			var v := float(r) / ROWS
+			pts.append(bend_point(d, w, h, u, v))
+			uvs.append(Vector2(u, v))
+	if _idx.is_empty():
+		for r in ROWS:
+			for c in COLS:
+				var a := r * (COLS + 1) + c
+				_idx.append_array([a, a + 1, a + COLS + 2, a, a + COLS + 2, a + COLS + 1])
+	var m := [pts, uvs]
+	_mesh[key] = m
+	return m
+
+
+# ציור אחד. at = העוגן של החלק, ang = הזווית שלו (גוף: הנטייה, יד: כיוון הזרוע). mod = צבע (נפגע / נשרף).
+# מחזיר את הטרנספורם שלו (העורך: הנקודות של WARP על המסך)
+static func draw(ci: CanvasItem, d: Dictionary, at: Vector2, ang: float, mod: Color) -> Transform2D:
 	var base := DrawBatch.current_transform(ci)
 	var off := Vector2(float(d.get("x", 0.0)), float(d.get("y", 0.0))).rotated(ang)
 	var flip := -1.0 if bool(d.get("flip", false)) else 1.0
-	DrawBatch.set_transform_matrix(ci, base * Transform2D(ang + deg_to_rad(float(d.get("rot", 0.0))), Vector2(flip, 1.0), 0.0, at + off))
-	DrawBatch.texture_rect(ci, tex, Rect2(-w / 2.0, -h / 2.0, w, h), false, mod)
+	var xf := base * Transform2D(ang + deg_to_rad(float(d.get("rot", 0.0))), Vector2(flip, 1.0), 0.0, at + off)
+	var tex := texture(str(d.get("file", "")))
+	if tex == null:
+		return xf
+	var s := pic_size(d)
+	DrawBatch.set_transform_matrix(ci, xf)
+	if bent(d):
+		var m := _bent_mesh(d, s.x, s.y)
+		DrawBatch.textured_tris(ci, tex, m[0], m[1], _idx, mod)
+	else:
+		DrawBatch.texture_rect(ci, tex, Rect2(-s.x / 2.0, -s.y / 2.0, s.x, s.y), false, mod)
 	DrawBatch.set_transform_matrix(ci, base)
+	return xf
 
 
-# כל הציורים של החלקים האלה, מאחור (behind) או מלפנים. ביד: כולם (behind לא משנה)
-static func draw_slots(ci: CanvasItem, p: Resource, slots: Array, behind: bool, at: Vector2, ang: float, mod: Color) -> void:
-	for d in p.drawings:
+# כל הציורים של החלקים האלה, מאחור (behind) או מלפנים. ביד: כולם (behind לא משנה). rec: מספר הציור -> הטרנספורם שלו
+static func draw_slots(ci: CanvasItem, p: Resource, slots: Array, behind: bool, at: Vector2, ang: float, mod: Color, rec = null) -> void:
+	var arr: Array = p.drawings
+	for i in arr.size():
+		var d = arr[i]
 		if d is Dictionary and slots.has(str(d.get("slot", ""))) and (bool(d.get("behind", false)) == behind or str(d.slot) == "hand"):
-			draw(ci, d, at, ang, mod)
+			var xf := draw(ci, d, at, ang, mod)
+			if rec != null:
+				rec[i] = xf

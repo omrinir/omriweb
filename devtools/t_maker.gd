@@ -3,8 +3,10 @@ extends SceneTree
 # (so the saved characters are not touched) and then its buttons like a person would: STAND / WALK / RUN / ATTACK,
 # the 3 non-killing shots, all 7 KILL buttons, RANDOM, every tab, CROWD, NIGHT, DRAW (a drawing on white paper on his hat:
 # the paper is cut away but the white inside stays; a "photo" of paper that gets darker to one side, dropped on the window
-# onto his hand, moved to his body; CUT BACKGROUND off / on; sliders, mouse drag, wheel; headshot / corpse with the pictures),
-# SAVE (res://characters/saved/zz_maker_test.tres) -> the file loads back the same, old picture files cleaned -> TRY IN LEVEL
+# onto his hand, moved to his body; CUT BACKGROUND off / on; sliders, mouse drag, wheel; LOOK turns the hat like a round head;
+# WARP: the 9 dots show, a dot pressed and dragged with the mouse follows the mouse, a press away from the dots moves the
+# whole picture, STRAIGHTEN; headshot / corpse with the pictures), ATTACK = HAND (he swings his arm with a bat and the hits
+# land, he never bites), SAVE (res://characters/saved/zz_maker_test.tres) -> the file loads back the same, old picture files cleaned -> TRY IN LEVEL
 # (level 3) -> the level has him, wearing the pictures -> pause BACK TO MAKER -> still editing him -> DELETE -> the file and
 # its pictures are gone -> NEW + a picture -> BACK TO MENU asks first -> the menu, the unsaved picture is gone.
 # Screenshots <out>_<step>.png. Ends with "MAKER OK" or "MAKER FAILED" (+ "FAIL ..." lines).
@@ -87,6 +89,38 @@ func _shot(name: String) -> void:
 
 func step(wait: int, c: Callable) -> void:
 	plan.append([wait, c])
+
+
+# waits until cond() (at most max_frames), then then()
+func step_until(cond: Callable, then: Callable, max_frames := 300) -> void:
+	plan.append([0, func(): _poll(cond, then, max_frames)])
+
+
+func _poll(cond: Callable, then: Callable, left: int) -> void:
+	if left <= 0 or cond.call():
+		then.call()
+	else:
+		plan.push_front([0, func(): _poll(cond, then, left - 1)])
+
+
+# the real mouse (the maker's _unhandled_input)
+func _mouse_button(at: Vector2, down: bool) -> void:
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.pressed = down
+	e.button_mask = MOUSE_BUTTON_MASK_LEFT if down else 0
+	e.position = at
+	e.global_position = at
+	root.push_input(e, true)   # (viewport coordinates, like the maker's screen)
+
+
+func _mouse_move(at: Vector2, rel: Vector2) -> void:
+	var e := InputEventMouseMotion.new()
+	e.button_mask = MOUSE_BUTTON_MASK_LEFT
+	e.position = at
+	e.global_position = at
+	e.relative = rel
+	root.push_input(e, true)   # (viewport coordinates, like the maker's screen)
 
 
 func _plan() -> void:
@@ -217,6 +251,65 @@ func _plan() -> void:
 			_fail("DRAW: the SIZE slider did not follow")
 		if not M._dirty:
 			_fail("DRAW: not dirty"))
+	# ---- LOOK + WARP: bend the picture ----
+	step(0, func():
+		M._on_pic_slider(45.0, "look")
+		var d = M._pic()
+		if absf(float(d.get("look", 0.0)) - 45.0) > 0.01 or not Drawings.bent(d):
+			_fail("LOOK: slider %s" % str(d.get("look")))
+		var s: Vector2 = Drawings.pic_size(d)   # (a cylinder turn: the middle moves forward, the edges stay)
+		var mid: Vector2 = Drawings.bend_point(d, s.x, s.y, 0.5, 0.5)
+		var lft: Vector2 = Drawings.bend_point(d, s.x, s.y, 0.0, 0.5)
+		var rgt: Vector2 = Drawings.bend_point(d, s.x, s.y, 1.0, 0.5)
+		print("LOOK 45: middle x %.2f (width %.2f), edges %.2f / %.2f" % [mid.x, s.x, lft.x, rgt.x])
+		if mid.x < s.x * 0.15 or absf(lft.x + s.x / 2.0) > 0.01 or absf(rgt.x - s.x / 2.0) > 0.01:
+			_fail("LOOK: the middle did not turn forward (%.2f)" % mid.x))
+	step(20, func():
+		_shot("draw_look")
+		M._toggle_warp())
+	step(6, func():
+		if not M._handles.visible or M._handle_points().size() != 9:
+			_fail("WARP: no dots on the picture (visible=%s, %d dots)" % [str(M._handles.visible), M._handle_points().size()])
+			return
+		var p0: Vector2 = M._handle_points()[2]   # the top right dot, with the real mouse: press, drag, let go
+		var to := p0 + Vector2(18.0, -24.0)
+		_mouse_button(p0 + Vector2(3.0, 2.0), true)
+		if M._handle != 2 or M._dragging:
+			_fail("WARP: pressing near the top right dot did not grab it (%d)" % M._handle)
+		_mouse_move(to + Vector2(3.0, 2.0), Vector2(18.0, -24.0))
+		var p1: Vector2 = M._handle_points()[2]
+		var wp: Array = M._pic().get("warp", [])
+		print("WARP: dot %s -> %s (want %s)  warp %s" % [str(p0), str(p1), str(to), str(wp)])
+		if p1.distance_to(to) > 0.6:
+			_fail("WARP: the dot did not follow the mouse (%s, want %s)" % [str(p1), str(to)])
+		for i in wp.size():
+			if i != 4 and i != 5 and absf(float(wp[i])) > 0.0:
+				_fail("WARP: another dot moved (%s)" % str(wp))
+				break
+		_mouse_button(to, false)
+		if M._handle != -1:
+			_fail("WARP: letting go did not drop the dot")
+		var x0: float = M._pic().x   # a press away from the dots moves the whole picture
+		var away: Vector2 = M._handle_points()[4] + Vector2(0.0, 300.0)
+		_mouse_button(away, true)
+		_mouse_move(away + Vector2(12.0, 0.0), Vector2(12.0, 0.0))
+		_mouse_button(away + Vector2(12.0, 0.0), false)
+		if absf(M._pic().x - x0) < 0.5:
+			_fail("WARP: a press away from the dots did not move the picture")
+		M._drag_pic(Vector2(-12.0, 0.0)))
+	step(10, func():
+		_shot("draw_warp")
+		var d = M._pic()
+		var keep_w: Array = d.warp.duplicate()
+		M._straighten()
+		if Drawings.bent(d) or float(d.look) != 0.0:
+			_fail("STRAIGHTEN: still bent %s" % str(d))
+		d.look = 45.0   # (back, for SAVE)
+		d.warp = keep_w
+		M._toggle_warp())
+	step(4, func():
+		if M._handles.visible:
+			_fail("WARP off: the dots are still there"))
 	step(20, func():
 		_shot("draw_hat_moved")
 		M._pic_slot = "hand"
@@ -266,6 +359,28 @@ func _plan() -> void:
 	step(0, func():
 		M._set_mode("stand")
 		_tabs().current_tab = 0)
+	# ---- ATTACK = HAND ----
+	step(0, func():
+		_tabs().current_tab = 5   # STATS
+		M._groups.attack.hand.pressed.emit()   # (like a click)
+		M._pick("item", "bat")
+		if str(M.cur.attack) != "hand" or not M._groups.attack.hand.button_pressed:
+			_fail("ATTACK: the HAND button did not pick it (%s)" % str(M.cur.attack)))
+	step(10, func():
+		M._respawn(true)
+		M._set_mode("attack"))
+	step_until(func(): return M._alive() and M.z.cust.swing_t > 0.18, func():
+		_shot("attack_hand_up")
+		if not M._alive() or M.z.cust.swing_t <= 0.0:
+			_fail("ATTACK = HAND: he never swung"), 400)
+	step_until(func(): return M._alive() and M.z.cust.swing_t > M.z.cust.SWING_WIND + 0.05, func(): _shot("attack_hand_hit"), 60)
+	step(150, func():
+		print("ATTACK = HAND: %d hits, bite anim %.2f" % [M.z.cust.hits, M.z._bite_anim])
+		if M.z.cust.hits < 2:
+			_fail("ATTACK = HAND: %d hits landed" % M.z.cust.hits)
+		if M.z.cust.can_bite():
+			_fail("ATTACK = HAND: he can still bite")
+		M._set_mode("stand"))
 	# ---- SAVE ----
 	step(10, func():
 		M._name.text = TEST_NAME

@@ -4517,7 +4517,8 @@ Screenshots were checked on 13, 34, 44 and 52 for: waiting, following with heart
   maker saves files into the project folder (an exported game can't write there).
 - **What it does** (`characters/maker.tscn` / `maker.gd`): build a zombie from parts (`characters/parts.gd`: 3 builds, 7 hair
   styles, 14 hats, 8 faces, 8 tops, 8 extras, 13 hand items, 8 gore marks), sizes (height, width, head, hunch), 8 colors,
-  stats (HP, walk / run speed, bite damage and delay, ducking, cover, sight range, points, voice, BOSS bar) and levels.
+  stats (HP, walk / run speed, ATTACK = BITE or HAND, damage and delay, ducking, cover, sight range, points, voice, BOSS bar)
+  and levels.
   On the left he is alive on a street next to the hero: STAND / WALK / RUN / ATTACK, TURN, CROWD (6 of him, VARIETY shades),
   NIGHT, NEW ONE. SHOOT head / body / legs = hits that don't kill (the reactions). KILL = SHOT, HEADSHOT (both can still roll
   a random special death, like in the game), NO HEAD, TORN, EXPLODE, BURN, LEGS OFF (always that death).
@@ -4527,7 +4528,14 @@ Screenshots were checked on 13, 34, 44 and 52 for: waiting, following with heart
 - **The file** (`characters/saved/<id>.tres`, script `characters/character_preset.gd`): a small text file with every field
   written out. `id` = the file name (made from the name on the first save; renaming later keeps the file), `kind` = his
   zombie number (1000 and up, `enemies/zombie_registry.gd CUSTOM_FIRST`), `levels` + `share` = the levels he appears in and
-  about what % of the zombies there are him. Parts are ids from the lists in `parts.gd`. Hand items are looks only: he still bites.
+  about what % of the zombies there are him. Parts are ids from the lists in `parts.gd`. Hand items are looks only.
+- **ATTACK = HAND** (`attack` in the .tres, STATS tab; default `bite`): instead of biting he winds up (`SWING_WIND` 0.24 s,
+  front arm up behind his head), swings forward and down (`SWING_HIT` 0.09 s) and pulls back (`SWING_BACK` 0.2 s), with
+  whatever he holds in that hand. The hit lands at the end of the wind-up if the target is still in front of him and in
+  reach (`custom_character.gd _reach()`: 22 + 12 × width, +8 with a hand item; a bite reaches 16 + 10 × width): `damage`
+  hearts (+1 while charging), a bigger push than a bite, `brain.on_bite`, a "whoosh". Next one after `bite_delay` + the wind-up.
+  He slows to a quarter speed while swinging. Code: `custom_character.gd` `can_bite()` (false), `logic()` (the timing and the
+  hit), `swing_hand()` (the arm pose; zombie.gd `_draw_body` asks for it when `cust.swing_t > 0`).
 - **How a saved character gets into the game:** `zombie_registry.gd` sends kinds ≥ 1000 to `characters/custom_characters.gd`,
   which loads every file in `characters/saved/` (`live` = presets the maker is editing right now, they win over the files).
   Each kind is a type module `characters/custom_character.gd` with `base_body()` = true: zombie.gd draws him with its own
@@ -4548,14 +4556,27 @@ Screenshots were checked on 13, 34, 44 and 52 for: waiting, following with heart
   the computer's file window (PNG, JPG, WEBP, BMP, SVG, TGA; several at once), or drag picture files onto the game window
   (they go on the part picked last). The zombie wears the picture as it is, also in levels, on the flying head and on the
   ragdoll's head and body. Per picture: PART, WHAT IS IT (a name for Claude), SIZE / FORWARD / HIGHER / TURN, FLIP, BEHIND
-  (head or body), CUT BACKGROUND, RESET PLACE, REMOVE PICTURE; drag it on the zombie with the mouse, wheel = size,
-  Shift + wheel = turn. The view zooms in (x6) while the tab is open and he is alive. At most 8 pictures per character.
+  (head or body), CUT BACKGROUND, BEND IT (LOOK, WARP, STRAIGHTEN), RESET PLACE, REMOVE PICTURE; drag it on the zombie with
+  the mouse, wheel = size, Shift + wheel = turn. The view zooms in (x6) while the tab is open and he is alive. At most 8
+  pictures per character.
+  - **LOOK** (−80..80°, + = forward, where he walks): turns the picture like a round head, so a face drawn looking at you
+    looks at the hero. Each row of the picture turns inside its own width (`drawings.gd _row_spans`: where the drawing
+    starts and ends in that row), so a round head stays round: the face slides forward and gets narrower, the back side
+    stretches (at most ×2, `LOOK_STRETCH`, so the outline at the back doesn't turn into a thick band). Flipped pictures turn
+    the same way (forward stays forward).
+  - **WARP: DRAG THE DOTS**: 9 dots (3 × 3) on the picture; drag one to bend the picture (a quadratic patch through the dots).
+    A press near a dot (18 px) grabs it, anywhere else drags the whole picture. The dots follow the zombie
+    (`custom_character.gd pic_xf` = each picture's last draw transform). STRAIGHTEN = no LOOK, no WARP.
+  - A bent picture is drawn as a textured mesh (`Drawings.draw` → `DrawBatch.textured_tris`, `COLS` × `ROWS` cells, cached
+    per file / look / flip / warp / size); a flat one is still one `texture_rect`.
   - Files: the upload is copied as-is to `characters/drawings/originals/<name>.<ext>` (that folder has a `.gdignore`: not
     imported, not exported) and a prepared copy is saved as `characters/drawings/<name>.res` (an `Image` resource, ≤256 px,
     mipmaps, zstd): scaled down, background cut away (the color most corners share, flood-filled from the edges so white
     inside the drawing stays; paper in a photo that darkens slowly is followed too), cropped tight so `size` = the height
     of the drawing itself. A `.res` loads right away without the editor's import, and also in an exported game.
-  - In the .tres: `drawings = [{slot, name, file, original, x, y, size, rot, flip, behind, cut}]`. Coordinates are the
+  - In the .tres: `drawings = [{slot, name, file, original, x, y, size, rot, flip, behind, cut, look, warp}]` (`look` in
+    degrees; `warp` = [] or 18 numbers: each dot's move (x, y) in picture heights, rows top to bottom, left to right;
+    older files without them are flat). Coordinates are the
     character's pixels from the part's anchor (`drawings.gd START`): head slots (0,0) = head center (head ≈ 14 x 16,
     +x = toward the face); body / extra (0,0) = middle of the torso (shoulders at y −8, hips at y +8), turning with the lean;
     hand (0,0) = the front hand, +x along the arm. Drawn by `custom_character.gd` after the real parts (`draw_slots`).
@@ -4565,5 +4586,6 @@ Screenshots were checked on 13, 34, 44 and 52 for: waiting, following with heart
     face → `FACES` + `face()`, hair → `HAIRS` + `hair_back/front`, body → `TOPS` + `torso_over` or an `EXTRAS` entry,
     extra → `EXTRAS`, hand → `ITEMS` + `item()`), in the same place and size as the picture, using the game's style (Art
     shapes with outlines, shading, `tone` colors); set that field in the character and remove the drawing from `drawings`.
-- Tests: `devtools/t_maker.gd` (the whole maker: moves, shots, every kill, DRAW pictures, save → file → try in level → back →
-  delete), `devtools/t_characters.gd` (all parts on a grid, every special death in a level, or the saved characters).
+    A drawing with `look` / `warp` is drawn the way it looks bent (`Drawings.bend_point` shows where each part of it ends up).
+- Tests: `devtools/t_maker.gd` (the whole maker: moves, shots, every kill, DRAW pictures, LOOK, WARP dots with the real
+  mouse, ATTACK = HAND hits, save → file → try in level → back → delete), `devtools/t_characters.gd` (all parts on a grid, every special death in a level, or the saved characters).
