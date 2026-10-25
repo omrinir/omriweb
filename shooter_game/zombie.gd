@@ -2573,7 +2573,7 @@ func _torso_brute(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color, pa: Colo
 
 # דמות מ-CHARACTER MAKER: הגוף של zombie.gd שמתחת לבגד (characters/parts.gd torso_base)
 func _cust_torso(sh: Vector2, hip: Vector2, sk: Color, sh_col: Color, pa: Color) -> void:
-	cust.draw_back(sh)   # תיק גב (מאחורי הגוף)
+	cust.draw_back(sh, hip)   # תיק גב, ציורים מאחורי הגוף
 	match cust.torso:
 		"brute":
 			_torso_brute(sh, hip, sk, sh_col, pa)

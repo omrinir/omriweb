@@ -330,7 +330,13 @@ func draw(ci: CanvasItem) -> void:
 	if split:
 		_draw_guts(ci, sc)
 	var torso := PackedVector2Array([p[NECK] + nrm - axis * 2.0 * sc, p[NECK] - nrm - axis * 2.0 * sc, p[bot] - nrm * 0.85, p[bot] + nrm * 0.85])
+	var pics: bool = z.cust != null and not split and not z.cust.preset.drawings.is_empty()   # הציורים מ-CHARACTER MAKER על הגוף
+	var pic_xf := DrawBatch.current_transform(ci) * Transform2D(Vector2(axis.y, -axis.x) * (sc if float(z._dir) > 0.0 else -sc), axis * sc, (p[NECK] + p[bot]) * 0.5)
+	if pics:
+		z.cust.draw_dead_body(ci, pic_xf, true)
 	Art.fill_shaded(ci, torso, shirt, 0.15, 0.35)
+	if pics:
+		z.cust.draw_dead_body(ci, pic_xf, false)
 	if split:
 		_stump(ci, p[WAIST], axis, nrm * 0.85, sc)
 	Art.disc(ci, p[PELVIS], 4.2 * sc * w, pa)

@@ -4544,5 +4544,26 @@ Screenshots were checked on 13, 34, 44 and 52 for: waiting, following with heart
   static function there (`hat`, `face`, `torso_over`, `item`, ...). The maker's buttons are built from those lists.
 - `force_*` metas (t_tear.gd, the maker's KILL buttons) now mean exactly that death: `_die` skips the random special deaths
   when one is set (`lucky`). Nothing in the game sets them.
-- Tests: `devtools/t_maker.gd` (the whole maker: moves, shots, every kill, save → file → try in level → back → delete),
-  `devtools/t_characters.gd` (all parts on a grid, every special death in a level, or the saved characters).
+- **DRAW tab: your own pictures on a part** (`characters/drawings.gd`). `+ HAT / FACE / HAIR / BODY / EXTRA / IN HAND` opens
+  the computer's file window (PNG, JPG, WEBP, BMP, SVG, TGA; several at once), or drag picture files onto the game window
+  (they go on the part picked last). The zombie wears the picture as it is, also in levels, on the flying head and on the
+  ragdoll's head and body. Per picture: PART, WHAT IS IT (a name for Claude), SIZE / FORWARD / HIGHER / TURN, FLIP, BEHIND
+  (head or body), CUT BACKGROUND, RESET PLACE, REMOVE PICTURE; drag it on the zombie with the mouse, wheel = size,
+  Shift + wheel = turn. The view zooms in (x6) while the tab is open and he is alive. At most 8 pictures per character.
+  - Files: the upload is copied as-is to `characters/drawings/originals/<name>.<ext>` (that folder has a `.gdignore`: not
+    imported, not exported) and a prepared copy is saved as `characters/drawings/<name>.res` (an `Image` resource, ≤256 px,
+    mipmaps, zstd): scaled down, background cut away (the color most corners share, flood-filled from the edges so white
+    inside the drawing stays; paper in a photo that darkens slowly is followed too), cropped tight so `size` = the height
+    of the drawing itself. A `.res` loads right away without the editor's import, and also in an exported game.
+  - In the .tres: `drawings = [{slot, name, file, original, x, y, size, rot, flip, behind, cut}]`. Coordinates are the
+    character's pixels from the part's anchor (`drawings.gd START`): head slots (0,0) = head center (head ≈ 14 x 16,
+    +x = toward the face); body / extra (0,0) = middle of the torso (shoulders at y −8, hips at y +8), turning with the lean;
+    hand (0,0) = the front hand, +x along the arm. Drawn by `custom_character.gd` after the real parts (`draw_slots`).
+  - Files no character uses any more are deleted by `Drawings.clean()` when the maker opens, on SAVE, DELETE and BACK TO MENU.
+  - **"make my drawings" (for Claude):** read `characters/saved/*.tres` and each drawing's `original` from the user's game
+    folder; draw each one as a new procedural part in `parts.gd` (new id in the list for its `FIELD`: hat → `HATS` + `hat()`,
+    face → `FACES` + `face()`, hair → `HAIRS` + `hair_back/front`, body → `TOPS` + `torso_over` or an `EXTRAS` entry,
+    extra → `EXTRAS`, hand → `ITEMS` + `item()`), in the same place and size as the picture, using the game's style (Art
+    shapes with outlines, shading, `tone` colors); set that field in the character and remove the drawing from `drawings`.
+- Tests: `devtools/t_maker.gd` (the whole maker: moves, shots, every kill, DRAW pictures, save → file → try in level → back →
+  delete), `devtools/t_characters.gd` (all parts on a grid, every special death in a level, or the saved characters).

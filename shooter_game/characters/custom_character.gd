@@ -1,5 +1,6 @@
 extends "res://enemies/zombie_type.gd"
 const Parts := preload("res://characters/parts.gd")
+const Drawings := preload("res://characters/drawings.gd")
 const CharBones := preload("res://effects/char_bones.gd")
 # ============================================================
 #  CUSTOM CHARACTER - סוג זומבי שנבנה ב-CHARACTER MAKER (characters/maker.tscn) ונשמר בקובץ
@@ -7,7 +8,7 @@ const CharBones := preload("res://effects/char_bones.gd")
 #  מצויר בגוף הרגיל של zombie.gd (base_body() = true), ולכן כל הגור עובד כמו בזומבי רגיל:
 #  ירייה בראש והראש עף, נקרע לשניים, מתפוצץ, נשרף עד העצמות, זוחל בלי רגליים, גופה רכה.
 #  החלקים (שיער, כובע, פנים, בגדים, חפץ ביד) מצוירים מ-characters/parts.gd דרך הפונקציות draw_* למטה,
-#  ש-zombie.gd קורא להן מתוך _draw_body / _cust_head.
+#  ש-zombie.gd קורא להן מתוך _draw_body / _cust_head. אחריהם: הציורים שלך (characters/drawings.gd), כל אחד על החלק שלו.
 # ============================================================
 
 var preset: Resource = null
@@ -20,6 +21,7 @@ var eye_col := Color(1.0, 0.85, 0.25, 0.8)
 var hair_col := Color("3a3026")
 var _st := {}
 var _tone := Callable()
+var pic_ang := {}         # הזווית האחרונה של הגוף / היד (העורך: גרירה של ציור עם העכבר)
 
 
 func bind(p: Resource) -> void:
@@ -80,6 +82,8 @@ func setup() -> void:
 	z._det = [p.has_gore("rot"), p.has_gore("chest_stitches"), p.has_gore("flesh"), z._det[3], z._det[4], p.has_gore("cheek")]
 	z._vp = clampf(z._vp * p.voice, 0.5, 1.6)
 	z.chase_range = p.notice
+	if not p.drawings.is_empty():   # הציורים מוקטנים הרבה: בלי ריצוד (כמו הכלבים)
+		z.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 
 
 # כמה הגוף רכון קדימה (zombie.gd _draw_body)
@@ -105,25 +109,47 @@ func tone(c: Color) -> Color:
 	return c
 
 
+# הציורים שלך: מבהיקים כשנפגע, משחירים כשנשרף (כמו שאר החלקים)
+func _pic_mod() -> Color:
+	if z._flash > 0.0:
+		return Color(3.0, 3.0, 3.0)
+	return tone(Color.WHITE)
+
+
+# הגוף נוטה: הציורים על הגוף נוטים איתו (מהאגן לכתפיים)
+func _torso_ang(sh: Vector2, hip: Vector2) -> float:
+	return (sh - hip).angle() + PI / 2.0
+
+
 # ---- ציור (zombie.gd קורא להן; הטרנספורם כבר מסודר) ----
 # מאחורי הגוף: תיק גב
-func draw_back(sh: Vector2) -> void:
+func draw_back(sh: Vector2, hip: Vector2) -> void:
 	Parts.back_gear(z, preset.extras, sh, preset.gear_color, _tone)
+	if not preset.drawings.is_empty():
+		Drawings.draw_slots(z, preset, Drawings.BODY_SLOTS, true, (sh + hip) * 0.5, _torso_ang(sh, hip), _pic_mod())
 
 
 # מעל הגוף: הבגד והתוספות
 func draw_torso(sh: Vector2, hip: Vector2, sk: Color, shirt_c: Color) -> void:
 	Parts.torso_over(z, preset.top, preset.extras, preset.gore, sh, hip, sk, shirt_c, preset.gear_color, _tone, z._time, z._legless, preset.hat, z.lod())
+	if not preset.drawings.is_empty():
+		pic_ang["body"] = _torso_ang(sh, hip)
+		Drawings.draw_slots(z, preset, Drawings.BODY_SLOTS, false, (sh + hip) * 0.5, pic_ang.body, _pic_mod())
 
 
 # חפץ ביד הקדמית. d = כיוון הזרוע
 func draw_hand(hand: Vector2, d: Vector2) -> void:
 	Parts.item(z, preset.item, hand, d, _tone, z._time, z.lod())
+	if not preset.drawings.is_empty():
+		pic_ang["hand"] = d.angle()
+		Drawings.draw_slots(z, preset, ["hand"], false, hand, pic_ang.hand, _pic_mod())
 
 
 # ראש: (0,0) = מרכז הראש (zombie.gd _cust_head מסדר את הטרנספורם)
 func draw_hair_back() -> void:
 	Parts.hair_back(z, preset.hair, hair_col, _tone, z._time, preset.hat)
+	if not preset.drawings.is_empty():
+		Drawings.draw_slots(z, preset, Drawings.HEAD_SLOTS, true, Vector2.ZERO, 0.0, _pic_mod())
 
 
 func draw_hair_front() -> void:
@@ -144,6 +170,8 @@ func draw_head_gear(lo: bool) -> void:
 	Parts.face(z, preset.face, eye_col, _tone, lo)
 	if preset.hat != "none":
 		Parts.hat(z, preset.hat, preset.hat_color, eye_col, _tone, z._time, lo)
+	if not preset.drawings.is_empty():
+		Drawings.draw_slots(z, preset, Drawings.HEAD_SLOTS, false, Vector2.ZERO, 0.0, _pic_mod())
 
 
 # הראש העף / הגופה הרכה (effects/flying_head.gd, effects/ragdoll.gd): שיער וכובע בלי האנימציה של החי
@@ -151,9 +179,19 @@ func draw_dead_head(ci: CanvasItem, back: bool) -> void:
 	var same := func(c: Color) -> Color: return c
 	if back:
 		Parts.hair_back(ci, preset.hair, hair_col, same, 0.0, preset.hat)
+		Drawings.draw_slots(ci, preset, Drawings.HEAD_SLOTS, true, Vector2.ZERO, 0.0, Color.WHITE)
 		return
 	Parts.hair_front(ci, preset.hair, hair_col, same, Parts.COVERS.has(preset.hat))
 	if preset.face in ["gasmask", "surgical", "bandages", "clown", "eyepatch"]:   # (משקפיים עפים במכה)
 		Parts.face(ci, preset.face, Color(0.2, 0.2, 0.2), same, true)
 	if preset.hat != "none":
 		Parts.hat(ci, preset.hat, preset.hat_color, Color(0.2, 0.2, 0.2), same, 0.0, true)
+	Drawings.draw_slots(ci, preset, Drawings.HEAD_SLOTS, false, Vector2.ZERO, 0.0, Color.WHITE)
+
+
+# הגופה הרכה (effects/ragdoll.gd): הציורים על הגוף. xf = הגוף של הגופה ((0,0) = אמצע, x קדימה, y למטה)
+func draw_dead_body(ci: CanvasItem, xf: Transform2D, behind: bool) -> void:
+	var base := DrawBatch.current_transform(ci)
+	DrawBatch.set_transform_matrix(ci, xf)
+	Drawings.draw_slots(ci, preset, Drawings.BODY_SLOTS, behind, Vector2.ZERO, 0.0, Color.WHITE)
+	DrawBatch.set_transform_matrix(ci, base)

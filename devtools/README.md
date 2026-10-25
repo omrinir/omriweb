@@ -51,8 +51,12 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
   xvfb, opengl3), `SLAM_TRACE=1`.
 - `t_maker.gd` - the CHARACTER MAKER (characters/maker.gd) end to end: opens it (the first saved character must open), NEW, then
   STAND / WALK / RUN / ATTACK, the 3 shots that don't kill, all 7 KILL buttons (checks each death really happened), RANDOM,
-  every tab, CROWD + NIGHT, SAVE (`characters/saved/zz_maker_test.tres` must load back the same), TRY IN LEVEL (level 3 must
-  have him), pause BACK TO MAKER, DELETE, BACK TO MENU. Ends with `MAKER OK`. Pictures of every step:
+  every tab, CROWD + NIGHT, DRAW (a drawing on white paper on his hat: paper cut, the white inside kept; a JPG "photo" of
+  paper that darkens to one side dropped onto his hand, moved to his body; CUT BACKGROUND off / on, sliders, mouse drag, wheel;
+  headshot, NO HEAD flying head and a corpse wearing the pictures), SAVE (`characters/saved/zz_maker_test.tres` must load
+  back the same, the replaced picture file cleaned), TRY IN LEVEL (level 3 must have him, wearing the pictures), pause BACK
+  TO MAKER, DELETE (his picture files go too), NEW + a picture, BACK TO MENU (the unsaved picture goes). Ends with
+  `MAKER OK`. Pictures of every step:
   `xvfb-run -a -s "-screen 0 1280x720x24" godot --fixed-fps 60 --rendering-driver opengl3 --path . -s res://t_maker.gd -- /tmp/m`
   (headless with `-- none`).
 - `t_characters.gd` - CHARACTER MAKER parts: 14 test characters that together use every part, walking and biting on a grid

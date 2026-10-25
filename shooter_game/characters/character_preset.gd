@@ -28,6 +28,8 @@ extends Resource
 @export var extras := PackedStringArray()
 @export var item := "none"
 @export var gore := PackedStringArray(["rot", "cheek"])
+# הציורים שלך (לשונית DRAW, characters/drawings.gd): תמונה על חלק, כמו שהיא, עד ש-Claude מצייר אותה כחלק אמיתי
+@export var drawings: Array = []
 
 # ---- צבעים ----
 @export var skin_color := Color("86a06a")

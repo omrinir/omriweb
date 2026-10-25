@@ -1,15 +1,22 @@
 extends SceneTree
 # CHARACTER MAKER test (characters/maker.gd): opens the maker (the first saved character must open), presses NEW
 # (so the saved characters are not touched) and then its buttons like a person would: STAND / WALK / RUN / ATTACK,
-# the 3 non-killing shots, all 7 KILL buttons, RANDOM, every tab, CROWD, NIGHT, SAVE (res://characters/saved/zz_maker_test.tres)
-# -> the file loads back the same -> TRY IN LEVEL (level 3) -> the level has him -> pause BACK TO MAKER -> still editing him
-# -> DELETE -> the file is gone -> NEW -> BACK TO MENU asks first -> the menu.
+# the 3 non-killing shots, all 7 KILL buttons, RANDOM, every tab, CROWD, NIGHT, DRAW (a drawing on white paper on his hat:
+# the paper is cut away but the white inside stays; a "photo" of paper that gets darker to one side, dropped on the window
+# onto his hand, moved to his body; CUT BACKGROUND off / on; sliders, mouse drag, wheel; headshot / corpse with the pictures),
+# SAVE (res://characters/saved/zz_maker_test.tres) -> the file loads back the same, old picture files cleaned -> TRY IN LEVEL
+# (level 3) -> the level has him, wearing the pictures -> pause BACK TO MAKER -> still editing him -> DELETE -> the file and
+# its pictures are gone -> NEW + a picture -> BACK TO MENU asks first -> the menu, the unsaved picture is gone.
 # Screenshots <out>_<step>.png. Ends with "MAKER OK" or "MAKER FAILED" (+ "FAIL ..." lines).
 # usage: xvfb-run -a -s "-screen 0 1280x720x24" godot --fixed-fps 60 --path . --rendering-driver opengl3 -s res://t_maker.gd -- <png_prefix>
 #        headless (errors only): godot --headless --fixed-fps 60 --path . -s res://t_maker.gd -- none
 const TEST_ID := "zz_maker_test"
 const TEST_NAME := "ZZ MAKER TEST"
 const TRY_LV := 3
+const TABS := 8           # BODY HEAD CLOTHES COLORS GORE STATS LEVELS DRAW
+const PIC_A := "user://zz_test_helmet.png"
+const PIC_B := "user://zz_test_photo.jpg"
+var Drawings = null
 var CustomChars = null   # (loaded in _initialize: its scripts use autoloads)
 var M = null             # the maker
 var f := 0
@@ -18,12 +25,18 @@ var fails := []
 var plan := []           # [frames to wait before, Callable]
 var _wait := 0
 var _kind := 0
+var _old_pic := ""
+var _pics := []
+var _unsaved_pic := ""
+var _test_z = null
 
 
 func _initialize() -> void:
 	var a := OS.get_cmdline_user_args()
 	out = a[0] if a.size() > 0 else "none"
 	CustomChars = load("res://enemies/zombie_registry.gd").custom()
+	Drawings = load("res://characters/drawings.gd")
+	_make_pictures()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(CustomChars.DIR + TEST_ID + ".tres"))   # (left over from a failed run)
 	root.get_node("Game").new_run()
 	_open_maker()
@@ -34,6 +47,31 @@ func _open_maker() -> void:
 	M = load("res://characters/maker.tscn").instantiate()
 	root.add_child(M)
 	current_scene = M
+
+
+# A: a red helmet with a black outline and a white eye inside, on white paper. B: a "photo" of a sword on paper
+# that gets darker to the right, with grain, saved as JPG
+func _make_pictures() -> void:
+	var a := Image.create(220, 180, false, Image.FORMAT_RGBA8)
+	a.fill(Color.WHITE)
+	for y in 180:
+		for x in 220:
+			var dd := Vector2(x - 110, y - 90).length()
+			if dd < 70.0:
+				a.set_pixel(x, y, Color.BLACK if dd > 64.0 else Color("c02020"))
+			if Vector2(x - 130, y - 80).length() < 10.0:
+				a.set_pixel(x, y, Color.WHITE)
+	a.save_png(ProjectSettings.globalize_path(PIC_A))
+	var b := Image.create(300, 200, false, Image.FORMAT_RGB8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for y in 200:
+		for x in 300:
+			var v := lerpf(0.93, 0.66, float(x) / 299.0) + rng.randf_range(-0.012, 0.012)
+			b.set_pixel(x, y, Color(v, v, v * 0.97))
+	b.fill_rect(Rect2i(140, 30, 20, 140), Color(0.15, 0.15, 0.18))
+	b.fill_rect(Rect2i(110, 130, 80, 12), Color(0.2, 0.12, 0.08))
+	b.save_jpg(ProjectSettings.globalize_path(PIC_B), 0.85)
 
 
 func _fail(t: String) -> void:
@@ -102,7 +140,10 @@ func _plan() -> void:
 		step(20, func(): M._random())
 		step(20, func(): _shot("random%d" % i))
 	step(0, func(): M._set_mode("walk"))
-	for i in 7:
+	step(0, func():
+		if _tabs().get_tab_count() != TABS:
+			_fail("TABS: %d (the test knows %d)" % [_tabs().get_tab_count(), TABS]))
+	for i in TABS:
 		step(4, func(): _tabs().current_tab = i)
 		step(4, func(): _shot("tab%d" % i))
 	step(0, func():
@@ -115,6 +156,114 @@ func _plan() -> void:
 	step(0, func():
 		M._toggle_crowd()
 		M._toggle_night()
+		M._set_mode("stand")
+		_tabs().current_tab = 0)
+	# ---- DRAW ----
+	step(10, func():
+		_tabs().current_tab = M._draw_tab
+		M._pick_picture("hat")
+		if M._file_dlg == null or M._file_dlg.file_mode != FileDialog.FILE_MODE_OPEN_FILES or M._pic_slot != "hat":
+			_fail("DRAW: + HAT did not make the file window")
+			return
+		M._file_dlg.use_native_dialog = false   # (no native file window here: Godot's own one, for the picture)
+		M._file_dlg.popup_centered(Vector2i(900, 560)))
+	step(10, func():
+		_shot("draw_dialog")
+		if M._file_dlg == null or not M._file_dlg.visible:
+			_fail("DRAW: the file window did not open")
+			return
+		M._file_dlg.hide()
+		M._on_pictures_picked(PackedStringArray([ProjectSettings.globalize_path(PIC_A)]))
+		var arr: Array = M.cur.drawings
+		if arr.size() != 1 or str(arr[0].slot) != "hat" or M._pic_i != 0:
+			_fail("DRAW: the picture is not on his hat (%s)" % str(arr))
+			return
+		var d: Dictionary = arr[0]
+		if not FileAccess.file_exists(d.file) or not FileAccess.file_exists(d.original) or not FileAccess.file_exists(Drawings.ORIG + ".gdignore"):
+			_fail("DRAW: files missing (%s)" % str(d))
+		var img: Image = load(str(d.file))
+		print("DRAW helmet: %dx%d  %s" % [img.get_width(), img.get_height(), str(d)])
+		if absi(img.get_width() - 139) > 3 or absi(img.get_height() - 139) > 3:
+			_fail("DRAW: the helmet was cut to %dx%d (want 139x139)" % [img.get_width(), img.get_height()])
+		if img.get_pixel(2, 2).a > 0.1:
+			_fail("DRAW: the paper around the helmet is still there")
+		if img.get_pixel(69, 69).a < 0.99:
+			_fail("DRAW: the helmet itself was cut away")
+		var eye := img.get_pixel(89, 59)
+		if eye.a < 0.99 or eye.r < 0.9:
+			_fail("DRAW: the white eye inside the drawing was cut away (%s)" % str(eye))
+		if str(d.name) != "ZZ TEST HELMET":
+			_fail("DRAW: name %s" % str(d.name))
+		if M.mode != "stand" or _tabs().get_tab_title(M._draw_tab) != "DRAW (1)":
+			_fail("DRAW: mode %s, tab %s" % [M.mode, _tabs().get_tab_title(M._draw_tab)]))
+	step(40, func(): _shot("draw_hat"))
+	step(0, func():
+		M._on_pic_slider(14.0, "size")
+		M._on_pic_slider(9.0, "up")
+		M._on_pic_slider(-15.0, "rot")
+		var d = M._pic()
+		if absf(d["size"] - 14.0) > 0.01 or absf(d.y + 9.0) > 0.01 or absf(d.rot + 15.0) > 0.01:
+			_fail("DRAW: sliders %s" % str(d))
+		var x0: float = d.x
+		M._drag_pic(Vector2(12.0, 0.0))
+		print("DRAW drag 12 px: x %.2f -> %.2f" % [x0, d.x])
+		if absf(d.x - x0) < 0.5 or absf(d.x - x0) > 6.0:   # (12 px on the screen at zoom 6 = 2 of his pixels, more for a small head)
+			_fail("DRAW: dragging moved it %.2f" % (d.x - x0))
+		M._drag_pic(Vector2(-12.0, 0.0))
+		M._wheel_pic(true, false)
+		if absf(d["size"] - 14.0 * 1.08) > 0.01:
+			_fail("DRAW: wheel size %.2f" % d["size"])
+		if absf((M._pic_sliders["size"][0] as Range).value - d["size"]) > 0.26:   # (the slider moves in 0.5 steps)
+			_fail("DRAW: the SIZE slider did not follow")
+		if not M._dirty:
+			_fail("DRAW: not dirty"))
+	step(20, func():
+		_shot("draw_hat_moved")
+		M._pic_slot = "hand"
+		M._on_files_dropped(PackedStringArray([ProjectSettings.globalize_path(PIC_B), "/tmp/not_a_picture.txt"]))
+		var arr: Array = M.cur.drawings
+		if arr.size() != 2 or str(arr[1].slot) != "hand" or M._pic_i != 1:
+			_fail("DRAW: the dropped picture is not in his hand (%s)" % str(arr))
+			return
+		var img: Image = load(str(arr[1].file))
+		print("DRAW photo: %dx%d" % [img.get_width(), img.get_height()])
+		if img.get_width() > 90 or img.get_height() > 150:
+			_fail("DRAW: the paper in the photo was not cut away (%dx%d)" % [img.get_width(), img.get_height()])
+		if img.get_pixel(0, 0).a > 0.2 or img.get_pixel(img.get_width() - 1, 0).a > 0.2:
+			_fail("DRAW: paper left in the photo corners"))
+	step(30, func(): _shot("draw_hand"))
+	step(0, func():
+		M._on_pic_part("body")
+		var d = M._pic()
+		if str(d.slot) != "body" or absf(d["size"] - Drawings.START.body["size"]) > 0.01:
+			_fail("DRAW: moving it to his body %s" % str(d))
+		_old_pic = d.file
+		M._on_pic_flag(false, "cut")
+		var img: Image = load(str(d.file))
+		if str(d.file) == _old_pic or img.get_pixel(0, 0).a < 0.99:
+			_fail("DRAW: CUT BACKGROUND off did not bring the paper back")
+		M._on_pic_flag(true, "cut")
+		M._on_pic_slider(30.0, "size")
+		M._on_pic_slider(-2.0, "up"))
+	step(30, func(): _shot("draw_body"))
+	step(0, func(): M._kill("headshot"))
+	step(14, func(): _shot("draw_headshot"))
+	step(0, func(): M._respawn(true))
+	step(25, func(): M._kill("nohead"))
+	step(10, func():   # the flying head wears the hat picture (effects/flying_head.gd -> draw_dead_head)
+		_shot("draw_nohead")
+		if not M.z._hw_t > 0.0:
+			_fail("DRAW: NO HEAD did not happen"))
+	step(0, func(): M._respawn(true))
+	step(25, func():
+		M.z.set_meta("force_hw", true)   # (a body shot can't walk on headless: a plain body on the ground, no random special death)
+		M._kill("shot"))
+	step(30, func(): _shot("draw_corpse"))
+	step(0, func():
+		M._respawn(true)
+		M._set_mode("walk"))
+	step(70, func(): _shot("draw_walk"))
+	step(0, func():
 		M._set_mode("stand")
 		_tabs().current_tab = 0)
 	# ---- SAVE ----
@@ -136,10 +285,19 @@ func _plan() -> void:
 				continue
 			var a = p.get(prop.name)
 			var b = M.cur.get(prop.name)
-			if (absf(a - b) > 0.0001) if typeof(a) == TYPE_FLOAT else (str(a) != str(b)):
+			if not _same(a, b):
 				_fail("SAVE: %s is %s in the file, %s in the maker" % [prop.name, str(p.get(prop.name)), str(M.cur.get(prop.name))])
 		if CustomChars.get_preset_by_id(TEST_ID) == null:
 			_fail("SAVE: CustomChars does not list it")
+		if (p.drawings as Array).size() != 2:
+			_fail("SAVE: %d pictures in the file" % (p.drawings as Array).size())
+		for d in M.cur.drawings:
+			_pics.append(d.file)
+			_pics.append(d.original)
+			if not FileAccess.file_exists(d.file) or not FileAccess.file_exists(d.original):
+				_fail("SAVE: a picture file is gone (%s)" % str(d))
+		if _old_pic == "" or FileAccess.file_exists(_old_pic):
+			_fail("SAVE: the old picture (before CUT BACKGROUND) was not cleaned (%s)" % _old_pic)
 		if M._dirty:
 			_fail("SAVE: still dirty")
 		_shot("saved"))
@@ -163,8 +321,12 @@ func _plan() -> void:
 			_fail("TRY IN LEVEL: none of him in the level")
 		var pl = main.get_tree().get_first_node_in_group("player")
 		var z = main._spawn_zombie(pl.global_position.x + 140.0, pl.global_position.y, _kind, null)
-		z.chase_range = 0.0)
-	step(30, func(): _shot("try_level"))
+		z.chase_range = 0.0
+		_test_z = z)
+	step(30, func():
+		_shot("try_level")
+		if _test_z == null or not is_instance_valid(_test_z) or not _test_z.cust.pic_ang.has("body"):
+			_fail("TRY IN LEVEL: he is not wearing the pictures"))
 	step(0, func():
 		var pm = _find_script(current_scene, "res://pause_menu.gd")
 		if pm == null:
@@ -194,12 +356,19 @@ func _plan() -> void:
 		if FileAccess.file_exists(CustomChars.DIR + TEST_ID + ".tres"):
 			_fail("DELETE: the file is still there")
 		if CustomChars.get_preset_by_id(TEST_ID) != null:
-			_fail("DELETE: still listed"))
+			_fail("DELETE: still listed")
+		for f in _pics:
+			if FileAccess.file_exists(f):
+				_fail("DELETE: picture file left: " + f))
 	# ---- NEW (not saved) -> BACK TO MENU asks first ----
 	step(5, func():
 		M._new()
 		if M._path != "" or not M._dirty:
 			_fail("NEW: should be unsaved")
+		if M._pic_box.visible or M._pic_list.get_child_count() != 0:
+			_fail("NEW: the DRAW tab still shows pictures")
+		M._add_picture(ProjectSettings.globalize_path(PIC_A), "face")
+		_unsaved_pic = M.cur.drawings[0].file
 		M._back())
 	step(5, func():
 		if not M._confirm.visible:
@@ -212,10 +381,35 @@ func _plan() -> void:
 			_fail("BACK TO MENU: live presets left")
 		if root.get_node("Game").practice:
 			_fail("BACK TO MENU: still in practice")
+		if _unsaved_pic == "" or FileAccess.file_exists(_unsaved_pic):
+			_fail("BACK TO MENU: the picture of the unsaved character is still there")
 		_shot("menu"))
 	step(0, func():
+		for f in [PIC_A, PIC_B]:
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(f))
 		print("MAKER OK" if fails.is_empty() else "MAKER FAILED (%d)" % fails.size())
 		quit())
+
+
+# the same, floats within 0.0001 (the .tres keeps 6 digits; dictionary keys come back sorted)
+func _same(a, b) -> bool:
+	if typeof(a) == TYPE_FLOAT or typeof(b) == TYPE_FLOAT:
+		return absf(float(a) - float(b)) < 0.0001
+	if a is Array and b is Array:
+		if a.size() != b.size():
+			return false
+		for i in a.size():
+			if not _same(a[i], b[i]):
+				return false
+		return true
+	if a is Dictionary and b is Dictionary:
+		if a.size() != b.size():
+			return false
+		for k in a:
+			if not b.has(k) or not _same(a[k], b[k]):
+				return false
+		return true
+	return str(a) == str(b)
 
 
 func _tabs() -> TabContainer:
