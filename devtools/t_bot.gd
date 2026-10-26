@@ -72,6 +72,9 @@ var cur_t := [null, Vector2.ZERO, 0.0, 0]
 # BOT_HUMAN=1 (promo clips): plays like a person - stops to shoot, backs off when zombies get close, turns the aim smoothly
 # instead of snapping, pauses for a moment after a kill, and runs only when nothing is around.
 var human := OS.get_environment("BOT_HUMAN") != ""
+# BOT_NO_FLANK=1: no zombies sneaking up from behind (levels/flank_director.gd removed) - for A/B balance runs
+var no_flank := OS.get_environment("BOT_NO_FLANK") != ""
+var flank_node: Node = null
 var pause_until := 0
 var had_target := false
 var h_aim := Vector2.RIGHT
@@ -150,6 +153,12 @@ func _physics_process(_d: float) -> bool:
 			pl.global_position.x = start_x
 			best_x = start_x
 		kills0 = int(root.get_node("Game").get("kills")) if "kills" in root.get_node("Game") else 0
+		for c in main_node.get_children():
+			if c.get_script() != null and str(c.get_script().resource_path).ends_with("flank_director.gd"):
+				if no_flank:
+					c.queue_free()
+				else:
+					flank_node = c
 	if main_node._finished:
 		if finished_f < 0:
 			finished_f = f
@@ -659,7 +668,7 @@ func _report_and_quit(why: String) -> void:
 	line += "boss=%s seen=%.0f dead=%s near_exit=%s " % [boss_name, float(boss_seen_f) / 60.0, ("%.0f" % (float(boss_dead_f) / 60.0)) if boss_dead_f > 0 else "NO", ("%.0f" % (float(near_exit_f) / 60.0)) if near_exit_f > 0 else "-"]
 	if boss != null and is_instance_valid(boss) and not boss.dead:
 		line += "boss_hp=%d/%d boss_pos=%s " % [boss.hp, boss.max_hp, str(boss.global_position.round())]
-	line += "stuck=%d tp=%d barrier=%d(%.0fs) story=%.0fs slow25=%d worst=%.0fms avg=%.1fms refills=%d spec=%d deaths=%d dmg=%d maxhp=%d" % [stuck_eps.size(), teleports, barrier_eps, barrier_f / 60.0, story_frames / 60.0, slow, worst, sum_ms / maxf(nms, 1), refills, spec_used, deaths_at.size(), dmg_taken, max_hp]
+	line += "stuck=%d tp=%d barrier=%d(%.0fs) story=%.0fs slow25=%d worst=%.0fms avg=%.1fms refills=%d spec=%d deaths=%d dmg=%d maxhp=%d flank=%s" % [stuck_eps.size(), teleports, barrier_eps, barrier_f / 60.0, story_frames / 60.0, slow, worst, sum_ms / maxf(nms, 1), refills, spec_used, deaths_at.size(), dmg_taken, max_hp, ("off" if no_flank else (str(flank_node.spawned) if is_instance_valid(flank_node) else "-"))]
 	print(line)
 	for s in stuck_eps:
 		print("  STUCK x=%d y=%d %.1fs floor=%s tp=%s blk=%s hi=%s" % [s.x, s.y, s.dur, str(s.floor), str(s.tp), s.blk, s.blk_hi])

@@ -149,7 +149,7 @@ func _physics_process(_d: float) -> bool:
 				mem.set(mk, float(kv.get_slice("=", 1)))
 		for c in main_node.get_children():
 			var sc = c.get_script()
-			if sc != null and str(sc.resource_path).ends_with("pace_director.gd"):
+			if sc != null and (str(sc.resource_path).ends_with("pace_director.gd") or str(sc.resource_path).ends_with("flank_director.gd")):
 				c.queue_free()
 		if _env("EVO_SLOTS", 0) > 0:   # attack slots: 99 = the whole horde charges (no one waits at a distance for a turn)
 			for sq in main_node.get_tree().get_nodes_in_group("squad_director"):

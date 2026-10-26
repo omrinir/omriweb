@@ -3831,6 +3831,29 @@ a shape query (not inside a wall), `_near_brick` and `_spawn_blocked`. Budget pe
 Not before `START_X`, not in the last `BOSS_ZONE` px, not during story scenes, not when the player is under the road.
 A stage with its own wave system returns `pace_stream() -> false` (stage 16).
 
+**FLANK DIRECTOR** (`levels/flank_director.gd`, created by `main.gd` next to the pace director, so never on stage 16 and removed by
+the Short recorder `devtools/t_rec_evo.gd`): now and then one zombie (sometimes two; dogs always two) sneaks up from behind. Few on
+purpose: `EVENTS` [2, 2, 3, 3] per level by region (`TIER_FROM` 2/10/28/46; a pair `PAIR` 15-35% of the time) +-1 by difficulty, at
+least `GAP` s apart (easy x1.25, hard x0.85; a player with `PlayerMemory.camping` > `CAMP_LEARN` gets `CAMP_GAP_K` shorter gaps -
+they learn). Level 1 has none, and nothing happens in the first `FIRST_T` s. It only fires while the player is busy forward (shot
+right within `SHOT_RECENT` s, or an awake zombie within `ENGAGE` px ahead) or standing still for `CAMP_T` s, and only with a `TRY`
+chance per check. Never: before `START_CLEAR`, in the last `BOSS_ZONE` px, within `BOSS_NEAR` of a boss (mid-level bosses too),
+during story scenes, while an event `is_active()` (HOLD THE LINE, ESCAPE), on the last heart, while the player faces or walks left,
+with more than `CROWD` chasers around, or when `BEHIND_AWAKE`+ noticed zombies are already behind (so it never trips
+`pass_barrier.gd` at 4). Spawn spot: the nearest free one `BEHIND_MIN..BEHIND_MAX` px behind (off screen, `SPOT_TRIES`), same ground
+checks as the pace director plus a ray at `WALL_H` so no tall wall blocks the way. Kind: the stage mix (`main._pick_kind`) minus
+`NO_KINDS` (kinds that shoot or throw, climb walls / ceilings / dig, lurk in place until you pass - ambusher, scarecrow, coffin
+breaker... - rats, and the rider / toro chargers), bosses, slow kinds (`MIN_CHASE`), types with their own movement
+(`use_brain_movement() == false`) and types with a `NO_CONSTS` constant (`LEASH`, `RANGE`, `THROW_RANGE`) or a `KEEP...` one (tied
+in place / keep their distance and shoot or throw: no hits in the back from off screen); each kind is checked once per level, and a
+flanker that does not move for `STALL_T` s (a new lurker type) gets its kind dropped for the rest of the level. A new zombie type
+that attacks from range or waits in place without such a constant goes into `NO_KINDS` (`devtools/t_flank_reach.gd <level>` lists
+every kind the director would send, whether it reaches the player and whether it hits from far away). Flankers get `_alert_t =
+ALERT` and for `HUNT_T` s they "hear" where the player is (`zombie_brain.hear_call` every check), so a car or crate between them
+does not send them searching the wrong spot; the player hears their scream from the left and slow ones walk in on screen, fast ones
+get a threat arrow. Tests: `devtools/t_flank.gd` (copy into a test project, `-- level seconds`, env `FLANK_X`, `FLANK_DIFF`);
+`devtools/t_bot.gd` prints `flank=N` and takes `BOT_NO_FLANK=1` for A/B runs.
+
 **Measuring**: a headless SceneTree script walks the player through a level (teleport, invulnerable, "kills" the nearest visible
 zombie every 0.6 s, walks when nothing awake is within 420 px) and prints screen-window counts, biggest gap, overlaps,
 zombies inside solids / floating / on hazards / next to start or checkpoint, on-screen time, longest empty stretch and stuck zombies.

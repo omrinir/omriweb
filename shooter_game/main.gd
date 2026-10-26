@@ -110,6 +110,7 @@ var _time := 0.0
 var clock_paused := false   # סצנת סיפור: שעון השלב עוצר (progression/level_clock.gd)
 var _player: Node
 var _pause: Node
+var _event: Node = null   # HOLD / ESCAPE / RESCUE של השלב (levels/level_events.gd), אם יש
 var _finished := false
 var _gens: Array = GENERATORS
 
@@ -367,9 +368,15 @@ func _ready() -> void:
 		pace.floor_y = floor_y
 		pace.budget = int(round(float(level_screens) * zombies_per_screen * pace.BUDGET_SHARE))
 		add_child(pace)
+		# מאחור: מדי פעם זומבי מתגנב מאחורי השחקן כשהוא עסוק קדימה (levels/flank_director.gd)
+		var flank = preload("res://levels/flank_director.gd").new()
+		flank.main = self
+		flank.floor_y = floor_y
+		add_child(flank)
 	# סוג שלב מיוחד: HOLD / ESCAPE / RESCUE (levels/level_events.gd)
 	var ev = LevelEvents.make(Game.level)
 	if ev != null:
+		_event = ev
 		ev.main = self
 		ev.floor_y = floor_y
 		ev.hud_layer = hud

@@ -158,6 +158,11 @@ func _diff() -> int:
 	return clampi(int(Settings.difficulty), 0, 2)
 
 
+# העדר בדרך (levels/flank_director.gd לא שולח אז אף אחד מאחור)
+func is_active() -> bool:
+	return _state == CHASE or _state == CRUMBLE
+
+
 func _physics_process(delta: float) -> void:
 	if main == null or _world == null:
 		return
