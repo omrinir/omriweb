@@ -2,9 +2,9 @@ THEY LEARN - music credits
 All tracks below are from Pixabay (pixabay.com/music), used under the Pixabay Content License
 (free for commercial use inside a game, no attribution required - credited here anyway).
 
-Region 1 (Northern Amazon)  - "Epic Cinematic Bold Drums" by alex-morgan   https://pixabay.com/music/orchestral-epic-cinematic-bold-drums-573877/
+Region 1 (Northern Amazon)  - "Epic Drums" by Playsound (Yuriy Bespalov)   https://pixabay.com/music/upbeat-epic-drums-216819/
 Region 2 (Northeast)        - "Epic Cinematic Music Powerful" by echoes_of_lumen   https://pixabay.com/music/orchestral-epic-cinematic-music-powerful-583433/
-Region 3 (Central Plateau)  - "Epic" by The_Mountain   https://pixabay.com/music/epic-classical-epic-508009/
+Region 3 (Central Plateau)  - "Epic Orchestral Drums" by Playsound (Yuriy Bespalov)   https://pixabay.com/music/build-up-scenes-epic-orchestral-drums-171728/
 Region 4 (Andes)            - "Dark Epic" by NastelBom   https://pixabay.com/music/adventure-dark-epic-487720/
 Region 5 (Southeast)        - "Dark Epic" by Kulakovka   https://pixabay.com/music/main-title-dark-epic-274990/
 Region 6 (Southern Cone)    - "Epic - Epic Music" by NastelBom   https://pixabay.com/music/orchestral-epic-epic-music-602452/
@@ -12,6 +12,7 @@ Region 7 (Patagonia)        - "Epic - Epic Music" by NastelBom   https://pixabay
 Boss fights                 - "Epic Action Trailer" by echoes_of_lumen   https://pixabay.com/music/orchestral-epic-action-trailer-583435/
 Menu and map                - "Dark" by PaulYudin   https://pixabay.com/music/main-title-dark-160688/
 
-Notes (checked 2026-10-20):
-- Pixabay marks region 1 and region 3 tracks as AI-generated -> Steam content survey must disclose AI-generated audio while they are used.
-- All except region 1 are "Content ID registered" on YouTube: gameplay videos and trailers with this music can get copyright claims.
+Notes (checked 2026-10-20, regions 1 and 3 replaced 2026-10-26):
+- No track here is marked AI-generated on Pixabay. Regions 1 and 3 used to be AI-generated tracks ("Epic Cinematic Bold Drums" by alex-morgan,
+  "Epic" by The_Mountain) and were replaced so the music needs no AI disclosure on Steam. Check the AI label before adding any new track.
+- All except regions 1 and 3 are "Content ID registered" on YouTube: gameplay videos and trailers with this music can get copyright claims.
