@@ -35,6 +35,10 @@ extends SceneTree
 #      e.g. DOUBLE BARREL = two shots, then a reload),
 #      EVO_AIM_UP / EVO_AIM_DOWN (aim limits in radians, default 0.45 / 0.35), EVO_AIM_Y (aim height on the zombie, default -30,
 #      -50 = the head), EVO_SURVIVORS=1 (keep the level's survivors), EVO_HELPERS=0 (also clear zombies that walk up next to ours), EVO_TEXT_MAX (longer floating texts are hidden, default 24), EVO_STAY=1 (never steps back), EVO_GOD=1 (GOD MODE),
+#      EVO_ZMETA=<key>[,<key>...] (a meta set on every staged zombie at the spawn, e.g. force_hw = the headshot kill walks on headless,
+#      force_tear / force_burst / force_char = that special death, as devtools/t_tear.gd),
+#      EVO_GROUP_SET=<group>:<field>=<float>@<frame>[;...] (sets a field on every node of a group at that frame, e.g.
+#      moon_cycle:_t=1.5@40 = the clouds over level 50's cemetery part sooner: the LOBIZON turns into the wolf on cue),
 #      REC_POS=<csv>: t, player x, y, target x, y (screen, 1280 space), fired (0/1), fresh corpses "id/age/x/y|..." (as t_rec_god.gd)
 #      SNAP=<dir>: save a png every SNAP_EVERY (default 20) frames (previews; run with a 1280x720 window), SNAP_FULL=1 = the whole screen
 # usage: EVO_LEVEL=12 EVO_KIND=MIMIC REC_POS=/tmp/m.csv xvfb-run -a -s "-screen 0 2560x1440x24" godot --path . --rendering-driver opengl3 \
@@ -217,6 +221,9 @@ func _physics_process(_d: float) -> bool:
 			if z != null:
 				z.dormant = false
 				ours.append(z)
+		for z in ours:   # e.g. force_hw: the headshot kill walks on headless
+			for mk in str(_env("EVO_ZMETA", "")).split(",", false):
+				z.set_meta(mk.strip_edges(), true)
 		game.make_noise(pl.global_position, 1200.0)
 		if _env("EVO_GOD", 0) == 1:
 			pl._drink_god()
@@ -235,6 +242,14 @@ func _physics_process(_d: float) -> bool:
 				if is_instance_valid(z) and not z.dead and z.type_mod != null and kv.get_slice("=", 0) in z.type_mod:
 					z.type_mod.set(kv.get_slice("=", 0), float(kv.get_slice("=", 1)))
 					print("f=%d set %s" % [f, kv])
+	for spec in str(_env("EVO_GROUP_SET", "")).split(";", false):   # group:field=value@frame (e.g. the moon over the cemetery)
+		if f == int(spec.get_slice("@", 1)):
+			var gk := spec.get_slice("@", 0)
+			var fld := gk.get_slice(":", 1).get_slice("=", 0)
+			for n in main_node.get_tree().get_nodes_in_group(gk.get_slice(":", 0)):
+				if fld in n:
+					n.set(fld, float(gk.get_slice("=", 1)))
+					print("f=%d %s.%s" % [f, gk.get_slice(":", 0), gk.get_slice(":", 1)])
 	for spec in str(_env("EVO_TM_CALL", "")).split(";", false):
 		if f == int(spec.get_slice("@", 1)):
 			var call := spec.get_slice("@", 0)
