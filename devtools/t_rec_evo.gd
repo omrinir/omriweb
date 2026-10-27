@@ -39,6 +39,7 @@ extends SceneTree
 #      force_tear / force_burst / force_char = that special death, as devtools/t_tear.gd),
 #      EVO_GROUP_SET=<group>:<field>=<float>@<frame>[;...] (sets a field on every node of a group at that frame, e.g.
 #      moon_cycle:_t=1.5@40 = the clouds over level 50's cemetery part sooner: the LOBIZON turns into the wolf on cue),
+#      EVO_KEEP=<kind>[,<kind>...] (zombies of these kinds are never cleared, e.g. GOALKEEPER = the level's boss stays in his goal behind the clip),
 #      REC_POS=<csv>: t, player x, y, target x, y (screen, 1280 space), fired (0/1), fresh corpses "id/age/x/y|..." (as t_rec_god.gd)
 #      SNAP=<dir>: save a png every SNAP_EVERY (default 20) frames (previews; run with a 1280x720 window), SNAP_FULL=1 = the whole screen
 # usage: EVO_LEVEL=12 EVO_KIND=MIMIC REC_POS=/tmp/m.csv xvfb-run -a -s "-screen 0 2560x1440x24" godot --path . --rendering-driver opengl3 \
@@ -100,11 +101,23 @@ func _kind() -> int:
 # EVO_KIND can be a list ("0,1,0,2"): zombie i gets entry i (cycling) - a mixed horde
 func _kind_at(i: int) -> int:
 	var ks: PackedStringArray = str(_env("EVO_KIND", "0")).split(",", false)
-	var k: String = ks[i % ks.size()].strip_edges()
+	return _kind_num(ks[i % ks.size()])
+
+
+func _kind_num(k: String) -> int:
+	k = k.strip_edges()
 	if k.is_valid_int():
 		return int(k)
 	var rs: Script = load("res://enemies/zombie_registry.gd")
 	return int(rs.get_script_constant_map()[k])
+
+
+# EVO_KEEP: kinds that are never cleared (a stationary boss in the background)
+func _kept(o) -> bool:
+	for k in str(_env("EVO_KEEP", "")).split(",", false):
+		if _kind_num(k) == int(o.kind):
+			return true
+	return false
 
 
 # the level's own boss of EVO_KIND (EVO_ADOPT=1)
@@ -215,12 +228,19 @@ func _physics_process(_d: float) -> bool:
 				if _adoptable(o):
 					o.dormant = false
 					ours.append(o)
+		var before := {}
+		for o in main_node.get_tree().get_nodes_in_group("zombies"):
+			before[o.get_instance_id()] = true
 		for i in n:
 			var x: float = pl.global_position.x + dx + signf(dx) * float(_env("EVO_SPREAD", 70.0)) * i
 			var z = main_node._spawn_zombie(x, pl.global_position.y - 4.0, _kind_at(i), null)
 			if z != null:
 				z.dormant = false
 				ours.append(z)
+		for o in main_node.get_tree().get_nodes_in_group("zombies"):   # what ours brought along (a TANGO's partner)
+			if not before.has(o.get_instance_id()) and not o in ours:
+				o.dormant = false
+				ours.append(o)
 		for z in ours:   # e.g. force_hw: the headshot kill walks on headless
 			for mk in str(_env("EVO_ZMETA", "")).split(",", false):
 				z.set_meta(mk.strip_edges(), true)
@@ -267,7 +287,7 @@ func _physics_process(_d: float) -> bool:
 			o.queue_free()
 	if f % 5 == 0:
 		for o in main_node.get_tree().get_nodes_in_group("zombies"):
-			if o in ours or o.dead or absf(o.global_position.x - pl.global_position.x) > 1700.0 or _adoptable(o):
+			if o in ours or o.dead or absf(o.global_position.x - pl.global_position.x) > 1700.0 or _adoptable(o) or _kept(o):
 				continue
 			var helper := false
 			if f > spawn_f and _env("EVO_HELPERS", 1) == 1:
