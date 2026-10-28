@@ -197,6 +197,7 @@ func _ready() -> void:
 	add_child(_layer)
 	_ui = Node2D.new()
 	_layer.add_child(_ui)
+	_ui.add_to_group("cine_hide")   # מצלמת קליע (effects/bullet_cam.gd): הבועה דועכת
 	_ui.draw.connect(_draw_bubble)
 	_voice = AudioStreamPlayer.new()
 	_voice.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"

@@ -44,7 +44,7 @@ func _process(delta: float) -> void:
 	var rd := delta / maxf(Engine.time_scale, 0.05)   # זמן אמיתי (לא מושפע מההאטה)
 	_t += rd
 	var want: bool = player != null and not player.dead and player.controllable and not get_tree().paused \
-		and Input.is_physical_key_pressed(KEY_Q)
+		and Input.is_physical_key_pressed(KEY_Q) and not Engine.has_meta("bullet_cam")   # (מצלמת קליע: הזמן שלה)
 	if want and not _open:
 		_open = true
 		Engine.time_scale = slow

@@ -357,6 +357,12 @@ func _ready() -> void:
 	var wheel = WheelScript.new()   # גלגל נשקים (TAB)
 	wheel.player = player
 	hud.add_child(wheel)
+	# מצלמת קליע לצלף: לפעמים (1-2 בשלב) הזמן נעצר והמצלמה עוקבת אחרי הקליע עד ההריגה. ה-HUD דועך בזמן הזה
+	for n in [label, bar, xh, wheel]:
+		n.add_to_group("cine_hide")
+	var bcam = preload("res://effects/bullet_cam.gd").new()
+	bcam.main = self
+	add_child(bcam)
 	# קיר שקוף: מי שרץ קדימה ומשאיר 4+ זומבים ערים מאחור - חייב להרוג אותם (environment/pass_barrier.gd)
 	var barrier = preload("res://environment/pass_barrier.gd").new()
 	barrier.main = self

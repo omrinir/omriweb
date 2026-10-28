@@ -240,6 +240,9 @@ var riding := false
 var _crash_fly := false
 # חולדה שנשכה: השחקן תופס אותה בזנב ומטיח ברצפה (player.gd - RAT SLAM). בינתיים הוא מצייר אותה ביד והיא מוסתרת
 var held_by: Node = null
+# מצלמת הקליע (effects/bullet_cam.gd): הזומבי שהקליע בדרך אליו קפוא עד הפגיעה. בזמן כמעט עצור לא רואים את זה,
+# וכך שום החלטה אקראית (קפיצת זיגזג, התכופפות, עצירה) לא מפספסת את הירייה שהמצלמה כבר מראה
+var cam_hold := false
 var _belly_up := false           # הוטחה: הגופה שוכבת על הגב
 # שלב 2 (ניסוי): מטפסים על מכשולים במקום לקפוץ.  לשנות: CLIMB_LEVELS, CLIMB_SPEED
 const CLIMB_LEVELS := [2]
@@ -459,7 +462,7 @@ func _prof_name() -> String:
 
 func _physics_main(delta: float) -> void:
 	_time += delta
-	_flash -= delta
+	_flash -= delta if not Engine.has_meta("bullet_cam") else delta / maxf(Engine.time_scale, 0.001)   # מצלמת קליע: ההבהוב הלבן בזמן אמיתי (בזמן כמעט עצור הוא היה נשאר לבן שנייה שלמה)
 	_react_t -= delta
 	_voice_cd -= delta
 	_attack_t -= delta
@@ -472,6 +475,8 @@ func _physics_main(delta: float) -> void:
 			_jet_crash(delta)
 			return
 		_dead_process(delta)
+		return
+	if cam_hold:
 		return
 	if possessed != null and is_instance_valid(possessed):   # MIND CONTROL: השחקן מזיז אותו
 		possessed.drive(self, delta)
@@ -1186,6 +1191,67 @@ func _hand_world() -> Vector2:
 # ============================================================
 #  פגיעות
 # ============================================================
+# אזור הפגיעה בעולם (המלבן שהקליעים פוגעים בו)
+func hit_rect() -> Rect2:
+	var s := (_shape.shape as RectangleShape2D).size
+	return Rect2(_shape.global_position - s * 0.5, s)
+
+
+# מרכז הגוף בעולם - גם כשהגופה הרכה עפה (effects/ragdoll.gd: הזומבי עצמו נשאר במקום). מצלמת הקליע שומרת אותו בתמונה
+func body_center() -> Vector2:
+	if _rag != null and _rag.p.size() > 0:
+		var s := Vector2.ZERO
+		for v in _rag.p:
+			s += v
+		return to_global(s / float(_rag.p.size()))
+	return global_position + Vector2(0.0, -24.0 * sc)
+
+
+# מצלמת הקליע (effects/bullet_cam.gd): האם קליע (src כמו של bullet.gd) שפוגע כאן יהרוג אותו בוודאות?
+# רק חישוב - לא משנה כלום (כמו take_damage, בלי הצדדים). שמרני: בוס / שריון / מגן / רגל (אולי רק יזחל) = false.
+# band = כמה פיקסלים הפגיעה יכולה לזוז בזמן שהקליע עף: ליד הגבול בין ראש לגוף לוקחים את החלש.
+# סוגים חדשים שחוסמים / סופגים פגיעות לפי מצב - bullet_cam.gd לא שואל אותם בכלל (UNSAFE).
+func lethal_hit(hit_pos: Vector2, src: Dictionary, band := 6.0) -> bool:
+	if dead or _lying() or on_ceiling or is_boss() or held_by != null or self == mind_traitor or _cover_state == 2 or _one_leg:
+		return false
+	if kind in [BOSS, CONDUCTOR, COP, RAT, HAND, MECH, GUNNER, JETPACK]:
+		return false
+	var ly := (hit_pos.y - global_position.y) / sc
+	var b := band / sc
+	if ly + b > (-12.0 if _crouched_shape else -20.0):   # (גם) רגל
+		return false
+	var head_y := -30.0 if _crouched_shape else -42.0
+	var dmg := _hit_estimate("body", src)
+	if ly + b < head_y:   # בטוח בראש
+		dmg = _hit_estimate("head", src)
+	elif ly - b < head_y:   # על הגבול: החלש מהשניים
+		dmg = mini(dmg, _hit_estimate("head", src))
+	return dmg >= hp
+
+
+# הנזק של take_damage לאזור (גוף: הנמוך בטווח, בלי PERFECT)
+func _hit_estimate(zone: String, src: Dictionary) -> int:
+	var dmg := head_damage if zone == "head" else body_damage.x
+	if src.get("sniper", false):
+		dmg = dmg * 2 if zone == "head" else int(dmg * 1.5)
+	var dm := float(src.get("dmg_mult", 1.0))
+	if zone != "head":
+		dmg = maxi(1, int(round(float(dmg) * dm)))
+	elif dm > HEAD_HEAVY:
+		dmg = int(round(float(dmg) * dm * HEAD_HEAVY_K))
+	elif float(src.get("head_mult", 1.0)) < 1.0:
+		dmg = maxi(1, int(round(float(dmg) * float(src.head_mult))))
+	if src.get("god", false):
+		dmg *= 4
+	if type_mod != null:
+		dmg = maxi(0, int(round(float(dmg) * type_mod.damage_mult(zone, src))))
+	if has_meta("morale_t") and float(get_meta("morale_t")) > _time:
+		dmg = maxi(1, int(round(float(dmg) * 0.6)))
+	if src.has("weapon") and has_meta("resist_weapon") and int(src.weapon) == int(get_meta("resist_weapon")):
+		dmg = maxi(1, int(round(float(dmg) * 0.4)))
+	return dmg
+
+
 # נקרא מ-bullet.gd ומ-grenade.gd. hit_pos קובע איפה הפגיעה: ראש / גוף / רגליים.
 # explosive = true (רימון): amount הוא הנזק, בלי קשר למקום הפגיעה
 func take_damage(amount: int, hit_pos: Vector2, dir: Vector2, explosive := false, src := {}) -> void:

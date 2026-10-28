@@ -108,6 +108,7 @@ func _ready() -> void:
 	add_child(_layer)
 	_ui = Node2D.new()
 	_layer.add_child(_ui)
+	_ui.add_to_group("cine_hide")   # מצלמת קליע (effects/bullet_cam.gd): דועך
 	_ui.draw.connect(_draw_ui)
 	Game.streak_kill.connect(_on_kill)
 	Game.streak_end.connect(_on_end)

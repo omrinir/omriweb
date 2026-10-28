@@ -5,6 +5,7 @@ extends Node
 #  סכנה (זומבי ער קרוב / יורים / נפגעים): נפתחת מלאה - נשמעת בדיוק כמו קודם. נפתחת מהר, נרגעת לאט.
 #  hush() = "השקט שלפני הסערה": אירוע עומד להתחיל (HOLD THE LINE / ESCAPE) - המוזיקה נסוגה כמעט לשקט.
 #  hit()  = האירוע התחיל: המוזיקה חוזרת בבת אחת, מלאה.
+#  cine   = 0..1 מבחוץ (effects/bullet_cam.gd - מצלמת קליע): המוזיקה עמומה ושקטה, כאילו בתוך הקליע.
 #  ערוץ "LevelMusic" (נשלח ל-"Music", כך שעוצמת המוזיקה בהגדרות עדיין קובעת) עם מסנן + עוצמה.
 #  מוזיקת התפריט ושלבים שמנגנים בעצמם לא עוברים כאן.
 # ============================================================
@@ -21,6 +22,8 @@ const HOLD := 3.0            # כמה שניות נשארת פתוחה אחרי 
 const OPEN_T := 0.35         # שניות מרגוע לפתוח
 const CLOSE_T := 3.5         # שניות מפתוח לרגוע
 const HUSH_IN := 1.1         # שניות עד השקט
+const CINE_HZ := 700.0       # מצלמת קליע: עמום מאוד
+const CINE_DB := -5.0
 const HUSH_OUT := 0.6        # יצא מהאזור בלי שהאירוע התחיל: חוזרת בנחת
 
 var main: Node
@@ -33,7 +36,8 @@ var _out_t := HUSH_OUT
 var _bus := -1
 var _lp: AudioEffectLowPassFilter = null
 var _amp: AudioEffectAmplify = null
-var _last := Vector2(-1.0, -1.0)
+var _last := Vector3(-1.0, -1.0, -1.0)
+var cine := 0.0              # מצלמת קליע (effects/bullet_cam.gd קובע כל פריים)
 
 
 func _ready() -> void:
@@ -89,13 +93,14 @@ func _danger_near(p: Node2D) -> bool:
 func _apply() -> void:
 	if _lp == null or _amp == null:
 		return
-	var now := Vector2(_k, _hush)
+	var now := Vector3(_k, _hush, cine)
 	if now.is_equal_approx(_last):
 		return
 	_last = now
 	var hz := exp(lerpf(log(CALM_HZ), log(OPEN_HZ), _k))
-	_lp.cutoff_hz = exp(lerpf(log(hz), log(HUSH_HZ), _hush))
-	_amp.volume_db = lerpf(lerpf(CALM_DB, 0.0, _k), HUSH_DB, _hush)
+	hz = exp(lerpf(log(hz), log(HUSH_HZ), _hush))
+	_lp.cutoff_hz = exp(lerpf(log(hz), log(minf(hz, CINE_HZ)), cine))
+	_amp.volume_db = lerpf(lerpf(CALM_DB, 0.0, _k), HUSH_DB, _hush) + CINE_DB * cine
 
 
 # האירוע עוד רגע מתחיל (נקרא כל עוד השחקן באזור שלפניו; t = כמה זמן זה מחזיק בלי קריאה נוספת)

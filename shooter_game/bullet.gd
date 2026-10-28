@@ -3,6 +3,7 @@ const DrawBatch := preload("res://effects/draw_batch.gd")
 const VIS_SCALE := 0.45   # גודל הקליע על המסך (רק ויזואלי)
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 const FlameFx := preload("res://effects/flame_fx.gd")   # להבות הלהביור (לשון אש + הילה רכה)
+const BulletCam := preload("res://effects/bullet_cam.gd")   # מצלמת קליע (צלף): "מחוץ למסך" = המסך הרגיל, לא הזום
 # ============================================================
 #  קליע. נוצר ע"י player.gd בכל ירייה.
 #  הקליע בודק התנגשות עם קרניים (Raycast) כדי שלא יעבור דרך
@@ -41,11 +42,19 @@ var velocity := Vector2.ZERO
 var _exclude: Array[RID] = []
 var _cast_from := Vector2.ZERO
 var _first := true
+var ip_from := Vector2.ZERO                # המיקום בתחילת צעד הפיזיקה האחרון (interp_pos)
 const TRACER_K := 0.019                    # שובל נותב: אורך = מהירות x זה (בערך מה שהקליע עובר בפריים), 24-80 פיקסלים
+# מצלמת קליע (effects/bullet_cam.gd): הקליע שהמצלמה עוקבת אחריו מצויר בגודל מלא, עם גלי אוויר שיוצאים מהחוד (זמן אמיתי)
+const CAM_VIS := 1.0
+const WAKE_EVERY := 0.11                   # גל חדש כל ... שניות
+const WAKE_LIFE := 0.5
+const WAKE_SPEED := 46.0                   # כמה מהר גל נשאר מאחור (פיקסלים בשנייה, יחסית לקליע)
+var _cam_drawn := false
 
 
 func setup(muzzle_pos: Vector2, vel: Vector2, check_from: Vector2) -> void:
 	global_position = muzzle_pos
+	ip_from = muzzle_pos
 	velocity = vel
 	rotation = vel.angle()
 	_cast_from = check_from   # בצעד הראשון בודקים מהכתף, למקרה שהלוע בתוך קיר
@@ -53,6 +62,9 @@ func setup(muzzle_pos: Vector2, vel: Vector2, check_from: Vector2) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	ip_from = global_position
+	if _cam_drawn or BulletCam.bullet_look(self) > 0.0:
+		queue_redraw()
 	if _stuck >= 0.0:   # חץ תקוע: השחקן יכול לאסוף אותו
 		_stuck -= delta
 		modulate.a = clampf(_stuck, 0.0, 1.0)
@@ -83,8 +95,7 @@ func _physics_process(delta: float) -> void:
 	_first = false
 	var to := global_position + velocity * delta
 	# הקליע נעלם 70 פיקסלים אחרי קצה המסך
-	var vp := get_viewport()
-	var view := (vp.get_canvas_transform().affine_inverse() * vp.get_visible_rect()).grow(max_offscreen)
+	var view := BulletCam.logic_view(get_viewport()).grow(max_offscreen)
 	if not view.has_point(to):
 		if view.has_point(global_position):   # בודקים פגיעה רק עד הגבול
 			to = global_position + velocity.normalized() * _dist_to_edge(view, global_position, velocity.normalized())
@@ -169,6 +180,13 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 		return
 	global_position = to
+
+
+# איפה הקליע מצויר עכשיו: בין שני צעדי הפיזיקה האחרונים (physics interpolation, effects/smooth_motion.gd)
+func interp_pos() -> Vector2:
+	if not is_physics_interpolated_and_enabled():
+		return global_position
+	return ip_from.lerp(global_position, Engine.get_physics_interpolation_fraction())
 
 
 # כמה פיקסלים עד שהקליע יוצא מהמלבן
@@ -258,8 +276,13 @@ func _draw_b() -> void:
 			tc = Color(1.0, 0.6, 0.2)
 		DrawBatch.polyline_colors(self, PackedVector2Array([Vector2(-tl, 0.0), Vector2(-tl * 0.45, 0.0), Vector2.ZERO]),
 			PackedColorArray([Color(tc, 0.0), Color(tc, 0.22), Color(tc, 0.6)]), 1.6)
+	var look := BulletCam.bullet_look(self)
+	_cam_drawn = look > 0.0
+	if _cam_drawn:
+		_draw_wake(look)
 	# הציור בלבד קטן יותר (VIS_SCALE) - ההתנגשות נשארת באותו גודל (קל לפגוע)
-	DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(VIS_SCALE, VIS_SCALE))
+	var vs := lerpf(VIS_SCALE, CAM_VIS, look)
+	DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(vs, vs))
 	# שובל אוויר דק ושקוף (כדי שיהיה אפשר לראות את הקליע זז)
 	DrawBatch.line(self, Vector2(-34.0, 0.0), Vector2(-6.0, 0.0), Color(0.9, 0.9, 0.95, 0.12), 2.0, true)
 	DrawBatch.line(self, Vector2(-18.0, 0.0), Vector2(-6.0, 0.0), Color(0.9, 0.9, 0.95, 0.22), 1.2, true)
@@ -292,6 +315,25 @@ func _draw_b() -> void:
 	DrawBatch.line(self, Vector2(-5.0, -0.7), Vector2(2.5, -0.7), Color(1.0, 0.9, 0.7, 0.7), 0.6, true)   # ברק של מתכת
 	DrawBatch.line(self, Vector2(-6.0, -1.6), Vector2(-6.0, 1.6), Color(0.25, 0.15, 0.1), 1.0)              # בסיס
 	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
+
+
+# מצלמת קליע: הילה חלשה וגלי אוויר (אליפסות) שיוצאים מהחוד, גדלים ונשארים מאחור. k = 0..1 (נכנס עם הצילום)
+func _draw_wake(k: float) -> void:
+	DrawBatch.circle(self, Vector2(1.0, 0.0), 6.0, Color(1.0, 0.95, 0.85, 0.12 * k))
+	var t: float = BulletCam.cam_time()
+	for i in 6:
+		var age := fmod(t, WAKE_EVERY) + float(i) * WAKE_EVERY
+		if age > WAKE_LIFE:
+			break
+		var u := age / WAKE_LIFE
+		var x := 3.0 - age * WAKE_SPEED
+		var ry := 2.2 + 8.0 * u
+		var rx := ry * 0.32
+		var pts := PackedVector2Array()
+		for j in 13:
+			var a := TAU * float(j) / 12.0
+			pts.append(Vector2(x + cos(a) * rx, sin(a) * ry))
+		DrawBatch.polyline(self, pts, Color(0.85, 0.93, 1.0, 0.34 * k * (1.0 - u) * (1.0 - u)), 1.0, true)
 
 
 # ---- ניצוצות כשהקליע פוגע ----

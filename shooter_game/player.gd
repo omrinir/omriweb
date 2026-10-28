@@ -24,6 +24,7 @@ const PickupScript := preload("res://pickup.gd")
 const MindControl := preload("res://effects/mind_control.gd")
 const LaserCannon := preload("res://weapons/laser_cannon.gd")   # פריט מיוחד: תותח לייזר (טעינה + קרן)
 const TextScript := preload("res://zombie.gd")
+const BulletCam := preload("res://effects/bullet_cam.gd")   # מצלמת קליע לצלף (קפוא בזמן שהיא פועלת)
 const HeroAnim := preload("res://hero_anim.gd")       # אנימציות הדמות (SPRITE SHEET)
 var HERO_TEX: Texture2D = preload("res://tex_load.gd").get_tex("res://sprites/hero.png")   # נטען בזמן ריצה (לא נשבר אם עוד לא יובא)
 const SPRITE_SCALE := 0.44                             # גודל הדמות במשחק (52 פיקסלים = גובה הדמות)
@@ -364,6 +365,11 @@ func _process(_delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_ip_from = global_position
+	if BulletCam.holding():   # מצלמת קליע: השחקן קפוא עד שהמצלמה חוזרת אליו (הבזק הירייה דועך בזמן האיטי של העולם)
+		_muzzle_flash -= delta
+		_recoil = move_toward(_recoil, 0.0, delta * 12.0)
+		queue_redraw()
+		return
 	# BULLET TIME: העולם איטי, אבל השחקן ממשיך במהירות רגילה
 	_rt = 1.0 / maxf(Engine.time_scale, 0.05)
 	delta *= _rt
@@ -1129,6 +1135,8 @@ func _fire() -> void:
 				b.fixed_damage = w.fixed_damage
 			b.life_time = float(w.get("range", 1800.0)) / spd
 			b.setup(sh + aim * 30.0, aim.rotated(spread + randf_range(-1.0, 1.0) * _bloom_spread(w)) * spd, sh)
+			if _scoping and b.sniper and n == 1 and proj == "bullet":   # צלף עם כוונת: אולי מצלמת קליע (effects/bullet_cam.gd)
+				BulletCam.consider(self, b)
 		_add_bloom(w)
 		if msize > 0 and mag <= 0 and ammo > 0:   # הכדור האחרון: מתחילים לטעון מיד (לא מחכים ללחיצה הבאה)
 			reload()
@@ -1881,6 +1889,8 @@ func _draw_slam(sh: Vector2, rest: Vector2, arm_k: Transform2D) -> void:
 func hurt(amount: int, knock_dir: Vector2) -> void:
 	if dead or _invuln > 0.0 or _drain_target != null:
 		return
+	if BulletCam.holding():   # מצלמת קליע: השחקן קפוא ולא יכול לזוז (מתחילה רק כשאין זומבי קרוב)
+		return
 	if god_mode():   # GOD MODE: שום דבר לא פוגע
 		return
 	if _roll_t > 0.0:   # בגלגול לא נפגעים. ברגע האחרון = הזמן מאט לרגע
@@ -2018,7 +2028,7 @@ func _draw_b() -> void:
 			DrawBatch.polyline(self, line, Color(0.75, 0.55, 1.0, 0.85), 3.0, true)
 			DrawBatch.polyline(self, line, Color(1, 1, 1, 0.95), 1.0, true)
 	_draw_aim_guide()
-	if (Upgrades.perk("laser_sight") > 0 or _scoping) and controllable and _drain_target == null and weapon == GUN:
+	if (Upgrades.perk("laser_sight") > 0 or _scoping) and controllable and _drain_target == null and weapon == GUN and not BulletCam.holding():
 		var from := _front_shoulder() + _aim * 30.0
 		var to := _laser_end - global_position
 		DrawBatch.line(self, from, to, Color(1.0, 0.1, 0.1, 0.35), 1.0, true)
