@@ -40,6 +40,11 @@ extends SceneTree
 #      EVO_GROUP_SET=<group>:<field>=<float>@<frame>[;...] (sets a field on every node of a group at that frame, e.g.
 #      moon_cycle:_t=1.5@40 = the clouds over level 50's cemetery part sooner: the LOBIZON turns into the wolf on cue),
 #      EVO_KEEP=<kind>[,<kind>...] (zombies of these kinds are never cleared, e.g. GOALKEEPER = the level's boss stays in his goal behind the clip),
+#      EVO_CINE=<zoom>:<lean>:<frame>[;...] (from that frame the game camera frames the player and the staged zombie at that zoom,
+#      lean 0 = on the player, 1 = on the zombie (shake_camera.gd cine API), gliding from key to key: a sharp close-up of a
+#      small zombie instead of blowing up a few pixels of the normal view, e.g. 1.6:1:40;3.4:1:200 = push in on the MIMIC's head),
+#      EVO_SURVIVOR=<dx>:<variant>[:<frame>] (a real survivor (survivor.gd) this far from the player, spawned after the zombies,
+#      e.g. 520:0 = the girl the MIMIC copies runs in next to it; no DRAIN hint over her; the level's own survivors are still cleared),
 #      REC_POS=<csv>: t, player x, y, target x, y (screen, 1280 space), fired (0/1), fresh corpses "id/age/x/y|..." (as t_rec_god.gd)
 #      SNAP=<dir>: save a png every SNAP_EVERY (default 20) frames (previews; run with a 1280x720 window), SNAP_FULL=1 = the whole screen
 # usage: EVO_LEVEL=12 EVO_KIND=MIMIC REC_POS=/tmp/m.csv xvfb-run -a -s "-screen 0 2560x1440x24" godot --path . --rendering-driver opengl3 \
@@ -63,6 +68,7 @@ var _kills := 0
 var _rng := RandomNumberGenerator.new()
 var at_x := 2000.0
 var spawn_f := 30
+var _cine_c := Vector2.INF
 
 
 func _env(k: String, d):
@@ -248,6 +254,16 @@ func _physics_process(_d: float) -> bool:
 		if _env("EVO_GOD", 0) == 1:
 			pl._drink_god()
 		print("f=%d spawned %d of kind %d" % [f, ours.size(), _kind()])
+	var sv_spec := str(_env("EVO_SURVIVOR", ""))
+	if sv_spec != "" and f == int(sv_spec.get_slice(":", 2) if sv_spec.get_slice_count(":") > 2 else str(spawn_f)):
+		var sv = load("res://survivor.gd").new()   # after the zombies: her _ready() draws a random number, the MIMIC's look stays as probed
+		sv.variant = int(sv_spec.get_slice(":", 1))
+		sv.position = Vector2(pl.global_position.x + float(sv_spec.get_slice(":", 0)), pl.global_position.y - 4.0)
+		sv.set_meta("evo_staged", true)
+		sv.drain_range = 0.0   # no DRAIN hint over her head (the clip never drains anyone)
+		main_node.add_child(sv)
+		sv.world_w = float(main_node.level_w)
+		print("f=%d survivor v=%d at x=%d" % [f, sv.variant, sv.position.x])
 	if f == int(_env("EVO_HP_AT", spawn_f + 1)) and _env("EVO_BOSS_HP", 0) > 0:
 		for z in ours:
 			if is_instance_valid(z) and not z.dead and z.is_boss():
@@ -284,7 +300,8 @@ func _physics_process(_d: float) -> bool:
 				n.rails.clear()
 	if f % 5 == 0 and _env("EVO_SURVIVORS", 0) == 0:
 		for o in main_node.get_tree().get_nodes_in_group("survivors"):
-			o.queue_free()
+			if not o.has_meta("evo_staged"):
+				o.queue_free()
 	if f % 5 == 0:
 		for o in main_node.get_tree().get_nodes_in_group("zombies"):
 			if o in ours or o.dead or absf(o.global_position.x - pl.global_position.x) > 1700.0 or _adoptable(o) or _kept(o):
@@ -360,7 +377,10 @@ func _physics_process(_d: float) -> bool:
 	_key(KEY_A, _move < 0)
 	_key(KEY_D, _move > 0)
 	# between shots the game aims at the mouse: keep it on the aim line
-	var aim_w: Vector2 = pl.global_position + pl._front_shoulder() + _aim * 320.0
+	var aim_len := 320.0
+	if str(_env("EVO_CINE", "")) != "" and tgt != null:   # the close-up camera is on the zombie: a point 320 px out may be off screen
+		aim_len = maxf(aim_len, (tgt.global_position - pl.global_position).length())
+	var aim_w: Vector2 = pl.global_position + pl._front_shoulder() + _aim * aim_len
 	var vp: Viewport = main_node.get_viewport()
 	vp.warp_mouse(vp.get_canvas_transform() * aim_w)
 	var mm := InputEventMouseMotion.new()
@@ -369,6 +389,24 @@ func _physics_process(_d: float) -> bool:
 	Input.parse_input_event(mm)
 	if OS.get_environment("EVO_DBG") != "" and f % 30 == 0:
 		print("mouse f=%d off=%s" % [f, str(pl.get_global_mouse_position() - aim_w)])
+	var ck := []   # EVO_CINE keys [frame, zoom, lean]: the game camera glides between them
+	for spec in str(_env("EVO_CINE", "")).split(";", false):
+		ck.append([int(spec.get_slice(":", 2)), float(spec.get_slice(":", 0)), float(spec.get_slice(":", 1))])
+	if not ck.is_empty() and tgt != null and f >= int(ck[0][0]):
+		var kz: float = ck[-1][1]
+		var kl: float = ck[-1][2]
+		for i in range(ck.size() - 1):
+			if f < int(ck[i + 1][0]):
+				var u := smoothstep(float(ck[i][0]), float(ck[i + 1][0]), float(f))
+				kz = lerpf(ck[i][1], ck[i + 1][1], u)
+				kl = lerpf(ck[i][2], ck[i + 1][2], u)
+				break
+		var cam = vp.get_camera_2d()
+		var want_c: Vector2 = pl.global_position.lerp(tgt.global_position, kl) + Vector2(0.0, -40.0 * float(tgt.sc))
+		_cine_c = want_c if _cine_c == Vector2.INF else _cine_c.lerp(want_c, 0.15)   # glides, no jitter from the run cycle
+		if cam != null and cam.has_method("cine_begin"):
+			cam.cine_begin()
+			cam.cine_set(cam.clamp_center(_cine_c, kz), kz)   # never below the level's floor strip
 	# ---- log ----
 	for id in _alive:
 		var z = _alive[id]
