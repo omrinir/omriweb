@@ -66,3 +66,10 @@ SceneTree scripts used to test the game headless. Copy the one you need into the
   the saved characters (`CHAR_MODE=saved`). `-- <png prefix>`, xvfb + opengl3.
 - `make_example_characters.gd` - writes the 6 example characters (BUTCHER ... TOURIST, kinds 1000-1005, in no level) to
   `characters/saved/`: `godot --headless --path . -s res://make_example_characters.gd`.
+- `t_portrait.gd` - promo character art: one character at a time, frozen and big, drawn on white and then on black so a
+  difference matte gives a clean cut-out (alpha = 1 - (white - black), colour = black / alpha). Env `PORT_OUT=<dir>`,
+  `PORT_LIST="name:kind[:k=v,...];..."`, `PORT_LEVEL` (default 5). kind = zombie number or name, `HERO`, `SURV<variant>`;
+  options `boss=1`, `pose=walk|attack`, `dir`, `zoom`, `cy`/`cx`, `wp`, `tm`, `gun`/`ax`/`ay` (HERO); any other key sets that
+  type_mod variable (MIMIC monster form `_m=1,state=3`, spider CLIMBER `state=2,grow=1`). Writes `<name>_w.png` + `<name>_k.png`:
+  `xvfb-run -a -s "-screen 0 2560x1440x24" godot --path . --resolution 2560x1440 --rendering-driver opengl3 -s res://t_portrait.gd`.
+  The trailer Short's sketchbook drawings were made from these cut-outs.
