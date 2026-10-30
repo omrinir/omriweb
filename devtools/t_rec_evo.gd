@@ -45,6 +45,18 @@ extends SceneTree
 #      small zombie instead of blowing up a few pixels of the normal view, e.g. 1.6:1:40;3.4:1:200 = push in on the MIMIC's head),
 #      EVO_SURVIVOR=<dx>:<variant>[:<frame>] (a real survivor (survivor.gd) this far from the player, spawned after the zombies,
 #      e.g. 520:0 = the girl the MIMIC copies runs in next to it; no DRAIN hint over her; the level's own survivors are still cleared),
+#      EVO_AIM_SEQ=<y>[,<y>...] (aim height per shot, the last one repeats, e.g. -8,-8,-30,-52 = leg, leg, gut, head),
+#      EVO_GAP_SEQ=<frames>[,...] (frames from shot i to shot i+1, no random extra; the last one repeats), EVO_AIM_TOL (how close
+#      the aim must be before a shot, radians, default 0.2; with it set the mouse also sits on the aim point itself, so
+#      0.03 = every shot lands on the zone it aims at),
+#      EVO_DIRECT=1 (a shot that has not hit when its bullet would arrive lands on its aim zone after all: EVO_DIRECT_DMG
+#      per shot, default 999, a list like EVO_AIM_SEQ; EVO_DIRECT_FIRE=1 = it burns (force_char), EVO_DIRECT_HEAVY=1 = a heavy hit (force_burst)),
+#      EVO_SPECIAL=launcher|grenade|rocket|molotov (the player holds that special item and every shot fires it the way C does;
+#      BOOM_STYLE=0/1/2 forces the explosion style),
+#      EVO_ZSET=<field>=<float>[,...] (set on every staged zombie at the spawn, e.g. duck_chance=0,cover_chance=0,hp=40,max_hp=40),
+#      EVO_SCOPE=<frame> (the right mouse button is held from that frame: a SNIPER / ANTI-MATERIEL / RAILGUN looks through the
+#      scope), EVO_BC_FORCE=1 (every scoped shot that will kill gets the BULLET CAM, as devtools/t_bullet_cam.gd), EVO_BARS=1
+#      (keep the bullet cam's black cinema bars; every other layer over the game is still hidden),
 #      REC_POS=<csv>: t, player x, y, target x, y (screen, 1280 space), fired (0/1), fresh corpses "id/age/x/y|..." (as t_rec_god.gd)
 #      SNAP=<dir>: save a png every SNAP_EVERY (default 20) frames (previews; run with a 1280x720 window), SNAP_FULL=1 = the whole screen
 # usage: EVO_LEVEL=12 EVO_KIND=MIMIC REC_POS=/tmp/m.csv xvfb-run -a -s "-screen 0 2560x1440x24" godot --path . --rendering-driver opengl3 \
@@ -69,6 +81,11 @@ var _rng := RandomNumberGenerator.new()
 var at_x := 2000.0
 var spawn_f := 30
 var _cine_c := Vector2.INF
+var _shots := 0
+var _aim_d := 320.0
+var _rmb := false
+var BC: Script = null
+var _direct := []              # EVO_DIRECT: [frame, zombie, aim y, hp at the shot, shot number]
 
 
 func _env(k: String, d):
@@ -98,6 +115,9 @@ func _initialize() -> void:
 	if OS.get_environment("REC_POS") != "":
 		pos_file = FileAccess.open(OS.get_environment("REC_POS"), FileAccess.WRITE)
 	_rng.seed = 7
+	BC = load("res://effects/bullet_cam.gd")
+	if _env("EVO_BC_FORCE", 0) == 1:
+		BC.test_force = true
 
 
 func _kind() -> int:
@@ -130,6 +150,25 @@ func _kept(o) -> bool:
 func _adoptable(o) -> bool:
 	return _env("EVO_ADOPT", 0) == 1 and is_instance_valid(o) and not o.dead and int(o.kind) == _kind() and float(o.chase_range) > 600.0 \
 		and absf(o.global_position.x - at_x) < 1700.0
+
+
+func _rmb_set(on: bool) -> void:
+	if on == _rmb:
+		return
+	_rmb = on
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_RIGHT
+	e.pressed = on
+	e.button_mask = MOUSE_BUTTON_MASK_RIGHT if on else 0
+	Input.parse_input_event(e)
+	Input.flush_buffered_events()
+
+
+func _seq(k: String, i: int, d: float) -> float:
+	var a: PackedStringArray = str(_env(k, "")).split(",", false)
+	if a.is_empty():
+		return d
+	return float(a[clampi(i, 0, a.size() - 1)])
 
 
 func _key(code: int, on: bool) -> void:
@@ -178,6 +217,8 @@ func _physics_process(_d: float) -> bool:
 			for sq in main_node.get_tree().get_nodes_in_group("squad_director"):
 				sq.max_slots = _env("EVO_SLOTS", 0)
 	if f == 3:
+		if main_node.get_viewport().get_camera_2d() != null:   # (EVO_CINE zooms are absolute: this is the level's own zoom)
+			print("camera zoom %.2f" % main_node.get_viewport().get_camera_2d().zoom.x)
 		if _env("EVO_CAM_ZOOM", 0.0) > 0.0:
 			var cam = main_node.get_viewport().get_camera_2d()
 			if cam != null:
@@ -196,6 +237,9 @@ func _physics_process(_d: float) -> bool:
 			var full: int = load("res://weapons/weapon_db.gd").val(w, "magazine_size", 99) if _env("EVO_REAL_MAG", 0) == 1 else 99
 			pl.slots[0] = {"id": w, "ammo": 999, "mag": full}
 			pl.select_slot(0)
+		if str(_env("EVO_SPECIAL", "")) != "":   # a special item (launcher, grenade, rocket...): fired the way C fires it
+			pl.take_special(str(_env("EVO_SPECIAL", "")))
+			pl.special_uses = 99
 	if f == 50 and OS.get_environment("PREVIEW") != "":
 		root.get_viewport().get_texture().get_image().save_png(OS.get_environment("PREVIEW"))
 	for s in main_node.get_tree().get_nodes_in_group("story_scene"):
@@ -203,7 +247,8 @@ func _physics_process(_d: float) -> bool:
 			s._finish()
 	for n in main_node.find_children("*", "CanvasLayer", true, false):
 		if n.layer >= 2:
-			n.visible = false
+			var bars: bool = _env("EVO_BARS", 0) == 1 and n.get_parent() != null and n.get_parent().get_script() == BC
+			n.visible = bars
 	var game = root.get_node("Game")
 	if game._banner != null:
 		game._banner.visible = false   # no "TROPHY UNLOCKED" pop-ups in the clip
@@ -250,6 +295,10 @@ func _physics_process(_d: float) -> bool:
 		for z in ours:   # e.g. force_hw: the headshot kill walks on headless
 			for mk in str(_env("EVO_ZMETA", "")).split(",", false):
 				z.set_meta(mk.strip_edges(), true)
+			for kv in str(_env("EVO_ZSET", "")).split(",", false):   # e.g. duck_chance=0: it never ducks under the planned shots
+				var fk := kv.get_slice("=", 0).strip_edges()
+				if fk in z:
+					z.set(fk, int(kv.get_slice("=", 1)) if typeof(z.get(fk)) == TYPE_INT else float(kv.get_slice("=", 1)))
 		game.make_noise(pl.global_position, 1200.0)
 		if _env("EVO_GOD", 0) == 1:
 			pl._drink_god()
@@ -319,6 +368,22 @@ func _physics_process(_d: float) -> bool:
 		pl.slots[0].ammo = 999
 		if _env("EVO_REAL_MAG", 0) == 0:
 			pl.slots[0]["mag"] = maxi(int(pl.slots[0].get("mag", 0)), 6)
+	# EVO_DIRECT: the bullet missed (the zombie hopped, a crate or a step took it): the shot lands on its zone after all
+	for d in _direct.duplicate():
+		if f < int(d[0]):
+			continue
+		_direct.erase(d)
+		var z = d[1]
+		if not is_instance_valid(z) or z.dead or int(z.hp) != int(d[3]):
+			continue
+		var hp_: Vector2 = z.global_position + Vector2(0.0, float(d[2]) * float(z.sc))
+		var dmg := int(_seq("EVO_DIRECT_DMG", int(d[4]) - 1, 999.0))
+		var fire: bool = _env("EVO_DIRECT_FIRE", 0) == 1
+		z.heavy_kill = _env("EVO_DIRECT_HEAVY", 0) == 1
+		z.take_damage(dmg, hp_, Vector2(signf(z.global_position.x - pl.global_position.x), -0.2), false,
+			{"source": "fire" if fire else "bullet", "fixed": dmg})
+		if OS.get_environment("EVO_DBG") != "":
+			print("f=%d DIRECT #%d dmg=%d hp=%d dead=%s" % [f, int(d[4]), dmg, int(z.hp), str(z.dead)])
 	# ---- the player ----
 	var tgt = null
 	var bd := INF
@@ -333,16 +398,22 @@ func _physics_process(_d: float) -> bool:
 		_done_f = f
 		print("f=%d all dead" % f)
 	var mode: String = _env("EVO_MODE", "shoot")
+	if _env("EVO_SCOPE", 0) > 0:
+		_rmb_set(f >= int(_env("EVO_SCOPE", 0)))
+	var cam_hold: bool = BC.holding()   # the bullet cam runs: the player is frozen, hands off the aim and the mouse
 	var tm0 = tgt.type_mod if tgt != null else null
 	var lost: bool = _env("EVO_LIQUID_AIM", 1) == 0 and tm0 != null and tm0.has_method("is_liquid") and tm0.is_liquid()
 	if lost:
 		_was_lost = true
-	if tgt != null and lost:
+	if cam_hold:
+		_move = 0
+	elif tgt != null and lost:
 		_move = 0
 		pl._aim = _aim
 	elif tgt != null:
-		var ay: float = _env("EVO_AIM_Y2", 0.0) if _was_lost and OS.get_environment("EVO_AIM_Y2") != "" else _env("EVO_AIM_Y", -30.0)
+		var ay: float = _env("EVO_AIM_Y2", 0.0) if _was_lost and OS.get_environment("EVO_AIM_Y2") != "" else _seq("EVO_AIM_SEQ", _shots, _env("EVO_AIM_Y", -30.0))
 		var aim_p: Vector2 = tgt.global_position + Vector2(0.0, ay * float(tgt.sc))   # -50 = headshots
+		_aim_d = (aim_p - (pl.global_position + pl._front_shoulder())).length()
 		var want: Vector2 = _level_aim((aim_p - (pl.global_position + pl._front_shoulder())).normalized())
 		if signf(want.x) != signf(_aim.x):
 			_aim = Vector2(-_aim.x, _aim.y)
@@ -350,14 +421,27 @@ func _physics_process(_d: float) -> bool:
 		pl._aim = _aim
 		var may := mode == "shoot" and f >= int(_env("EVO_HOLD", 0))
 		may = may or (mode == "hold" and f >= int(_env("EVO_FIRE_AT", 240)))
-		if may and bd < float(_env("EVO_RANGE", 520.0)) and absf(_aim.angle_to(want)) < 0.2:
+		if may and bd < float(_env("EVO_RANGE", 520.0)) and absf(_aim.angle_to(want)) < float(_env("EVO_AIM_TOL", 0.2)):
 			if _env("EVO_HOLD_FIRE", 0) == 1:
 				pl._fire_test = true
 				_fired = true
 			elif f >= _next_fire:
-				pl._fire_test = true
+				if str(_env("EVO_SPECIAL", "")) != "":
+					pl._item_cd = 0.0
+					pl.use_item()
+				else:
+					pl._fire_test = true
 				_fired = true
-				_next_fire = f + int(_env("EVO_GAP", 24)) + _rng.randi_range(0, 6)
+				_shots += 1
+				if OS.get_environment("EVO_DBG") != "":
+					print("f=%d FIRE #%d aim_y=%.0f dist=%d" % [f, _shots, ay, bd])
+				if _env("EVO_DIRECT", 0) == 1:   # when the bullet would arrive: a shot that missed lands on its zone after all
+					var spd: float = float(load("res://weapons/weapon_db.gd").WEAPONS[pl.gun].get("bullet_speed", 2600.0))
+					_direct.append([f + 2 + int(ceil(_aim_d / spd * 60.0)), tgt, ay, int(tgt.hp), _shots])
+				if OS.get_environment("EVO_GAP_SEQ") != "":
+					_next_fire = f + int(_seq("EVO_GAP_SEQ", _shots - 1, 24.0))
+				else:
+					_next_fire = f + int(_env("EVO_GAP", 24)) + _rng.randi_range(0, 6)
 		# step back when it gets close (a person would)
 		var dx2: float = tgt.global_position.x - pl.global_position.x
 		if _move_left <= 0:
@@ -378,21 +462,24 @@ func _physics_process(_d: float) -> bool:
 	_key(KEY_D, _move > 0)
 	# between shots the game aims at the mouse: keep it on the aim line
 	var aim_len := 320.0
+	if OS.get_environment("EVO_AIM_TOL") != "" and tgt != null:   # precise shots: the mouse sits on the aim point itself
+		aim_len = _aim_d
 	if str(_env("EVO_CINE", "")) != "" and tgt != null:   # the close-up camera is on the zombie: a point 320 px out may be off screen
 		aim_len = maxf(aim_len, (tgt.global_position - pl.global_position).length())
 	var aim_w: Vector2 = pl.global_position + pl._front_shoulder() + _aim * aim_len
 	var vp: Viewport = main_node.get_viewport()
-	vp.warp_mouse(vp.get_canvas_transform() * aim_w)
-	var mm := InputEventMouseMotion.new()
-	mm.position = vp.get_final_transform() * (vp.get_canvas_transform() * aim_w)   # window pixels (2x in a 2560 window)
-	mm.global_position = mm.position
-	Input.parse_input_event(mm)
+	if not cam_hold:
+		vp.warp_mouse(vp.get_canvas_transform() * aim_w)
+		var mm := InputEventMouseMotion.new()
+		mm.position = vp.get_final_transform() * (vp.get_canvas_transform() * aim_w)   # window pixels (2x in a 2560 window)
+		mm.global_position = mm.position
+		Input.parse_input_event(mm)
 	if OS.get_environment("EVO_DBG") != "" and f % 30 == 0:
 		print("mouse f=%d off=%s" % [f, str(pl.get_global_mouse_position() - aim_w)])
 	var ck := []   # EVO_CINE keys [frame, zoom, lean]: the game camera glides between them
 	for spec in str(_env("EVO_CINE", "")).split(";", false):
 		ck.append([int(spec.get_slice(":", 2)), float(spec.get_slice(":", 0)), float(spec.get_slice(":", 1))])
-	if not ck.is_empty() and tgt != null and f >= int(ck[0][0]):
+	if not ck.is_empty() and tgt != null and f >= int(ck[0][0]) and not cam_hold:
 		var kz: float = ck[-1][1]
 		var kl: float = ck[-1][2]
 		for i in range(ck.size() - 1):
@@ -449,6 +536,10 @@ func _physics_process(_d: float) -> bool:
 			img = img.get_region(Rect2i(cx, cy, cw, ch))
 		img.resize(640, 360)
 		img.save_png("%s/s_%04d.png" % [OS.get_environment("SNAP"), f])
+	if tgt != null and OS.get_environment("EVO_DBG") != "" and int(tgt.hp) != int(tgt.get_meta("evo_hp", -999)):
+		tgt.set_meta("evo_hp", int(tgt.hp))
+		print("f=%d HIT hp=%d zone=%s legs=%d one_leg=%s dist=%d" % [f, tgt.hp, str(tgt._last_info.get("zone", "-")), tgt._leg_hits, str(tgt._one_leg),
+			absf(tgt.global_position.x - pl.global_position.x)])
 	if tgt != null and f % 15 == 0:
 		var tm = tgt.type_mod
 		print("f=%d tgt x=%d hp=%s px=%d state=%s" % [f, tgt.global_position.x, str(tgt.hp), pl.global_position.x, str(tm.get("state")) if tm != null else "-"])
