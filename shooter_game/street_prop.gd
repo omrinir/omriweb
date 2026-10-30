@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  קישוטי רחוב ברקע (בלי התנגשות - הדמויות עוברות לפניהם):
 #    TRAFFIC_LIGHT - רמזור שמהבהב בצהוב
@@ -43,6 +44,11 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	match kind:
 		TRAFFIC_LIGHT:
 			var pole := Color("2a2a2e")
@@ -58,7 +64,7 @@ func _draw() -> void:
 			var pole := Color("2e2e33")
 			Art.limb(self, PackedVector2Array([Vector2(0, 0), Vector2(2, -90), Vector2(14, -125), Vector2(34, -122)]), 4.0, pole)
 			Art.fill(self, PackedVector2Array([Vector2(28, -124), Vector2(42, -121), Vector2(40, -116), Vector2(30, -118)]), Color("3a3a40"), Art.OUTLINE, 1.0)
-			draw_line(Vector2(34, -117), Vector2(32, -100), Color(0.1, 0.1, 0.1), 1.0, true)   # חוט שמשתלשל
+			DrawBatch.line(self, Vector2(34, -117), Vector2(32, -100), Color(0.1, 0.1, 0.1), 1.0, true)   # חוט שמשתלשל
 		FENCE:
 			var rng := RandomNumberGenerator.new()
 			rng.seed = _seed
@@ -79,31 +85,31 @@ func _draw() -> void:
 						if p.x >= 0.0 and p.x <= w and p.distance_to(hole) > 16.0:
 							pts.append(p)
 						elif pts.size() > 1:
-							draw_polyline(pts, mesh, 1.0, true)
+							DrawBatch.polyline(self, pts, mesh, 1.0, true)
 							pts = PackedVector2Array()
 						else:
 							pts = PackedVector2Array()
 					if pts.size() > 1:
-						draw_polyline(pts, mesh, 1.0, true)
+						DrawBatch.polyline(self, pts, mesh, 1.0, true)
 				i += 8.0
 			# קצוות קרועים של החור
 			for k in 8:
 				var a := TAU * float(k) / 8.0
 				var p := hole + Vector2(cos(a), sin(a)) * 16.0
-				draw_line(p, p + Vector2(cos(a), sin(a)) * -rng.randf_range(3.0, 7.0), mesh, 1.0, true)
+				DrawBatch.line(self, p, p + Vector2(cos(a), sin(a)) * -rng.randf_range(3.0, 7.0), mesh, 1.0, true)
 			for px in [0.0, w / 2.0, w]:
 				Art.limb(self, PackedVector2Array([Vector2(px, 0), Vector2(px + (rng.randf_range(-4, 4) if px == w else 0.0), -h - 4.0)]), 3.0, post)
-			draw_line(Vector2(0, -h), Vector2(w, -h + 2.0), post, 2.0, true)
+			DrawBatch.line(self, Vector2(0, -h), Vector2(w, -h + 2.0), post, 2.0, true)
 			# תיל דוקרני מסולסל
 			var coil := PackedVector2Array()
 			for k in 61:
 				var t := float(k) / 60.0
 				coil.append(Vector2(t * w + sin(t * 60.0) * 4.0, -h - 6.0 + cos(t * 60.0) * 5.0))
-			draw_polyline(coil, Color(0.5, 0.5, 0.55, 0.8), 1.0, true)
+			DrawBatch.polyline(self, coil, Color(0.5, 0.5, 0.55, 0.8), 1.0, true)
 		TRASH_FIRE:
 			var can := Color("4a4c4a")
 			Art.fill_shaded(self, PackedVector2Array([Vector2(-11, 0), Vector2(-13, -26), Vector2(13, -26), Vector2(11, 0)]), can, 0.15, 0.4, Art.OUTLINE, 1.4)
 			for y in [-8.0, -18.0]:
-				draw_line(Vector2(-12, y), Vector2(12, y), Color(0, 0, 0, 0.4), 1.2, true)
+				DrawBatch.line(self, Vector2(-12, y), Vector2(12, y), Color(0, 0, 0, 0.4), 1.2, true)
 			Art.oval(self, Vector2(0, -26), 13.0, 2.5, Color("2a2a2a"), 0.0, Art.OUTLINE, 1.0)
 			Art.glow(self, Vector2(0, -26), 30.0, Color(1.0, 0.5, 0.2, 0.35))

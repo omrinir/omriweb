@@ -187,7 +187,7 @@ func _move(delta: float, vx: float) -> bool:
 # ============================================================
 func draw() -> bool:
 	if state == POSE and not z.dead and z.possessed == null:
-		z.draw_set_transform(Vector2.ZERO, 0.0, Vector2(z._dir * z.sc, z.sc))
+		DrawBatch.set_transform(z, Vector2.ZERO, 0.0, Vector2(z._dir * z.sc, z.sc))
 		Decor.scarecrow_body(z, z._flash > 0.0, _turn, sin(z._time * 1.3) * 0.6)
 		end_draw()
 		return true
@@ -205,15 +205,15 @@ func draw() -> bool:
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), straw, col(z.shoe))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-8.0 - sin(p) * 4.0, 12.0), Art.shade(straw, 0.2), Art.shade(shirt, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-6, 2)]), shirt, 0.12, 0.35)
-	z.draw_rect(Rect2(sh + Vector2(-1, 6), Vector2(5, 5)), col(Color("8a5a2a")))
+	DrawBatch.rect(z, Rect2(sh + Vector2(-1, 6), Vector2(5, 5)), col(Color("8a5a2a")))
 	for q in 3:
-		z.draw_line(hip + Vector2(-4.0 + float(q) * 4.0, 2), hip + Vector2(-5.0 + float(q) * 5.0, 7), straw, 1.4)
+		DrawBatch.line(z, hip + Vector2(-4.0 + float(q) * 4.0, 2), hip + Vector2(-5.0 + float(q) * 5.0, 7), straw, 1.4)
 	Art.oval_shaded(z, head, 6.2, 6.8, sk, 0.0)
 	for ex in [1.5, 4.5]:
-		z.draw_circle(head + Vector2(ex, -1.5), 1.3, col(Color("1a1414")))
+		DrawBatch.circle(z, head + Vector2(ex, -1.5), 1.3, col(Color("1a1414")))
 		if not z.dead:
-			z.draw_circle(head + Vector2(ex, -1.5), 0.6, Color(1.0, 0.4, 0.15))   # עיניים בוערות כשהוא ער
-	z.draw_line(head + Vector2(0, 3), head + Vector2(6, 2), col(Color("3a2a1a")), 1.2)
+			DrawBatch.circle(z, head + Vector2(ex, -1.5), 0.6, Color(1.0, 0.4, 0.15))   # עיניים בוערות כשהוא ער
+	DrawBatch.line(z, head + Vector2(0, 3), head + Vector2(6, 2), col(Color("3a2a1a")), 1.2)
 	Art.fill(z, PackedVector2Array([head + Vector2(-11, -4), head + Vector2(11, -4), head + Vector2(6, -6), head + Vector2(4, -12), head + Vector2(-4, -12), head + Vector2(-6, -6)]), straw, Art.OUTLINE, 1.0)
 	# יד קדמית + מגל
 	var hand: Vector2
@@ -229,14 +229,14 @@ func draw() -> bool:
 		ang = -0.6
 	z._arm(sh + Vector2(3, 1), hand, straw, shirt)
 	var tip := hand + Vector2.from_angle(ang) * 11.0
-	z.draw_line(hand, tip, col(Color("5a4028")), 2.2)   # ידית
+	DrawBatch.line(z, hand, tip, col(Color("5a4028")), 2.2)   # ידית
 	var blade := PackedVector2Array()
 	for i in 9:
 		var a := ang - 1.6 + float(i) * 0.33
 		blade.append(tip + Vector2.from_angle(ang + 1.0) * 7.0 + Vector2.from_angle(a) * 8.0)
-	z.draw_polyline(blade, col(Color("b8bcc0")), 2.0)
+	DrawBatch.polyline(z, blade, col(Color("b8bcc0")), 2.0)
 	if state == SWING and _st <= 0.0 and _st > -0.12:   # קשת של המכה
-		z.draw_arc(sh + Vector2(6, 0), SWING_R * 0.7, -1.4, 0.9, 12, Color(1, 1, 1, 0.5), 2.0)
+		DrawBatch.arc(z, sh + Vector2(6, 0), SWING_R * 0.7, -1.4, 0.9, 12, Color(1, 1, 1, 0.5), 2.0)
 	end_draw()
 	return true
 
@@ -249,7 +249,12 @@ class Post extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		preload("res://effects/s24_decor.gd").scarecrow_post(self)
 		if empty:   # קש שנשאר על הקורה
 			for q in 4:
-				draw_line(Vector2(-20.0 + float(q) * 12.0, -preload("res://effects/s24_decor.gd").POST_H - 38.0), Vector2(-22.0 + float(q) * 12.0, -preload("res://effects/s24_decor.gd").POST_H - 30.0), preload("res://effects/s24_decor.gd").WHEAT, 1.2)
+				DrawBatch.line(self, Vector2(-20.0 + float(q) * 12.0, -preload("res://effects/s24_decor.gd").POST_H - 38.0), Vector2(-22.0 + float(q) * 12.0, -preload("res://effects/s24_decor.gd").POST_H - 30.0), preload("res://effects/s24_decor.gd").WHEAT, 1.2)

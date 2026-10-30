@@ -188,14 +188,19 @@ class Axe extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := _t * 18.0
 		var hd := Vector2.from_angle(a)
-		draw_line(-hd * 12.0, hd * 12.0, Color("5a3a22"), 3.0)   # ידית
-		draw_line(-hd * 12.0, -hd * 15.0, Color("8a8a90"), 2.0)   # חוד תחתון
+		DrawBatch.line(self, -hd * 12.0, hd * 12.0, Color("5a3a22"), 3.0)   # ידית
+		DrawBatch.line(self, -hd * 12.0, -hd * 15.0, Color("8a8a90"), 2.0)   # חוד תחתון
 		var hn := hd.orthogonal()
-		draw_colored_polygon(PackedVector2Array([hd * 12.0 - hn * 3.0, hd * 12.0 + hn * 12.0, hd * 9.0 + hn * 10.0, hd * 10.0 - hn * 3.0]), Color("b8c0c8"))   # להב
-		draw_line(hd * 12.0 - hn * 3.0, hd * 12.0 - hn * 8.0, Color("b8c0c8"), 3.0)   # את
-		draw_arc(Vector2.ZERO, 14.0, a + 2.0, a + 3.6, 6, Color(1, 1, 1, 0.3), 2.0)
+		DrawBatch.colored_polygon(self, PackedVector2Array([hd * 12.0 - hn * 3.0, hd * 12.0 + hn * 12.0, hd * 9.0 + hn * 10.0, hd * 10.0 - hn * 3.0]), Color("b8c0c8"))   # להב
+		DrawBatch.line(self, hd * 12.0 - hn * 3.0, hd * 12.0 - hn * 8.0, Color("b8c0c8"), 3.0)   # את
+		DrawBatch.arc(self, Vector2.ZERO, 14.0, a + 2.0, a + 3.6, 6, Color(1, 1, 1, 0.3), 2.0)
 
 
 # ============================================================
@@ -215,21 +220,21 @@ func draw() -> bool:
 	var hb := sh + Vector2(-6.0 - sin(p) * 2.0, 14.0)
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(coat, 0.3))
 	if axes >= 2:   # גרזן ביד האחורית
-		z.draw_line(hb + Vector2(0, -4), hb + Vector2(0, 10), col(Color("5a3a22")), 2.0)
-		z.draw_line(hb + Vector2(-4, -4), hb + Vector2(5, -5), col(Color("a8b0b8")), 2.5)
+		DrawBatch.line(z, hb + Vector2(0, -4), hb + Vector2(0, 10), col(Color("5a3a22")), 2.0)
+		DrawBatch.line(z, hb + Vector2(-4, -4), hb + Vector2(5, -5), col(Color("a8b0b8")), 2.5)
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(9, 0), hip + Vector2(8, 3), hip + Vector2(-8, 3)]), coat, 0.15, 0.4)
-	z.draw_arc(sh + Vector2(-2, 6), 6.0, 0.0, TAU, 10, col(Color("c03a2a")), 2.0)   # חבל מגולגל
-	z.draw_line(sh + Vector2(-6, -1), hip + Vector2(6, 0), col(Color("c03a2a")), 1.5)
+	DrawBatch.arc(z, sh + Vector2(-2, 6), 6.0, 0.0, TAU, 10, col(Color("c03a2a")), 2.0)   # חבל מגולגל
+	DrawBatch.line(z, sh + Vector2(-6, -1), hip + Vector2(6, 0), col(Color("c03a2a")), 1.5)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(0, -2.5), 6.2, 4.6, 0.0, 12), col(Color("e06a1a")))   # קסדה
-	z.draw_rect(Rect2(head + Vector2(-6, -1), Vector2(12, 1.5)), col(Color("2a2a2a")))
-	z.draw_rect(Rect2(head + Vector2(1, -0.5), Vector2(5, 2.5)), col(Color("2a3a4a")))   # משקפיים
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(0, -2.5), 6.2, 4.6, 0.0, 12), col(Color("e06a1a")))   # קסדה
+	DrawBatch.rect(z, Rect2(head + Vector2(-6, -1), Vector2(12, 1.5)), col(Color("2a2a2a")))
+	DrawBatch.rect(z, Rect2(head + Vector2(1, -0.5), Vector2(5, 2.5)), col(Color("2a3a4a")))   # משקפיים
 	var hf := sh + Vector2(10, -8) if _wind > 0.0 else sh + Vector2(12, 6)
 	z._arm(sh + Vector2(3, 1), hf, sk, coat)
 	if axes >= 1:
-		z.draw_line(hf + Vector2(0, 4), hf + Vector2(0, -12), col(Color("5a3a22")), 2.0)
-		z.draw_colored_polygon(PackedVector2Array([hf + Vector2(-2, -12), hf + Vector2(9, -14), hf + Vector2(8, -11), hf + Vector2(-2, -9)]), col(Color("b8c0c8")))
-		z.draw_line(hf + Vector2(-2, -11), hf + Vector2(-6, -12), col(Color("b8c0c8")), 2.0)
+		DrawBatch.line(z, hf + Vector2(0, 4), hf + Vector2(0, -12), col(Color("5a3a22")), 2.0)
+		DrawBatch.colored_polygon(z, PackedVector2Array([hf + Vector2(-2, -12), hf + Vector2(9, -14), hf + Vector2(8, -11), hf + Vector2(-2, -9)]), col(Color("b8c0c8")))
+		DrawBatch.line(z, hf + Vector2(-2, -11), hf + Vector2(-6, -12), col(Color("b8c0c8")), 2.0)
 	end_draw()
 	return true

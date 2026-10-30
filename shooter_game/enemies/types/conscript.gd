@@ -141,6 +141,6 @@ func draw() -> bool:
 		Art.glow(z, hf + Vector2(17, 0), 4.0 + 6.0 * k, Color(1.0, 0.85, 0.4, 0.3 + 0.5 * k))
 	if state == CONFUSED and not z.dead:
 		var head: Vector2 = o.head
-		z.draw_string(ThemeDB.fallback_font, head + Vector2(-3, -12), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.9))
+		DrawBatch.string(z, ThemeDB.fallback_font, head + Vector2(-3, -12), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.9))
 	end_draw()
 	return true

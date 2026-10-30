@@ -136,11 +136,11 @@ func _drop() -> void:
 func draw() -> bool:
 	if state == DUCT and not z.dead:
 		var s := Vector2(z._dir, 1.0)
-		z.draw_set_transform(Vector2.ZERO, 0.0, s)
+		DrawBatch.set_transform(z, Vector2.ZERO, 0.0, s)
 		var bob := sin(z._walk_phase) * 1.0
 		for ex in [3.0, 8.0]:
-			z.draw_circle(Vector2(ex, -12.0 + bob), 3.0, Color(1.0, 0.15, 0.1, 0.25))
-			z.draw_circle(Vector2(ex, -12.0 + bob), 1.2, Color(1.0, 0.35, 0.2))
+			DrawBatch.circle(z, Vector2(ex, -12.0 + bob), 3.0, Color(1.0, 0.15, 0.1, 0.25))
+			DrawBatch.circle(z, Vector2(ex, -12.0 + bob), 1.2, Color(1.0, 0.35, 0.2))
 		end_draw()
 		return true
 	begin_draw()
@@ -156,15 +156,15 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-2, 1), sh + Vector2(-2.0 - sin(p) * 5.0, 20.0), Art.shade(sk, 0.25), Art.shade(shirt, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-5, -1), sh + Vector2(5, 0), hip + Vector2(4, 2), hip + Vector2(-4, 2)]), shirt, 0.12, 0.4)
 	for q in 3:   # קרעים
-		z.draw_line(sh + Vector2(-3.0 + float(q) * 3.0, 6), sh + Vector2(-2.0 + float(q) * 3.0, 11), col(Color(0.1, 0.1, 0.1, 0.5)), 1.0)
+		DrawBatch.line(z, sh + Vector2(-3.0 + float(q) * 3.0, 6), sh + Vector2(-2.0 + float(q) * 3.0, 11), col(Color(0.1, 0.1, 0.1, 0.5)), 1.0)
 	Art.oval_shaded(z, head, 4.8, 5.6, sk, 0.0)
 	if not z.dead:
-		z.draw_circle(head + Vector2(2.5, -1.0), 1.1, Color(1.0, 0.3, 0.2))
-	z.draw_line(head + Vector2(-1, 3), head + Vector2(4, 3.5), col(Color("2a1a1a")), 1.0)
+		DrawBatch.circle(z, head + Vector2(2.5, -1.0), 1.1, Color(1.0, 0.3, 0.2))
+	DrawBatch.line(z, head + Vector2(-1, 3), head + Vector2(4, 3.5), col(Color("2a1a1a")), 1.0)
 	var hand := sh + Vector2(14.0 + sin(p) * 3.0, 10.0)
 	z._arm(sh + Vector2(3, 1), hand, sk, shirt)
 	for q in 3:   # ציפורניים
-		z.draw_line(hand, hand + Vector2(4, -2.0 + float(q) * 2.0), col(Color("d8d0b0")), 1.0)
+		DrawBatch.line(z, hand, hand + Vector2(4, -2.0 + float(q) * 2.0), col(Color("d8d0b0")), 1.0)
 	end_draw()
 	return true
 
@@ -194,8 +194,13 @@ class Grate extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(_life, 0.0, 1.0)
-		draw_set_transform(Vector2.ZERO, _rot, Vector2.ONE)
-		draw_rect(Rect2(-17, -3, 34, 6), Color(0.16, 0.18, 0.19, a))
+		DrawBatch.set_transform(self, Vector2.ZERO, _rot, Vector2.ONE)
+		DrawBatch.rect(self, Rect2(-17, -3, 34, 6), Color(0.16, 0.18, 0.19, a))
 		for q in 5:
-			draw_line(Vector2(-14.0 + float(q) * 7.0, -3), Vector2(-14.0 + float(q) * 7.0, 3), Color(0.42, 0.44, 0.46, a), 1.2)
+			DrawBatch.line(self, Vector2(-14.0 + float(q) * 7.0, -3), Vector2(-14.0 + float(q) * 7.0, 3), Color(0.42, 0.44, 0.46, a), 1.2)

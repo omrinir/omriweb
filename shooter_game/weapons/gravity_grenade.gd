@@ -39,21 +39,26 @@ func _explode() -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var t := Time.get_ticks_msec() / 1000.0
 	Art.glow(self, Vector2.ZERO, 18.0, Color(COL, 0.55 + 0.25 * sin(t * 14.0)))
 	Art.oval_shaded(self, Vector2.ZERO, 7.0, 7.0, Color("2a2440"), 0.0, Art.OUTLINE, 1.6)
-	draw_arc(Vector2.ZERO, 4.5, t * 8.0, t * 8.0 + PI * 1.3, 10, COL_HOT, 1.6, true)   # טבעת אנרגיה מסתובבת
+	DrawBatch.arc(self, Vector2.ZERO, 4.5, t * 8.0, t * 8.0 + PI * 1.3, 10, COL_HOT, 1.6, true)   # טבעת אנרגיה מסתובבת
 	Art.disc(self, Vector2.ZERO, 2.2, Color(COL_HOT, 0.9), Art.NONE)
 	Art.fill(self, PackedVector2Array([Vector2(-2.5, -7.0), Vector2(2.5, -7.0), Vector2(2.5, -10.0), Vector2(-2.5, -10.0)]), Color("9a9aa2"), Art.OUTLINE, 1.0)
 
 
 # אייקון (בר POWERS, הרצפה, ביד). s ~1 = 24 פיקסלים
 static func draw_icon(ci: CanvasItem, c: Vector2, s: float, t: float) -> void:
-	ci.draw_circle(c, 9.0 * s, Color(COL, 0.25))
-	ci.draw_circle(c, 6.5 * s, Color("2a2440"))
-	ci.draw_arc(c, 4.2 * s, t * 6.0, t * 6.0 + PI * 1.3, 10, COL_HOT, 1.5 * s, true)
-	ci.draw_circle(c, 2.0 * s, COL_HOT)
-	ci.draw_rect(Rect2(c + Vector2(-2.0, -9.5) * s, Vector2(4.0, 3.0) * s), Color("9a9aa2"))
+	DrawBatch.circle(ci, c, 9.0 * s, Color(COL, 0.25))
+	DrawBatch.circle(ci, c, 6.5 * s, Color("2a2440"))
+	DrawBatch.arc(ci, c, 4.2 * s, t * 6.0, t * 6.0 + PI * 1.3, 10, COL_HOT, 1.5 * s, true)
+	DrawBatch.circle(ci, c, 2.0 * s, COL_HOT)
+	DrawBatch.rect(ci, Rect2(c + Vector2(-2.0, -9.5) * s, Vector2(4.0, 3.0) * s), Color("9a9aa2"))
 
 
 # ---- ציור חלקיקים בקריאה אחת (מהיר: מאות חלקיקים = draw call אחד, בלי draw_circle) ----
@@ -81,7 +86,7 @@ static func _streak(pts: PackedVector2Array, cols: PackedColorArray, head: Vecto
 
 static func _flush(ci: CanvasItem, pts: PackedVector2Array, cols: PackedColorArray) -> void:
 	if not pts.is_empty():
-		RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), PackedInt32Array(), pts, cols)
+		DrawBatch.tris(ci, pts, cols)
 
 
 # ---- החור השחור: רק חלקיקים ----
@@ -204,6 +209,11 @@ class Singularity extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var ck := _collapse_k()
 		var flat := Vector2(1.0, 0.8)   # מעט פחוס - מערבולת ולא עיגול
 		var pts := PackedVector2Array()
@@ -261,6 +271,11 @@ class Flash extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := 1.0 - _t / LIFE
 		var pts := PackedVector2Array()
 		var cols := PackedColorArray()

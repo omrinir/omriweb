@@ -1,4 +1,5 @@
 extends AnimatableBody2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  S7 LIFT - מעלית משא פתוחה (שלב 7)
 #  משטח one-way (שכבה 16, כמו קומה) שנוסע למעלה ולמטה בין low_y ל-high_y,
@@ -73,28 +74,33 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var w := width
 	# כבלים עד הגלגלת (מעל הקצה העליון)
 	var top := high_y - position.y - 70.0
-	draw_line(Vector2(10, 0), Vector2(10, top), Color("1a1a1c"), 2.0)
-	draw_line(Vector2(w - 10, 0), Vector2(w - 10, top), Color("1a1a1c"), 2.0)
+	DrawBatch.line(self, Vector2(10, 0), Vector2(10, top), Color("1a1a1c"), 2.0)
+	DrawBatch.line(self, Vector2(w - 10, 0), Vector2(w - 10, top), Color("1a1a1c"), 2.0)
 	# משטח עם פסי אזהרה בקצוות
 	Art.fill_shaded(self, PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, 10), Vector2(0, 10)]), Color("464a50"), 0.25, 0.4)
 	var x := 0.0
 	while x < w:
-		draw_line(Vector2(x, 1), Vector2(x + 5, 9), Color("2e3136"), 1.0)
+		DrawBatch.line(self, Vector2(x, 1), Vector2(x + 5, 9), Color("2e3136"), 1.0)
 		x += 7.0
 	for ex in [0.0, w - 12.0]:
 		for k in 3:
-			draw_rect(Rect2(ex + float(k) * 4.0, 0, 2.0, 10.0), Color("b8901c"))
-	draw_line(Vector2(0, 0), Vector2(w, 0), Color(0.8, 0.85, 0.9, 0.4), 1.0)
+			DrawBatch.rect(self, Rect2(ex + float(k) * 4.0, 0, 2.0, 10.0), Color("b8901c"))
+	DrawBatch.line(self, Vector2(0, 0), Vector2(w, 0), Color(0.8, 0.85, 0.9, 0.4), 1.0)
 	# מעקה צד (רק ויזואלי) + נורה מהבהבת בזמן נסיעה
-	draw_line(Vector2(2, 0), Vector2(2, -26), Color("30333a"), 2.0)
-	draw_line(Vector2(w - 2, 0), Vector2(w - 2, -26), Color("30333a"), 2.0)
-	draw_line(Vector2(2, -26), Vector2(18, -26), Color("30333a"), 2.0)
-	draw_line(Vector2(w - 18, -26), Vector2(w - 2, -26), Color("30333a"), 2.0)
+	DrawBatch.line(self, Vector2(2, 0), Vector2(2, -26), Color("30333a"), 2.0)
+	DrawBatch.line(self, Vector2(w - 2, 0), Vector2(w - 2, -26), Color("30333a"), 2.0)
+	DrawBatch.line(self, Vector2(2, -26), Vector2(18, -26), Color("30333a"), 2.0)
+	DrawBatch.line(self, Vector2(w - 18, -26), Vector2(w - 2, -26), Color("30333a"), 2.0)
 	var lamp := Color(1.0, 0.6, 0.15) if _moving and fmod(_t * 4.0, 1.0) < 0.5 else Color(0.3, 0.2, 0.1)
-	draw_circle(Vector2(w - 2, -30), 3.0, lamp)
+	DrawBatch.circle(self, Vector2(w - 2, -30), 3.0, lamp)
 	if _moving:
 		Art.glow(self, Vector2(w - 2, -30), 12.0, Color(1.0, 0.6, 0.15, 0.5))
 
@@ -109,18 +115,23 @@ class Shaft extends Node2D:
 		z_index = -2
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var top := high_y - low_y - 90.0   # יחסי ל-position (= תחתית)
 		var dark := Color("1a1c20")
 		var steel := Color("2e3238")
 		for sx in [-6.0, width + 2.0]:
-			draw_rect(Rect2(sx, top, 4.0, -top), steel)
+			DrawBatch.rect(self, Rect2(sx, top, 4.0, -top), steel)
 		var y := 0.0
 		while y > top + 20.0:   # הצלבות
-			draw_line(Vector2(-6, y), Vector2(width + 6, y - 40.0), Color(0.12, 0.13, 0.15, 0.9), 1.5)
-			draw_line(Vector2(width + 6, y), Vector2(-6, y - 40.0), Color(0.12, 0.13, 0.15, 0.9), 1.5)
+			DrawBatch.line(self, Vector2(-6, y), Vector2(width + 6, y - 40.0), Color(0.12, 0.13, 0.15, 0.9), 1.5)
+			DrawBatch.line(self, Vector2(width + 6, y), Vector2(-6, y - 40.0), Color(0.12, 0.13, 0.15, 0.9), 1.5)
 			y -= 40.0
-		draw_rect(Rect2(-14, top - 10.0, width + 28.0, 14.0), dark)
+		DrawBatch.rect(self, Rect2(-14, top - 10.0, width + 28.0, 14.0), dark)
 		for gx in [10.0, width - 10.0]:   # גלגלות
-			draw_circle(Vector2(gx, top - 3.0), 9.0, steel)
-			draw_circle(Vector2(gx, top - 3.0), 3.0, Color("6a6e74"))
-		draw_rect(Rect2(-10, -4, width + 20.0, 6.0), Color("101012"))   # פתח בריצפה
+			DrawBatch.circle(self, Vector2(gx, top - 3.0), 9.0, steel)
+			DrawBatch.circle(self, Vector2(gx, top - 3.0), 3.0, Color("6a6e74"))
+		DrawBatch.rect(self, Rect2(-10, -4, width + 20.0, 6.0), Color("101012"))   # פתח בריצפה

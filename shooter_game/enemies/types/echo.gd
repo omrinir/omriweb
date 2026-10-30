@@ -148,19 +148,19 @@ func draw() -> bool:
 	var reach := state != LISTEN
 	z._arm(sh + Vector2(-3, 1), sh + (Vector2(12, -2) if reach else Vector2(-5.0 - sin(p) * 3.0, 14.0)), Art.shade(sk, 0.25), Art.shade(shirt, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)]), shirt, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-4, 4), hip + Vector2(4, -2), col(Color("8a7a40")), 1.4)   # כתפייה
+	DrawBatch.line(z, sh + Vector2(-4, 4), hip + Vector2(4, -2), col(Color("8a7a40")), 1.4)   # כתפייה
 	head += Vector2(_tilt * 3.0, absf(_tilt) * 1.5)   # מטה את הראש ומקשיב
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	face(head, Vector2(INF, 0))
-	z.draw_rect(Rect2(head + Vector2(-4, -2.5), Vector2(10, 3.2)), col(Color("d8d0b8")))   # תחבושת על העיניים
-	z.draw_line(head + Vector2(0, -1.5), head + Vector2(3, -0.5), col(Color("8a3a2a")), 1.0)
-	z.draw_line(head + Vector2(0, 3), head + Vector2(5, 3.5), col(Color("2a1a14")), 1.2)
+	DrawBatch.rect(z, Rect2(head + Vector2(-4, -2.5), Vector2(10, 3.2)), col(Color("d8d0b8")))   # תחבושת על העיניים
+	DrawBatch.line(z, head + Vector2(0, -1.5), head + Vector2(3, -0.5), col(Color("8a3a2a")), 1.0)
+	DrawBatch.line(z, head + Vector2(0, 3), head + Vector2(5, 3.5), col(Color("2a1a14")), 1.2)
 	Art.fill(z, PackedVector2Array([head + Vector2(-6.5, -3), head + Vector2(-5, -8), head + Vector2(4, -8.5), head + Vector2(7, -3)]), col(Color("c8a030")), Art.OUTLINE, 1.0)   # קסדה
-	z.draw_rect(Rect2(head + Vector2(4, -8), Vector2(3, 3)), col(Color("3a3a3a")))   # פנס שבור
-	z.draw_line(head + Vector2(5, -7), head + Vector2(7, -5), col(Color("8a8a8a")), 0.8)
+	DrawBatch.rect(z, Rect2(head + Vector2(4, -8), Vector2(3, 3)), col(Color("3a3a3a")))   # פנס שבור
+	DrawBatch.line(z, head + Vector2(5, -7), head + Vector2(7, -5), col(Color("8a8a8a")), 0.8)
 	z._arm(sh + Vector2(3, 1), sh + (Vector2(16, -3) if reach else Vector2(9.0 + sin(p) * 3.0, 13.0)), sk, shirt)
 	if state == LISTEN and not z.dead and fmod(z._time, 3.0) < 1.0:   # מקשיב: גלי קול ליד האוזן
 		for q in 3:
-			z.draw_arc(head + Vector2(-6, 0), 4.0 + float(q) * 3.0, PI * 0.7, PI * 1.3, 6, Color(0.8, 0.85, 1.0, 0.5 - float(q) * 0.12), 1.0)
+			DrawBatch.arc(z, head + Vector2(-6, 0), 4.0 + float(q) * 3.0, PI * 0.7, PI * 1.3, 6, Color(0.8, 0.85, 1.0, 0.5 - float(q) * 0.12), 1.0)
 	end_draw()
 	return true

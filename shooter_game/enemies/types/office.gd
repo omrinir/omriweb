@@ -124,24 +124,24 @@ func draw() -> bool:
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	var hb := sh + Vector2(-5.0 - sin(p) * 2.0, 15.0)
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(suit, 0.3))
-	z.draw_rect(Rect2(hb + Vector2(-6, 0), Vector2(10, 8)), col(Color("5a3a22")))   # תיק
-	z.draw_line(hb + Vector2(-2, 0), hb + Vector2(2, 0), col(Color("c8a060")), 1.2)
+	DrawBatch.rect(z, Rect2(hb + Vector2(-6, 0), Vector2(10, 8)), col(Color("5a3a22")))   # תיק
+	DrawBatch.line(z, hb + Vector2(-2, 0), hb + Vector2(2, 0), col(Color("c8a060")), 1.2)
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(7, 3), hip + Vector2(-7, 3)]), suit, 0.12, 0.4)
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-1, -1), sh + Vector2(4, -1), sh + Vector2(2, 8)]), col(Color("e8e8e0")))   # חולצה
-	z.draw_line(sh + Vector2(1.5, 0), sh + Vector2(3, 12), col(Color("b02020")), 2.0)   # עניבה
-	z.draw_rect(Rect2(sh + Vector2(-6, 6), Vector2(4, 5)), col(Color("e0e0e0")))   # תג עובד
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-1, -1), sh + Vector2(4, -1), sh + Vector2(2, 8)]), col(Color("e8e8e0")))   # חולצה
+	DrawBatch.line(z, sh + Vector2(1.5, 0), sh + Vector2(3, 12), col(Color("b02020")), 2.0)   # עניבה
+	DrawBatch.rect(z, Rect2(sh + Vector2(-6, 6), Vector2(4, 5)), col(Color("e0e0e0")))   # תג עובד
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(-0.5, -3.5), 5.0, 2.6, 0.0, 10), col(Color("2a2420")))   # שיער מסורק
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(-0.5, -3.5), 5.0, 2.6, 0.0, 10), col(Color("2a2420")))   # שיער מסורק
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))
 	var hf := head + Vector2(3, 2) if state == CALL else sh + Vector2(11, 7)
 	z._arm(sh + Vector2(3, 1), hf, sk, suit)
 	if state == CALL and not z.dead:   # הטלפון
-		z.draw_rect(Rect2(hf + Vector2(-1, -5), Vector2(3, 7)), Color("1a1a1a"))
+		DrawBatch.rect(z, Rect2(hf + Vector2(-1, -5), Vector2(3, 7)), Color("1a1a1a"))
 		Art.glow(z, hf, 6.0, Color(0.5, 0.8, 1.0, 0.5))
 		var k := fposmod(z._time * 2.0, 1.0)
 		for q in 2:
-			z.draw_arc(hf + Vector2(4, -2), 4.0 + (k + float(q) * 0.5) * 8.0, -0.8, 0.8, 6, Color(0.6, 0.9, 1.0, 0.7 * (1.0 - k)), 1.2)
+			DrawBatch.arc(z, hf + Vector2(4, -2), 4.0 + (k + float(q) * 0.5) * 8.0, -0.8, 0.8, 6, Color(0.6, 0.9, 1.0, 0.7 * (1.0 - k)), 1.2)
 	end_draw()
 	return true

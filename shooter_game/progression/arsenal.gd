@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  ARSENAL - מבנה ההתקדמות של הנשקים, היכולות והתחמושת (במקום רשימות ידניות בכל שלב).
 #  כמו ברוב משחקי היריות הדו-ממדיים (Metal Slug / Broforce / Blazing Chrome / Doom):
@@ -51,8 +52,11 @@ const SPECIALS := {
 	"mind": {"name": "MIND CONTROL", "uses": 1, "from": 10, "weight": 0.7, "color": Color("b060ff"), "weapon": -3},
 	# LASER CANNON: מחזיקים 1.4 שנ' טעינה -> קרן ירוקה 1.6 שנ' שעוברת דרך כל הזומבים (weapons/laser_cannon.gd). 8 שימושים
 	"laser": {"name": "LASER CANNON", "uses": 8, "from": 14, "weight": 0.5, "color": Color("50ff70"), "weapon": -4},
+	# SPIRIT TIGER: נמר רוח ירוק בוער יוצא מהגוף, מזנק על זומבים ו-3 הריגות (effects/spirit_tiger.gd). בבדיקה: רק TEST_TIGER_LEVEL
+	"tiger": {"name": "SPIRIT TIGER", "uses": 1, "from": 999, "weight": 0.0, "color": Color("4dff88"), "weapon": -6},
 }
 const TEST_LASER_LEVEL := 0          # בדיקה: תותח לייזר בתחילת השלב הזה (main.gd). 0 = בלי
+const TEST_TIGER_LEVEL := 20         # בדיקה: SPIRIT TIGER בתחילת השלב הזה (main.gd). 0 = בלי
 const TEST_MIND_EVERY_LEVEL := false  # בדיקה: מכשיר MIND CONTROL בתחילת כל שלב (main.gd). false = רק המציאות הרגילות (משלב 10)
 const SPECIAL_FINDS := Vector2(0.15, 0.85)   # איפה בשלב (יחסי) הם יכולים להיות
 const POTION_FIRST := 3        # שיקוי GOD MODE: שלב 3, ואז כל 2-3 שלבים
@@ -256,22 +260,27 @@ class SupplyMarker extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var col: Color = {"ammo": Color("d8c070"), "supply": Color("a8c070"), "health": Color("ff6a6a"), "cache": Color("ffb040")}.get(kind, Color.WHITE)
-		draw_line(Vector2(-22, 0), Vector2(-22, -58), Color("3a3a3e"), 3.0)   # עמוד
+		DrawBatch.line(self, Vector2(-22, 0), Vector2(-22, -58), Color("3a3a3e"), 3.0)   # עמוד
 		var r := Rect2(Vector2(-36, -74), Vector2(30, 18))
-		draw_rect(r, Color(0.1, 0.1, 0.12, 0.9))
-		draw_rect(r, col, false, 1.6)
+		DrawBatch.rect(self, r, Color(0.1, 0.1, 0.12, 0.9))
+		DrawBatch.rect(self, r, col, false, 1.6)
 		var c := r.get_center()
 		match kind:
 			"health":
-				draw_rect(Rect2(c + Vector2(-2, -6), Vector2(4, 12)), col)
-				draw_rect(Rect2(c + Vector2(-6, -2), Vector2(12, 4)), col)
+				DrawBatch.rect(self, Rect2(c + Vector2(-2, -6), Vector2(4, 12)), col)
+				DrawBatch.rect(self, Rect2(c + Vector2(-6, -2), Vector2(12, 4)), col)
 			"cache":   # צללית רובה
-				draw_line(c + Vector2(-10, 1), c + Vector2(10, -2), col, 2.4)
-				draw_line(c + Vector2(-4, 0), c + Vector2(-6, 5), col, 2.0)
+				DrawBatch.line(self, c + Vector2(-10, 1), c + Vector2(10, -2), col, 2.4)
+				DrawBatch.line(self, c + Vector2(-4, 0), c + Vector2(-6, 5), col, 2.0)
 			_:   # כדורים
 				for i in 3:
 					var x := -6.0 + float(i) * 6.0
-					draw_rect(Rect2(c + Vector2(x - 1.4, -3), Vector2(2.8, 7)), col)
-					draw_colored_polygon(PackedVector2Array([c + Vector2(x - 1.4, -3), c + Vector2(x + 1.4, -3), c + Vector2(x, -6)]), col)
-		draw_rect(Rect2(Vector2(-30, -2), Vector2(60, 3)), Color(0.2, 0.2, 0.22, 0.5))   # בסיס
+					DrawBatch.rect(self, Rect2(c + Vector2(x - 1.4, -3), Vector2(2.8, 7)), col)
+					DrawBatch.colored_polygon(self, PackedVector2Array([c + Vector2(x - 1.4, -3), c + Vector2(x + 1.4, -3), c + Vector2(x, -6)]), col)
+		DrawBatch.rect(self, Rect2(Vector2(-30, -2), Vector2(60, 3)), Color(0.2, 0.2, 0.22, 0.5))   # בסיס

@@ -223,13 +223,18 @@ class Ball extends CharacterBody2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(_fade, 0.0, 1.0)
-		draw_circle(Vector2.ZERO, R + 0.5, Color(0.1, 0.1, 0.1, a))
-		draw_circle(Vector2.ZERO, R - 0.5, Color(0.97, 0.97, 0.97, a))
+		DrawBatch.circle(self, Vector2.ZERO, R + 0.5, Color(0.1, 0.1, 0.1, a))
+		DrawBatch.circle(self, Vector2.ZERO, R - 0.5, Color(0.97, 0.97, 0.97, a))
 		for q in 5:
-			draw_circle(Vector2.from_angle(_spin + float(q) * TAU / 5.0) * 4.5, 1.8, Color(0.1, 0.1, 0.1, a))
+			DrawBatch.circle(self, Vector2.from_angle(_spin + float(q) * TAU / 5.0) * 4.5, 1.8, Color(0.1, 0.1, 0.1, a))
 		if vel.length() > 400.0:
-			draw_line(-vel.normalized() * 22.0, -vel.normalized() * 9.0, Color(1, 1, 1, 0.35 * a), 5.0)
+			DrawBatch.line(self, -vel.normalized() * 22.0, -vel.normalized() * 9.0, Color(1, 1, 1, 0.35 * a), 5.0)
 
 
 # ============================================================
@@ -247,21 +252,21 @@ func draw() -> bool:
 	var head := sh + Vector2(3.5, -8)
 	z._leg(hip + Vector2(-2, 0), f[1], col(Color("f0f0f0")), sk, col(z.shoe))
 	z._leg(hip + Vector2(2, 0), f[0], col(Color("f0f0f0")), sk, col(z.shoe))
-	z.draw_rect(Rect2(hip + Vector2(-6, -2), Vector2(12, 8)), col(z.pants))
+	DrawBatch.rect(z, Rect2(hip + Vector2(-6, -2), Vector2(12, 8)), col(z.pants))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-6.0 - sin(p) * 2.0, 14.0), Art.shade(sk, 0.25), Art.shade(z.shirt, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(7, -1), hip + Vector2(-7, -1)]), col(z.shirt), 0.12, 0.4)
-	z.draw_line(sh + Vector2(-7, -1), sh + Vector2(7, 0), col(Color("2a8a3a")), 2.0)   # צווארון ירוק
-	z.draw_arc(sh + Vector2(0, 6), 2.2, 0.0, TAU, 8, col(Color("2a8a3a")), 1.2)   # 9
-	z.draw_line(sh + Vector2(2.2, 6), sh + Vector2(1.5, 12), col(Color("2a8a3a")), 1.2)
+	DrawBatch.line(z, sh + Vector2(-7, -1), sh + Vector2(7, 0), col(Color("2a8a3a")), 2.0)   # צווארון ירוק
+	DrawBatch.arc(z, sh + Vector2(0, 6), 2.2, 0.0, TAU, 8, col(Color("2a8a3a")), 1.2)   # 9
+	DrawBatch.line(z, sh + Vector2(2.2, 6), sh + Vector2(1.5, 12), col(Color("2a8a3a")), 1.2)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(-1, -3), 5.0, 3.0, 0.0, 10), col(Color("1a1410")))
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(-1, -3), 5.0, 3.0, 0.0, 10), col(Color("1a1410")))
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))
 		if state == STUN:
 			for q in 3:
 				var a: float = z._time * 6.0 + float(q) * TAU / 3.0
-				z.draw_circle(head + Vector2(cos(a) * 7.0, -9.0 + sin(a) * 2.0), 1.2, Color(1.0, 0.95, 0.5))
+				DrawBatch.circle(z, head + Vector2(cos(a) * 7.0, -9.0 + sin(a) * 2.0), 1.2, Color(1.0, 0.95, 0.5))
 	z._arm(sh + Vector2(3, 1), sh + Vector2(10, 6 + sin(p) * 2.0), sk, col(z.shirt))
 	end_draw()
 	return true

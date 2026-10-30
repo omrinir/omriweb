@@ -263,7 +263,7 @@ func draw() -> bool:
 		Art.limb(z, PackedVector2Array([sh, sh + Vector2(7.0 + reach, 8.0 + sin(p) * 2.0), sh + Vector2(13.0 + reach, 12.0 - reach * 0.6)]), 3.0, sk)
 	# גוש הגוף
 	var body := PackedVector2Array([hip + Vector2(-8, 3), hip + Vector2(6, 3), sh + Vector2(6, 2), head + Vector2(3, -5), sh + Vector2(-6, -5)])
-	z.draw_colored_polygon(body, col(SUIT[0]))
+	DrawBatch.colored_polygon(z, body, col(SUIT[0]))
 	# רצועות עלים: תלויות כשהוא עומד, נפרשות למעלה כשהוא שיח
 	for i in 11:
 		var u := float(i) / 10.0
@@ -275,16 +275,16 @@ func draw() -> bool:
 		var ln := lerpf(15.0, 22.0, k) + sin(float(i) * 3.1) * 4.0
 		var n := dirv.orthogonal() * ln * 0.26
 		var c: Color = SUIT[(i * 3) % 4]
-		z.draw_colored_polygon(PackedVector2Array([root, root + dirv * ln * 0.5 + n, root + dirv * ln, root + dirv * ln * 0.5 - n]), col(c))
+		DrawBatch.colored_polygon(z, PackedVector2Array([root, root + dirv * ln * 0.5 + n, root + dirv * ln, root + dirv * ln * 0.5 - n]), col(c))
 	# ברדס עלים על הראש + עיניים
 	Art.oval(z, head, 5.5, 5.0, col(SUIT[1]), 0.0, SUIT[0], 1.0)
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-7, 2), head + Vector2(-3, -9), head + Vector2(5, -7), head + Vector2(7, -1), head + Vector2(1, -2)]), col(SUIT[2]))
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-7, 2), head + Vector2(-3, -9), head + Vector2(5, -7), head + Vector2(7, -1), head + Vector2(1, -2)]), col(SUIT[2]))
 	var eyes := k < 0.6 or (state == HIDE and _eye_t < 0.0)
 	_drawn_eyes = state == HIDE and _eye_t < 0.0
 	if eyes and not z.dead:
 		for e in [Vector2(3.0, 0.5), Vector2(5.5, 1.0)]:
-			z.draw_circle(head + e, 0.9, Color(0.85, 0.95, 0.35, 0.9))
+			DrawBatch.circle(z, head + e, 0.9, Color(0.85, 0.95, 0.35, 0.9))
 	if k < 0.4 and not z.dead:   # פה פתוח כשהוא תוקף
-		z.draw_colored_polygon(PackedVector2Array([head + Vector2(2, 3), head + Vector2(7, 2.5), head + Vector2(6, 5.5)]), Color("1a0606"))
+		DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(2, 3), head + Vector2(7, 2.5), head + Vector2(6, 5.5)]), Color("1a0606"))
 	end_draw()
 	return true

@@ -1,4 +1,5 @@
 extends Node
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  MONOLOGUE - השחקן מדבר לעצמו: בועת קומיקס מעל הראש + קול (גבר צרוד, קצת לוחש).
 #  בכל השלבים (main.gd מוסיף אותו). מדבר מעט: בכל שלב מוגרל MAX 1-4 משפטים (LINES_PER_LEVEL),
@@ -196,6 +197,7 @@ func _ready() -> void:
 	add_child(_layer)
 	_ui = Node2D.new()
 	_layer.add_child(_ui)
+	_ui.add_to_group("cine_hide")   # מצלמת קליע (effects/bullet_cam.gd): הבועה דועכת
 	_ui.draw.connect(_draw_bubble)
 	_voice = AudioStreamPlayer.new()
 	_voice.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
@@ -588,12 +590,12 @@ func _draw_bubble() -> void:
 		wob = sin(_t * 30.0) * 0.03 * maxf(0.0, 1.0 - el / 0.5)
 	elif cat == "scary" or cat == "wtf":
 		c += Vector2(sin(_t * 47.0), cos(_t * 39.0)) * 1.2   # רועד מפחד / בהלם
-	_ui.draw_set_transform(c, wob, Vector2(pop, pop))
+	DrawBatch.set_transform(_ui, c, wob, Vector2(pop, pop))
 	var r := Rect2(-bw * 0.5, -h, bw, h)
 	# זנב הבועה (לכיוון הראש)
 	var tail_x := clampf(-shift_x, -bw * 0.5 + 18.0, bw * 0.5 - 18.0)
 	var tail := PackedVector2Array([Vector2(tail_x - 9, -2), Vector2(tail_x + 9, -2), Vector2(tail_x * 0.6 - 2, 20.0 - shift_y)])
-	_ui.draw_colored_polygon(PackedVector2Array([tail[0] + Vector2(-3, 0), tail[1] + Vector2(3, 0), tail[2] + Vector2(0, 4)]), Color(0, 0, 0, a))
+	DrawBatch.colored_polygon(_ui, PackedVector2Array([tail[0] + Vector2(-3, 0), tail[1] + Vector2(3, 0), tail[2] + Vector2(0, 4)]), Color(0, 0, 0, a))
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.06, 0.05, 0.08, 0.88 * a)
 	sb.border_color = Color(col, a)
@@ -601,11 +603,11 @@ func _draw_bubble() -> void:
 	sb.set_corner_radius_all(14)
 	sb.shadow_color = Color(0, 0, 0, 0.45 * a)
 	sb.shadow_size = 6
-	_ui.draw_style_box(sb, r)
-	_ui.draw_colored_polygon(tail, Color(0.06, 0.05, 0.08, 0.88 * a))
-	_ui.draw_polyline(PackedVector2Array([tail[0], tail[2], tail[1]]), Color(col, a), 3.0)
+	DrawBatch.style_box(_ui, sb, r)
+	DrawBatch.colored_polygon(_ui, tail, Color(0.06, 0.05, 0.08, 0.88 * a))
+	DrawBatch.polyline(_ui, PackedVector2Array([tail[0], tail[2], tail[1]]), Color(col, a), 3.0)
 	# הטקסט: קו מתאר שחור עבה + צבע הקטגוריה
 	var tp := Vector2(-w * 0.5, -h + 7.0 + float(fs) * 0.92)
 	f.draw_multiline_string_outline(_ui.get_canvas_item(), tp, shown, HORIZONTAL_ALIGNMENT_CENTER, w, fs, 2, 6, Color(0, 0, 0, a))
 	f.draw_multiline_string(_ui.get_canvas_item(), tp, shown, HORIZONTAL_ALIGNMENT_CENTER, w, fs, 2, Color(col.lerp(Color.WHITE, 0.35), a))
-	_ui.draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform_matrix(_ui, Transform2D.IDENTITY)

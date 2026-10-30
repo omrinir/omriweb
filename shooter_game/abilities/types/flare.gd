@@ -120,22 +120,27 @@ class Flare extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := clampf(life, 0.0, 1.0)
 		var fl := 0.85 + 0.15 * sin(_t * 31.0) * sin(_t * 17.0)
 		if _landed:
 			Art.glow(self, Vector2(0, -8), 70.0 * k * fl, Color(1.0, 0.15, 0.08, 0.28))
 			Art.glow(self, Vector2(0, -8), 26.0 * k * fl, Color(1.0, 0.55, 0.4, 0.7))
-			draw_line(Vector2(-9, -1), Vector2(7, -4), Color("b01a14"), 4.0, true)   # הזיקוק שוכב
-			draw_line(Vector2(-9, -1), Vector2(-5, -2), Color("2a2a2e"), 4.0, true)
-			draw_circle(Vector2(8, -5), 3.4 * fl, Color(1.0, 0.92, 0.8, k))
+			DrawBatch.line(self, Vector2(-9, -1), Vector2(7, -4), Color("b01a14"), 4.0, true)   # הזיקוק שוכב
+			DrawBatch.line(self, Vector2(-9, -1), Vector2(-5, -2), Color("2a2a2e"), 4.0, true)
+			DrawBatch.circle(self, Vector2(8, -5), 3.4 * fl, Color(1.0, 0.92, 0.8, k))
 			for s in _sparks:
-				draw_circle(s[0], 1.3 * (1.0 - s[2] / 0.45), Color(1.0, 0.75, 0.4, 1.0 - s[2] / 0.45))
+				DrawBatch.circle(self, s[0], 1.3 * (1.0 - s[2] / 0.45), Color(1.0, 0.75, 0.4, 1.0 - s[2] / 0.45))
 			for i in 3:   # עשן ורוד
 				var sy := -14.0 - fposmod(_t * 30.0 + float(i) * 13.0, 40.0)
-				draw_circle(Vector2(sin(_t * 2.0 + float(i)) * 4.0, sy), 5.0 + (-sy - 14.0) * 0.2, Color(1.0, 0.5, 0.5, 0.12 * k))
+				DrawBatch.circle(self, Vector2(sin(_t * 2.0 + float(i)) * 4.0, sy), 5.0 + (-sy - 14.0) * 0.2, Color(1.0, 0.5, 0.5, 0.12 * k))
 		else:
-			draw_set_transform(Vector2.ZERO, _t * 12.0, Vector2.ONE)   # מסתובב באוויר
-			draw_line(Vector2(-8, 0), Vector2(8, 0), Color("b01a14"), 4.0, true)
-			draw_circle(Vector2(8, 0), 3.0, Color(1.0, 0.85, 0.7))
-			draw_set_transform_matrix(Transform2D.IDENTITY)
+			DrawBatch.set_transform(self, Vector2.ZERO, _t * 12.0, Vector2.ONE)   # מסתובב באוויר
+			DrawBatch.line(self, Vector2(-8, 0), Vector2(8, 0), Color("b01a14"), 4.0, true)
+			DrawBatch.circle(self, Vector2(8, 0), 3.0, Color(1.0, 0.85, 0.7))
+			DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 			Art.glow(self, Vector2.ZERO, 22.0, Color(1.0, 0.3, 0.15, 0.5))

@@ -1,4 +1,5 @@
 extends "res://environment/hazard.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  S7 BLAST DOOR - דלת פלדה שנסגרת (שלב 7)
 #  פתוחה כרגיל (הלוח מקופל למעלה במשקוף). זומבי ENGINEER שמושך ידית בלוח בקרה
@@ -121,6 +122,11 @@ func _hazard_tick(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var w := width
 	var steel := Color("3c4046")
 	var dark := Color("1c1e22")
@@ -128,46 +134,46 @@ func _draw() -> void:
 	# מסגרת: שני עמודים + משקוף
 	for sx in [-1.0, 1.0]:
 		var px: float = sx * (w * 0.5 + 6.0)
-		draw_rect(Rect2(px - 5.0, -height - 10.0, 10.0, height + 10.0), dark)
-		draw_rect(Rect2(px - 2.0, -height - 10.0, 3.0, height + 10.0), steel)
+		DrawBatch.rect(self, Rect2(px - 5.0, -height - 10.0, 10.0, height + 10.0), dark)
+		DrawBatch.rect(self, Rect2(px - 2.0, -height - 10.0, 3.0, height + 10.0), steel)
 		var y := -height + 14.0
 		while y < -6.0:   # פסי אזהרה על העמודים
-			draw_colored_polygon(PackedVector2Array([Vector2(px - 5.0, y), Vector2(px + 5.0, y - 6.0), Vector2(px + 5.0, y), Vector2(px - 5.0, y + 6.0)]), Color(hz, 0.7))
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(px - 5.0, y), Vector2(px + 5.0, y - 6.0), Vector2(px + 5.0, y), Vector2(px - 5.0, y + 6.0)]), Color(hz, 0.7))
 			y += 20.0
-	draw_rect(Rect2(-w * 0.5 - 12.0, -height - 14.0, w + 24.0, 16.0), dark)
+	DrawBatch.rect(self, Rect2(-w * 0.5 - 12.0, -height - 14.0, w + 24.0, 16.0), dark)
 	# הלוח: יורד מהמשקוף
 	if _k > 0.0:
 		var hh := height * _k
 		Art.fill_shaded(self, PackedVector2Array([Vector2(-w * 0.5, -height), Vector2(w * 0.5, -height), Vector2(w * 0.5, -height + hh), Vector2(-w * 0.5, -height + hh)]), Color("50545a"), 0.2, 0.35)
 		var y := -height + 10.0
 		while y < -height + hh - 8.0:   # חריצים אופקיים + ברגים
-			draw_line(Vector2(-w * 0.5 + 2, y), Vector2(w * 0.5 - 2, y), Color("2c2f34"), 1.0)
-			draw_circle(Vector2(-w * 0.5 + 4, y + 4), 1.0, Color("7a8088"))
-			draw_circle(Vector2(w * 0.5 - 4, y + 4), 1.0, Color("7a8088"))
+			DrawBatch.line(self, Vector2(-w * 0.5 + 2, y), Vector2(w * 0.5 - 2, y), Color("2c2f34"), 1.0)
+			DrawBatch.circle(self, Vector2(-w * 0.5 + 4, y + 4), 1.0, Color("7a8088"))
+			DrawBatch.circle(self, Vector2(w * 0.5 - 4, y + 4), 1.0, Color("7a8088"))
 			y += 18.0
 		# שוליים תחתונים צהוב-שחור
 		var by := -height + hh
 		var x := -w * 0.5
 		var i := 0
 		while x < w * 0.5:
-			draw_rect(Rect2(x, by - 7.0, minf(6.0, w * 0.5 - x), 7.0), hz if i % 2 == 0 else dark)
+			DrawBatch.rect(self, Rect2(x, by - 7.0, minf(6.0, w * 0.5 - x), 7.0), hz if i % 2 == 0 else dark)
 			x += 6.0
 			i += 1
 		if _k > 0.6:
-			draw_string(ThemeDB.fallback_font, Vector2(-5, -height + hh * 0.45), "7", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.75, 0.7, 0.55, 0.5))
+			DrawBatch.string(self, ThemeDB.fallback_font, Vector2(-5, -height + hh * 0.45), "7", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.75, 0.7, 0.55, 0.5))
 	# אור אזהרה מסתובב על המשקוף
 	var alarm := state != OPEN
 	var bc := Vector2(0, -height - 20.0)
-	draw_rect(Rect2(bc.x - 5.0, bc.y - 2.0, 10.0, 6.0), dark)
-	draw_circle(bc, 4.0, Color(1.0, 0.15, 0.1) if alarm else Color(0.3, 0.1, 0.08))
+	DrawBatch.rect(self, Rect2(bc.x - 5.0, bc.y - 2.0, 10.0, 6.0), dark)
+	DrawBatch.circle(self, bc, 4.0, Color(1.0, 0.15, 0.1) if alarm else Color(0.3, 0.1, 0.08))
 	if alarm:
 		var a := _t * 9.0
 		var beam := Vector2.from_angle(a) * 70.0
-		draw_colored_polygon(PackedVector2Array([bc, bc + beam.rotated(-0.25), bc + beam.rotated(0.25)]), Color(1.0, 0.15, 0.1, 0.18 * absf(cos(a))))
+		DrawBatch.colored_polygon(self, PackedVector2Array([bc, bc + beam.rotated(-0.25), bc + beam.rotated(0.25)]), Color(1.0, 0.15, 0.1, 0.18 * absf(cos(a))))
 		Art.glow(self, bc, 18.0, Color(1.0, 0.2, 0.1, 0.6))
 	# ספירה לאחור: 3 נורות שכבות לפי הזמן שנשאר
 	if state == CLOSED:
 		var left := 1.0 - _st / hold
 		for q in 3:
 			var on := left > float(q) / 3.0
-			draw_circle(Vector2(-8.0 + float(q) * 8.0, -height - 6.0), 2.0, Color(1.0, 0.3, 0.2) if on else Color(0.2, 0.1, 0.1))
+			DrawBatch.circle(self, Vector2(-8.0 + float(q) * 8.0, -height - 6.0), 2.0, Color(1.0, 0.3, 0.2) if on else Color(0.2, 0.1, 0.1))

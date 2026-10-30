@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  שלב 10 (צפון-מזרח, מישורי המלח) - חפצים משותפים לזומבים ולסכנות:
 #   BloodGlob   - גוש דם שעף בקשת מהפצע של BLOODGATE ונוחת על הריצפה -> הופך לפורטל
@@ -62,11 +63,16 @@ class BloodGlob extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for i in _trail.size():
 			var k := 1.0 - float(i) / float(_trail.size())
-			draw_circle(to_local(_trail[i]), 2.0 + 3.0 * k, Color(0.55, 0.0, 0.05, 0.5 * k))
-		draw_circle(Vector2.ZERO, 5.5, Color(0.45, 0.0, 0.04))
-		draw_circle(Vector2(-1.5, -1.5), 2.2, Color(0.9, 0.2, 0.25))
+			DrawBatch.circle(self, to_local(_trail[i]), 2.0 + 3.0 * k, Color(0.55, 0.0, 0.05, 0.5 * k))
+		DrawBatch.circle(self, Vector2.ZERO, 5.5, Color(0.45, 0.0, 0.04))
+		DrawBatch.circle(self, Vector2(-1.5, -1.5), 2.2, Color(0.9, 0.2, 0.25))
 
 	const Sfx := preload("res://sfx.gd")
 	const Particles := preload("res://particles.gd")
@@ -103,24 +109,29 @@ class BloodPortal extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := 30.0 * open_k
 		var pulse := 1.0 + 0.08 * sin(t * (12.0 if exit else 7.0))
-		draw_set_transform(Vector2(0, -1), 0.0, Vector2(1.0, 0.28))
-		draw_circle(Vector2.ZERO, r * 1.25 * pulse, Color(0.9, 0.05, 0.1, 0.18))
-		draw_circle(Vector2.ZERO, r * pulse, Color(0.32, 0.0, 0.03, 0.95))
-		draw_circle(Vector2.ZERO, r * 0.72 * pulse, Color(0.12, 0.0, 0.02))
+		DrawBatch.set_transform(self, Vector2(0, -1), 0.0, Vector2(1.0, 0.28))
+		DrawBatch.circle(self, Vector2.ZERO, r * 1.25 * pulse, Color(0.9, 0.05, 0.1, 0.18))
+		DrawBatch.circle(self, Vector2.ZERO, r * pulse, Color(0.32, 0.0, 0.03, 0.95))
+		DrawBatch.circle(self, Vector2.ZERO, r * 0.72 * pulse, Color(0.12, 0.0, 0.02))
 		for i in 6:   # טבעת סימנים מסתובבת
 			var a := t * (2.4 if exit else -1.6) + float(i) * TAU / 6.0
-			draw_circle(Vector2.from_angle(a) * r * 0.86, 2.6 * open_k, Color(1.0, 0.25, 0.25, 0.9))
-		draw_arc(Vector2.ZERO, r * 0.9, 0.0, TAU, 28, Color(1.0, 0.2, 0.2, 0.6), 2.0)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			DrawBatch.circle(self, Vector2.from_angle(a) * r * 0.86, 2.6 * open_k, Color(1.0, 0.25, 0.25, 0.9))
+		DrawBatch.arc(self, Vector2.ZERO, r * 0.9, 0.0, TAU, 28, Color(1.0, 0.2, 0.2, 0.6), 2.0)
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
 		if exit and not used:   # עמוד אור אדום = "משהו יוצא מכאן"
 			var h := 70.0 * open_k * (0.8 + 0.2 * sin(t * 15.0))
-			draw_rect(Rect2(-r * 0.5, -h, r, h), Color(1.0, 0.1, 0.15, 0.13))
+			DrawBatch.rect(self, Rect2(-r * 0.5, -h, r, h), Color(1.0, 0.1, 0.15, 0.13))
 			for i in 3:
 				var bx := sin(t * 3.0 + float(i) * 2.1) * r * 0.4
 				var by := -fposmod(t * 60.0 + float(i) * 23.0, 60.0)
-				draw_circle(Vector2(bx, by), 2.0, Color(0.8, 0.05, 0.1, 0.8))
+				DrawBatch.circle(self, Vector2(bx, by), 2.0, Color(0.8, 0.05, 0.1, 0.8))
 
 	const Art := preload("res://art.gd")
 
@@ -165,11 +176,16 @@ class ShockBolt extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		Art.glow(self, Vector2.ZERO, 16.0, Color(0.4, 0.75, 1.0, 0.55))
 		if _pts.size() > 1:
-			draw_polyline(_pts, Color(0.45, 0.75, 1.0, 0.6), 5.0)
-			draw_polyline(_pts, Color(0.9, 0.97, 1.0), 2.0)
-		draw_circle(Vector2.ZERO, 4.0, Color(0.95, 1.0, 1.0))
+			DrawBatch.polyline(self, _pts, Color(0.45, 0.75, 1.0, 0.6), 5.0)
+			DrawBatch.polyline(self, _pts, Color(0.9, 0.97, 1.0), 2.0)
+		DrawBatch.circle(self, Vector2.ZERO, 4.0, Color(0.95, 1.0, 1.0))
 
 	const Art := preload("res://art.gd")
 	const Sfx := preload("res://sfx.gd")
@@ -233,18 +249,23 @@ class LiveCable extends "res://environment/hazard.gd":
 		return pts
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		# עמוד עץ + שנאי
-		draw_rect(Rect2(-5, -POLE_H, 10, POLE_H), Color("4a3424"))
-		draw_rect(Rect2(-5, -POLE_H, 3, POLE_H), Color("5e4430"))
-		draw_rect(Rect2(-24, -POLE_H + 8, 48, 6), Color("3a2a1c"))
+		DrawBatch.rect(self, Rect2(-5, -POLE_H, 10, POLE_H), Color("4a3424"))
+		DrawBatch.rect(self, Rect2(-5, -POLE_H, 3, POLE_H), Color("5e4430"))
+		DrawBatch.rect(self, Rect2(-24, -POLE_H + 8, 48, 6), Color("3a2a1c"))
 		Art.fill_shaded(self, PackedVector2Array([Vector2(6, -POLE_H + 22), Vector2(26, -POLE_H + 22), Vector2(26, -POLE_H + 56), Vector2(6, -POLE_H + 56)]), Color("6a7470"), 0.2, 0.3)
-		draw_rect(Rect2(10, -POLE_H + 30, 12, 3), Color(1.0, 0.8, 0.1) if not dead_line else Color("3a3a3a"))
+		DrawBatch.rect(self, Rect2(10, -POLE_H + 30, 12, 3), Color(1.0, 0.8, 0.1) if not dead_line else Color("3a3a3a"))
 		for x in [-20.0, 0.0, 20.0]:
-			draw_rect(Rect2(x - 2, -POLE_H + 2, 4, 6), Color("d8d8d0"))
+			DrawBatch.rect(self, Rect2(x - 2, -POLE_H + 2, 4, 6), Color("d8d8d0"))
 		var pts := points()
 		var c := Color("1a1a1e")
-		draw_polyline(pts, Color(0, 0, 0, 0.9), 5.0)
-		draw_polyline(pts, c if dead_line else Color("26262e"), 3.0)
+		DrawBatch.polyline(self, pts, Color(0, 0, 0, 0.9), 5.0)
+		DrawBatch.polyline(self, pts, c if dead_line else Color("26262e"), 3.0)
 		if dead_line:
 			return
 		# פולסי חשמל זורמים אל הזומבי (חזקים יותר כשהוא טוען)
@@ -256,10 +277,10 @@ class LiveCable extends "res://environment/hazard.gd":
 			var s := fposmod(_t * (220.0 + charge * 500.0) + float(k) * total / float(n), total)
 			var p := _at(pts, s)
 			Art.glow(self, p, 6.0 + charge * 5.0, Color(0.4, 0.75, 1.0, 0.5 + charge * 0.4))
-			draw_circle(p, 1.6 + charge, Color(0.9, 0.97, 1.0))
+			DrawBatch.circle(self, p, 1.6 + charge, Color(0.9, 0.97, 1.0))
 		if randf() < 0.25 + charge * 0.6:   # ניצוץ קטן על הקטע שבריצפה
 			var q := _at(pts, randf() * total)
-			draw_line(q, q + Vector2(randf_range(-6, 6), randf_range(-8, -2)), Color(0.8, 0.95, 1.0), 1.2)
+			DrawBatch.line(self, q, q + Vector2(randf_range(-6, 6), randf_range(-8, -2)), Color(0.8, 0.95, 1.0), 1.2)
 		Art.glow(self, Vector2(16, -POLE_H + 39), 10.0, Color(0.4, 0.75, 1.0, 0.25 + 0.2 * sin(_t * 9.0)))
 
 	func _at(pts: PackedVector2Array, s: float) -> Vector2:
@@ -341,33 +362,38 @@ class DownedLine extends "res://environment/hazard.gd":
 		return pts
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var hw := width * 0.5
 		# עמוד שבור ששוכב באלכסון בקצה
 		Art.fill_shaded(self, PackedVector2Array([Vector2(hw - 4, -2), Vector2(hw + 6, -6), Vector2(hw + 60, -58), Vector2(hw + 52, -62)]), Color("4a3424"), 0.15, 0.3)
-		draw_line(Vector2(hw + 44, -58), Vector2(hw + 70, -40), Color("3a2a1c"), 4.0)
+		DrawBatch.line(self, Vector2(hw + 44, -58), Vector2(hw + 70, -40), Color("3a2a1c"), 4.0)
 		# הכבל המפותל על הריצפה
 		var pts := PackedVector2Array()
 		for i in 13:
 			var u := float(i) / 12.0
 			pts.append(Vector2(lerpf(-hw, hw + 50.0 * (1.0 if i == 12 else 0.0), u), -3.0 - absf(sin(u * 11.0)) * 3.0))
 		pts[12] = Vector2(hw + 54, -56)
-		draw_polyline(pts, Color(0, 0, 0, 0.9), 5.0)
-		draw_polyline(pts, Color("2a2a30"), 3.0)
+		DrawBatch.polyline(self, pts, Color(0, 0, 0, 0.9), 5.0)
+		DrawBatch.polyline(self, pts, Color("2a2a30"), 3.0)
 		var hot := _phase == 1 or _phase == 2
 		var end := Vector2(-hw, -4)
 		if hot or fmod(_t, 1.4) < 0.08:   # קצה קרוע מנצנץ
 			Art.glow(self, end, 12.0 if _phase == 2 else 7.0, Color(0.4, 0.75, 1.0, 0.6))
 			for i in 3:
-				draw_line(end, end + Vector2(randf_range(-10, 4), randf_range(-12, 2)), Color(0.85, 0.95, 1.0), 1.2)
+				DrawBatch.line(self, end, end + Vector2(randf_range(-10, 4), randf_range(-12, 2)), Color(0.85, 0.95, 1.0), 1.2)
 		if _phase == 1:
 			for i in 2:
 				var p := Vector2(randf_range(-hw, hw), -4.0)
-				draw_line(p, p + Vector2(randf_range(-4, 4), -randf_range(4, 10)), Color(0.8, 0.95, 1.0, 0.8), 1.0)
+				DrawBatch.line(self, p, p + Vector2(randf_range(-4, 4), -randf_range(4, 10)), Color(0.8, 0.95, 1.0, 0.8), 1.0)
 		for a in _arcs:
-			draw_polyline(a, Color(0.45, 0.75, 1.0, 0.55), 5.0)
-			draw_polyline(a, Color(0.92, 0.98, 1.0), 1.8)
+			DrawBatch.polyline(self, a, Color(0.45, 0.75, 1.0, 0.55), 5.0)
+			DrawBatch.polyline(self, a, Color(0.92, 0.98, 1.0), 1.8)
 		if _phase == 2:
-			draw_rect(Rect2(-hw, -16, width, 16), Color(0.4, 0.7, 1.0, 0.12))
+			DrawBatch.rect(self, Rect2(-hw, -16, width, 16), Color(0.4, 0.7, 1.0, 0.12))
 
 	const Art := preload("res://art.gd")
 	const Sfx := preload("res://sfx.gd")

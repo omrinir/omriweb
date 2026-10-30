@@ -49,7 +49,7 @@ func _boss() -> bool:
 func stats() -> Dictionary:
 	return {"name": "TANK", "hp": 150, "walk": 26.0, "chase": 50.0, "damage": 2, "bite_delay": 1.4, "scale": 1.7, "width": 1.55,
 		"duck": 0.0, "cover": 0.0, "skin": Color("7c8a86"), "shirt": Color("3a4652"), "pants": Color("262c34"), "shoe": Color("17171a"),
-		"points": 600, "boss": _boss(), "boss_name": "SUBJECT ZERO - THE TANK"}
+		"points": 600, "boss": _boss(), "boss_name": "SUBJECT SIX - THE TANK"}
 
 
 func brain_overrides() -> Dictionary:
@@ -215,8 +215,8 @@ func draw() -> bool:
 		var cp := sh + Vector2(-15.0 + float(i) * 5.0, 2.0 + float(i) * 2.0)
 		Art.fill_shaded(z, PackedVector2Array([cp + Vector2(-3, -6), cp + Vector2(3, -6), cp + Vector2(3, 10), cp + Vector2(-3, 10)]), col(Color("3e4a3a")), 0.2, 0.3, Art.OUTLINE, 1.0)
 		var lv := 0.5 + 0.3 * sin(z._time * 2.0 + float(i))
-		z.draw_rect(Rect2(cp + Vector2(-2, 9.0 - 15.0 * lv), Vector2(4, 15.0 * lv)), Color(0.4, 1.0, 0.3, 0.75))
-		z.draw_line(cp + Vector2(0, -6), head + Vector2(-5, 2), col(Color(0.12, 0.12, 0.12)), 1.2)
+		DrawBatch.rect(z, Rect2(cp + Vector2(-2, 9.0 - 15.0 * lv), Vector2(4, 15.0 * lv)), Color(0.4, 1.0, 0.3, 0.75))
+		DrawBatch.line(z, cp + Vector2(0, -6), head + Vector2(-5, 2), col(Color(0.12, 0.12, 0.12)), 1.2)
 	# זרוע אחורית
 	var bh := sh + Vector2(10.0, 10.0)
 	if up:
@@ -233,18 +233,18 @@ func draw() -> bool:
 	Art.fill_shaded(z, body, sk, 0.15, 0.4)
 	# שרידי חליפת כליאה + רצועות
 	Art.fill(z, PackedVector2Array([hip + Vector2(-10, 4), hip + Vector2(9, 3), hip + Vector2(8, -6), hip + Vector2(-9, -5)]), suit, Art.OUTLINE, 1.0)
-	z.draw_line(sh + Vector2(-10, -3), hip + Vector2(8, -4), col(Color("2a2a2a")), 2.0)
-	z.draw_line(sh + Vector2(10, -4), hip + Vector2(-8, -4), col(Color("2a2a2a")), 2.0)
+	DrawBatch.line(z, sh + Vector2(-10, -3), hip + Vector2(8, -4), col(Color("2a2a2a")), 2.0)
+	DrawBatch.line(z, sh + Vector2(10, -4), hip + Vector2(-8, -4), col(Color("2a2a2a")), 2.0)
 	for i in 3:   # צלקות ניתוח עם תפרים
 		var sc0 := sh.lerp(hip, 0.3 + 0.2 * float(i)) + Vector2(4.0, 0.0)
-		z.draw_line(sc0, sc0 + Vector2(6, 3), col(Color(0.45, 0.15, 0.15)), 1.0)
+		DrawBatch.line(z, sc0, sc0 + Vector2(6, 3), col(Color(0.45, 0.15, 0.15)), 1.0)
 	# ראש קטן שקוע + צווארון
 	Art.oval_shaded(z, head, 5.0, 5.5, sk, 0.0)
 	Art.fill_shaded(z, PackedVector2Array([head + Vector2(-7, 3), head + Vector2(5, 2), head + Vector2(6, 7), head + Vector2(-7, 8)]), col(Color("6a7078")), 0.25, 0.3, Art.OUTLINE, 1.0)
 	var blink := Color(1.0, 0.15, 0.1) if int(z._time * 2.0) % 2 == 0 else Color(0.35, 0.05, 0.05)
-	z.draw_circle(head + Vector2(-2, 5), 1.2, blink)
-	z.draw_circle(head + Vector2(2.5, -1.5), 1.0, Color(1.0, 0.85, 0.3))
-	z.draw_line(head + Vector2(0.5, 2.0), head + Vector2(4.5, 2.0), Color(0.2, 0.0, 0.0), 1.2)
+	DrawBatch.circle(z, head + Vector2(-2, 5), 1.2, blink)
+	DrawBatch.circle(z, head + Vector2(2.5, -1.5), 1.0, Color(1.0, 0.85, 0.3))
+	DrawBatch.line(z, head + Vector2(0.5, 2.0), head + Vector2(4.5, 2.0), Color(0.2, 0.0, 0.0), 1.2)
 	# הדלת
 	if panel and not z.dead:
 		var dp := sh + Vector2(17.0, 12.0)    # מרכז הדלת כשהיא מורמת
@@ -259,16 +259,16 @@ func draw() -> bool:
 		Art.fill_shaded(z, door, col(Color("8e969e")), 0.25, 0.35, Art.OUTLINE, 1.4)
 		var win := Transform2D(rot, dp) * PackedVector2Array([Vector2(-3, -21), Vector2(3, -21), Vector2(3, -11), Vector2(-3, -11)])
 		Art.fill(z, win, Color(0.25, 0.45, 0.5, 0.9), Art.OUTLINE, 0.8)
-		z.draw_line(Transform2D(rot, dp) * Vector2(-3, -21), Transform2D(rot, dp) * Vector2(3, -11), Color(1, 1, 1, 0.3), 0.6)
+		DrawBatch.line(z, Transform2D(rot, dp) * Vector2(-3, -21), Transform2D(rot, dp) * Vector2(3, -11), Color(1, 1, 1, 0.3), 0.6)
 		for i in 3:   # פסי אזהרה
 			var a := Transform2D(rot, dp) * Vector2(-5.0 + float(i) * 3.5, 23.5)
 			var b := Transform2D(rot, dp) * Vector2(-2.0 + float(i) * 3.5, 17.0)
-			z.draw_line(a, b, col(Color("e0b020")), 1.8)
-		z.draw_line(Transform2D(rot, dp) * Vector2(-5, 16), Transform2D(rot, dp) * Vector2(5, 16), Color(0.05, 0.05, 0.05), 1.0)
+			DrawBatch.line(z, a, b, col(Color("e0b020")), 1.8)
+		DrawBatch.line(z, Transform2D(rot, dp) * Vector2(-5, 16), Transform2D(rot, dp) * Vector2(5, 16), Color(0.05, 0.05, 0.05), 1.0)
 		var dmg := 1.0 - float(panel_hp) / float(PANEL_HP)
 		for i in int(dmg * 8.0):   # שקעים מקליעים
 			var hp := Transform2D(rot, dp) * Vector2(-3.0 + float((i * 5) % 7), -6.0 + float((i * 11) % 26))
-			z.draw_circle(hp, 1.0, Color(0.2, 0.2, 0.22))
+			DrawBatch.circle(z, hp, 1.0, Color(0.2, 0.2, 0.22))
 	# זרוע קדמית ענקית
 	var fh := sh + Vector2(16.0, 12.0)
 	if up:
@@ -280,7 +280,7 @@ func draw() -> bool:
 	Art.limb(z, PackedVector2Array([sh + Vector2(6, 1), sh.lerp(fh, 0.5) + Vector2(3, 4), fh]), 9.0, sk)
 	Art.disc(z, fh, 5.5, sk)
 	for i in 3:
-		z.draw_line(fh + Vector2(2, -3 + i * 3), fh + Vector2(6, -3 + i * 3), Art.OUTLINE, 1.6)
+		DrawBatch.line(z, fh + Vector2(2, -3 + i * 3), fh + Vector2(6, -3 + i * 3), Art.OUTLINE, 1.6)
 	end_draw()
 	return true
 
@@ -300,8 +300,13 @@ class Shock extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := _t / 0.45
 		for s in [-1.0, 1.0]:
 			var x: float = s * k * 150.0
-			draw_colored_polygon(PackedVector2Array([Vector2(x - 10.0 * s, 0), Vector2(x, -18.0 * (1.0 - k)), Vector2(x + 8.0 * s, 0)]), Color(0.75, 0.7, 0.6, 0.8 * (1.0 - k)))
-		draw_arc(Vector2.ZERO, 20.0 + k * 140.0, PI, TAU, 24, Color(1.0, 0.9, 0.7, 0.6 * (1.0 - k)), 3.0)
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(x - 10.0 * s, 0), Vector2(x, -18.0 * (1.0 - k)), Vector2(x + 8.0 * s, 0)]), Color(0.75, 0.7, 0.6, 0.8 * (1.0 - k)))
+		DrawBatch.arc(self, Vector2.ZERO, 20.0 + k * 140.0, PI, TAU, 24, Color(1.0, 0.9, 0.7, 0.6 * (1.0 - k)), 3.0)

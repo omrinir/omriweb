@@ -155,19 +155,24 @@ class Beam extends Node2D:
 		return [[_origin + _dir * 150.0, 250.0, 0.95 * _i], [_origin + _dir * 55.0, 175.0, 0.9 * _i], [_origin - _dir * 10.0, 115.0, 0.65 * _i]]
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if _i <= 0.01:
 			return
 		var t := tex()
 		var warm := Color(1.0, 0.92, 0.76)
 		var ang := _dir.angle()
 		# בריכת האור הרחוקה (אליפסה רכה לאורך הכוונת)
-		draw_set_transform(_origin + _dir * 150.0, ang, Vector2(1.35, 0.95))
-		draw_texture_rect(t, Rect2(-250, -250, 500, 500), false, Color(warm, 0.17 * _i))
+		DrawBatch.set_transform(self, _origin + _dir * 150.0, ang, Vector2(1.35, 0.95))
+		DrawBatch.texture_rect(self, t, Rect2(-250, -250, 500, 500), false, Color(warm, 0.17 * _i))
 		# האור הקרוב (חזק יותר)
-		draw_set_transform(_origin + _dir * 55.0, ang, Vector2(1.2, 1.0))
-		draw_texture_rect(t, Rect2(-160, -160, 320, 320), false, Color(warm, 0.16 * _i))
+		DrawBatch.set_transform(self, _origin + _dir * 55.0, ang, Vector2(1.2, 1.0))
+		DrawBatch.texture_rect(self, t, Rect2(-160, -160, 320, 320), false, Color(warm, 0.16 * _i))
 		# הילה סביב הדמות + נקודה חמה בפנס עצמו
-		draw_set_transform(_origin, 0.0, Vector2.ONE)
-		draw_texture_rect(t, Rect2(-90, -90, 180, 180), false, Color(warm, 0.1 * _i))
-		draw_texture_rect(t, Rect2(-9, -9, 18, 18), false, Color(1.0, 0.97, 0.88, 0.9 * _i))
-		draw_set_transform_matrix(Transform2D.IDENTITY)
+		DrawBatch.set_transform(self, _origin, 0.0, Vector2.ONE)
+		DrawBatch.texture_rect(self, t, Rect2(-90, -90, 180, 180), false, Color(warm, 0.1 * _i))
+		DrawBatch.texture_rect(self, t, Rect2(-9, -9, 18, 18), false, Color(1.0, 0.97, 0.88, 0.9 * _i))
+		DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)

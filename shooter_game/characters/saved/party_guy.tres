@@ -1,0 +1,44 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://characters/character_preset.gd" id="1_vxehg"]
+
+[resource]
+script = ExtResource("1_vxehg")
+id = "party_guy"
+kind = 1003
+name = "PARTY GUY"
+build = "normal"
+height = 1.0
+width = 1.0
+head_size = 1.1
+hunch = 3.5
+barefoot = false
+hair = "afro"
+hat = "party"
+face = "sunglasses"
+top = "shirt"
+extras = PackedStringArray("tie")
+item = "teddy"
+gore = PackedStringArray("rot", "cheek")
+skin_color = Color(0.658824, 0.690196, 0.290196, 1)
+shirt_color = Color(0.415686, 0.227451, 0.541176, 1)
+pants_color = Color(0.117647, 0.117647, 0.141176, 1)
+shoe_color = Color(0.101961, 0.101961, 0.101961, 1)
+hair_color = Color(0.101961, 0.0862745, 0.0862745, 1)
+eye_color = Color(1, 0.85098, 0.25098, 1)
+hat_color = Color(0.909804, 0.478431, 0.627451, 1)
+gear_color = Color(0.784314, 0.627451, 0.12549, 1)
+variety = true
+hp = 30
+walk_speed = 48.0
+run_speed = 105.0
+damage = 1
+bite_delay = 0.8
+duck = 0.25
+cover = 0.45
+notice = 520.0
+points = 150
+boss = false
+voice = 1.1
+levels = PackedInt32Array()
+share = 10

@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  רגל של זומבי שנתלשה (אחרי 2 קליעים ברגליים).
 #  * נופלת לריצפה ונשארת שם.
@@ -136,7 +137,12 @@ func _physics_process(delta: float) -> void:
 
 # הרגל מצוירת לאורך ציר X: ירך משמאל, כף רגל מימין
 func _draw() -> void:
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(_sc, _sc))
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
+	DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(_sc, _sc))
 	var hip := Vector2(-11.0, 0.0)
 	var knee := Vector2(0.5, 0.6)
 	var mid := Vector2(5.0, 0.3)
@@ -153,4 +159,4 @@ func _draw() -> void:
 		hip + Vector2(-3.0, 1.5), hip + Vector2(-0.5, 2.5), hip + Vector2(0.5, 4.0)]), Color("8a0d0d"), Art.OUTLINE, 1.0)
 	Art.limb(self, PackedVector2Array([hip + Vector2(0.0, -0.8), hip + Vector2(-3.5, -0.8)]), 1.6, Color("e8dcc4"), Art.NONE)   # עצם
 	Art.oval(self, hip + Vector2(2.5, 0.5), 2.0, 1.2, Color(0.5, 0.03, 0.03, 0.7), 0.0, Art.NONE)
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)

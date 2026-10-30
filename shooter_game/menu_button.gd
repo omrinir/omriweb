@@ -1,4 +1,5 @@
 extends Control
+const DrawBatch := preload("res://effects/draw_batch.gd")
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 # ============================================================
 #  כפתור מונפש בסגנון המשחק: לוח כהה עם קצוות קרועים,
@@ -81,6 +82,11 @@ func _slab(w: float, h: float) -> PackedVector2Array:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var w := size.x
 	var h := size.y
 	var k := _hover * _hover * (3.0 - 2.0 * _hover)   # תנועה רכה
@@ -90,13 +96,13 @@ func _draw() -> void:
 	var s := 1.0 + 0.06 * k - 0.06 * _press
 	var off := Vector2(-260.0 * (1.0 - ap), 0.0) + Vector2(sin(_t * 70.0), cos(_t * 63.0)) * 3.0 * _shake
 	var rot := sin(_t * 2.5) * 0.008 * k
-	draw_set_transform(size / 2.0 + off, rot, Vector2(s, s))
+	DrawBatch.set_transform(self, size / 2.0 + off, rot, Vector2(s, s))
 	var o := -size / 2.0
 	var slab := Transform2D(0.0, o) * _slab(w, h)
 	# צל
-	draw_colored_polygon(Transform2D(0.0, Vector2(5, 6)) * slab, Color(0, 0, 0, 0.45))
+	DrawBatch.colored_polygon(self, Transform2D(0.0, Vector2(5, 6)) * slab, Color(0, 0, 0, 0.45))
 	# גוף הכפתור
-	draw_colored_polygon(slab, Color(0.07, 0.06, 0.07, 0.9))
+	DrawBatch.colored_polygon(self, slab, Color(0.07, 0.06, 0.07, 0.9))
 	# דם שממלא את הכפתור משמאל לימין
 	if k > 0.01:
 		var fill_w := (w + 12.0) * k
@@ -110,7 +116,7 @@ func _draw() -> void:
 			var cols := PackedColorArray()
 			for p in poly:
 				cols.append(accent.lerp(accent.darkened(0.5), clampf((p.y - o.y) / h, 0.0, 1.0)))
-			draw_polygon(poly, cols)
+			DrawBatch.polygon(self, poly, cols)
 		# טפטופים מתחת לכפתור
 		var rng := RandomNumberGenerator.new()
 		rng.seed = _seed + 7
@@ -120,31 +126,31 @@ func _draw() -> void:
 				continue
 			var dl := rng.randf_range(6.0, 20.0) * k * (0.7 + 0.3 * sin(_t * 1.5 + float(i)))
 			var p0 := o + Vector2(dx, h - 1.0)
-			draw_line(p0, p0 + Vector2(0, dl), accent.darkened(0.3), 3.0, true)
-			draw_circle(p0 + Vector2(0, dl), 2.4, accent.darkened(0.3))
+			DrawBatch.line(self, p0, p0 + Vector2(0, dl), accent.darkened(0.3), 3.0, true)
+			DrawBatch.circle(self, p0 + Vector2(0, dl), 2.4, accent.darkened(0.3))
 	# קו אור לבן למעלה (כמו במנגה) + פס צבע משמאל
 	var top := PackedVector2Array()
 	for i in int(maxf(4.0, w / 22.0)) + 1:
 		top.append(slab[i])
-	draw_polyline(top, Color(1, 1, 1, 0.35 + 0.4 * k), 1.4, true)
-	draw_rect(Rect2(o + Vector2(0, 4), Vector2(4, h - 8)), accent if not selected else accent.lightened(0.3))
+	DrawBatch.polyline(self, top, Color(1, 1, 1, 0.35 + 0.4 * k), 1.4, true)
+	DrawBatch.rect(self, Rect2(o + Vector2(0, 4), Vector2(4, h - 8)), accent if not selected else accent.lightened(0.3))
 	var closed := PackedVector2Array(slab)
 	closed.append(slab[0])
 	if selected:   # מסגרת אדומה שפועמת
 		var pulse := 0.6 + 0.4 * sin(_t * 4.0)
-		draw_polyline(closed, Color(accent.lightened(0.25), pulse), 2.5, true)
+		DrawBatch.polyline(self, closed, Color(accent.lightened(0.25), pulse), 2.5, true)
 	else:
-		draw_polyline(closed, Color(0, 0, 0, 0.8), 1.5, true)
+		DrawBatch.polyline(self, closed, Color(0, 0, 0, 0.8), 1.5, true)
 	# טקסט
 	var f := ThemeDB.fallback_font
 	var ts := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
 	var tp := o + Vector2((w - ts.x) / 2.0 + 6.0 * k, h / 2.0 + ts.y * 0.32)
-	draw_string_outline(f, tp, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Color(0, 0, 0, 0.9))
-	draw_string(f, tp, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(1, 1, 1).lerp(Color(1.0, 0.92, 0.85), k))
+	DrawBatch.string_outline(self, f, tp, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 6, Color(0, 0, 0, 0.9))
+	DrawBatch.string(self, f, tp, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(1, 1, 1).lerp(Color(1.0, 0.92, 0.85), k))
 	if selected:   # חץ קטן שמסמן את הבחירה
 		var a := o + Vector2(-16.0 - 3.0 * sin(_t * 5.0), h / 2.0)
-		draw_colored_polygon(PackedVector2Array([a + Vector2(-8, -7), a + Vector2(2, 0), a + Vector2(-8, 7)]), accent.lightened(0.2))
+		DrawBatch.colored_polygon(self, PackedVector2Array([a + Vector2(-8, -7), a + Vector2(2, 0), a + Vector2(-8, 7)]), accent.lightened(0.2))
 	# הבזק לבן בלחיצה
 	if _press > 0.0:
-		draw_colored_polygon(slab, Color(1, 1, 1, 0.55 * _press))
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+		DrawBatch.colored_polygon(self, slab, Color(1, 1, 1, 0.55 * _press))
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)

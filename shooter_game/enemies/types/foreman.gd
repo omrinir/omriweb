@@ -127,13 +127,13 @@ func draw() -> bool:
 	var head: Vector2 = o.head
 	var hf: Vector2 = o.hf
 	var sh: Vector2 = o.sh
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-7, -2), head + Vector2(-5, -8), head + Vector2(0, -10), head + Vector2(6, -8), head + Vector2(9, -2)]), col(Color("e8e4dc")))   # קסדת מגן
-	z.draw_line(head + Vector2(-7, -2), head + Vector2(10, -2), col(Color("c8c4bc")), 1.6)
-	z.draw_rect(Rect2(head + Vector2(-5, -6), Vector2(11, 1.6)), col(E.RED))
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-7, -2), head + Vector2(-5, -8), head + Vector2(0, -10), head + Vector2(6, -8), head + Vector2(9, -2)]), col(Color("e8e4dc")))   # קסדת מגן
+	DrawBatch.line(z, head + Vector2(-7, -2), head + Vector2(10, -2), col(Color("c8c4bc")), 1.6)
+	DrawBatch.rect(z, Rect2(head + Vector2(-5, -6), Vector2(11, 1.6)), col(E.RED))
 	E.emblem(z, head + Vector2(1, -7.5), 1.4)
-	z.draw_rect(Rect2(hf + Vector2(-2, -8), Vector2(7, 10)), col(Color("8a6a40")))   # לוח כתיבה
-	z.draw_rect(Rect2(hf + Vector2(-1, -6), Vector2(5, 7)), col(Color("e8e4dc")))
-	z.draw_line(sh + Vector2(2, 2), sh + Vector2(4, 8), col(Color("c8a040")), 0.8)   # שרוך משרוקית
-	z.draw_rect(Rect2(sh + Vector2(3, 8), Vector2(3, 2)), col(Color("c8c8c8")))
+	DrawBatch.rect(z, Rect2(hf + Vector2(-2, -8), Vector2(7, 10)), col(Color("8a6a40")))   # לוח כתיבה
+	DrawBatch.rect(z, Rect2(hf + Vector2(-1, -6), Vector2(5, 7)), col(Color("e8e4dc")))
+	DrawBatch.line(z, sh + Vector2(2, 2), sh + Vector2(4, 8), col(Color("c8a040")), 0.8)   # שרוך משרוקית
+	DrawBatch.rect(z, Rect2(sh + Vector2(3, 8), Vector2(3, 2)), col(Color("c8c8c8")))
 	end_draw()
 	return true

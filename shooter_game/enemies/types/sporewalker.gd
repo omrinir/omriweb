@@ -208,6 +208,11 @@ class SporeCloud extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := _t / life
 		var grow := minf(_t * 3.5, 1.0)
 		var a := (1.0 - k) * minf(_t * 5.0, 1.0)
@@ -216,11 +221,11 @@ class SporeCloud extends Node2D:
 			var rr := r * (0.12 + 0.6 * fposmod(float(q) * 0.41, 1.0)) * grow
 			var p := Vector2(cos(ang + _t * 0.5), sin(ang + _t * 0.4) * 0.5) * rr + Vector2(0, -_t * 6.0)
 			var sz := r * (0.3 + 0.1 * float(q % 3)) * grow
-			draw_circle(p, sz, Color(0.86, 0.82, 0.55, 0.16 * a))
-			draw_circle(p + Vector2(-sz * 0.2, -sz * 0.25), sz * 0.5, Color(0.95, 0.92, 0.7, 0.12 * a))
+			DrawBatch.circle(self, p, sz, Color(0.86, 0.82, 0.55, 0.16 * a))
+			DrawBatch.circle(self, p + Vector2(-sz * 0.2, -sz * 0.25), sz * 0.5, Color(0.95, 0.92, 0.7, 0.12 * a))
 		for q in 18:   # נבגים זוהרים
 			var sp := Vector2(sin(float(q) * 2.7 + _t * 0.9) * r * 0.85, cos(float(q) * 1.9 + _t * 0.7) * r * 0.45 - _t * 8.0)
-			draw_circle(sp, 1.2 + float(q % 2) * 0.6, Color(0.95, 1.0, 0.6, 0.7 * a))
+			DrawBatch.circle(self, sp, 1.2 + float(q % 2) * 0.6, Color(0.95, 1.0, 0.6, 0.7 * a))
 
 
 # ============================================================
@@ -366,6 +371,11 @@ class Stalk extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var Ar := preload("res://art.gd")
 		var k := clampf(_t / grow_t, 0.0, 1.0)
 		var h := 8.0 + 36.0 * k
@@ -375,13 +385,13 @@ class Stalk extends Node2D:
 		# קורים / שורשים על הגופה
 		for q in 5:
 			var a := -2.6 + float(q) * 0.55
-			draw_line(Vector2.ZERO, Vector2.from_angle(a) * Vector2(16.0, 6.0) + Vector2(0, 2), Color(0.9, 0.88, 0.75, 0.55), 1.0)
+			DrawBatch.line(self, Vector2.ZERO, Vector2.from_angle(a) * Vector2(16.0, 6.0) + Vector2(0, 2), Color(0.9, 0.88, 0.75, 0.55), 1.0)
 		Ar.limb(self, PackedVector2Array([Vector2(0, 0), Vector2(wob * 0.3 + 2.0, -h * 0.5), tip]), 3.0 + 2.0 * k, stem)
 		for q in 3:   # גבעולים קטנים מהצד
 			var bp := Vector2(wob * 0.3, -h * (0.35 + float(q) * 0.18))
 			var bt := bp + Vector2((-1.0 if q % 2 == 0 else 1.0) * (5.0 + 4.0 * k), -6.0 * k)
-			draw_line(bp, bt, stem, 1.4)
-			draw_circle(bt, 1.6 + k, Color(0.75, 0.6, 0.35))
+			DrawBatch.line(self, bp, bt, stem, 1.4)
+			DrawBatch.circle(self, bt, 1.6 + k, Color(0.75, 0.6, 0.35))
 		# הפרח / הקפסולה בראש - מתנפחת ופועמת לקראת הפריחה
 		var pulse := 0.5 + 0.5 * sin(_t * (4.0 + 14.0 * k))
 		var pr := 4.0 + 6.0 * k + pulse * 1.5 * k
@@ -389,12 +399,12 @@ class Stalk extends Node2D:
 		Ar.oval_shaded(self, tip, pr, pr * 1.2, Color(0.72, 0.52, 0.3) if _flash <= 0.0 else Color.WHITE, 0.0)
 		for q in 5:   # כתמים זוהרים על הקפסולה
 			var a := float(q) * 1.26 + _seed
-			draw_circle(tip + Vector2(cos(a), sin(a) * 1.2) * pr * 0.55, 1.0 + 0.4 * k, Color(0.95, 1.0, 0.55, 0.5 + 0.5 * pulse))
+			DrawBatch.circle(self, tip + Vector2(cos(a), sin(a) * 1.2) * pr * 0.55, 1.0 + 0.4 * k, Color(0.95, 1.0, 0.55, 0.5 + 0.5 * pulse))
 		if k > 0.7:   # אזהרה: עומד לפרוח
-			draw_arc(tip, pr + 4.0 + pulse * 3.0, 0.0, TAU, 18, Color(0.95, 1.0, 0.5, 0.6 * pulse), 1.5)
+			DrawBatch.arc(self, tip, pr + 4.0 + pulse * 3.0, 0.0, TAU, 18, Color(0.95, 1.0, 0.5, 0.6 * pulse), 1.5)
 		# מד זמן מתחת
-		draw_line(Vector2(-12, 6), Vector2(12, 6), Color(0, 0, 0, 0.4), 3.0)
-		draw_line(Vector2(-12, 6), Vector2(-12.0 + 24.0 * k, 6), Color(0.85, 0.95, 0.4, 0.85), 2.0)
+		DrawBatch.line(self, Vector2(-12, 6), Vector2(12, 6), Color(0, 0, 0, 0.4), 3.0)
+		DrawBatch.line(self, Vector2(-12, 6), Vector2(-12.0 + 24.0 * k, 6), Color(0.85, 0.95, 0.4, 0.85), 2.0)
 
 
 # ============================================================
@@ -435,13 +445,13 @@ func draw() -> bool:
 	# קורים לבנים על הגוף
 	for q in 4:
 		var mp := sh + Vector2(-6.0 + float(q) * 3.5, 4.0 + float(q % 2) * 8.0)
-		z.draw_polyline(PackedVector2Array([mp, mp + Vector2(2, 3), mp + Vector2(-1, 6)]), myc, 1.0)
+		DrawBatch.polyline(z, PackedVector2Array([mp, mp + Vector2(2, 3), mp + Vector2(-1, 6)]), myc, 1.0)
 	# פטריות מדף על הגב (נפתחות בזמן נשיפה)
 	for q in 3:
 		var bp := sh + Vector2(-8.5, 4.0 + float(q) * 6.0)
 		var w := 6.0 + float(q % 2) * 1.5 + wk * 2.0
 		Art.fill(z, PackedVector2Array([bp, bp + Vector2(-w, -1.5), bp + Vector2(-w + 1.0, 1.8), bp + Vector2(0, 2.5)]), cap if q != 1 else cap2, Art.OUTLINE, 0.9)
-		z.draw_line(bp + Vector2(-w + 1.5, 0.5), bp + Vector2(-1, 1.0), col(Color("7a4a22")), 0.8)
+		DrawBatch.line(z, bp + Vector2(-w + 1.5, 0.5), bp + Vector2(-1, 1.0), col(Color("7a4a22")), 0.8)
 	# הראש
 	z._head(hc, sk)
 	# פטריות על הראש - אשכול של כובעים על גבעולים
@@ -450,24 +460,24 @@ func draw() -> bool:
 	for m in heads:
 		var base: Vector2 = hc + Vector2(m[0])
 		var stem_top := base + Vector2(sin(t * 1.5 + base.x) * 0.6, -4.0 * grow)
-		z.draw_line(base, stem_top, col(Color("e0d8c0")), 1.6)
+		DrawBatch.line(z, base, stem_top, col(Color("e0d8c0")), 1.6)
 		var r: float = float(m[1]) * grow
 		Art.fill(z, PackedVector2Array([stem_top + Vector2(-r, 1), stem_top + Vector2(-r * 0.7, -r * 0.55), stem_top + Vector2(0, -r * 0.75), stem_top + Vector2(r * 0.7, -r * 0.55), stem_top + Vector2(r, 1)]), m[2], Art.OUTLINE, 1.0)
-		z.draw_circle(stem_top + Vector2(-r * 0.3, -r * 0.35), 0.9, col(Color("f0e8d0")))
+		DrawBatch.circle(z, stem_top + Vector2(-r * 0.3, -r * 0.35), 0.9, col(Color("f0e8d0")))
 	# פטרייה גדולה על הכתף הקדמית
 	var sp := sh + Vector2(6.0, 0.0)
-	z.draw_line(sp, sp + Vector2(2, -5.0 * grow), col(Color("e0d8c0")), 2.2)
+	DrawBatch.line(z, sp, sp + Vector2(2, -5.0 * grow), col(Color("e0d8c0")), 2.2)
 	var cr := 6.5 * grow
 	Art.fill(z, PackedVector2Array([sp + Vector2(2 - cr, -4), sp + Vector2(2 - cr * 0.6, -4 - cr * 0.65), sp + Vector2(2, -4 - cr * 0.8), sp + Vector2(2 + cr * 0.6, -4 - cr * 0.65), sp + Vector2(2 + cr, -4)]), cap, Art.OUTLINE, 1.1)
 	for q in 3:
-		z.draw_circle(sp + Vector2(-1.0 + float(q) * 3.0, -7.0 * grow), 0.9, col(Color("f0e8d0")))
+		DrawBatch.circle(z, sp + Vector2(-1.0 + float(q) * 3.0, -7.0 * grow), 0.9, col(Color("f0e8d0")))
 	# זוהר נבגים
 	var gl := 0.12 + 0.1 * sin(t * 3.0) + wk * 0.35
 	Art.glow(z, hc + Vector2(0, -8), 16.0 + wk * 14.0, Color(0.9, 1.0, 0.5, gl))
-	if not z.crowded():
+	if not z.lod():
 		for q in 5:   # נבגים שנושרים
 			var fp := hc + Vector2(-8.0 + float(q) * 4.0, -6.0 + fmod(t * 9.0 + float(q) * 7.0, 34.0))
-			z.draw_circle(fp, 0.9, Color(0.95, 1.0, 0.6, 0.6))
+			DrawBatch.circle(z, fp, 0.9, Color(0.95, 1.0, 0.6, 0.6))
 	# יד קדמית
 	var hf := sh + (Vector2(16, -10) if puff else Vector2(9.0 - sin(z._walk_phase) * 3.0, 17.0))
 	z._arm(sh + Vector2(5, 1), hf, sk, shirt)

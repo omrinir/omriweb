@@ -1,4 +1,5 @@
 extends "res://levels/stage_base.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  STAGE 6 - "NO SAFE FLOOR"
 #  בניין דירות/משרדים הרוס בלילה גשום. השלב הראשון עם משחק אנכי אמיתי:
@@ -128,26 +129,26 @@ func build_background(layer: CanvasLayer) -> Node:
 	bg.level_w = level_w
 	bg.sky = func(ci: CanvasItem, v: Vector2, t: float):
 		Kit.gradient_sky(ci, v, [Color("080c14"), Color("101826"), Color("1a2436"), Color("243048"), Color("161e2c")])
-		ci.draw_circle(Vector2(v.x * 0.22, 110), 70.0, Color(0.6, 0.7, 0.95, 0.05))   # ירח מאחורי העננים
+		DrawBatch.circle(ci, Vector2(v.x * 0.22, 110), 70.0, Color(0.6, 0.7, 0.95, 0.05))   # ירח מאחורי העננים
 		Kit.clouds(ci, 0.0, v, t, 60.0, Color(0.08, 0.1, 0.15, 0.8), 4, 9.0)
 		Kit.clouds(ci, 0.0, v, t, 150.0, Color(0.12, 0.15, 0.21, 0.55), 8, 15.0)
 		# ברקים רחוקים בתוך העננים (הבזק רך)
 		var k := fmod(t, 5.3)
 		if k < 0.25:
 			var cx := fposmod(float(int(t / 5.3)) * 397.0, v.x)
-			ci.draw_circle(Vector2(cx, 90), 120.0, Color(0.6, 0.65, 0.9, 0.12 * (1.0 - k / 0.25)))
+			DrawBatch.circle(ci, Vector2(cx, 90), 120.0, Color(0.6, 0.65, 0.9, 0.12 * (1.0 - k / 0.25)))
 	# שכבה 1 (רחוקה): גורדי שחקים + מגדלי רדיו מהבהבים + מסוק עם זרקור
 	bg.add_layer(0.10, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
 		Kit.skyline(ci, sc, v, 520.0, Color("161e2c"), 61, Vector2(60, 120), Vector2(220, 400), 0.05, Color(0.85, 0.9, 1.0, 0.45), t, 0.15)
 		for i in 3:
 			var tx := fposmod(float(i) * 610.0 + 180.0 - sc, v.x + 400.0) - 200.0
-			ci.draw_line(Vector2(tx, 520), Vector2(tx, 150.0 + float(i) * 30.0), Color("141a26"), 3.0)
+			DrawBatch.line(ci, Vector2(tx, 520), Vector2(tx, 150.0 + float(i) * 30.0), Color("141a26"), 3.0)
 			for q in 6:
 				var yy := 520.0 - float(q) * 60.0
-				ci.draw_line(Vector2(tx - 8, yy), Vector2(tx + 8, yy - 30), Color("141a26"), 1.0)
+				DrawBatch.line(ci, Vector2(tx - 8, yy), Vector2(tx + 8, yy - 30), Color("141a26"), 1.0)
 			if fmod(t + float(i) * 0.7, 1.8) < 0.6:
-				ci.draw_circle(Vector2(tx, 150.0 + float(i) * 30.0), 3.0, Color(1.0, 0.15, 0.1, 0.9))
-				ci.draw_circle(Vector2(tx, 150.0 + float(i) * 30.0), 9.0, Color(1.0, 0.15, 0.1, 0.2))
+				DrawBatch.circle(ci, Vector2(tx, 150.0 + float(i) * 30.0), 3.0, Color(1.0, 0.15, 0.1, 0.9))
+				DrawBatch.circle(ci, Vector2(tx, 150.0 + float(i) * 30.0), 9.0, Color(1.0, 0.15, 0.1, 0.2))
 		Kit.helicopter(ci, v, t, 46.0, 130.0, Color(0.03, 0.04, 0.06, 0.9), true))
 	# שכבה 2 (אמצע): בניינים עם חלונות קרים, נורות אדומות על הגגות
 	bg.add_layer(0.30, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
@@ -155,13 +156,13 @@ func build_background(layer: CanvasLayer) -> Node:
 		for i in 4:
 			var lx := fposmod(float(i) * 470.0 + 90.0 - sc, v.x + 300.0) - 150.0
 			if fmod(t * 0.8 + float(i) * 0.45, 2.0) < 0.5:
-				ci.draw_circle(Vector2(lx, 300.0 + float(i % 2) * 40.0), 2.5, Color(1.0, 0.2, 0.15, 0.85))
+				DrawBatch.circle(ci, Vector2(lx, 300.0 + float(i % 2) * 40.0), 2.5, Color(1.0, 0.2, 0.15, 0.85))
 		# וילונות גשם שעוברים
 		for i in 5:
 			var rx := fposmod(float(i) * 300.0 - t * 40.0 - sc * 0.2, v.x + 400.0) - 200.0
 			for q in 12:
 				var xx := rx + float(q) * 9.0
-				ci.draw_line(Vector2(xx, 120), Vector2(xx - 40.0, 620), Color(0.6, 0.7, 0.85, 0.03), 6.0))
+				DrawBatch.line(ci, Vector2(xx, 120), Vector2(xx - 40.0, 620), Color(0.6, 0.7, 0.85, 0.03), 6.0))
 	# שכבה 3 (קרובה): בנייני דירות מעבר לרחוב - מדרגות חירום, מיכלי מים, שלט ניאון מהבהב
 	bg.add_layer(0.60, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
 		var period := 640.0
@@ -173,8 +174,8 @@ func build_background(layer: CanvasLayer) -> Node:
 			var bw := r.randf_range(300.0, 440.0)
 			var top := r.randf_range(190.0, 300.0)
 			var body := Color("0e131c").lerp(Color("141a24"), r.randf())
-			ci.draw_rect(Rect2(x, top, bw, v.y - top), body)
-			ci.draw_rect(Rect2(x - 4, top - 8, bw + 8, 8), body.darkened(0.3))
+			DrawBatch.rect(ci, Rect2(x, top, bw, v.y - top), body)
+			DrawBatch.rect(ci, Rect2(x - 4, top - 8, bw + 8, 8), body.darkened(0.3))
 			# חלונות (חלק דולקים, חלק עם צללית שזזה)
 			var wy := top + 22.0
 			var row := 0
@@ -188,11 +189,11 @@ func build_background(layer: CanvasLayer) -> Node:
 						wc = Color(1.0, 0.78, 0.45, 0.55) if r.randf() < 0.7 else Color(0.6, 0.8, 1.0, 0.45)
 						if fmod(t * 0.3 + float(row * 7 + col_i), 23.0) < 0.4:
 							wc = Color("0a0d14")
-					ci.draw_rect(Rect2(wx, wy, 20, 26), wc)
+					DrawBatch.rect(ci, Rect2(wx, wy, 20, 26), wc)
 					if lit < 0.04:   # מישהו (או משהו) עובר בחלון
 						var sxp := wx + 10.0 + sin(t * 0.6 + float(k)) * 8.0
-						ci.draw_rect(Rect2(sxp - 3, wy + 8, 6, 18), Color(0.02, 0.02, 0.03, 0.85))
-						ci.draw_circle(Vector2(sxp, wy + 7), 3.5, Color(0.02, 0.02, 0.03, 0.85))
+						DrawBatch.rect(ci, Rect2(sxp - 3, wy + 8, 6, 18), Color(0.02, 0.02, 0.03, 0.85))
+						DrawBatch.circle(ci, Vector2(sxp, wy + 7), 3.5, Color(0.02, 0.02, 0.03, 0.85))
 					wx += 38.0
 					col_i += 1
 				wy += 48.0
@@ -201,28 +202,28 @@ func build_background(layer: CanvasLayer) -> Node:
 			var fx := x + bw * 0.62
 			var fy := top + 40.0
 			while fy < v.y - 60.0:
-				ci.draw_line(Vector2(fx - 30, fy + 44), Vector2(fx + 50, fy + 44), Color("05070a"), 2.0)
-				ci.draw_line(Vector2(fx - 26, fy + 44), Vector2(fx + 40, fy + 4), Color("05070a"), 1.5)
-				ci.draw_line(Vector2(fx - 30, fy + 34), Vector2(fx + 50, fy + 34), Color("05070a"), 1.0)
+				DrawBatch.line(ci, Vector2(fx - 30, fy + 44), Vector2(fx + 50, fy + 44), Color("05070a"), 2.0)
+				DrawBatch.line(ci, Vector2(fx - 26, fy + 44), Vector2(fx + 40, fy + 4), Color("05070a"), 1.5)
+				DrawBatch.line(ci, Vector2(fx - 30, fy + 34), Vector2(fx + 50, fy + 34), Color("05070a"), 1.0)
 				fy += 48.0
 			# מיכל מים על הגג
 			if r.randf() < 0.6:
 				var tx := x + r.randf_range(30.0, bw - 80.0)
-				ci.draw_rect(Rect2(tx + 6, top - 30, 3, 22), Color("080a0e"))
-				ci.draw_rect(Rect2(tx + 40, top - 30, 3, 22), Color("080a0e"))
-				ci.draw_colored_polygon(PackedVector2Array([Vector2(tx, top - 30), Vector2(tx + 50, top - 30), Vector2(tx + 48, top - 80), Vector2(tx + 2, top - 80)]), Color("080a0e"))
-				ci.draw_colored_polygon(PackedVector2Array([Vector2(tx - 2, top - 80), Vector2(tx + 52, top - 80), Vector2(tx + 25, top - 96)]), Color("080a0e"))
+				DrawBatch.rect(ci, Rect2(tx + 6, top - 30, 3, 22), Color("080a0e"))
+				DrawBatch.rect(ci, Rect2(tx + 40, top - 30, 3, 22), Color("080a0e"))
+				DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(tx, top - 30), Vector2(tx + 50, top - 30), Vector2(tx + 48, top - 80), Vector2(tx + 2, top - 80)]), Color("080a0e"))
+				DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(tx - 2, top - 80), Vector2(tx + 52, top - 80), Vector2(tx + 25, top - 96)]), Color("080a0e"))
 			# שלט ניאון אנכי מהבהב
 			if k % 3 == 0:
 				var nx := x + 10.0
 				var on := fmod(t * 1.3 + float(k), 6.0) > 0.35 and not (fmod(t * 9.0, 7.0) < 0.5 and fmod(t, 4.0) < 1.0)
-				ci.draw_rect(Rect2(nx, top + 30, 26, 120), Color("06080c"))
+				DrawBatch.rect(ci, Rect2(nx, top + 30, 26, 120), Color("06080c"))
 				var nc := Color(0.3, 0.9, 1.0) if k % 2 == 0 else Color(1.0, 0.3, 0.5)
 				var word := "HOTEL" if k % 2 == 0 else "24H"
 				for i in word.length():
-					ci.draw_string(ThemeDB.fallback_font, Vector2(nx + 6, top + 52 + i * 22), word[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(nc, 0.9 if on else 0.15))
+					DrawBatch.string(ci, ThemeDB.fallback_font, Vector2(nx + 6, top + 52 + i * 22), word[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(nc, 0.9 if on else 0.15))
 				if on:
-					ci.draw_rect(Rect2(nx - 10, top + 20, 46, 140), Color(nc, 0.05))
+					DrawBatch.rect(ci, Rect2(nx - 10, top + 20, 46, 140), Color(nc, 0.05))
 		Kit.ground_fade(ci, v, 600.0))
 	# ברק על כל הרקע + רעם (נראה גם דרך החלונות)
 	bg.overlay = func(ci: CanvasItem, v: Vector2, t: float):
@@ -699,8 +700,13 @@ class Column extends Node2D:
 		z_index = -1
 
 	func _draw() -> void:
-		draw_rect(Rect2(0, -h, 14, h), Color("4a4844"))
-		draw_rect(Rect2(0, -h, 3, h), Color(1, 1, 1, 0.06))
-		draw_rect(Rect2(11, -h, 3, h), Color(0, 0, 0, 0.25))
-		draw_line(Vector2(4, -h * 0.6), Vector2(10, -h * 0.45), Color(0, 0, 0, 0.4), 1.0)
-		draw_line(Vector2(10, -h * 0.45), Vector2(6, -h * 0.3), Color(0, 0, 0, 0.4), 1.0)
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.rect(self, Rect2(0, -h, 14, h), Color("4a4844"))
+		DrawBatch.rect(self, Rect2(0, -h, 3, h), Color(1, 1, 1, 0.06))
+		DrawBatch.rect(self, Rect2(11, -h, 3, h), Color(0, 0, 0, 0.25))
+		DrawBatch.line(self, Vector2(4, -h * 0.6), Vector2(10, -h * 0.45), Color(0, 0, 0, 0.4), 1.0)
+		DrawBatch.line(self, Vector2(10, -h * 0.45), Vector2(6, -h * 0.3), Color(0, 0, 0, 0.4), 1.0)

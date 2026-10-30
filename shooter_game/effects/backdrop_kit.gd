@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  BACKDROP KIT - פונקציות ציור מוכנות לרקעים (סטטיות, בלי מצב).
 #  כל פונקציה מקבלת ci (ה-CanvasItem שמצייר), scroll (מהשכבה) ו-vp (גודל מסך).
@@ -22,8 +23,8 @@ static func gradient_sky(ci: CanvasItem, vp: Vector2, cols: Array, bottom := 0.8
 		var a := int(floor(f))
 		var b := mini(a + 1, n - 1)
 		var c: Color = (cols[a] as Color).lerp(cols[b], f - float(a))
-		ci.draw_rect(Rect2(0, vp.y * bottom * k, vp.x, vp.y * bottom / float(steps - 1) + 1.0), c)
-	ci.draw_rect(Rect2(0, vp.y * bottom, vp.x, vp.y * (1.0 - bottom)), cols[n - 1])
+		DrawBatch.rect(ci, Rect2(0, vp.y * bottom * k, vp.x, vp.y * bottom / float(steps - 1) + 1.0), c)
+	DrawBatch.rect(ci, Rect2(0, vp.y * bottom, vp.x, vp.y * (1.0 - bottom)), cols[n - 1])
 
 
 # קו רקיע של בניינים. base_y = איפה הבניינים "עומדים". windows = הסתברות לחלון דולק
@@ -44,9 +45,9 @@ static func skyline(ci: CanvasItem, scroll: float, vp: Vector2, base_y: float, c
 				var bx := rng.randf_range(0.3, 0.7) * w
 				pts = PackedVector2Array([Vector2(x, base_y), Vector2(x, top + rng.randf_range(0, 30)), Vector2(x + bx * 0.6, top + rng.randf_range(10, 50)),
 					Vector2(x + bx, top + rng.randf_range(40, 90)), Vector2(x + w * 0.8, top + rng.randf_range(0, 30)), Vector2(x + w, top + rng.randf_range(20, 60)), Vector2(x + w, base_y)])
-			ci.draw_colored_polygon(pts, col)
+			DrawBatch.colored_polygon(ci, pts, col)
 			if rng.randf() < 0.3:   # אנטנה / מגדל מים
-				ci.draw_line(Vector2(x + w * 0.5, top), Vector2(x + w * 0.5, top - rng.randf_range(15, 45)), col, 2.0)
+				DrawBatch.line(ci, Vector2(x + w * 0.5, top), Vector2(x + w * 0.5, top - rng.randf_range(15, 45)), col, 2.0)
 			if windows > 0.0:
 				var wy := top + 12.0
 				while wy < base_y - 14.0:
@@ -55,7 +56,7 @@ static func skyline(ci: CanvasItem, scroll: float, vp: Vector2, base_y: float, c
 						var r := rng.randf()
 						if r < windows:
 							var flick := 1.0 if r > windows * 0.15 else (0.4 + 0.6 * float(int(t * 7.0 + wx) % 3 != 0))   # חלק מהחלונות מהבהבים
-							ci.draw_rect(Rect2(wx, wy, 5, 7), Color(win_col, win_col.a * flick))
+							DrawBatch.rect(ci, Rect2(wx, wy, 5, 7), Color(win_col, win_col.a * flick))
 						wx += 12.0
 					wy += 16.0
 			x += w + rng.randf_range(4.0, 30.0)
@@ -76,7 +77,7 @@ static func fire_glow(ci: CanvasItem, p: Vector2, t: float, r := 70.0, seed_v :=
 	for i in 5:
 		var fx := (float(i) - 2.0) * r * 0.12
 		var h := r * 0.35 * (0.6 + 0.4 * sin(t * 9.0 + float(i) * 1.7 + float(seed_v)))
-		ci.draw_colored_polygon(PackedVector2Array([p + Vector2(fx - 6, 0), p + Vector2(fx, -h), p + Vector2(fx + 6, 0)]), Color(1.0, 0.55, 0.15, 0.7))
+		DrawBatch.colored_polygon(ci, PackedVector2Array([p + Vector2(fx - 6, 0), p + Vector2(fx, -h), p + Vector2(fx + 6, 0)]), Color(1.0, 0.55, 0.15, 0.7))
 
 
 # עננים שזזים לבד (t)
@@ -87,7 +88,7 @@ static func clouds(ci: CanvasItem, scroll: float, vp: Vector2, t: float, y: floa
 		var cy := y + rng.randf_range(-40, 40)
 		var s := rng.randf_range(0.7, 1.5)
 		for k in 5:
-			ci.draw_circle(Vector2(cx + float(k) * 34.0 * s, cy + sin(float(k) * 1.7) * 8.0), (26.0 + float(k % 3) * 8.0) * s, col)
+			DrawBatch.circle(ci, Vector2(cx + float(k) * 34.0 * s, cy + sin(float(k) * 1.7) * 8.0), (26.0 + float(k % 3) * 8.0) * s, col)
 
 
 # מסוק שעובר ברקע (צללית + אור מהבהב + זרקור)
@@ -98,14 +99,14 @@ static func helicopter(ci: CanvasItem, vp: Vector2, t: float, period := 38.0, y 
 	var x := lerpf(vp.x + 120.0, -160.0, k / 0.6)
 	var p := Vector2(x, y + sin(t * 1.3) * 6.0)
 	if spot:   # זרקור
-		ci.draw_colored_polygon(PackedVector2Array([p + Vector2(-4, 6), p + Vector2(4, 6), p + Vector2(60 + sin(t) * 40.0, vp.y * 0.7), p + Vector2(-40 + sin(t) * 40.0, vp.y * 0.7)]), Color(0.9, 0.95, 1.0, 0.05))
-	ci.draw_colored_polygon(PackedVector2Array([p + Vector2(-22, -6), p + Vector2(14, -8), p + Vector2(22, 0), p + Vector2(14, 6), p + Vector2(-18, 5)]), col)
-	ci.draw_line(p + Vector2(-20, -1), p + Vector2(-52, -4), col, 3.0)
-	ci.draw_line(p + Vector2(-52, -10), p + Vector2(-52, 2), col, 2.0)
+		DrawBatch.colored_polygon(ci, PackedVector2Array([p + Vector2(-4, 6), p + Vector2(4, 6), p + Vector2(60 + sin(t) * 40.0, vp.y * 0.7), p + Vector2(-40 + sin(t) * 40.0, vp.y * 0.7)]), Color(0.9, 0.95, 1.0, 0.05))
+	DrawBatch.colored_polygon(ci, PackedVector2Array([p + Vector2(-22, -6), p + Vector2(14, -8), p + Vector2(22, 0), p + Vector2(14, 6), p + Vector2(-18, 5)]), col)
+	DrawBatch.line(ci, p + Vector2(-20, -1), p + Vector2(-52, -4), col, 3.0)
+	DrawBatch.line(ci, p + Vector2(-52, -10), p + Vector2(-52, 2), col, 2.0)
 	var blade := 40.0 * absf(sin(t * 30.0))
-	ci.draw_line(p + Vector2(-blade, -12), p + Vector2(blade, -12), Color(col, 0.6), 1.5)
+	DrawBatch.line(ci, p + Vector2(-blade, -12), p + Vector2(blade, -12), Color(col, 0.6), 1.5)
 	if int(t * 2.0) % 2 == 0:
-		ci.draw_circle(p + Vector2(18, 2), 2.0, Color(1.0, 0.2, 0.2, 0.9))
+		DrawBatch.circle(ci, p + Vector2(18, 2), 2.0, Color(1.0, 0.2, 0.2, 0.9))
 
 
 # להקת ציפורים / עטלפים
@@ -118,7 +119,7 @@ static func birds(ci: CanvasItem, vp: Vector2, t: float, seed_v := 3, col := Col
 		var o := Vector2(rng.randf_range(-60, 60), rng.randf_range(-25, 25))
 		var fl := sin(t * 9.0 + float(i)) * 4.0
 		var p := base + o
-		ci.draw_polyline(PackedVector2Array([p + Vector2(-6, fl), p, p + Vector2(6, fl)]), col, 1.5)
+		DrawBatch.polyline(ci, PackedVector2Array([p + Vector2(-6, fl), p, p + Vector2(6, fl)]), col, 1.5)
 
 
 # פיצוץ רחוק (הבזק + פטרייה שמתפזרת). קורה כל period שניות
@@ -131,10 +132,10 @@ static func distant_explosions(ci: CanvasItem, scroll: float, vp: Vector2, t: fl
 	var x := fposmod(rng.randf_range(0, 3000) - scroll, vp.x + 200.0) - 100.0
 	var p := Vector2(x, horizon_y)
 	var e := k / 0.35
-	ci.draw_circle(p, 20.0 + e * 70.0, Color(1.0, 0.6, 0.2, 0.25 * (1.0 - e)))
-	ci.draw_circle(p + Vector2(0, -e * 40.0), 10.0 + e * 40.0, Color(0.25, 0.2, 0.18, 0.5 * (1.0 - e)))
+	DrawBatch.circle(ci, p, 20.0 + e * 70.0, Color(1.0, 0.6, 0.2, 0.25 * (1.0 - e)))
+	DrawBatch.circle(ci, p + Vector2(0, -e * 40.0), 10.0 + e * 40.0, Color(0.25, 0.2, 0.18, 0.5 * (1.0 - e)))
 	if e < 0.15:
-		ci.draw_rect(Rect2(0, 0, vp.x, vp.y), Color(1.0, 0.7, 0.4, 0.05 * (1.0 - e / 0.15)))
+		DrawBatch.rect(ci, Rect2(0, 0, vp.x, vp.y), Color(1.0, 0.7, 0.4, 0.05 * (1.0 - e / 0.15)))
 
 
 # הבזק ברק על כל המסך (מחזיר true אם יש הבזק עכשיו - כדי להשמיע רעם)
@@ -146,7 +147,7 @@ static func lightning(ci: CanvasItem, vp: Vector2, t: float, period := 9.0, seed
 	if k < 0.0 or k > 0.35:
 		return false
 	var a := 0.35 * (1.0 - k / 0.35) * (1.0 if fmod(k, 0.12) < 0.07 else 0.4)
-	ci.draw_rect(Rect2(Vector2.ZERO, vp), Color(0.75, 0.8, 1.0, a))
+	DrawBatch.rect(ci, Rect2(Vector2.ZERO, vp), Color(0.75, 0.8, 1.0, a))
 	# ברק עצמו
 	var x := rng.randf_range(vp.x * 0.1, vp.x * 0.9)
 	var pts := PackedVector2Array([Vector2(x, 0)])
@@ -155,14 +156,14 @@ static func lightning(ci: CanvasItem, vp: Vector2, t: float, period := 9.0, seed
 		y += rng.randf_range(20, 45)
 		x += rng.randf_range(-25, 25)
 		pts.append(Vector2(x, y))
-	ci.draw_polyline(pts, Color(0.9, 0.95, 1.0, a * 2.5), 2.0)
+	DrawBatch.polyline(ci, pts, Color(0.9, 0.95, 1.0, a * 2.5), 2.0)
 	return true
 
 
 # שכבת "רצפה" כהה בתחתית (כדי שהמעבר לרצפת המשחק יהיה רך)
 static func ground_fade(ci: CanvasItem, vp: Vector2, from_y := 560.0) -> void:
 	for i in 6:
-		ci.draw_rect(Rect2(0, from_y + float(i) * 12.0, vp.x, 12.0), Color(0, 0, 0, 0.12 + float(i) * 0.08))
+		DrawBatch.rect(ci, Rect2(0, from_y + float(i) * 12.0, vp.x, 12.0), Color(0, 0, 0, 0.12 + float(i) * 0.08))
 
 
 # זוהר רך (טקסטורה רדיאלית אחת משותפת) - בלי טבעות קשות כמו בכמה draw_circle שקופים
@@ -188,13 +189,13 @@ static func glow_tex() -> Texture2D:
 
 
 static func soft_glow(ci: CanvasItem, c: Vector2, r: float, col: Color, squash := 1.0) -> void:
-	ci.draw_texture_rect(glow_tex(), Rect2(c.x - r, c.y - r * squash, r * 2.0, r * 2.0 * squash), false, col)
+	DrawBatch.texture_rect(ci, glow_tex(), Rect2(c.x - r, c.y - r * squash, r * 2.0, r * 2.0 * squash), false, col)
 
 
 # פס אובך אנכי (שקוף למעלה -> col למטה). מאחורי הדמויות: מבהיר את הרקע כדי שצלליות כהות ייקראו
 static func haze_band(ci: CanvasItem, vp: Vector2, y0: float, y1: float, col: Color) -> void:
 	var c0 := Color(col, 0.0)
-	ci.draw_polygon(PackedVector2Array([Vector2(0, y0), Vector2(vp.x, y0), Vector2(vp.x, y1), Vector2(0, y1)]),
+	DrawBatch.polygon(ci, PackedVector2Array([Vector2(0, y0), Vector2(vp.x, y0), Vector2(vp.x, y1), Vector2(0, y1)]),
 		PackedColorArray([c0, c0, col, col]))
 
 
@@ -208,6 +209,6 @@ static func soft_smoke(ci: CanvasItem, base: Vector2, t: float, height := 260.0,
 
 # אליפסה רכה מסובבת (ערפילית, שביל החלב, ענן)
 static func soft_ellipse(ci: CanvasItem, c: Vector2, rx: float, ry: float, angle: float, col: Color) -> void:
-	ci.draw_set_transform(c, angle, Vector2.ONE)
-	ci.draw_texture_rect(glow_tex(), Rect2(-rx, -ry, rx * 2.0, ry * 2.0), false, col)
-	ci.draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform(ci, c, angle, Vector2.ONE)
+	DrawBatch.texture_rect(ci, glow_tex(), Rect2(-rx, -ry, rx * 2.0, ry * 2.0), false, col)
+	DrawBatch.set_transform_matrix(ci, Transform2D.IDENTITY)

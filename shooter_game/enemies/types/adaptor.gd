@@ -234,10 +234,10 @@ func draw() -> bool:
 	var body := PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(8, 4), hip + Vector2(4, 8), hip + Vector2(0, 5), hip + Vector2(-4, 9), hip + Vector2(-9, 4)])
 	Art.fill_shaded(z, body, gown, 0.15, 0.35)
 	for i in 3:   # הדפס נקודות על החלוק
-		z.draw_circle(sh.lerp(hip, 0.25 + 0.25 * float(i)) + Vector2(2.0 - float(i), 1.0), 0.9, col(Color(0.35, 0.5, 0.55, 0.7)))
-	z.draw_line(sh + Vector2(-8, 4), sh + Vector2(-11, 7), dark, 1.0)   # קשר
-	z.draw_rect(Rect2(sh + Vector2(-3, 4), Vector2(6, 4)), col(Color(0.9, 0.9, 0.85)))   # תג נבדק
-	z.draw_line(sh + Vector2(-2, 6), sh + Vector2(2, 6), Color(0.2, 0.2, 0.3), 0.8)
+		DrawBatch.circle(z, sh.lerp(hip, 0.25 + 0.25 * float(i)) + Vector2(2.0 - float(i), 1.0), 0.9, col(Color(0.35, 0.5, 0.55, 0.7)))
+	DrawBatch.line(z, sh + Vector2(-8, 4), sh + Vector2(-11, 7), dark, 1.0)   # קשר
+	DrawBatch.rect(z, Rect2(sh + Vector2(-3, 4), Vector2(6, 4)), col(Color(0.9, 0.9, 0.85)))   # תג נבדק
+	DrawBatch.line(z, sh + Vector2(-2, 6), sh + Vector2(2, 6), Color(0.2, 0.2, 0.3), 0.8)
 	# שריון שגדל לפי המצב
 	if mode == KEEP and _plates > 0.0:   # לוחות עצם על החזה
 		for i in 3:
@@ -247,27 +247,27 @@ func draw() -> bool:
 	if mode == RUSH and _plates > 0.0:   # כריות כתף עם קוצים
 		var s2 := 6.0 * _plates
 		Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -2), sh + Vector2(-1, -2 - s2), sh + Vector2(6, -3), sh + Vector2(7, 4), sh + Vector2(-5, 4)]), col(Color("d89a60")), 0.2, 0.35, Art.OUTLINE, 1.0)
-		z.draw_line(sh + Vector2(0, -2 - s2 * 0.8), sh + Vector2(-3, -6 - s2), bone, 1.6)
+		DrawBatch.line(z, sh + Vector2(0, -2 - s2 * 0.8), sh + Vector2(-3, -6 - s2), bone, 1.6)
 	# צוואר + ראש קירח עם אלקטרודות
 	Art.limb(z, PackedVector2Array([sh + Vector2(1, 0), head + Vector2(-1, 5)]), 4.5, dark)
 	Art.oval_shaded(z, head, 6.2, 7.0, sk, 0.0)
 	for i in 3:
 		var ep := head + Vector2(-4.0 + float(i) * 3.5, -6.0 + absf(float(i) - 1.0) * 1.5)
-		z.draw_line(ep, head + Vector2(-9.0 - float(i), 6.0 + float(i) * 3.0), col(Color(0.15, 0.15, 0.18)), 0.9)   # חוטים לגב
+		DrawBatch.line(z, ep, head + Vector2(-9.0 - float(i), 6.0 + float(i) * 3.0), col(Color(0.15, 0.15, 0.18)), 0.9)   # חוטים לגב
 		Art.disc(z, ep, 1.4, col(Color("9aa4ae")), Art.OUTLINE, 0.8)
 		if mode != NONE:
-			z.draw_circle(ep, 0.7, Color(eye, 0.6 + 0.4 * sin(z._time * 9.0 + float(i))))
-	z.draw_line(head + Vector2(-2, 3), head + Vector2(4, 3.5), Color(0.25, 0.05, 0.05), 1.1)   # פה
+			DrawBatch.circle(z, ep, 0.7, Color(eye, 0.6 + 0.4 * sin(z._time * 9.0 + float(i))))
+	DrawBatch.line(z, head + Vector2(-2, 3), head + Vector2(4, 3.5), Color(0.25, 0.05, 0.05), 1.1)   # פה
 	# עיניים בצבע המצב
 	for e in [Vector2(2.5, -1.0), Vector2(5.0, -0.5)]:
 		var ev: Vector2 = e
-		z.draw_circle(head + ev, 1.2, eye)
+		DrawBatch.circle(z, head + ev, 1.2, eye)
 		if mode != NONE:
 			Art.glow(z, head + ev, 3.2, Color(eye, 0.6))
 	if mode == EVADE and _plates > 0.0:   # מגן עצם על הפנים עם חריץ
 		var v := PackedVector2Array([head + Vector2(-2, -5.5), head + Vector2(6.5, -4.5 * _plates - 1.0), head + Vector2(7.0, 1.5), head + Vector2(-1, 1.0)])
 		Art.fill_shaded(z, v, col(Color("bcc4c0")), 0.2, 0.4, Art.OUTLINE, 1.0)
-		z.draw_line(head + Vector2(0, -1.2), head + Vector2(6.5, -1.0), Color(eye, 0.9), 1.2)
+		DrawBatch.line(z, head + Vector2(0, -1.2), head + Vector2(6.5, -1.0), Color(eye, 0.9), 1.2)
 	# יד קדמית
 	z._arm(sh + Vector2(2.5, 2), fh, sk, gown)
 	if mode == KEEP and _plates > 0.3:   # מגן עצם על האמה
@@ -280,9 +280,9 @@ func draw() -> bool:
 		var tc: Color = MODE_COLORS[_target]
 		var a := 0.6 + 0.4 * sin(z._time * 10.0)
 		var qp := Vector2(-5.0, -78.0 * z.sc - 4.0 * sin(z._time * 4.0))
-		z.draw_string_outline(fnt, qp, "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, 4, Color(0, 0, 0, 0.8 * a))
-		z.draw_string(fnt, qp, "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(tc, a))
+		DrawBatch.string_outline(z, fnt, qp, "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, 4, Color(0, 0, 0, 0.8 * a))
+		DrawBatch.string(z, fnt, qp, "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(tc, a))
 		var w := 20.0 * clampf(_study, 0.0, 1.0)   # מד הלמידה
-		z.draw_rect(Rect2(Vector2(-10.0, -70.0 * z.sc), Vector2(20.0, 3.0)), Color(0, 0, 0, 0.6))
-		z.draw_rect(Rect2(Vector2(-10.0, -70.0 * z.sc), Vector2(w, 3.0)), Color(tc, 0.9))
+		DrawBatch.rect(z, Rect2(Vector2(-10.0, -70.0 * z.sc), Vector2(20.0, 3.0)), Color(0, 0, 0, 0.6))
+		DrawBatch.rect(z, Rect2(Vector2(-10.0, -70.0 * z.sc), Vector2(w, 3.0)), Color(tc, 0.9))
 	return true

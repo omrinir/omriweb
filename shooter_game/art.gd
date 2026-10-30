@@ -4,6 +4,7 @@ extends RefCounted
 #  משמש את player.gd, zombie.gd ו-severed_leg.gd.
 # ============================================================
 
+const DrawBatch := preload("res://effects/draw_batch.gd")   # זומבים: הכל ב-draw call אחד
 const OUTLINE := Color(0.04, 0.03, 0.05, 0.9)
 const NONE := Color(0, 0, 0, 0)
 
@@ -30,12 +31,12 @@ static func _outline(ci: CanvasItem, pts: PackedVector2Array, outline: Color, wi
 	if outline.a > 0.0:
 		var closed := PackedVector2Array(pts)
 		closed.append(pts[0])
-		ci.draw_polyline(closed, outline, width, true)
+		DrawBatch.polyline(ci, closed, outline, width, true)
 
 
 # צורה מלאה + קו מתאר חלק
 static func fill(ci: CanvasItem, pts: PackedVector2Array, col: Color, outline := OUTLINE, width := 1.3) -> void:
-	ci.draw_colored_polygon(pts, col)
+	DrawBatch.colored_polygon(ci, pts, col)
 	_outline(ci, pts, outline, width)
 
 
@@ -53,16 +54,34 @@ static func fill_shaded(ci: CanvasItem, pts: PackedVector2Array, col: Color, lig
 	cols.resize(pts.size())
 	for i in pts.size():
 		cols[i] = top.lerp(bottom, (pts[i].y - y0) / h)
-	ci.draw_polygon(pts, cols)
+	DrawBatch.polygon(ci, pts, cols)
 	_outline(ci, pts, outline, width)
 
 
 static func disc(ci: CanvasItem, c: Vector2, r: float, col: Color, outline := OUTLINE, width := 1.3) -> void:
+	if DrawBatch._on(ci) and _batch_oval(ci, c, r, r, col, 0.0, outline, width, 16 if r > 2.5 else 10):
+		return
 	fill(ci, ellipse(c, r, r, 0.0, 16 if r > 2.5 else 10), col, outline, width)
 
 
 static func oval(ci: CanvasItem, c: Vector2, rx: float, ry: float, col: Color, rot := 0.0, outline := OUTLINE, width := 1.3) -> void:
+	if DrawBatch._on(ci) and _batch_oval(ci, c, rx, ry, col, rot, outline, width, 20):
+		return
 	fill(ci, ellipse(c, rx, ry, rot), col, outline, width)
+
+
+# batch: קו מתאר = אליפסה כהה קצת יותר גדולה מאחור, ואז המילוי (2 מניפות, בלי לולאות). רק למילוי אטום.
+static func _batch_oval(ci: CanvasItem, c: Vector2, rx: float, ry: float, col: Color, rot: float, outline: Color, width: float, n: int) -> bool:
+	if col.a < 0.99 and outline.a > 0.0:
+		return false
+	var h := width * 0.5
+	if outline.a > 0.0:
+		DrawBatch.ellipse(ci, c, rx + h + DrawBatch.FEATHER * 0.6, ry + h + DrawBatch.FEATHER * 0.6, Color(outline, outline.a * 0.35), rot, n)   # שוליים רכים
+		DrawBatch.ellipse(ci, c, rx + h, ry + h, outline, rot, n)
+		DrawBatch.ellipse(ci, c, maxf(rx - h, 0.1), maxf(ry - h, 0.1), col, rot, n)
+	else:
+		DrawBatch.ellipse(ci, c, rx, ry, col, rot, n)
+	return true
 
 
 static var _shade_cache := {}
@@ -89,7 +108,14 @@ static func oval_shaded(ci: CanvasItem, c: Vector2, rx: float, ry: float, col: C
 		if _shade_cache.size() > 4000:
 			_shade_cache.clear()
 		_shade_cache[key] = cols
-	ci.draw_polygon(pts, cols)
+	if DrawBatch._on(ci) and (outline.a <= 0.0 or col.a >= 0.99):
+		var h := width * 0.5 if outline.a > 0.0 else 0.0
+		if h > 0.0:
+			DrawBatch.ellipse(ci, c, rx + h + DrawBatch.FEATHER * 0.6, ry + h + DrawBatch.FEATHER * 0.6, Color(outline, outline.a * 0.35), rot, n)
+			DrawBatch.ellipse(ci, c, rx + h, ry + h, outline, rot, n)
+		DrawBatch.ellipse_cols(ci, c, maxf(rx - h, 0.1), maxf(ry - h, 0.1), cols, col.lightened(0.2).lerp(col.darkened(0.3), 0.5), rot)
+		return
+	DrawBatch.polygon(ci, pts, cols)
 	_outline(ci, pts, outline, width)
 
 
@@ -99,32 +125,32 @@ static func limb(ci: CanvasItem, pts: PackedVector2Array, w: float, col: Color, 
 	var last := pts.size() - 1
 	if outline.a > 0.0:
 		var ow := w + 2.6
-		ci.draw_polyline(pts, outline, ow, true)
+		DrawBatch.polyline(ci, pts, outline, ow, true)
 		for i in pts.size():
 			if (i > 0 or cap_start) and (i < last or cap_end):
-				ci.draw_circle(pts[i], ow / 2.0, outline)
-	ci.draw_polyline(pts, col, w)   # בלי החלקה - קו המתאר שמתחת כבר חלק (מהיר יותר)
+				DrawBatch.circle(ci, pts[i], ow / 2.0, outline)
+	DrawBatch.polyline(ci, pts, col, w)   # בלי החלקה - קו המתאר שמתחת כבר חלק (מהיר יותר)
 	for i in pts.size():
 		if (i > 0 or cap_start) and (i < last or cap_end):
-			ci.draw_circle(pts[i], w / 2.0, col)
+			DrawBatch.circle(ci, pts[i], w / 2.0, col)
 	if w >= 4.5:
 		var off := Vector2(-0.22, -0.22) * w
-		ci.draw_polyline(Transform2D(0.0, off) * pts, Color(col.lightened(0.2), 0.3), w * 0.28, true)
+		DrawBatch.polyline(ci, Transform2D(0.0, off) * pts, Color(col.lightened(0.2), 0.3), w * 0.28, true)
 
 
 # הילה רכה (עיניים זוהרות, להבות)
 static func glow(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
 	if r >= 24.0:   # הילה גדולה: טקסטורה רדיאלית רכה (3 עיגולים נראו כטבעות חדות)
-		ci.draw_texture_rect(preload("res://effects/backdrop_kit.gd").glow_tex(), Rect2(c.x - r, c.y - r, r * 2.0, r * 2.0), false, col)
+		DrawBatch.texture_rect(ci, preload("res://effects/backdrop_kit.gd").glow_tex(), Rect2(c.x - r, c.y - r, r * 2.0, r * 2.0), false, col)
 		return
 	for i in 3:
 		var k := 1.0 - float(i) / 3.0
-		ci.draw_circle(c, r * k, Color(col, col.a * 0.28))
+		DrawBatch.circle(ci, c, r * k, Color(col, col.a * 0.28))
 
 
 # צל על הריצפה
 static func ground_shadow(ci: CanvasItem, c: Vector2, rx: float) -> void:
-	ci.draw_colored_polygon(ellipse(c, rx, rx * 0.18, 0.0, 16), Color(0, 0, 0, 0.28))
+	DrawBatch.colored_polygon(ci, ellipse(c, rx, rx * 0.18, 0.0, 16), Color(0, 0, 0, 0.28))
 
 
 # מיקום הברך / המרפק (IK של שתי עצמות). bend = 1 ברך קדימה, -1 מרפק למטה

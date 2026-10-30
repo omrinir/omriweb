@@ -192,15 +192,15 @@ func draw() -> bool:
 	var hf: Vector2 = o.hf
 	for q in 2:   # מיכלים
 		var tx := -13.0 + float(q) * 5.0
-		z.draw_rect(Rect2(sh + Vector2(tx, -3), Vector2(5, 22)), col(Color("6a2a1a") if q == 0 else Color("7a3420")))
-		z.draw_circle(sh + Vector2(tx + 2.5, -3), 2.5, col(Color("6a2a1a")))
+		DrawBatch.rect(z, Rect2(sh + Vector2(tx, -3), Vector2(5, 22)), col(Color("6a2a1a") if q == 0 else Color("7a3420")))
+		DrawBatch.circle(z, sh + Vector2(tx + 2.5, -3), 2.5, col(Color("6a2a1a")))
 	var pts := PackedVector2Array()   # צינור
 	for q in 6:
 		var u := float(q) / 5.0
 		pts.append((sh + Vector2(-8, 18)).lerp(hf + Vector2(-2, 2), u) + Vector2(0, sin(u * PI) * 6.0))
-	z.draw_polyline(pts, col(Color("1a1a1a")), 1.5)
-	z.draw_rect(Rect2(hf + Vector2(-4, -2), Vector2(16, 4)), col(Color("3a3a32")))   # המטול
-	z.draw_rect(Rect2(hf + Vector2(12, -1.5), Vector2(4, 3)), col(Color("8a8a80")))
+	DrawBatch.polyline(z, pts, col(Color("1a1a1a")), 1.5)
+	DrawBatch.rect(z, Rect2(hf + Vector2(-4, -2), Vector2(16, 4)), col(Color("3a3a32")))   # המטול
+	DrawBatch.rect(z, Rect2(hf + Vector2(12, -1.5), Vector2(4, 3)), col(Color("8a8a80")))
 	if not z.dead:
 		var pk := 1.0 if state == ADVANCE else 2.2
 		Art.glow(z, hf + Vector2(17, 0), 2.5 * pk + sin(_flick * 30.0) * 0.6, Color(0.4, 0.6, 1.0, 0.8) if state == ADVANCE else Color(1.0, 0.7, 0.2, 0.9))
@@ -210,5 +210,5 @@ func draw() -> bool:
 		for q in 7:
 			var u := float(q) / 6.0
 			var fx := n + Vector2(z._dir * FLAME_R * u, sin(_flick * 20.0 + float(q)) * 4.0 * u)
-			z.draw_circle(fx, 5.0 + 14.0 * u, Color(1.0, 0.75 - 0.4 * u, 0.15, 0.75 - 0.35 * u))
+			DrawBatch.circle(z, fx, 5.0 + 14.0 * u, Color(1.0, 0.75 - 0.4 * u, 0.15, 0.75 - 0.35 * u))
 	return true

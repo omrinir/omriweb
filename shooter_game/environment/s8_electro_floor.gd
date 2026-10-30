@@ -1,4 +1,5 @@
 extends "res://environment/hazard.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  לוח רצפה מחושמל (שלב 8 - מעבדה). סכנה מחזורית והוגנת:
 #    OFF  (OFF_TIME)  - כבוי, אפשר לעבור.
@@ -67,18 +68,23 @@ func _hazard_tick(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var w := width
 	var x0 := -w * 0.5
 	# לוחות מתכת עם מסגרת אזהרה
-	draw_rect(Rect2(x0, -3, w, 5), Color("2c3034"))
+	DrawBatch.rect(self, Rect2(x0, -3, w, 5), Color("2c3034"))
 	var x := x0
 	while x < x0 + w - 1.0:
 		var sw := minf(8.0, x0 + w - x)
-		draw_rect(Rect2(x, -4, sw * 0.5, 2), Color(0.85, 0.7, 0.1) if int((x - x0) / 8.0) % 2 == 0 else Color(0.08, 0.08, 0.08))
+		DrawBatch.rect(self, Rect2(x, -4, sw * 0.5, 2), Color(0.85, 0.7, 0.1) if int((x - x0) / 8.0) % 2 == 0 else Color(0.08, 0.08, 0.08))
 		x += sw * 0.5
 	for i in int(w / 30.0) + 1:
 		var px := x0 + float(i) * 30.0
-		draw_line(Vector2(px, -2), Vector2(px, 2), Color("181a1c"), 1.0)
+		DrawBatch.line(self, Vector2(px, -2), Vector2(px, 2), Color("181a1c"), 1.0)
 	# נורות בקצוות
 	var lamp := Color(0.25, 0.3, 0.2)
 	if _state == 1:
@@ -87,20 +93,20 @@ func _draw() -> void:
 		lamp = Color(0.5, 0.8, 1.0)
 	for e in [x0 + 3.0, x0 + w - 3.0]:
 		var ex: float = e
-		draw_circle(Vector2(ex, -6), 2.5, lamp)
+		DrawBatch.circle(self, Vector2(ex, -6), 2.5, lamp)
 		if _state > 0:
 			Art.glow(self, Vector2(ex, -6), 8.0, Color(lamp, 0.5))
 	if _state == 1:   # ניצוצות קטנים - אזהרה
 		for i in 3:
 			var sx := x0 + randf() * w
-			draw_line(Vector2(sx, -3), Vector2(sx + randf_range(-4, 4), -3 - randf_range(3, 8)), Color(0.7, 0.85, 1.0, 0.8), 1.0)
+			DrawBatch.line(self, Vector2(sx, -3), Vector2(sx + randf_range(-4, 4), -3 - randf_range(3, 8)), Color(0.7, 0.85, 1.0, 0.8), 1.0)
 	elif _state == 2:   # קשתות חשמל
-		draw_rect(Rect2(x0, -12, w, 12), Color(0.4, 0.7, 1.0, 0.12))
+		DrawBatch.rect(self, Rect2(x0, -12, w, 12), Color(0.4, 0.7, 1.0, 0.12))
 		for k in 3:
 			var pts := PackedVector2Array()
 			var px := x0
 			while px <= x0 + w:
 				pts.append(Vector2(px, -2.0 - randf() * 18.0))
 				px += randf_range(8.0, 16.0)
-			draw_polyline(pts, Color(0.75, 0.9, 1.0, 0.9 - 0.25 * float(k)), 1.6 - 0.4 * float(k))
+			DrawBatch.polyline(self, pts, Color(0.75, 0.9, 1.0, 0.9 - 0.25 * float(k)), 1.6 - 0.4 * float(k))
 		Art.glow(self, Vector2(0, -6), w * 0.4, Color(0.4, 0.7, 1.0, 0.25))

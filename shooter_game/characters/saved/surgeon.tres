@@ -1,0 +1,44 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://characters/character_preset.gd" id="1_dqt0a"]
+
+[resource]
+script = ExtResource("1_dqt0a")
+id = "surgeon"
+kind = 1002
+name = "SURGEON"
+build = "skinny"
+height = 1.06
+width = 1.0
+head_size = 1.0
+hunch = 2.0
+barefoot = false
+hair = "short"
+hat = "bandana"
+face = "surgical"
+top = "shirt"
+extras = PackedStringArray()
+item = "knife"
+gore = PackedStringArray("rot", "chest_stitches", "blood")
+skin_color = Color(0.666667, 0.717647, 0.65098, 1)
+shirt_color = Color(0.290196, 0.541176, 0.517647, 1)
+pants_color = Color(0.243137, 0.454902, 0.439216, 1)
+shoe_color = Color(0.847059, 0.847059, 0.815686, 1)
+hair_color = Color(0.227451, 0.188235, 0.14902, 1)
+eye_color = Color(0.376471, 1, 0.25098, 1)
+hat_color = Color(0.290196, 0.541176, 0.517647, 1)
+gear_color = Color(0.541176, 0.415686, 0.227451, 1)
+variety = true
+hp = 25
+walk_speed = 50.0
+run_speed = 125.0
+damage = 1
+bite_delay = 0.8
+duck = 0.4
+cover = 0.3
+notice = 600.0
+points = 200
+boss = false
+voice = 1.15
+levels = PackedInt32Array()
+share = 10

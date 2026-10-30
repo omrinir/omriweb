@@ -16,9 +16,17 @@ static var _active := {}
 static var played := {}           # כמה פעמים כל צליל התנגן (לבדיקות)
 # צלילים נוספים מקבצים אחרים (נשקים חדשים, זומבים חדשים, סביבה). כל קובץ = const SOUNDS := {...}
 # כדי להוסיף קובץ צלילים חדש - מוסיפים את הנתיב שלו כאן
-const BANKS := ["res://weapons/weapon_sounds.gd", "res://enemies/enemy_sounds.gd", "res://effects/env_sounds.gd", "res://weapons/laser_cannon.gd"]
+const BANKS := ["res://weapons/weapon_sounds.gd", "res://enemies/enemy_sounds.gd", "res://effects/env_sounds.gd", "res://weapons/laser_cannon.gd", "res://effects/spirit_tiger.gd"]
+const EVENT_SCRIPTS := ["res://levels/events/escape.gd", "res://levels/events/hold.gd"]   # רק לבניית המטמון (scan_all)
 static var EXTRA := {}
 static var _banks_loaded := false
+# ---- מטמון צלילים מוכנים (מהירות פתיחת המשחק) ----
+# סינתזה של ~870 צלילים + טעינת ~240 קבצי שלבים/זומבים רק בשביל SOUNDS = עשרות שניות קפואות בפתיחה.
+# CACHE_PATH שומר את כל הצלילים כבר מסונתזים: {שם: [hash של המתכון, בייטים]}. צליל שהמתכון שלו השתנה
+# (hash שונה) מסונתז מחדש כרגיל, כך שהמטמון אף פעם לא משמיע צליל ישן.
+# לבנות מחדש אחרי שינוי צלילים: devtools/build_sfx_cache.gd (מסביר איך)
+const CACHE_PATH := "res://sounds/sfx_cache.res"
+static var _disk := {}
 
 const R := {
 	"rifle": {"rev": 0.22, "drive": 2.6, "layers": [["N", 0, 0, 0.0, 0.006, 0.0, 500.0, 1.6, 1.0, 0], ["N", 0, 0, 0.0, 0.16, 0.0, 26.0, 1.2, 0.35, 0], ["S", 125, 42, 0.0, 0.12, 0.0, 26.0, 1.1, 1.0, 0], ["N", 0, 0, 0.07, 0.02, 0.0, 200.0, 0.35, 1.0, 0, 0.35], ["S", 3100, 3000, 0.07, 0.03, 0.0, 120.0, 0.12, 1.0, 0]]},
@@ -99,6 +107,16 @@ static func _load_banks() -> void:
 			register(load(path).SOUNDS)
 	_check_samples()
 	prewarm()
+	if ResourceLoader.exists(CACHE_PATH):   # יש מטמון: הצלילים של הזומבים/השלבים כבר בו - לא טוענים 240 קבצים
+		var res := load(CACHE_PATH)
+		if res != null and res.has_meta("sounds"):
+			_disk = res.get_meta("sounds")
+			return
+	scan_all()
+
+
+# טוען את כל קבצי הזומבים והשלבים רק בשביל ה-SOUNDS שלהם (איטי! רק בלי מטמון, או לבניית המטמון)
+static func scan_all() -> void:
 	# כל זומבי חדש / שלב יכול להגדיר const SOUNDS := {...} בקובץ שלו - נרשם כאן אוטומטית
 	for list_path in ["res://enemies/zombie_registry.gd", "res://levels/stage_registry.gd"]:
 		if not ResourceLoader.exists(list_path):
@@ -110,23 +128,51 @@ static func _load_banks() -> void:
 				var consts: Dictionary = load(sp).get_script_constant_map()
 				if consts.has("SOUNDS"):
 					register(consts.SOUNDS)
+	for sp in EVENT_SCRIPTS:   # אירועי שלב (העדר, HOLD THE LINE) - גם הם במטמון, אחרת הצליל מסונתז באמצע המשחק
+		if ResourceLoader.exists(sp):
+			register(load(sp).get_script_constant_map().get("SOUNDS", {}))
+
+
+# הצלילים של אירוע שלב (levels/events): נבנים עכשיו (בטעינת השלב), לא ברגע שהאירוע מתחיל.
+# צליל שלא במטמון = סינתזה של 100-250 ms - קפיאה באמצע ריצה (העדר בשלבים 11, 23, 41, 55)
+static func warm(bank: Dictionary) -> void:
+	_load_banks()
+	for k in bank:
+		_stream(k)
 
 
 # מוסיף "מתכוני" צליל (אותו פורמט כמו R)
 static func register(bank: Dictionary) -> void:
 	for k in bank:
+		if _cache.has(k) and not EXTRA.has(k):   # (נבנה מהמטמון לפני שהמתכון נרשם: נבדק שוב מול ה-hash)
+			_cache.erase(k)
 		EXTRA[k] = bank[k]
+
+
+# קובץ סקריפט שנטען (סוג זומבי / שלב): רושם את ה-SOUNDS שלו (zombie_registry.gd, stage_registry.gd)
+static func register_script(script: Script) -> void:
+	var consts: Dictionary = script.get_script_constant_map()
+	if consts.has("SOUNDS"):
+		register(consts.SOUNDS)
 
 
 static func has_sound(name: String) -> bool:
 	_load_banks()
-	return R.has(name) or EXTRA.has(name)
+	return R.has(name) or EXTRA.has(name) or _disk.has(name)
+
+
+static func recipe_hash(rec) -> int:
+	return hash(var_to_str(rec))
 
 
 static func _stream(name: String) -> AudioStreamWAV:
 	if _cache.has(name):
 		return _cache[name]
+	if not R.has(name) and not EXTRA.has(name):   # רק במטמון (סוג זומבי שעוד לא נטען)
+		return _wav(name, _disk[name][1])
 	var rec = R[name] if R.has(name) else EXTRA[name]
+	if _disk.has(name) and int(_disk[name][0]) == recipe_hash(rec):   # מוכן מראש: בלי סינתזה
+		return _wav(name, _disk[name][1])
 	var fx: Dictionary = rec if rec is Dictionary else {}
 	var layers: Array = rec.layers if rec is Dictionary else rec
 	var total := 0.0
@@ -155,6 +201,10 @@ static func _stream(name: String) -> AudioStreamWAV:
 	bytes.resize(n * 2)
 	for i in n:
 		bytes.encode_s16(i * 2, int(clampf(tanh(buf[i]), -1.0, 1.0) * 32000.0))
+	return _wav(name, bytes)
+
+
+static func _wav(name: String, bytes: PackedByteArray) -> AudioStreamWAV:
 	var st := AudioStreamWAV.new()
 	st.format = AudioStreamWAV.FORMAT_16_BITS
 	st.mix_rate = RATE
@@ -367,6 +417,9 @@ static func _sample(name: String) -> AudioStream:
 
 
 static func play(name: String, pos: Variant = null, vol := 0.0, pitch_var := 0.08, max_same := 5, pitch := 1.0) -> void:
+	if int(_active.get(name, 0)) >= max_same:   # כבר מתנגן מספיק פעמים: עוצרים לפני כל החיפושים (בהריגה המונית - רוב הקריאות)
+		played[name] = int(played.get(name, 0)) + 1
+		return
 	var sample := _sample(name)
 	if sample != null:
 		vol += float(SAMPLE_GAIN.get(name, SAMPLE_GAIN["_"]))

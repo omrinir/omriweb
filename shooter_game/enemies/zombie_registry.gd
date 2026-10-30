@@ -4,6 +4,7 @@ extends RefCounted
 #  סוגים 0-19 נמצאים ב-zombie.gd (KINDS). מ-20 והלאה כל סוג = קובץ ב-enemies/types/.
 #
 #  ****  להוספת זומבי חדש: מוסיפים שורה ל-TYPES (מספר חדש + נתיב)  ****
+#  סוגים מ-1000 (CUSTOM_FIRST) = דמויות מ-CHARACTER MAKER (characters/custom_characters.gd, הקבצים ב-characters/saved/).
 # ============================================================
 
 enum {
@@ -56,9 +57,19 @@ enum {
 	HAULER, QUISLING, STRAGGLER,   # שלב 52 (מגרש הרכבות). HAULER = גם הבוס (THE ENGINE)
 	STACKER, BABBLER, PURSUER,     # שלב 53 (המצור על הבירה - מונטווידאו). STACKER = גם הבוס (THE SIEGE TOWER)
 	SHEPHERD, STINGER, DARKSEEKER, # שלב 54 (הגשר האחרון). SHEPHERD = גם הבוס (THE ARCHITECT)
+	SHEARER, DRIFTER, TUMBLER,     # שלב 55 (ערבת הרוח - פטגוניה). SHEARER = גם הבוס (THE ESTANCIERO)
+	THAWED, BUOY, SEALER,          # שלב 56 (פיורד הקרח). THAWED = גם הבוס (THE GLACIER)
+	WADDLER, MURMUR, BLUBBER,      # שלב 57 (חוף הפינגווינים). WADDLER = גם הבוס (THE BEACHMASTER)
+	FLENSER, SKUA, BONECRAWLER,    # שלב 58 (בית הקברות של הלווייתנים). FLENSER = גם הבוס (THE BONE KING)
+	CHARRED, ASHMOTH, DAMBUILDER,  # שלב 59 (היער השחור). CHARRED = גם הבוס (THE PYRE)
+	SPECIMEN, BLOOM, WARDEN,       # שלב 60 (מעבדת הקרחון). SPECIMEN = גם הבוס (SUBJECT FOUR)
+	BONESIDE, CONDOR, THRONG,      # שלב 61 (סוף העולם - אושואיה). BONESIDE = גם הבוס
+	SEEPER, SYNAPSE, REMNANT,      # שלב 62 (מוח הכוורת - ה-ROOT). SEEPER = גם הבוס
+	HOLLOW, PILGRIM, ROOT,         # שלב 63 (הסוף). ROOT = הבוס האחרון של המשחק
 }
 
 const FIRST := 20
+const CUSTOM_FIRST := 1000   # דמויות מ-CHARACTER MAKER
 const TYPES := {
 	CLIMBER: "res://enemies/types/climber.gd",
 	SCOUT: "res://enemies/types/scout.gd",
@@ -216,23 +227,65 @@ const TYPES := {
 	SHEPHERD: "res://enemies/types/shepherd.gd",
 	STINGER: "res://enemies/types/stinger.gd",
 	DARKSEEKER: "res://enemies/types/darkseeker.gd",
+	SHEARER: "res://enemies/types/shearer.gd",
+	DRIFTER: "res://enemies/types/drifter.gd",
+	TUMBLER: "res://enemies/types/tumbler.gd",
+	THAWED: "res://enemies/types/thawed.gd",
+	BUOY: "res://enemies/types/buoy.gd",
+	SEALER: "res://enemies/types/sealer.gd",
+	WADDLER: "res://enemies/types/waddler.gd",
+	MURMUR: "res://enemies/types/murmur.gd",
+	BLUBBER: "res://enemies/types/blubber.gd",
+	FLENSER: "res://enemies/types/flenser.gd",
+	SKUA: "res://enemies/types/skua.gd",
+	BONECRAWLER: "res://enemies/types/bonecrawler.gd",
+	CHARRED: "res://enemies/types/charred.gd",
+	ASHMOTH: "res://enemies/types/ashmoth.gd",
+	DAMBUILDER: "res://enemies/types/dambuilder.gd",
+	SPECIMEN: "res://enemies/types/specimen.gd",
+	BLOOM: "res://enemies/types/bloom.gd",
+	WARDEN: "res://enemies/types/warden.gd",
+	BONESIDE: "res://enemies/types/boneside.gd",
+	CONDOR: "res://enemies/types/condor.gd",
+	THRONG: "res://enemies/types/throng.gd",
+	SEEPER: "res://enemies/types/seeper.gd",
+	SYNAPSE: "res://enemies/types/synapse.gd",
+	REMNANT: "res://enemies/types/remnant.gd",
+	HOLLOW: "res://enemies/types/hollow.gd",
+	PILGRIM: "res://enemies/types/pilgrim.gd",
+	ROOT: "res://enemies/types/root.gd",
 }
 
 static var _stats_cache := {}
+static var _custom: GDScript = null   # characters/custom_characters.gd - נטען רק כשצריך (ונשאר טעון: הדמויות שבבדיקה ב-live)
+
+
+static func custom() -> GDScript:
+	if _custom == null:
+		_custom = load("res://characters/custom_characters.gd")
+	return _custom
 
 
 static func has(kind: int) -> bool:
+	if kind >= CUSTOM_FIRST:
+		return custom().has(kind)
 	return TYPES.has(kind) and ResourceLoader.exists(TYPES[kind])
 
 
 # יוצר את המודול של הסוג (או null)
 static func make(kind: int) -> RefCounted:
+	if kind >= CUSTOM_FIRST:
+		return custom().make(kind)
 	if not has(kind):
 		return null
-	return load(TYPES[kind]).new()
+	var sc: Script = load(TYPES[kind])
+	preload("res://sfx.gd").register_script(sc)   # הצלילים שלו (sfx.gd לא טוען את כל הסוגים בפתיחה)
+	return sc.new()
 
 
 static func stats(kind: int) -> Dictionary:
+	if kind >= CUSTOM_FIRST:   # (לא בזיכרון: העורך משנה אותן תוך כדי)
+		return custom().stats(kind)
 	if _stats_cache.has(kind):
 		return _stats_cache[kind]
 	var m := make(kind)

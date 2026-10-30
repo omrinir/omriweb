@@ -154,16 +154,16 @@ func draw() -> bool:
 	# גופייה שחורה עם קרעים + שרשרת זהב
 	var body := PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)])
 	Art.fill_shaded(z, body, shirt, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-2, 6), sh + Vector2(1, 10), col(Color("4a3a3a")), 1.2)
-	z.draw_arc(sh + Vector2(1.5, 1.0), 4.0, 0.3, PI - 0.3, 8, col(Color("e8c040")), 1.4)
-	z.draw_circle(sh + Vector2(1.5, 5.2), 1.3, col(Color("e8c040")))
+	DrawBatch.line(z, sh + Vector2(-2, 6), sh + Vector2(1, 10), col(Color("4a3a3a")), 1.2)
+	DrawBatch.arc(z, sh + Vector2(1.5, 1.0), 4.0, 0.3, PI - 0.3, 8, col(Color("e8c040")), 1.4)
+	DrawBatch.circle(z, sh + Vector2(1.5, 5.2), 1.3, col(Color("e8c040")))
 	# ראש + כובע הפוך (המצחייה לאחור) + משקפי שמש
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(-5.5, -2), head + Vector2(5, -3), head + Vector2(4, -7), head + Vector2(-4, -7.5)]), col(Color("c03030")), Art.OUTLINE, 1.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(-5, -3), head + Vector2(-11, -2), head + Vector2(-10, -0.5), head + Vector2(-5, -1.5)]), col(Color("a02020")), Art.OUTLINE, 0.8)
-	z.draw_rect(Rect2(head + Vector2(0.5, -1.8), Vector2(5.5, 2.2)), col(Color("101014")))
+	DrawBatch.rect(z, Rect2(head + Vector2(0.5, -1.8), Vector2(5.5, 2.2)), col(Color("101014")))
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -0.8), 0.6, Color(1.0, 0.3, 0.2))
+		DrawBatch.circle(z, head + Vector2(3.5, -0.8), 0.6, Color(1.0, 0.3, 0.2))
 	Art.fill(z, PackedVector2Array([head + Vector2(1, 2.5), head + Vector2(5.5, 2.0), head + Vector2(5, 4.6), head + Vector2(1.5, 4.6)]), col(Color("2a0a0a")), Art.OUTLINE, 0.7)
 	# העוזי ביד אחת (בקואורדינטות מקומיות)
 	var a := _aim_angle() if state != WALK else (0.35 if z._dir > 0.0 else PI - 0.35)
@@ -174,13 +174,13 @@ func draw() -> bool:
 	var tr := Transform2D(la.angle(), hand)
 	Art.fill(z, tr * PackedVector2Array([Vector2(-3, -2.5), Vector2(8, -2.5), Vector2(8, 1.5), Vector2(-3, 1.5)]), col(Color("2a2c30")), Art.OUTLINE, 1.0)   # גוף
 	Art.fill(z, tr * PackedVector2Array([Vector2(0, 1.5), Vector2(3, 1.5), Vector2(3, 8), Vector2(0, 8)]), col(Color("1a1c20")), Art.OUTLINE, 0.8)   # מחסנית
-	z.draw_line(tr * Vector2(8, -0.5), tr * Vector2(12, -0.5), Art.OUTLINE, 2.0)   # קנה
+	DrawBatch.line(z, tr * Vector2(8, -0.5), tr * Vector2(12, -0.5), Art.OUTLINE, 2.0)   # קנה
 	if state == AIM and int(z._time * 14.0) % 2 == 0:   # ניצוץ אזהרה על הקנה
 		Art.glow(z, tr * Vector2(12, -0.5), 5.0, Color(1.0, 0.2, 0.1, 0.8))
 	if _flash > 0.0:
 		var m := tr * Vector2(13, -0.5)
 		Art.glow(z, m, 7.0, Color(1.0, 0.8, 0.3, 0.9))
-		z.draw_colored_polygon(PackedVector2Array([m + la.orthogonal() * 2.5, m + la * 9.0, m - la.orthogonal() * 2.5]), Color(1.0, 0.92, 0.55))
+		DrawBatch.colored_polygon(z, PackedVector2Array([m + la.orthogonal() * 2.5, m + la * 9.0, m - la.orthogonal() * 2.5]), Color(1.0, 0.92, 0.55))
 	z._arm(sh + Vector2(3, 1), hand, sk, shirt)
 	end_draw()
 	return true

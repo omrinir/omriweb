@@ -281,24 +281,24 @@ func draw() -> bool:
 	var torso := PackedVector2Array([sh + Vector2(-11, -3), sh + Vector2(10, -2), sh + Vector2(13, 8), hip + Vector2(10, 2), hip + Vector2(-9, 3), sh + Vector2(-13, 9)])
 	Art.fill_shaded(z, torso, sk, 0.15, 0.4)
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, 4), sh + Vector2(9, 4), hip + Vector2(9, 9), hip + Vector2(-7, 9)]), apron, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-6, 4), sh + Vector2(-3, -4), col(Color("3a2a1e")), 1.4)   # רצועת הסינר
-	z.draw_circle(sh + Vector2(3, 12), 3.0, Color(blood, 0.7))
-	z.draw_circle(hip + Vector2(-2, 5), 2.2, Color(blood, 0.6))
-	z.draw_line(sh + Vector2(-9, 0), sh + Vector2(-4, 6), Color(0.3, 0.1, 0.1, 0.6), 1.2)   # תפרים
+	DrawBatch.line(z, sh + Vector2(-6, 4), sh + Vector2(-3, -4), col(Color("3a2a1e")), 1.4)   # רצועת הסינר
+	DrawBatch.circle(z, sh + Vector2(3, 12), 3.0, Color(blood, 0.7))
+	DrawBatch.circle(z, hip + Vector2(-2, 5), 2.2, Color(blood, 0.6))
+	DrawBatch.line(z, sh + Vector2(-9, 0), sh + Vector2(-4, 6), Color(0.3, 0.1, 0.1, 0.6), 1.2)   # תפרים
 	# סינר של קצב: כיס, מריחות דם שנגררו, צלעות בולטות בצד, ורידים
-	z.draw_rect(Rect2(sh + Vector2(-1, 15), Vector2(7, 4)), col(Art.shade(z.shirt, 0.25)))
-	z.draw_line(sh + Vector2(6, 6), hip + Vector2(4, 4), Color(blood, 0.55), 2.2)
-	z.draw_line(sh + Vector2(0, 7), sh + Vector2(-2, 16), Color(blood, 0.45), 1.6)
+	DrawBatch.rect(z, Rect2(sh + Vector2(-1, 15), Vector2(7, 4)), col(Art.shade(z.shirt, 0.25)))
+	DrawBatch.line(z, sh + Vector2(6, 6), hip + Vector2(4, 4), Color(blood, 0.55), 2.2)
+	DrawBatch.line(z, sh + Vector2(0, 7), sh + Vector2(-2, 16), Color(blood, 0.45), 1.6)
 	for i in 3:
-		z.draw_line(sh + Vector2(-11.5, 4.0 + float(i) * 3.0), sh + Vector2(-7.0, 3.0 + float(i) * 3.0), col(Art.shade(z.skin, 0.4)), 0.9)
-	z.draw_line(sh + Vector2(10, 1), sh + Vector2(12, 7), Color(0.28, 0.12, 0.28, 0.5), 0.9)
+		DrawBatch.line(z, sh + Vector2(-11.5, 4.0 + float(i) * 3.0), sh + Vector2(-7.0, 3.0 + float(i) * 3.0), col(Art.shade(z.skin, 0.4)), 0.9)
+	DrawBatch.line(z, sh + Vector2(10, 1), sh + Vector2(12, 7), Color(0.28, 0.12, 0.28, 0.5), 0.9)
 	# ראש קטן על צוואר עבה
 	Art.oval_shaded(z, head, 5.0, 5.4, sk, 0.0)
 	Art.oval(z, head + Vector2(2.8, -0.6), 2.3, 1.7, Color(0.12, 0.0, 0.04, 0.45), 0.0, Art.NONE)   # ארובה שקועה
-	z.draw_line(head + Vector2(-5, -2), head + Vector2(4, -3), col(Color("2a2420")), 1.4)   # גבה
+	DrawBatch.line(z, head + Vector2(-5, -2), head + Vector2(4, -3), col(Color("2a2420")), 1.4)   # גבה
 	if not z.dead:
 		Art.glow(z, head + Vector2(3.0, -0.5), 3.5, Color(1.0, 0.75, 0.2, 0.5))
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.0, Color(1.0, 0.85, 0.3))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.0, Color(1.0, 0.85, 0.3))
 	Art.fill(z, PackedVector2Array([head + Vector2(0, 2.5), head + Vector2(5.5, 2.0), head + Vector2(5, 4.6 + (1.5 if state == WINDUP else 0.0)), head + Vector2(0.5, 4.6)]), col(Color("2a0a0a")), Art.OUTLINE, 0.7)
 	# יד קדמית ענקית
 	var fh := sh + Vector2(12.0 + sin(p) * 2.0, 15.0).lerp(sh + Vector2(6, -20), raise if raise > 0.0 else 0.0)
@@ -322,10 +322,10 @@ func _big_arm(s: Vector2, hand: Vector2, sk: Color, _sleeve: Color) -> void:
 
 
 func _stump(at: Vector2, blood: Color) -> void:
-	z.draw_circle(at, 3.6, Art.OUTLINE)
-	z.draw_circle(at, 2.8, blood)
+	DrawBatch.circle(z, at, 3.6, Art.OUTLINE)
+	DrawBatch.circle(z, at, 2.8, blood)
 	if not z.dead and int(z._time * 6.0) % 3 == 0:   # טפטוף
-		z.draw_circle(at + Vector2(0, 4 + fposmod(z._time * 20.0, 8.0)), 1.0, blood)
+		DrawBatch.circle(z, at + Vector2(0, 4 + fposmod(z._time * 20.0, 8.0)), 1.0, blood)
 
 
 # זוחל על הבטן: גוף שוכב, הראש קדימה, גדמים
@@ -339,7 +339,7 @@ func _draw_crawl(sk: Color, _skd: Color, apron: Color, blood: Color, p: float) -
 	var head := Vector2(22, -10 + wig)
 	Art.oval_shaded(z, head, 5.0, 5.0, sk, 0.0)
 	if not z.dead:
-		z.draw_circle(head + Vector2(2, -1), 1.0, Color(1.0, 0.85, 0.3))
+		DrawBatch.circle(z, head + Vector2(2, -1), 1.0, Color(1.0, 0.85, 0.3))
 	Art.fill(z, PackedVector2Array([head + Vector2(1, 2), head + Vector2(5, 1.5), head + Vector2(4.5, 4.5 + (1.5 if z._bite_anim > 0.0 else 0.0)), head + Vector2(1.5, 4.5)]), Color("2a0a0a"), Art.OUTLINE, 0.7)
 
 
@@ -386,26 +386,31 @@ class Limb extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(life, 0.0, 1.0)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(face * sc, sc))
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2(face * sc, sc))
 		var sk := Color(skin, a)
 		var blood := Color(0.45, 0.05, 0.05, a)
 		var ol := Color(Art.OUTLINE, a)
 		match kind:
 			"arm":
-				draw_line(Vector2(-9, 0), Vector2(0, 1), ol, 8.0)
-				draw_line(Vector2(-9, 0), Vector2(0, 1), sk, 6.0)
-				draw_line(Vector2(0, 1), Vector2(9, 0), ol, 9.5)
-				draw_line(Vector2(0, 1), Vector2(9, 0), sk, 7.5)
-				draw_circle(Vector2(11, 0), 4.6, sk)
-				draw_circle(Vector2(-9, 0), 3.0, blood)
+				DrawBatch.line(self, Vector2(-9, 0), Vector2(0, 1), ol, 8.0)
+				DrawBatch.line(self, Vector2(-9, 0), Vector2(0, 1), sk, 6.0)
+				DrawBatch.line(self, Vector2(0, 1), Vector2(9, 0), ol, 9.5)
+				DrawBatch.line(self, Vector2(0, 1), Vector2(9, 0), sk, 7.5)
+				DrawBatch.circle(self, Vector2(11, 0), 4.6, sk)
+				DrawBatch.circle(self, Vector2(-9, 0), 3.0, blood)
 			"leg":
-				draw_line(Vector2(0, -10), Vector2(0, 6), ol, 8.0)
-				draw_line(Vector2(0, -10), Vector2(0, 6), Color(cloth, a), 6.0)
-				draw_rect(Rect2(Vector2(-3, 6), Vector2(8, 4)), Color(shoe, a))
-				draw_circle(Vector2(0, -10), 3.0, blood)
+				DrawBatch.line(self, Vector2(0, -10), Vector2(0, 6), ol, 8.0)
+				DrawBatch.line(self, Vector2(0, -10), Vector2(0, 6), Color(cloth, a), 6.0)
+				DrawBatch.rect(self, Rect2(Vector2(-3, 6), Vector2(8, 4)), Color(shoe, a))
+				DrawBatch.circle(self, Vector2(0, -10), 3.0, blood)
 			_:   # ראש
-				draw_circle(Vector2.ZERO, 6.2, ol)
-				draw_circle(Vector2.ZERO, 5.2, sk)
-				draw_circle(Vector2(2.5, -1), 1.0, Color(0.2, 0.2, 0.2, a))
-				draw_circle(Vector2(0, 5), 2.6, blood)
+				DrawBatch.circle(self, Vector2.ZERO, 6.2, ol)
+				DrawBatch.circle(self, Vector2.ZERO, 5.2, sk)
+				DrawBatch.circle(self, Vector2(2.5, -1), 1.0, Color(0.2, 0.2, 0.2, a))
+				DrawBatch.circle(self, Vector2(0, 5), 2.6, blood)

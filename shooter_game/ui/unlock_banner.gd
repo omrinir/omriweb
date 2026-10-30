@@ -1,4 +1,5 @@
 extends CanvasLayer
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  UNLOCK BANNER - הרגע של "NEW WEAPON" / "NEW ABILITY" / "WEAPON MOD".
 #  main.gd מוסיף אחד לכל שלב (קבוצה "unlock_banner") עם items = מה השלב נותן (progression/arsenal.gd -> rewards).
@@ -120,21 +121,21 @@ func _draw_card() -> void:
 	var y := vs.y * 0.6 + (1.0 - clampf(_k / 0.25, 0.0, 1.0)) * 24.0
 	var r := Rect2(vs.x * 0.5 - bw * 0.5, y - bh * 0.5, bw, bh)
 	# פס כהה רך מאחור + מסגרת בצבע הפריט
-	_ui.draw_rect(Rect2(0, r.position.y - 10.0, vs.x, r.size.y + 20.0), Color(0, 0, 0, 0.22 * a))
+	DrawBatch.rect(_ui, Rect2(0, r.position.y - 10.0, vs.x, r.size.y + 20.0), Color(0, 0, 0, 0.22 * a))
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.05, 0.05, 0.07, 0.88 * a)
 	sb.border_color = Color(col, a)
 	sb.set_border_width_all(3)
 	sb.set_corner_radius_all(12)
-	_ui.draw_style_box(sb, r)
+	DrawBatch.style_box(_ui, sb, r)
 	var shine := fposmod(_k * 0.9, 1.6) - 0.3   # ברק שעובר על הכרטיס
 	if shine > 0.0 and shine < 1.0:
 		var sx := r.position.x + r.size.x * shine
-		_ui.draw_colored_polygon(PackedVector2Array([Vector2(sx, r.position.y + 3), Vector2(sx + 26, r.position.y + 3), Vector2(sx + 6, r.end.y - 3), Vector2(sx - 20, r.end.y - 3)]), Color(1, 1, 1, 0.06 * a))
+		DrawBatch.colored_polygon(_ui, PackedVector2Array([Vector2(sx, r.position.y + 3), Vector2(sx + 26, r.position.y + 3), Vector2(sx + 6, r.end.y - 3), Vector2(sx - 20, r.end.y - 3)]), Color(1, 1, 1, 0.06 * a))
 	# אייקון
 	var ic := Vector2(r.position.x + 62.0, r.position.y + 50.0)
-	_ui.draw_circle(ic, 40.0, Color(col, 0.12 * a))
-	_ui.draw_circle(ic, 30.0 + 3.0 * sin(_time * 5.0), Color(col, 0.1 * a))
+	DrawBatch.circle(_ui, ic, 40.0, Color(col, 0.12 * a))
+	DrawBatch.circle(_ui, ic, 30.0 + 3.0 * sin(_time * 5.0), Color(col, 0.1 * a))
 	match str(_cur.kind):
 		"weapon":
 			load("res://weapon_wheel.gd").draw_weapon(_ui, ic, int(_cur.id), 1.05, a)
@@ -143,7 +144,7 @@ func _draw_card() -> void:
 		_:
 			if int(_cur.id) >= 0:
 				load("res://weapon_wheel.gd").draw_weapon(_ui, ic + Vector2(0, 4), int(_cur.id), 0.8, a)
-			_ui.draw_colored_polygon(PackedVector2Array([ic + Vector2(14, -6), ic + Vector2(14, -16), ic + Vector2(9, -16), ic + Vector2(18, -26), ic + Vector2(27, -16), ic + Vector2(22, -16), ic + Vector2(22, -6)]), Color(1.0, 0.83, 0.3, a))
+			DrawBatch.colored_polygon(_ui, PackedVector2Array([ic + Vector2(14, -6), ic + Vector2(14, -16), ic + Vector2(9, -16), ic + Vector2(18, -26), ic + Vector2(27, -16), ic + Vector2(22, -16), ic + Vector2(22, -6)]), Color(1.0, 0.83, 0.3, a))
 	# טקסט
 	var tx := r.position.x + 124.0
 	var head: String = str(_cur.head)
@@ -151,6 +152,6 @@ func _draw_card() -> void:
 	f.draw_string(ci, Vector2(tx, r.position.y + 28.0), head, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.85, 0.35, a))
 	f.draw_string_outline(ci, Vector2(tx, r.position.y + 62.0), str(_cur.name), HORIZONTAL_ALIGNMENT_LEFT, -1, name_fs, 7, Color(0, 0, 0, a))
 	f.draw_string(ci, Vector2(tx, r.position.y + 62.0), str(_cur.name), HORIZONTAL_ALIGNMENT_LEFT, -1, name_fs, Color(col.lerp(Color.WHITE, 0.25), a))
-	_ui.draw_multiline_string(fb, Vector2(tx, r.position.y + 84.0), sub, HORIZONTAL_ALIGNMENT_LEFT, 560.0, 14, 2, Color(0.88, 0.88, 0.92, 0.9 * a))
+	DrawBatch.multiline_string(_ui, fb, Vector2(tx, r.position.y + 84.0), sub, HORIZONTAL_ALIGNMENT_LEFT, 560.0, 14, 2, Color(0.88, 0.88, 0.92, 0.9 * a))
 	if hint != "":
-		_ui.draw_string(fb, Vector2(tx, r.position.y + 104.0 + (17.0 if two else 0.0)), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(col.lerp(Color.WHITE, 0.4), a))
+		DrawBatch.string(_ui, fb, Vector2(tx, r.position.y + 104.0 + (17.0 if two else 0.0)), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(col.lerp(Color.WHITE, 0.4), a))

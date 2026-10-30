@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  כדור חומצה ירוק שזומבי SPITTER יורק בקשת.
 #  פגיעה בשחקן = מינוס לב אחד. פגיעה בריצפה = שלולית קטנה שנעלמת.
@@ -55,16 +56,21 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var g := Color(0.55, 0.95, 0.2)
 	if _splash >= 0.0:
 		var a := 1.0 - _splash / 1.2
-		draw_colored_polygon(PackedVector2Array([Vector2(-10, 0), Vector2(-6, -3), Vector2(4, -3), Vector2(10, 0), Vector2(4, 2), Vector2(-6, 2)]), Color(g, 0.7 * a))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-10, 0), Vector2(-6, -3), Vector2(4, -3), Vector2(10, 0), Vector2(4, 2), Vector2(-6, 2)]), Color(g, 0.7 * a))
 		for i in 3:
 			var k := fmod(_splash * 2.0 + float(i) * 0.3, 1.0)
-			draw_circle(Vector2(-5 + i * 5, -k * 14.0), 1.5 * (1.0 - k), Color(0.7, 1.0, 0.4, a * (1.0 - k)))
+			DrawBatch.circle(self, Vector2(-5 + i * 5, -k * 14.0), 1.5 * (1.0 - k), Color(0.7, 1.0, 0.4, a * (1.0 - k)))
 		return
-	draw_circle(Vector2.ZERO, 7.0, Color(g, 0.25))
-	draw_circle(Vector2.ZERO, 4.0, g)
-	draw_circle(Vector2(-1.2, -1.2), 1.4, Color(0.9, 1.0, 0.7))
+	DrawBatch.circle(self, Vector2.ZERO, 7.0, Color(g, 0.25))
+	DrawBatch.circle(self, Vector2.ZERO, 4.0, g)
+	DrawBatch.circle(self, Vector2(-1.2, -1.2), 1.4, Color(0.9, 1.0, 0.7))
 	var tail := -velocity.normalized() * 8.0
-	draw_line(Vector2.ZERO, tail, Color(g, 0.5), 3.0, true)
+	DrawBatch.line(self, Vector2.ZERO, tail, Color(g, 0.5), 3.0, true)

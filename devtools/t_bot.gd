@@ -69,6 +69,15 @@ var boss_hp_last := -1
 var boss_hp_f := 0
 var gate_passed := false
 var cur_t := [null, Vector2.ZERO, 0.0, 0]
+# BOT_HUMAN=1 (promo clips): plays like a person - stops to shoot, backs off when zombies get close, turns the aim smoothly
+# instead of snapping, pauses for a moment after a kill, and runs only when nothing is around.
+var human := OS.get_environment("BOT_HUMAN") != ""
+# BOT_NO_FLANK=1: no zombies sneaking up from behind (levels/flank_director.gd removed) - for A/B balance runs
+var no_flank := OS.get_environment("BOT_NO_FLANK") != ""
+var flank_node: Node = null
+var pause_until := 0
+var had_target := false
+var h_aim := Vector2.RIGHT
 var no_t_f := 0
 
 func _initialize() -> void:
@@ -144,6 +153,12 @@ func _physics_process(_d: float) -> bool:
 			pl.global_position.x = start_x
 			best_x = start_x
 		kills0 = int(root.get_node("Game").get("kills")) if "kills" in root.get_node("Game") else 0
+		for c in main_node.get_children():
+			if c.get_script() != null and str(c.get_script().resource_path).ends_with("flank_director.gd"):
+				if no_flank:
+					c.queue_free()
+				else:
+					flank_node = c
 	if main_node._finished:
 		if finished_f < 0:
 			finished_f = f
@@ -296,6 +311,9 @@ func _fight() -> void:
 				refills += 1
 			elif f % 600 == 0:
 				ev.append("OUT OF AMMO x=%d" % pl.global_position.x)
+	if z == null and human:   # gun drifts back to a level, forward hold (not the mouse)
+		h_aim = h_aim.slerp(Vector2(signf(h_aim.x) if h_aim.x != 0.0 else 1.0, 0.05).normalized(), 0.08)
+		_hold_aim()
 	if z == null:
 		var w: Dictionary = UpgradesS.weapon_def(pl.gun)
 		var ms: int = int(w.get("magazine_size", 0))
@@ -316,9 +334,20 @@ func _fight() -> void:
 		if pl.use_item():
 			spec_cd = 300
 		return
+	if human:   # the aim swings to the target and fires once it is on it
+		h_aim = h_aim.slerp(dir, 0.2)
+		if absf(h_aim.angle_to(dir)) > 0.12:
+			_hold_aim()
+			return
 	pl._aim = dir
 	pl._fire_test = true
 	shots += 1
+
+# human mode: point the gun at h_aim without firing (_fire_test keeps the mouse from steering the aim)
+func _hold_aim() -> void:
+	pl._aim = h_aim
+	pl._fire_test = true
+	pl._cooldown = maxf(pl._cooldown, 0.05)
 
 # ============ movement ============
 func _move() -> void:
@@ -383,6 +412,23 @@ func _move() -> void:
 				want = -1.0
 			elif dx > 0.0 and dx < 360.0:
 				want = 0.0
+	if human and not bar_on:
+		var hz = cur_t[0]
+		var hdx: float = hz.global_position.x - x if hz != null else 1e9
+		if hz != null and absf(hdx) < 700.0:
+			had_target = true
+			if absf(hdx) < 150.0 and not hz.is_boss():
+				want = -signf(hdx) if hdx != 0.0 else -1.0   # too close: back up while shooting
+			elif absf(hdx) < 430.0 or (hz.is_boss() and absf(hdx) < 650.0):
+				want = 0.0   # stand and shoot
+			best_x_f = f   # fighting on purpose, not stuck
+		else:
+			if had_target:   # just cleared the area: a short breath before moving on
+				had_target = false
+				pause_until = f + randi_range(14, 40)
+			if f < pause_until:
+				want = 0.0
+				best_x_f = f
 	if bar_on:
 		want = 0.0
 		if cur_t[0] == null:   # nothing visible: go back to the zombies the wall waits for
@@ -493,7 +539,7 @@ func _move() -> void:
 		_key(KEY_A, false)
 		if not keys.get(KEY_D, false):
 			_key(KEY_D, true)
-		elif not pl._running and on_floor and run_cool <= 0 and not pl._crouching:
+		elif not pl._running and on_floor and run_cool <= 0 and not pl._crouching and (not human or f - no_t_f > 75):
 			key_queue = [[KEY_D, false], [KEY_D, true], [KEY_D, false], [KEY_D, true]]
 			_key(KEY_D, false)
 			key_queue.pop_front()
@@ -622,7 +668,7 @@ func _report_and_quit(why: String) -> void:
 	line += "boss=%s seen=%.0f dead=%s near_exit=%s " % [boss_name, float(boss_seen_f) / 60.0, ("%.0f" % (float(boss_dead_f) / 60.0)) if boss_dead_f > 0 else "NO", ("%.0f" % (float(near_exit_f) / 60.0)) if near_exit_f > 0 else "-"]
 	if boss != null and is_instance_valid(boss) and not boss.dead:
 		line += "boss_hp=%d/%d boss_pos=%s " % [boss.hp, boss.max_hp, str(boss.global_position.round())]
-	line += "stuck=%d tp=%d barrier=%d(%.0fs) story=%.0fs slow25=%d worst=%.0fms avg=%.1fms refills=%d spec=%d deaths=%d dmg=%d maxhp=%d" % [stuck_eps.size(), teleports, barrier_eps, barrier_f / 60.0, story_frames / 60.0, slow, worst, sum_ms / maxf(nms, 1), refills, spec_used, deaths_at.size(), dmg_taken, max_hp]
+	line += "stuck=%d tp=%d barrier=%d(%.0fs) story=%.0fs slow25=%d worst=%.0fms avg=%.1fms refills=%d spec=%d deaths=%d dmg=%d maxhp=%d flank=%s" % [stuck_eps.size(), teleports, barrier_eps, barrier_f / 60.0, story_frames / 60.0, slow, worst, sum_ms / maxf(nms, 1), refills, spec_used, deaths_at.size(), dmg_taken, max_hp, ("off" if no_flank else (str(flank_node.spawned) if is_instance_valid(flank_node) else "-"))]
 	print(line)
 	for s in stuck_eps:
 		print("  STUCK x=%d y=%d %.1fs floor=%s tp=%s blk=%s hi=%s" % [s.x, s.y, s.dur, str(s.floor), str(s.tp), s.blk, s.blk_hi])

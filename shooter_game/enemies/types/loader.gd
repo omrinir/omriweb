@@ -131,17 +131,17 @@ func draw() -> bool:
 	var o: Dictionary = E.soldier(self, z, Vector2(-2, -14), "helmet", E.UNIFORM, Vector2(-6, -14))
 	var sh: Vector2 = o.sh
 	var frame := col(Color("3a3020"))
-	z.draw_line(sh + Vector2(-7, -2), sh + Vector2(-7, -34), frame, 2.0)   # מסגרת הגב
-	z.draw_line(sh + Vector2(-1, -2), sh + Vector2(-1, -34), frame, 2.0)
-	z.draw_line(sh + Vector2(-6, 0), sh + Vector2(4, 14), col(Color("2a2018")), 1.6)
+	DrawBatch.line(z, sh + Vector2(-7, -2), sh + Vector2(-7, -34), frame, 2.0)   # מסגרת הגב
+	DrawBatch.line(z, sh + Vector2(-1, -2), sh + Vector2(-1, -34), frame, 2.0)
+	DrawBatch.line(z, sh + Vector2(-6, 0), sh + Vector2(4, 14), col(Color("2a2018")), 1.6)
 	if crate_hp > 0:
 		for q in 3:
 			var cy := -24.0 - float(q) * 9.5
 			var cx := -7.0 + (1.5 if q == 1 else 0.0)
 			var r := Rect2(sh + Vector2(cx - 7.0, cy - 4.0), Vector2(14, 9))
-			z.draw_rect(r, col(Color("4a5a30") if q != 1 else Color("54622e")))
-			z.draw_rect(Rect2(r.position + Vector2(0, 3.5), Vector2(14, 1.5)), col(Color("2a3018")))
-			z.draw_rect(Rect2(r.position + Vector2(5, 1), Vector2(4, 2)), col(Color("d8c060")))
+			DrawBatch.rect(z, r, col(Color("4a5a30") if q != 1 else Color("54622e")))
+			DrawBatch.rect(z, Rect2(r.position + Vector2(0, 3.5), Vector2(14, 1.5)), col(Color("2a3018")))
+			DrawBatch.rect(z, Rect2(r.position + Vector2(5, 1), Vector2(4, 2)), col(Color("d8c060")))
 		if crate_hp < CRATE_HP:
 			Art.glow(z, sh + Vector2(-7, -40), 6.0, Color(1.0, 0.6, 0.2, 0.5))
 	end_draw()

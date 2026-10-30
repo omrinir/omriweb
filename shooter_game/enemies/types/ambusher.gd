@@ -179,7 +179,7 @@ func draw() -> bool:
 	z._leg(hip + Vector2(1, 0), ff, sk, sk, Color(0, 0, 0, 0))
 	# גוף צנום
 	Art.fill_shaded(z, PackedVector2Array([hip + Vector2(-5, 3), hip + Vector2(5, 2), sh + Vector2(5, 3), sh + Vector2(-4, -3)]), sk, 0.15, 0.4)
-	z.draw_line(hip + Vector2(-2, -1), sh + Vector2(-1, 0), sheen, 1.2)   # ברק שמן
+	DrawBatch.line(z, hip + Vector2(-2, -1), sh + Vector2(-1, 0), sheen, 1.2)   # ברק שמן
 	# ראש מכוסה בברזנט, רק העיניים בולטות
 	Art.oval_shaded(z, head, 6.0, 6.0, sk, 0.0)
 	var hood := PackedVector2Array([head + Vector2(-8, 3), head + Vector2(-7, -6), head + Vector2(0, -9), head + Vector2(7, -5), head + Vector2(6, -2), head + Vector2(-1, -3), head + Vector2(-2, 6)])
@@ -189,7 +189,7 @@ func draw() -> bool:
 	for e in [Vector2(3.0, 0.0), Vector2(5.5, 0.5)]:
 		var ep: Vector2 = head + e
 		Art.glow(z, ep, 2.5 + 2.5 * (1.0 - hk), Color(eye, 0.5 * ea))
-		z.draw_circle(ep, 0.8, Color(eye, ea))
+		DrawBatch.circle(z, ep, 0.8, Color(eye, ea))
 	if hk < 0.5:   # פה פעור כשהוא תוקף
 		Art.fill(z, PackedVector2Array([head + Vector2(2, 3), head + Vector2(7, 2.5), head + Vector2(6, 6 + reach * 2.0), head + Vector2(2.5, 5)]), Color("1a0606"), Art.OUTLINE, 0.8)
 	# יד קדמית ארוכה עם ווים
@@ -208,5 +208,5 @@ func _hooks(at: Vector2, c: Color) -> void:
 	for i in 3:
 		var a := -0.6 + float(i) * 0.5
 		var tip := at + Vector2.from_angle(a) * 6.0
-		z.draw_line(at, tip, c, 1.1, true)
-		z.draw_line(tip, tip + Vector2.from_angle(a + 1.9) * 2.5, c, 1.0, true)
+		DrawBatch.line(z, at, tip, c, 1.1, true)
+		DrawBatch.line(z, tip, tip + Vector2.from_angle(a + 1.9) * 2.5, c, 1.0, true)
