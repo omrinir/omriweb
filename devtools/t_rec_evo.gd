@@ -57,6 +57,7 @@ extends SceneTree
 #      EVO_SCOPE=<frame> (the right mouse button is held from that frame: a SNIPER / ANTI-MATERIEL / RAILGUN looks through the
 #      scope), EVO_BC_FORCE=1 (every scoped shot that will kill gets the BULLET CAM, as devtools/t_bullet_cam.gd), EVO_BARS=1
 #      (keep the bullet cam's black cinema bars; every other layer over the game is still hidden),
+#      EVO_SPORE=<scale> (every kill sends its spore lesson to the nearest living zombie, on any level: 1 = the game's size),
 #      REC_POS=<csv>: t, player x, y, target x, y (screen, 1280 space), fired (0/1), fresh corpses "id/age/x/y|..." (as t_rec_god.gd)
 #      SNAP=<dir>: save a png every SNAP_EVERY (default 20) frames (previews; run with a 1280x720 window), SNAP_FULL=1 = the whole screen
 # usage: EVO_LEVEL=12 EVO_KIND=MIMIC REC_POS=/tmp/m.csv xvfb-run -a -s "-screen 0 2560x1440x24" godot --path . --rendering-driver opengl3 \
@@ -181,6 +182,37 @@ func _key(code: int, on: bool) -> void:
 	e.pressed = on
 	Input.parse_input_event(e)
 	Input.flush_buffered_events()
+
+
+# EVO_SPORE: every kill's lesson flies to the nearest living zombie (effects/spore_lesson.gd, the game's own from level 55
+# on 60% of kills), drawn EVO_SPORE times the game's size
+func _spore(dead) -> void:
+	var Spore: Script = load("res://effects/spore_lesson.gd")
+	var from: Vector2 = dead.global_position + Vector2(0.0, -40.0 * float(dead.sc))
+	for c in dead.get_parent().get_children():   # (from level 55 the game may have sent this one already)
+		if c.get_script() == Spore and c._from.distance_to(from) < 90.0 and c._t < 0.2:
+			c.scale = Vector2.ONE * float(_env("EVO_SPORE", 1.0))
+			return
+	var best = null
+	var rng: float = Spore.RANGE
+	var bd := rng * rng
+	for o in main_node.get_tree().get_nodes_in_group("zombies"):
+		if o == dead or o.dead:
+			continue
+		var d: float = from.distance_squared_to(o.global_position)
+		if d < bd:
+			bd = d
+			best = o
+	if best == null:
+		return
+	var fx = Spore.new()
+	fx.target = best
+	fx._from = from
+	fx.global_position = from
+	fx.z_index = 30
+	fx.scale = Vector2.ONE * float(_env("EVO_SPORE", 1.0))
+	dead.get_parent().add_child(fx)
+	print("f=%d spore -> kind %d" % [f, int(best.kind)])
 
 
 # aim stays close to level (EVO_AIM_UP / EVO_AIM_DOWN)
@@ -501,6 +533,8 @@ func _physics_process(_d: float) -> bool:
 			_died[id] = [z, f]
 			_kills += 1
 			print("f=%d kill %d" % [f, _kills])
+			if _env("EVO_SPORE", 0.0) > 0.0:
+				_spore(z)
 	_alive.clear()
 	for z in main_node.get_tree().get_nodes_in_group("zombies"):
 		if not z.dead:
