@@ -108,21 +108,21 @@ func draw() -> bool:
 	# אלה ביד האחורית
 	var mh := sh + Vector2(-8.0, -10.0) if _bash_anim > 0.0 else sh + Vector2(-7.0 - sin(p) * 2.0, 12.0)
 	z._arm(sh + Vector2(-3, 1), mh, Art.shade(sk, 0.25), Art.shade(tun, 0.3))
-	z.draw_line(mh, mh + Vector2(-2, -14), col(Color("5a3a22")), 2.0)
+	DrawBatch.line(z, mh, mh + Vector2(-2, -14), col(Color("5a3a22")), 2.0)
 	var star := mh + Vector2(-2, -15)
 	for q in 6:
-		z.draw_line(star, star + Vector2.from_angle(float(q) * TAU / 6.0) * 4.0, col(Color("c89a40")), 2.0)
+		DrawBatch.line(z, star, star + Vector2.from_angle(float(q) * TAU / 6.0) * 4.0, col(Color("c89a40")), 2.0)
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(9, 6), hip + Vector2(-9, 6)]), tun, 0.15, 0.4)   # אונקו
 	for q in 3:   # טוקאפו
 		for r in 2:
-			z.draw_rect(Rect2(sh + Vector2(-6.0 + float(q) * 4.5, 8.0 + float(r) * 5.0), Vector2(3, 3)), col(Color("e0c060") if (q + r) % 2 == 0 else Color("1a1a1a")))
+			DrawBatch.rect(z, Rect2(sh + Vector2(-6.0 + float(q) * 4.5, 8.0 + float(r) * 5.0), Vector2(3, 3)), col(Color("e0c060") if (q + r) % 2 == 0 else Color("1a1a1a")))
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(0, -3), 6.0, 3.6, 0.0, 10), col(Color("c8a860")))   # קסדת קש
-	z.draw_line(head + Vector2(-2, -6), head + Vector2(-6, -14), col(Color("2a8a6a")), 2.0)
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(0, -3), 6.0, 3.6, 0.0, 10), col(Color("c8a860")))   # קסדת קש
+	DrawBatch.line(z, head + Vector2(-2, -6), head + Vector2(-6, -14), col(Color("2a8a6a")), 2.0)
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.2, Color(1.0, 0.7, 0.3))
-	z.draw_line(head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a1a10")), 1.2)
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.2, Color(1.0, 0.7, 0.3))
+	DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a1a10")), 1.2)
 	# המגן
 	var sx := 11.0
 	var top := -50.0 if guard_high else -34.0
@@ -140,8 +140,8 @@ func draw() -> bool:
 	Art.fill_shaded(z, shield, col(Color("7a5030")), 0.15, 0.4, Art.OUTLINE, 1.2)
 	var hh := bot - top
 	for q in 3:   # פסים מצוירים
-		z.draw_rect(Rect2(sx - 2.0, top + 3.0 + float(q) * hh / 3.2, 6.0, 3.0), col([Color("c03a2a"), Color("e0c040"), Color("2a6a9a")][q]))
+		DrawBatch.rect(z, Rect2(sx - 2.0, top + 3.0 + float(q) * hh / 3.2, 6.0, 3.0), col([Color("c03a2a"), Color("e0c040"), Color("2a6a9a")][q]))
 	for q in 3:   # נוצות בראש המגן
-		z.draw_line(Vector2(sx + float(q) * 2.5 - 2.0, top), Vector2(sx + float(q) * 3.0 - 1.0, top - 7.0), col([Color("2a8a6a"), Color("e0b030"), Color("c03a2a")][q]), 1.6)
+		DrawBatch.line(z, Vector2(sx + float(q) * 2.5 - 2.0, top), Vector2(sx + float(q) * 3.0 - 1.0, top - 7.0), col([Color("2a8a6a"), Color("e0b030"), Color("c03a2a")][q]), 1.6)
 	end_draw()
 	return true

@@ -175,7 +175,7 @@ func _thigh(a: Vector2, b: Vector2, w0: float, w1: float, c: Color) -> void:
 	var n := Vector2(-d.y, d.x)
 	var pts := PackedVector2Array([a + n * w0, a.lerp(b, 0.45) + n * w0 * 1.08, b + n * w1, b - n * w1, a.lerp(b, 0.5) - n * w0 * 0.8, a - n * w0])
 	Art.fill_shaded(z, pts, c, 0.18, 0.42, Art.OUTLINE, 1.2)
-	z.draw_line(a.lerp(b, 0.2) + n * w0 * 0.3, a.lerp(b, 0.75) + n * w1 * 0.4, Color(1, 1, 1, 0.12), 1.0)   # הדגשת שריר
+	DrawBatch.line(z, a.lerp(b, 0.2) + n * w0 * 0.3, a.lerp(b, 0.75) + n * w1 * 0.4, Color(1, 1, 1, 0.12), 1.0)   # הדגשת שריר
 
 
 # כף רגל ארוכה עם 3 טפרים
@@ -184,7 +184,7 @@ func _foot(ankle: Vector2, toe: Vector2, c: Color) -> void:
 	var d := (toe - ankle).normalized()
 	for i in 3:
 		var a := d.rotated(-0.35 + float(i) * 0.35)
-		z.draw_line(toe, toe + a * 3.2, col(Color("2a2420")), 1.2)
+		DrawBatch.line(z, toe, toe + a * 3.2, col(Color("2a2420")), 1.2)
 
 
 func draw() -> bool:
@@ -207,13 +207,13 @@ func draw() -> bool:
 	Art.fill_shaded(z, body, sk, 0.18, 0.45, Art.OUTLINE, 1.2)
 	for i in 4:   # צלעות
 		var y := 2.0 + float(i) * 2.6
-		z.draw_line(sh.lerp(hip, y / 13.0) + Vector2(-3.5, 0), sh.lerp(hip, y / 13.0) + Vector2(3.0, 1.0), col(Art.shade(z.skin, 0.35)), 0.8)
+		DrawBatch.line(z, sh.lerp(hip, y / 13.0) + Vector2(-3.5, 0), sh.lerp(hip, y / 13.0) + Vector2(3.0, 1.0), col(Art.shade(z.skin, 0.35)), 0.8)
 	for i in 4:   # חוליות שדרה בולטות על הגב
-		z.draw_circle(sh.lerp(hip, float(i) / 4.0) + Vector2(-4.2, 0), 1.1, col(Color("c8c4b8")))
+		DrawBatch.circle(z, sh.lerp(hip, float(i) / 4.0) + Vector2(-4.2, 0), 1.1, col(Color("c8c4b8")))
 	for i in 4:   # סמרטוטים צבעוניים מתנופפים
 		var rx := -3.0 + float(i) * 2.2
 		var flap := sin(z._time * 6.0 + float(i)) * 1.5
-		z.draw_line(hip + Vector2(rx, 0), hip + Vector2(rx - 2.0 + flap, 6.0 + float(i % 2) * 2.0), col([Color("c02040"), Color("e0b030"), Color("3080c0"), Color("a02080")][i]), 1.4)
+		DrawBatch.line(z, hip + Vector2(rx, 0), hip + Vector2(rx - 2.0 + flap, 6.0 + float(i % 2) * 2.0), col([Color("c02040"), Color("e0b030"), Color("3080c0"), Color("a02080")][i]), 1.4)
 	# רגל קדמית
 	_draw_leg(legs[1], sk, col(Art.shade(z.skin, 0.15)))
 	# צוואר + ראש
@@ -222,12 +222,12 @@ func draw() -> bool:
 		var bh := head + Vector2(1, -5)
 		Art.oval_shaded(z, bh, 9.0, 10.0, col(Color("e8c8a0")), 0.0)
 		Art.fill(z, PackedVector2Array([bh + Vector2(-9, -3), bh + Vector2(-4, -12), bh + Vector2(5, -12), bh + Vector2(10, -2), bh + Vector2(2, -8)]), col(Color("2a1a10")), Art.OUTLINE, 1.0)
-		z.draw_circle(bh + Vector2(-3, -1), 2.2, Color("1a0a0a"))
-		z.draw_circle(bh + Vector2(4, -1), 2.2, Color("1a0a0a"))
-		z.draw_circle(bh + Vector2(-3, -1), 0.9, Color(1.0, 0.85, 0.4))
-		z.draw_circle(bh + Vector2(4, -1), 0.9, Color(1.0, 0.85, 0.4))
-		z.draw_arc(bh + Vector2(1, 4), 4.5, 0.15, PI - 0.15, 8, col(Color("6a0808")), 2.0)
-		z.draw_polyline(PackedVector2Array([bh + Vector2(-2, -10), bh + Vector2(1, -4), bh + Vector2(-1, 2)]), col(Color("3a2a1a")), 1.0)
+		DrawBatch.circle(z, bh + Vector2(-3, -1), 2.2, Color("1a0a0a"))
+		DrawBatch.circle(z, bh + Vector2(4, -1), 2.2, Color("1a0a0a"))
+		DrawBatch.circle(z, bh + Vector2(-3, -1), 0.9, Color(1.0, 0.85, 0.4))
+		DrawBatch.circle(z, bh + Vector2(4, -1), 0.9, Color(1.0, 0.85, 0.4))
+		DrawBatch.arc(z, bh + Vector2(1, 4), 4.5, 0.15, PI - 0.15, 8, col(Color("6a0808")), 2.0)
+		DrawBatch.polyline(z, PackedVector2Array([bh + Vector2(-2, -10), bh + Vector2(1, -4), bh + Vector2(-1, 2)]), col(Color("3a2a1a")), 1.0)
 	else:
 		_skull(head)
 	# יד קדמית
@@ -239,7 +239,7 @@ func draw() -> bool:
 func _draw_leg(lp: Array, c: Color, c2: Color) -> void:
 	_thigh(lp[0], lp[1], 3.6, 1.8, c)
 	Art.limb(z, PackedVector2Array([lp[1], lp[1].lerp(lp[2], 0.5) + Vector2(-0.5, 0), lp[2]]), 2.2, c2)   # שוק דקה וגידית
-	z.draw_line(lp[1] + Vector2(-1, 1), lp[2] + Vector2(-1, -1), Color(0, 0, 0, 0.25), 0.8)   # גיד אכילס
+	DrawBatch.line(z, lp[1] + Vector2(-1, 1), lp[2] + Vector2(-1, -1), Color(0, 0, 0, 0.25), 0.8)   # גיד אכילס
 	_foot(lp[2], lp[3], c2)
 
 
@@ -248,19 +248,19 @@ func _skull(h: Vector2) -> void:
 	var sk := col(z.skin)
 	var skull := PackedVector2Array([h + Vector2(-4, -3), h + Vector2(-1, -6.5), h + Vector2(5, -6), h + Vector2(8, -2), h + Vector2(7.5, 1.5), h + Vector2(2, 2.5), h + Vector2(-3, 1)])
 	Art.fill_shaded(z, skull, sk, 0.15, 0.45, Art.OUTLINE, 1.2)
-	z.draw_circle(h + Vector2(4.2, -2.0), 1.8, Color("120808"))   # ארובת עין
-	z.draw_circle(h + Vector2(4.4, -2.0), 0.8, Color(0.95, 0.95, 0.7))
+	DrawBatch.circle(z, h + Vector2(4.2, -2.0), 1.8, Color("120808"))   # ארובת עין
+	DrawBatch.circle(z, h + Vector2(4.4, -2.0), 0.8, Color(0.95, 0.95, 0.7))
 	Art.glow(z, h + Vector2(4.4, -2.0), 4.0, Color(0.9, 0.95, 0.6, 0.5))
 	var open := 2.5 + (2.5 if state == CROUCH or state == LEAP else absf(sin(z._time * 3.0)) * 1.0)
 	var jaw := PackedVector2Array([h + Vector2(0, 2), h + Vector2(7, 1.5), h + Vector2(6, 2.5 + open), h + Vector2(1, 3 + open)])
 	Art.fill(z, jaw, col(Art.shade(z.skin, 0.2)), Art.OUTLINE, 1.0)
-	z.draw_rect(Rect2(h + Vector2(1.5, 1.6), Vector2(5.2, open * 0.7)), Color("2a0606"))   # פה פעור
+	DrawBatch.rect(z, Rect2(h + Vector2(1.5, 1.6), Vector2(5.2, open * 0.7)), Color("2a0606"))   # פה פעור
 	for i in 4:   # שיניים ארוכות
 		var tx := 2.0 + float(i) * 1.4
-		z.draw_line(h + Vector2(tx, 1.8), h + Vector2(tx, 3.2), Color("e8e0c0"), 0.8)
-		z.draw_line(h + Vector2(tx + 0.5, 2.0 + open), h + Vector2(tx + 0.5, 0.8 + open), Color("e8e0c0"), 0.8)
-	z.draw_line(h + Vector2(-1, -5.5), h + Vector2(-3, -9), col(Color("2a2420")), 0.6)   # שערות דלילות
-	z.draw_line(h + Vector2(1, -6.2), h + Vector2(0, -9.5), col(Color("2a2420")), 0.6)
+		DrawBatch.line(z, h + Vector2(tx, 1.8), h + Vector2(tx, 3.2), Color("e8e0c0"), 0.8)
+		DrawBatch.line(z, h + Vector2(tx + 0.5, 2.0 + open), h + Vector2(tx + 0.5, 0.8 + open), Color("e8e0c0"), 0.8)
+	DrawBatch.line(z, h + Vector2(-1, -5.5), h + Vector2(-3, -9), col(Color("2a2420")), 0.6)   # שערות דלילות
+	DrawBatch.line(z, h + Vector2(1, -6.2), h + Vector2(0, -9.5), col(Color("2a2420")), 0.6)
 
 
 # יד ארוכה ודקה עם שלושה טפרים
@@ -271,7 +271,7 @@ func _claw_arm(s0: Vector2, hand: Vector2, c: Color) -> void:
 	var d := (hand - el).normalized()
 	for i in 3:
 		var a := d.rotated(-0.45 + float(i) * 0.45)
-		z.draw_line(hand, hand + a * 4.0, col(Color("2a2420")), 1.0)
+		DrawBatch.line(z, hand, hand + a * 4.0, col(Color("2a2420")), 1.0)
 
 
 # ============================================================
@@ -288,7 +288,7 @@ func draw_ragdoll(ci: CanvasItem, rag) -> void:
 	var sc: float = z.sc
 	var sk: Color = z.skin
 	var dark := Art.shade(z.skin, 0.3)
-	ci.draw_colored_polygon(Art.ellipse((p[rag.PELVIS] + p[rag.NECK]) * 0.5 + Vector2(0, 8.0 * sc), 20.0 * sc, 3.0 * sc, 0.0, 12), Color(0, 0, 0, 0.25))
+	DrawBatch.colored_polygon(ci, Art.ellipse((p[rag.PELVIS] + p[rag.NECK]) * 0.5 + Vector2(0, 8.0 * sc), 20.0 * sc, 3.0 * sc, 0.0, 12), Color(0, 0, 0, 0.25))
 	for leg in [[rag.KNEE_B, rag.FOOT_B, dark], [rag.KNEE_F, rag.FOOT_F, sk]]:   # רגלי קנגורו
 		var kn: Vector2 = p[leg[0]]
 		var ft: Vector2 = p[leg[1]]
@@ -305,14 +305,14 @@ func draw_ragdoll(ci: CanvasItem, rag) -> void:
 	Art.fill_shaded(ci, PackedVector2Array([p[rag.NECK] + nrm, p[rag.NECK] - nrm, p[rag.PELVIS] - nrm * 0.9, p[rag.PELVIS] + nrm * 0.9]), sk, 0.18, 0.45, Art.OUTLINE, 1.2)
 	for i in 4:   # צלעות
 		var c := p[rag.NECK].lerp(p[rag.PELVIS], 0.15 + 0.18 * float(i))
-		ci.draw_line(c - nrm * 0.8, c + nrm * 0.7, Art.shade(z.skin, 0.35), 0.8 * sc)
+		DrawBatch.line(ci, c - nrm * 0.8, c + nrm * 0.7, Art.shade(z.skin, 0.35), 0.8 * sc)
 	for arm in [[rag.ELBOW_B, rag.HAND_B, dark], [rag.ELBOW_F, rag.HAND_F, sk]]:
 		Art.limb(ci, PackedVector2Array([p[rag.NECK], p[arm[0]], p[arm[1]]]), 2.0 * sc, arm[2])
 		var hd: Vector2 = (p[arm[1]] - p[arm[0]]).normalized()
 		for i in 3:
-			ci.draw_line(p[arm[1]], p[arm[1]] + hd.rotated(-0.45 + float(i) * 0.45) * 4.0 * sc, Color("2a2420"), 1.0)
+			DrawBatch.line(ci, p[arm[1]], p[arm[1]] + hd.rotated(-0.45 + float(i) * 0.45) * 4.0 * sc, Color("2a2420"), 1.0)
 	var hdir := (p[rag.HEAD] - p[rag.NECK]).normalized()
 	Art.limb(ci, PackedVector2Array([p[rag.NECK], p[rag.HEAD]]), 2.4 * sc, dark)
 	Art.oval_shaded(ci, p[rag.HEAD], 5.5 * sc, 4.5 * sc, sk, hdir.angle())
-	ci.draw_circle(p[rag.HEAD] + hdir * 2.0 * sc, 1.6 * sc, Color("120808"))
-	ci.draw_line(p[rag.HEAD] + hdir.rotated(0.8) * 3.0 * sc, p[rag.HEAD] + hdir.rotated(1.6) * 4.5 * sc, Color("2a0606"), 1.6 * sc)   # לסת שמוטה
+	DrawBatch.circle(ci, p[rag.HEAD] + hdir * 2.0 * sc, 1.6 * sc, Color("120808"))
+	DrawBatch.line(ci, p[rag.HEAD] + hdir.rotated(0.8) * 3.0 * sc, p[rag.HEAD] + hdir.rotated(1.6) * 4.5 * sc, Color("2a0606"), 1.6 * sc)   # לסת שמוטה

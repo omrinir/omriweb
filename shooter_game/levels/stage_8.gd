@@ -1,4 +1,5 @@
 extends "res://levels/stage_base.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  STAGE 8 - "THEY ADAPT"
 #  מעבדת מחקר תת-קרקעית נטושה. אור קר + אורות חירום אדומים, חדרי זכוכית,
@@ -88,25 +89,25 @@ func build_background(layer: CanvasLayer) -> Node:
 	bg.sky = func(ci: CanvasItem, v: Vector2, t: float):
 		Kit.gradient_sky(ci, v, [Color("0a0e14"), Color("121a24"), Color("18222e"), Color("0e141a")], 0.9)
 		for i in 6:   # תקרה: צינורות וקורות
-			ci.draw_rect(Rect2(0, 20 + i * 14, v.x, 4), Color(0.12, 0.15, 0.2, 0.8))
+			DrawBatch.rect(ci, Rect2(0, 20 + i * 14, v.x, 4), Color(0.12, 0.15, 0.2, 0.8))
 		var a := 0.08 + 0.06 * absf(sin(t * 2.4))
-		ci.draw_rect(Rect2(Vector2.ZERO, v), Color(0.8, 0.05, 0.05, a * 0.4))   # חירום אדום עמום
+		DrawBatch.rect(ci, Rect2(Vector2.ZERO, v), Color(0.8, 0.05, 0.05, a * 0.4))   # חירום אדום עמום
 	# 0.10: אולם מכונות רחוק - טורבינות/סלילים ענקיים מסתובבים
 	bg.add_layer(0.10, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
 		var period := 700.0
 		var start := int(floor(sc / period)) - 1
 		for k in range(start, start + int(v.x / period) + 3):
 			var x := float(k) * period - sc
-			ci.draw_rect(Rect2(x + 60, 140, 200, 360), Color("141b24"))
-			ci.draw_circle(Vector2(x + 160, 260), 70, Color("1a2430"))
+			DrawBatch.rect(ci, Rect2(x + 60, 140, 200, 360), Color("141b24"))
+			DrawBatch.circle(ci, Vector2(x + 160, 260), 70, Color("1a2430"))
 			for s in 6:   # כנפי טורבינה
 				var an := t * 0.6 + float(s) * TAU / 6.0
-				ci.draw_line(Vector2(x + 160, 260), Vector2(x + 160, 260) + Vector2.from_angle(an) * 62.0, Color("26323f"), 6.0)
-			ci.draw_circle(Vector2(x + 160, 260), 14, Color(0.3, 0.85, 1.0, 0.35 + 0.2 * sin(t * 3.0 + float(k))))
-			ci.draw_rect(Rect2(x + 400, 220, 120, 300), Color("121820"))
+				DrawBatch.line(ci, Vector2(x + 160, 260), Vector2(x + 160, 260) + Vector2.from_angle(an) * 62.0, Color("26323f"), 6.0)
+			DrawBatch.circle(ci, Vector2(x + 160, 260), 14, Color(0.3, 0.85, 1.0, 0.35 + 0.2 * sin(t * 3.0 + float(k))))
+			DrawBatch.rect(ci, Rect2(x + 400, 220, 120, 300), Color("121820"))
 			for j in 5:   # נורות לוח בקרה
 				var on := int(t * 2.0 + float(j + k)) % 3 != 0
-				ci.draw_circle(Vector2(x + 425 + j * 18, 250), 3, Color(1.0, 0.25, 0.2, 0.8) if on else Color(0.2, 0.8, 0.4, 0.5)))
+				DrawBatch.circle(ci, Vector2(x + 425 + j * 18, 250), 3, Color(1.0, 0.25, 0.2, 0.8) if on else Color(0.2, 0.8, 0.4, 0.5)))
 	# 0.30: מיכלי נוזל עם בועות, תאי כליאה, אדים
 	bg.add_layer(0.30, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
 		var period := 520.0
@@ -116,12 +117,12 @@ func build_background(layer: CanvasLayer) -> Node:
 			var r := RandomNumberGenerator.new()
 			r.seed = k * 131 + 7
 			var tint := Color(0.3, 0.95, 0.55) if r.randf() < 0.6 else Color(0.35, 0.7, 1.0)
-			ci.draw_rect(Rect2(x + 40, 260, 90, 260), Color("1c2630"))
-			ci.draw_rect(Rect2(x + 48, 280, 74, 220), Color(tint, 0.25))
+			DrawBatch.rect(ci, Rect2(x + 40, 260, 90, 260), Color("1c2630"))
+			DrawBatch.rect(ci, Rect2(x + 48, 280, 74, 220), Color(tint, 0.25))
 			for b in 6:
 				var by := 500.0 - fmod(t * 40.0 + float(b) * 37.0 + float(k) * 13.0, 220.0)
-				ci.draw_circle(Vector2(x + 60 + (b * 11) % 50, by), 2.5, Color(tint, 0.6))
-			ci.draw_rect(Rect2(x + 30, 250, 110, 12), Color("2a3642"))
+				DrawBatch.circle(ci, Vector2(x + 60 + (b * 11) % 50, by), 2.5, Color(tint, 0.6))
+			DrawBatch.rect(ci, Rect2(x + 30, 250, 110, 12), Color("2a3642"))
 			Kit.smoke_column(ci, Vector2(x + 300, 520), t + float(k), 160.0, Color(0.5, 0.9, 0.6, 0.12), 30.0))
 	# 0.60: צינורות וכבלים קרובים, שלטי אזהרה
 	bg.add_layer(0.60, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
@@ -129,15 +130,15 @@ func build_background(layer: CanvasLayer) -> Node:
 		var start := int(floor(sc / period)) - 1
 		for k in range(start, start + 3):
 			var x := float(k) * period - sc
-			ci.draw_rect(Rect2(x + 100, 180, 22, 420), Color("10161c"))
-			ci.draw_rect(Rect2(x + 600, 180, 22, 420), Color("10161c"))
+			DrawBatch.rect(ci, Rect2(x + 100, 180, 22, 420), Color("10161c"))
+			DrawBatch.rect(ci, Rect2(x + 600, 180, 22, 420), Color("10161c"))
 			var pts := PackedVector2Array()
 			for q in 9:
 				var u := float(q) / 8.0
 				pts.append(Vector2(x + 110 + u * 500.0, 200 + sin(u * PI) * 40.0 + sin(t + u * 4.0) * 2.0))
-			ci.draw_polyline(pts, Color(0.06, 0.08, 0.1, 0.95), 3.0)
+			DrawBatch.polyline(ci, pts, Color(0.06, 0.08, 0.1, 0.95), 3.0)
 			if int(t * 3.0 + float(k)) % 4 == 0:   # ניצוץ בכבל
-				ci.draw_circle(pts[4], 6, Color(0.6, 0.85, 1.0, 0.6))
+				DrawBatch.circle(ci, pts[4], 6, Color(0.6, 0.85, 1.0, 0.6))
 		Kit.ground_fade(ci, v, 560.0))
 	layer.add_child(bg)
 	return bg

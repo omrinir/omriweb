@@ -272,7 +272,7 @@ func draw() -> bool:
 			var hock := hp.lerp(ft, 0.75) + Vector2(-6.0, 0.0)
 			Art.limb(z, PackedVector2Array([hp, knee, hock, ft]), 5.0, fur if i == 1 else Art.shade(fur, 0.2))
 			for c in 3:   # טפרים ברגל
-				z.draw_line(ft + Vector2(float(c) * 2.0 - 1.0, 0), ft + Vector2(float(c) * 2.0 + 3.0, 1.5), col(Color("e8e0c8")), 1.0)
+				DrawBatch.line(z, ft + Vector2(float(c) * 2.0 - 1.0, 0), ft + Vector2(float(c) * 2.0 + 3.0, 1.5), col(Color("e8e0c8")), 1.0)
 	# יד אחורית
 	var claw_up := _claw > 0 and _ct > 0.0
 	var hb := sh + Vector2(-4.0 - sin(p) * 3.0, 15.0)
@@ -295,16 +295,16 @@ func draw() -> bool:
 	Art.fill_shaded(z, torso, fur, 0.12, 0.35)
 	for q in 6:   # פרווה פרועה על הגב
 		var a := sh.lerp(hip, float(q) / 6.0) + Vector2(-w + 1.0, 0)
-		z.draw_colored_polygon(PackedVector2Array([a, a + Vector2(-3.0 - 3.0 * k, -2.0), a + Vector2(0, 3.0)]), fur)
+		DrawBatch.colored_polygon(z, PackedVector2Array([a, a + Vector2(-3.0 - 3.0 * k, -2.0), a + Vector2(0, 3.0)]), fur)
 	if k < 0.85:   # פונצ'ו קרוע (נעלם כשהוא נהיה זאב)
 		var pc := col(z.shirt)
 		pc.a = 1.0 - k
 		var po := PackedVector2Array([sh + Vector2(-11, -3), sh + Vector2(10, -1), sh + Vector2(14, 18), sh + Vector2(8, 15), sh + Vector2(4, 21), sh + Vector2(-2, 16), sh + Vector2(-8, 22), sh + Vector2(-13, 15)])
-		z.draw_colored_polygon(po, pc)
+		DrawBatch.colored_polygon(z, po, pc)
 		for q in 3:
-			z.draw_line(sh + Vector2(-8.0 + float(q) * 7.0, 2), sh + Vector2(-9.0 + float(q) * 8.0, 16), Color(0.9, 0.75, 0.4, 0.6 * (1.0 - k)), 1.2)
+			DrawBatch.line(z, sh + Vector2(-8.0 + float(q) * 7.0, 2), sh + Vector2(-9.0 + float(q) * 8.0, 16), Color(0.9, 0.75, 0.4, 0.6 * (1.0 - k)), 1.2)
 	if k > 0.3:   # חזה בהיר
-		z.draw_colored_polygon(Art.ellipse(sh + Vector2(5, 8), 5.0 * k, 7.0 * k, 0.3, 10), fur_l)
+		DrawBatch.colored_polygon(z, Art.ellipse(sh + Vector2(5, 8), 5.0 * k, 7.0 * k, 0.3, 10), fur_l)
 	# ראש: אדם עם זיפים -> ראש זאב עם חוטם ארוך ואוזניים
 	_head_wolf(head, k, sk, fur)
 	_arm(sh + Vector2(5, 2), hf, false, k)
@@ -319,16 +319,16 @@ func _arm(s: Vector2, h: Vector2, back: bool, k: float) -> void:
 	Art.limb(z, PackedVector2Array([s, el, h]), 3.6 + 1.6 * k, c)
 	for q in 3:   # טפרים
 		var a := (h - el).normalized().rotated(-0.5 + float(q) * 0.5)
-		z.draw_line(h, h + a * (3.0 + 4.0 * k), col(Color("e8e0c8")), 1.1)
+		DrawBatch.line(z, h, h + a * (3.0 + 4.0 * k), col(Color("e8e0c8")), 1.1)
 	if _claw > 0 and _ct <= 0.05 and not back:
-		z.draw_arc(h, 14.0, -1.2, 1.2, 8, Color(1, 1, 1, 0.45), 2.0)
+		DrawBatch.arc(z, h, 14.0, -1.2, 1.2, 8, Color(1, 1, 1, 0.45), 2.0)
 
 
 func _head_wolf(c: Vector2, k: float, sk: Color, fur: Color) -> void:
 	# אוזניים
 	if k > 0.15:
 		for e in [Vector2(-3, -5), Vector2(1, -6)]:
-			z.draw_colored_polygon(PackedVector2Array([c + e, c + e + Vector2(-2, -8.0 * k), c + e + Vector2(3, -1)]), fur)
+			DrawBatch.colored_polygon(z, PackedVector2Array([c + e, c + e + Vector2(-2, -8.0 * k), c + e + Vector2(3, -1)]), fur)
 	Art.oval_shaded(z, c, 5.5 + 1.0 * k, 5.5 + 0.5 * k, sk.lerp(fur, k), 0.0)
 	# חוטם
 	var mlen := 3.0 + 9.0 * k
@@ -336,22 +336,22 @@ func _head_wolf(c: Vector2, k: float, sk: Color, fur: Color) -> void:
 	var md := Vector2.from_angle(tilt)
 	var m0 := c + Vector2(3, 1)
 	Art.fill(z, PackedVector2Array([m0 + md.orthogonal() * 3.0, m0 + md * mlen + md.orthogonal() * 1.5, m0 + md * mlen - md.orthogonal() * 2.0, m0 - md.orthogonal() * 3.5]), sk.lerp(fur, k * 0.8), Art.OUTLINE, 0.9)
-	z.draw_circle(m0 + md * mlen + md.orthogonal() * 0.2, 1.4, Color(0.05, 0.05, 0.05))
+	DrawBatch.circle(z, m0 + md * mlen + md.orthogonal() * 0.2, 1.4, Color(0.05, 0.05, 0.05))
 	# פה פעור עם שיניים
 	var open := 2.5 if state == TURN or _claw > 0 or _air else 1.0
-	z.draw_line(m0 + md * 1.0 - md.orthogonal() * 2.0, m0 + md * (mlen - 1.0) - md.orthogonal() * (2.0 + open), Color(0.25, 0.05, 0.05), 1.6)
+	DrawBatch.line(z, m0 + md * 1.0 - md.orthogonal() * 2.0, m0 + md * (mlen - 1.0) - md.orthogonal() * (2.0 + open), Color(0.25, 0.05, 0.05), 1.6)
 	if k > 0.4:
 		for q in 3:
 			var tp := m0 + md * (2.0 + float(q) * mlen * 0.28) - md.orthogonal() * 2.2
-			z.draw_line(tp, tp - md.orthogonal() * 2.0, Color(0.95, 0.92, 0.8), 0.9)
+			DrawBatch.line(z, tp, tp - md.orthogonal() * 2.0, Color(0.95, 0.92, 0.8), 0.9)
 	# עיניים צהובות זוהרות
 	if not z.dead:
 		var ep := c + Vector2(1.5, -1.5)
 		var ec := Color(1.0, 0.85, 0.2).lerp(Color(1.0, 0.95, 0.5), k)
-		z.draw_circle(ep, 1.3 + 0.4 * k, ec)
+		DrawBatch.circle(z, ep, 1.3 + 0.4 * k, ec)
 		if k > 0.5:
 			Art.glow(z, ep, 6.0, Color(1.0, 0.9, 0.3, 0.35))
 	# זיפים / שיער פרוע
 	for q in 5:
 		var hp := c + Vector2(-5.0 + float(q) * 2.0, -4.5)
-		z.draw_line(hp, hp + Vector2(-2.0, -2.0 - k * 2.0), fur, 1.2)
+		DrawBatch.line(z, hp, hp + Vector2(-2.0, -2.0 - k * 2.0), fur, 1.2)

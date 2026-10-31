@@ -1,4 +1,5 @@
 extends "res://levels/stage_base.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  STAGE 10 - "SALT FLATS" (אזור צפון-מזרח, שלב 1) - "THEY BLEED WITH PURPOSE"
 #  חוף צפון-מזרח ברזיל בשעת אחר צהריים לוהטת: מישורי מלח, בריכות אידוי ורודות,
@@ -84,19 +85,19 @@ func build_background(layer: CanvasLayer) -> Node:
 		Kit.gradient_sky(ci, v, [Color("2c5888"), Color("4e86b2"), Color("94b8c8"), Color("e8d4a0"), Color("f2a868")])
 		var sun := Vector2(v.x * 0.78, 190.0)
 		for i in 5:
-			ci.draw_circle(sun, 150.0 - float(i) * 24.0, Color(1.0, 0.85, 0.5, 0.06 + float(i) * 0.03))
-		ci.draw_circle(sun, 44.0, Color(1.0, 0.97, 0.85))
+			DrawBatch.circle(ci, sun, 150.0 - float(i) * 24.0, Color(1.0, 0.85, 0.5, 0.06 + float(i) * 0.03))
+		DrawBatch.circle(ci, sun, 44.0, Color(1.0, 0.97, 0.85))
 		Kit.clouds(ci, 0.0, v, t, 120.0, Color(1.0, 0.97, 0.92, 0.35), 21, 5.0)
 		for i in 3:   # אורובו (נשרים) חגים
 			var c := Vector2(v.x * (0.25 + 0.25 * float(i)), 150.0 + float(i) * 30.0)
 			var a := t * (0.35 + 0.1 * float(i)) + float(i) * 2.0
 			var p := c + Vector2(cos(a) * 70.0, sin(a) * 22.0)
 			var flap := sin(t * 3.0 + float(i)) * 3.0
-			ci.draw_polyline(PackedVector2Array([p + Vector2(-11, -2 + flap), p + Vector2(-4, 1), p, p + Vector2(4, 1), p + Vector2(11, -2 + flap)]), Color(0.08, 0.06, 0.06, 0.8), 2.0)
+			DrawBatch.polyline(ci, PackedVector2Array([p + Vector2(-11, -2 + flap), p + Vector2(-4, 1), p, p + Vector2(4, 1), p + Vector2(11, -2 + flap)]), Color(0.08, 0.06, 0.06, 0.8), 2.0)
 	# שכבה 1 (רחוקה): ים עם ז'נגדות, דיונות לבנות עם לגונות, טורבינות רוח, מגדלור
 	bg.add_layer(0.10, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
-		ci.draw_rect(Rect2(0, 452, v.x, 70), Color("3a7aa8"))
-		ci.draw_rect(Rect2(0, 452, v.x, 6), Color("6aa0c0"))
+		DrawBatch.rect(ci, Rect2(0, 452, v.x, 70), Color("3a7aa8"))
+		DrawBatch.rect(ci, Rect2(0, 452, v.x, 6), Color("6aa0c0"))
 		var r0 := RandomNumberGenerator.new()
 		r0.seed = 77
 		for i in 26:   # בוהק שמש על הים
@@ -104,7 +105,7 @@ func build_background(layer: CanvasLayer) -> Node:
 			var gy := r0.randf_range(458.0, 500.0)
 			var on := sin(t * 2.5 + float(i) * 1.7) > 0.3
 			if on:
-				ci.draw_line(Vector2(gx, gy), Vector2(gx + r0.randf_range(6.0, 16.0), gy), Color(1.0, 0.95, 0.8, 0.7), 1.5)
+				DrawBatch.line(ci, Vector2(gx, gy), Vector2(gx + r0.randf_range(6.0, 16.0), gy), Color(1.0, 0.95, 0.8, 0.7), 1.5)
 		for i in 4:   # ז'נגדות
 			var jx := fposmod(float(i) * 520.0 + 150.0 - sc - t * 4.0, v.x + 300.0) - 150.0
 			Decor.jangada(ci, Vector2(jx, 470.0 + float(i % 2) * 14.0), 0.8 + 0.2 * float(i % 2), t, Color("3a2a1e"), Color("f0e6d0"))
@@ -119,7 +120,7 @@ func build_background(layer: CanvasLayer) -> Node:
 				var u := float(q) / 26.0
 				pts.append(Vector2(x + u * period, 506.0 - absf(sin(u * 7.0 + float(k))) * 40.0 - sin(u * 3.0) * 8.0))
 			pts.append(Vector2(x + period, 560))
-			ci.draw_colored_polygon(pts, Color("e8e2d4"))
+			DrawBatch.colored_polygon(ci, pts, Color("e8e2d4"))
 			for q in 4:   # לגונות כחולות-ירקרקות בין הדיונות
 				var lx := x + r.randf_range(80.0, period - 80.0)
 				Art.oval(ci, Vector2(lx, 520.0), r.randf_range(30.0, 60.0), 5.0, Color("5ab0b8"), 0.0, Art.NONE)
@@ -161,10 +162,10 @@ func build_background(layer: CanvasLayer) -> Node:
 				Decor.mandacaru(ci, Vector2(x + r.randf_range(0.0, period), 640.0), r.randf_range(70.0, 120.0), Color("26341e"))
 			for j in 3:   # עמודי חשמל + כבלים (אחד שבור)
 				var px := x + float(j) * 340.0 + 60.0
-				ci.draw_rect(Rect2(px, 380, 6, 260), dark)
-				ci.draw_line(Vector2(px - 18, 392), Vector2(px + 24, 392), dark, 3.0)
+				DrawBatch.rect(ci, Rect2(px, 380, 6, 260), dark)
+				DrawBatch.line(ci, Vector2(px - 18, 392), Vector2(px + 24, 392), dark, 3.0)
 				if j == 2 and k % 2 == 0:
-					ci.draw_line(Vector2(px + 3, 392), Vector2(px + 40 + sin(t * 1.3) * 6.0, 500), Color(0.05, 0.05, 0.06, 0.9), 1.5)
+					DrawBatch.line(ci, Vector2(px + 3, 392), Vector2(px + 40 + sin(t * 1.3) * 6.0, 500), Color(0.05, 0.05, 0.06, 0.9), 1.5)
 					if fmod(t, 2.3) < 0.15:
 						Art.glow(ci, Vector2(px + 40 + sin(t * 1.3) * 6.0, 500), 10.0, Color(0.5, 0.8, 1.0, 0.8))
 					continue
@@ -172,7 +173,7 @@ func build_background(layer: CanvasLayer) -> Node:
 				for q in 9:
 					var u := float(q) / 8.0
 					pts.append(Vector2(px + 3.0 + u * 340.0, 392.0 + sin(u * PI) * (26.0 + sin(t * 0.7 + float(j)) * 2.0)))
-				ci.draw_polyline(pts, Color(0.05, 0.05, 0.06, 0.85), 1.5)
+				DrawBatch.polyline(ci, pts, Color(0.05, 0.05, 0.06, 0.85), 1.5)
 		Kit.ground_fade(ci, v, 575.0))
 	layer.add_child(bg)
 	return bg

@@ -202,20 +202,20 @@ func draw() -> bool:
 	var glow_a := 0.45 + 0.25 * sin(z._time * 4.0)
 	for i in 3:
 		var c0 := sh + Vector2(-11.0, 6.0 + float(i) * 6.0)
-		z.draw_polyline(PackedVector2Array([c0, c0 + Vector2(3, 2), c0 + Vector2(2, 5)]), Color(1.0, 0.5, 0.15, glow_a) if not z.dead else dark, 1.2, true)
-	z.draw_line(sh + Vector2(-9, 0), hip + Vector2(7, -2), col(Color("2a2016")), 2.0, true)   # רצועות
-	z.draw_line(sh + Vector2(6, 0), hip + Vector2(-8, -1), col(Color("2a2016")), 2.0, true)
+		DrawBatch.polyline(z, PackedVector2Array([c0, c0 + Vector2(3, 2), c0 + Vector2(2, 5)]), Color(1.0, 0.5, 0.15, glow_a) if not z.dead else dark, 1.2, true)
+	DrawBatch.line(z, sh + Vector2(-9, 0), hip + Vector2(7, -2), col(Color("2a2016")), 2.0, true)   # רצועות
+	DrawBatch.line(z, sh + Vector2(6, 0), hip + Vector2(-8, -1), col(Color("2a2016")), 2.0, true)
 	# שריון גרוטאות על הכתף האחורית
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-14, -3), sh + Vector2(-4, -6), sh + Vector2(-2, 2), sh + Vector2(-12, 5)]), col(Color("6a6460")), 0.2, 0.4, Art.OUTLINE, 1.1)
-	z.draw_circle(sh + Vector2(-9, -2), 0.9, col(Color("2a2828")))
-	z.draw_circle(sh + Vector2(-5, 0), 0.9, col(Color("2a2828")))
+	DrawBatch.circle(z, sh + Vector2(-9, -2), 0.9, col(Color("2a2828")))
+	DrawBatch.circle(z, sh + Vector2(-5, 0), 0.9, col(Color("2a2828")))
 	# ראש: מסכת ריתוך עם חריץ זוהר
 	Art.limb(z, PackedVector2Array([sh + Vector2(1, 0), sh + Vector2(2, -4)]), 6.5, Art.shade(sk, 0.1))
 	Art.oval_shaded(z, head + Vector2(-1, 0), 7.0, 7.5, sk, 0.0)
 	var mask := PackedVector2Array([head + Vector2(-3, -8), head + Vector2(6, -7), head + Vector2(8, -1), head + Vector2(7, 6), head + Vector2(-2, 7), head + Vector2(-4, 0)])
 	Art.fill_shaded(z, mask, col(Color("2a2c2e")), 0.2, 0.4, Art.OUTLINE, 1.2)
 	var slit := Color(1.0, 0.55, 0.15) if not z.dead else Color(0.25, 0.15, 0.1)
-	z.draw_line(head + Vector2(0, -1.5), head + Vector2(7.2, -1.2), slit, 1.8)
+	DrawBatch.line(z, head + Vector2(0, -1.5), head + Vector2(7.2, -1.2), slit, 1.8)
 	if not z.dead:
 		Art.glow(z, head + Vector2(5, -1.4), 5.0, Color(1.0, 0.5, 0.1, 0.6))
 	# ידיים (מאחורי המגן): אוחזות בידיות
@@ -257,14 +257,14 @@ func _shield(xf: Transform2D) -> void:
 	Art.fill_shaded(z, pts, col(Color("8a4a2a")), 0.15, 0.4, Art.OUTLINE, 1.6)
 	# חלון הדלת (כהה) + ידית
 	Art.fill(z, PackedVector2Array([xf * (Vector2(8, -22) - o), xf * (Vector2(18, -24) - o), xf * (Vector2(18.5, -13) - o), xf * (Vector2(8.5, -12) - o)]), col(Color("1a1c20")), Art.OUTLINE, 0.8)
-	z.draw_line(xf * (Vector2(10, -20) - o), xf * (Vector2(14, -15) - o), Color(0.8, 0.85, 0.9, 0.25), 0.8, true)
-	z.draw_line(xf * (Vector2(14, -9) - o), xf * (Vector2(18, -9.5) - o), col(Color("b0b0a8")), 1.2, true)
+	DrawBatch.line(z, xf * (Vector2(10, -20) - o), xf * (Vector2(14, -15) - o), Color(0.8, 0.85, 0.9, 0.25), 0.8, true)
+	DrawBatch.line(z, xf * (Vector2(14, -9) - o), xf * (Vector2(18, -9.5) - o), col(Color("b0b0a8")), 1.2, true)
 	# פסי אזהרה על הקצה
 	for i in 7:
 		var y0 := -46.0 + float(i) * 6.0
 		var a := xf * (Vector2(5.5, y0) - o)
 		var b := xf * (Vector2(8.0, y0 + 3.0) - o)
-		z.draw_line(a, b, col(Color("e0c020") if i % 2 == 0 else Color("1a1a1a")), 2.0, true)
+		DrawBatch.line(z, a, b, col(Color("e0c020") if i % 2 == 0 else Color("1a1a1a")), 2.0, true)
 	# תמרור STOP מרותך למעלה
 	var sc0 := xf * (Vector2(13, -38) - o)
 	var oct := PackedVector2Array()
@@ -272,13 +272,13 @@ func _shield(xf: Transform2D) -> void:
 		var ang := TAU * (float(i) + 0.5) / 8.0
 		oct.append(sc0 + Vector2(cos(ang), sin(ang)).rotated(xf.get_rotation()) * Vector2(5.6, 6.2))
 	Art.fill(z, oct, col(Color("c0201c")), Color(0.95, 0.95, 0.95), 1.0)
-	z.draw_line(sc0 + Vector2(-3, 0).rotated(xf.get_rotation()), sc0 + Vector2(3, 0).rotated(xf.get_rotation()), col(Color("f0f0f0")), 1.4)
+	DrawBatch.line(z, sc0 + Vector2(-3, 0).rotated(xf.get_rotation()), sc0 + Vector2(3, 0).rotated(xf.get_rotation()), col(Color("f0f0f0")), 1.4)
 	# ריתוכים / ניטים
 	for q in [Vector2(7, -30), Vector2(19, -32), Vector2(7, -44), Vector2(18, -6)]:
-		z.draw_circle(xf * (q - o), 0.9, col(Color("3a3430")))
-	z.draw_line(xf * (Vector2(6, -30) - o), xf * (Vector2(20, -31) - o), col(Color("6a3a20")), 1.2, true)
+		DrawBatch.circle(z, xf * (q - o), 0.9, col(Color("3a3430")))
+	DrawBatch.line(z, xf * (Vector2(6, -30) - o), xf * (Vector2(20, -31) - o), col(Color("6a3a20")), 1.2, true)
 	# שקעים מקליעים (נשארים על המגן)
 	for dnt in _dents:
 		var dp: Vector2 = xf * (dnt - o)
-		z.draw_circle(dp, 1.4, col(Color("4a2a18")))
-		z.draw_circle(dp + Vector2(-0.4, -0.4), 0.6, col(Color("e8d8c0")))
+		DrawBatch.circle(z, dp, 1.4, col(Color("4a2a18")))
+		DrawBatch.circle(z, dp + Vector2(-0.4, -0.4), 0.6, col(Color("e8d8c0")))

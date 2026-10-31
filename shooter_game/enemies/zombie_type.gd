@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")   # כל הציור של זומבי ב-draw call אחד
 # ============================================================
 #  ZOMBIE TYPE - בסיס לכל סוג זומבי חדש (שלבים 5-9).
 #
@@ -131,8 +132,20 @@ func wants_redraw() -> bool:
 	return true
 
 
+# true = הגופה ממשיכה לזוז לפי z._time אחרי המוות (להבות / ניצוצות / בועות). false (רגיל) = הגופה מצוירת עם
+# הזמן של רגע המוות, וכשהיא שוכבת בשקט היא לא מצוירת מחדש (zombie.gd _corpse_still_time / _corpse_redraw)
+func corpse_anim() -> bool:
+	return false
+
+
 # ציור. להחזיר true = ציירנו בעצמנו. false = הציור הרגיל של zombie.gd
 func draw() -> bool:
+	return false
+
+
+# true = הגוף הרגיל של zombie.gd מצייר אותו (כמו WALKER), עם כל הגור (ראש עף, זוחל, נשרף...).
+# רק דמויות מ-CHARACTER MAKER (characters/custom_character.gd), שמוסיפות חלקים דרך draw_back / draw_torso / ...
+func base_body() -> bool:
 	return false
 
 
@@ -144,18 +157,18 @@ func begin_draw(shadow := true) -> void:
 		Art.ground_shadow(z, Vector2.ZERO, 14.0 * z.wf * z.sc)
 	if z.dead:
 		var outer := Transform2D(z._angle, Vector2(0.0, -9.0 * z.sc))
-		z.draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * z.sc)))
+		DrawBatch.set_transform_matrix(z, outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * z.sc)))
 	elif z._lying():   # שוכב (z.lie_down()) או קם לאט
 		var k: float = 1.0 if z.dormant else clampf(z._rise_t / z.RISE_TIME, 0.0, 1.0)
 		k = k * k * (3.0 - 2.0 * k)
 		var outer := Transform2D(PI / 2.0 * z._lie_side * k, Vector2(0.0, lerpf(-28.0, -9.0, k) * z.sc))
-		z.draw_set_transform_matrix(outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * z.sc)))
+		DrawBatch.set_transform_matrix(z, outer * Transform2D(0.0, s, 0.0, Vector2(0.0, 28.0 * z.sc)))
 	else:   # (תגובת פגיעה: כל הגוף נוטה / קופץ מסביב לרגליים - zombie.gd react_tilt)
-		z.draw_set_transform_matrix(Transform2D(z.react_tilt(), Vector2(0.0, z.react_hop() * z.sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO))
+		DrawBatch.set_transform_matrix(z, Transform2D(z.react_tilt(), Vector2(0.0, z.react_hop() * z.sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO))
 
 
 func end_draw() -> void:
-	z.draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform_matrix(z, Transform2D.IDENTITY)
 
 
 # צבע: לבן כשנפגע עכשיו
@@ -176,8 +189,8 @@ func feet(stride := 5.0, lift := 2.5) -> Array:
 func face(head: Vector2, eye := Vector2(3.5, -0.5)) -> void:
 	Art.oval(z, head + Vector2(2.8, -0.6), 2.3, 1.7, Color(0.12, 0.0, 0.04, 0.45), 0.0, Art.NONE)
 	var o: float = 1.6 if z._bite_anim > 0.0 else 0.0
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(1.2, 2.4), head + Vector2(5.2, 1.9), head + Vector2(4.8, 4.2 + o), head + Vector2(1.6, 4.2 + o * 0.7)]), col(Color("2a0a0c")))
-	z.draw_line(head + Vector2(1.9, 2.6), head + Vector2(4.8, 2.2), col(Color("d8d0a8")), 0.8)
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(1.2, 2.4), head + Vector2(5.2, 1.9), head + Vector2(4.8, 4.2 + o), head + Vector2(1.6, 4.2 + o * 0.7)]), col(Color("2a0a0c")))
+	DrawBatch.line(z, head + Vector2(1.9, 2.6), head + Vector2(4.8, 2.2), col(Color("d8d0a8")), 0.8)
 	if z._det[5]:
 		Art.oval(z, head + Vector2(-1.2, 1.8), 1.5, 1.1, Color(0.42, 0.05, 0.05, 0.85), 0.0, Art.NONE)
 	if eye.x < INF and not z.dead:

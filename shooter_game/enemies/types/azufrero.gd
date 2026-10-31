@@ -138,18 +138,18 @@ func draw() -> bool:
 	Art.fill_shaded(z, basket_pts, col(Color("a08848")), 0.15, 0.35, Art.OUTLINE, 1.2)
 	for q in 4:   # קליעת קש
 		var u := float(q + 1) / 5.0
-		z.draw_line(bb.lerp(bt, u) + Vector2(-9.0 - u * 2.0, 0), bb.lerp(bt, u) + Vector2(9.0 + u * 3.0, 0), Color(0.4, 0.3, 0.1, 0.6), 1.2)
+		DrawBatch.line(z, bb.lerp(bt, u) + Vector2(-9.0 - u * 2.0, 0), bb.lerp(bt, u) + Vector2(9.0 + u * 3.0, 0), Color(0.4, 0.3, 0.1, 0.6), 1.2)
 	var dmg := 1.0 - float(basket) / float(BASKET_HP)
 	for q in 4:   # גושי גופרית בראש הסל
 		var gc := bt + Vector2(-6.0 + float(q) * 5.0, -3.0 - float(q % 2) * 3.0)
-		z.draw_colored_polygon(Art.ellipse(gc, 4.0, 3.0, 0.3, 8), col(Color("e8d040").darkened(dmg * 0.3)))
+		DrawBatch.colored_polygon(z, Art.ellipse(gc, 4.0, 3.0, 0.3, 8), col(Color("e8d040").darkened(dmg * 0.3)))
 	if state == TORCH and not z.dead:   # להבה כחולה מהסל
 		for q in 4:
 			var fp := bt + Vector2(-8.0 + float(q) * 5.0, -4.0)
 			var fh := 14.0 + sin(z._time * 16.0 + float(q)) * 5.0
-			z.draw_colored_polygon(PackedVector2Array([fp + Vector2(-3.5, 0), fp + Vector2(0, -fh), fp + Vector2(3.5, 0)]), Color(0.35 + float(q % 2) * 0.3, 0.65, 1.0, 0.85))
+			DrawBatch.colored_polygon(z, PackedVector2Array([fp + Vector2(-3.5, 0), fp + Vector2(0, -fh), fp + Vector2(3.5, 0)]), Color(0.35 + float(q % 2) * 0.3, 0.65, 1.0, 0.85))
 		Art.glow(z, bt + Vector2(0, -6), 34.0, Color(0.35, 0.65, 1.0, 0.25))
-	z.draw_line(bt + Vector2(8, 4), head + Vector2(-2, -4), col(Color("5a4024")), 1.6)   # רצועת מצח
+	DrawBatch.line(z, bt + Vector2(8, 4), head + Vector2(-2, -4), col(Color("5a4024")), 1.6)   # רצועת מצח
 	var hb := sh + Vector2(-2, 12)
 	var hf := sh + Vector2(9.0 + sin(p) * 3.0, 12.0)
 	if state == TORCH:
@@ -158,10 +158,10 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(shirt, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(6, 2), hip + Vector2(-6, 2)]), shirt, 0.12, 0.4)
 	Art.oval_shaded(z, head, 5.0, 5.6, sk, 0.0)
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(0, 1), head + Vector2(6, 0), head + Vector2(6, 5), head + Vector2(1, 6)]), col(Color("c03a2a")))   # מטפחת על הפה
-	z.draw_line(head + Vector2(-5, -3), head + Vector2(5, -4), col(Color("5a4024")), 1.6)
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(0, 1), head + Vector2(6, 0), head + Vector2(6, 5), head + Vector2(1, 6)]), col(Color("c03a2a")))   # מטפחת על הפה
+	DrawBatch.line(z, head + Vector2(-5, -3), head + Vector2(5, -4), col(Color("5a4024")), 1.6)
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -1.0), 1.0, Color(0.6, 0.85, 1.0) if state == TORCH else Color(0.85, 0.9, 0.5))
+		DrawBatch.circle(z, head + Vector2(3.0, -1.0), 1.0, Color(0.6, 0.85, 1.0) if state == TORCH else Color(0.85, 0.9, 0.5))
 	z._arm(sh + Vector2(3, 1), hf, sk, shirt)
 	end_draw()
 	return true

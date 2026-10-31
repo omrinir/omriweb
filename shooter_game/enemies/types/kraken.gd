@@ -150,16 +150,16 @@ func _tentacle(base: Vector2, ctrl: Vector2, tip: Vector2, w: float, c: Color) -
 		pts.append(base.lerp(ctrl, u).lerp(ctrl.lerp(tip, u), u))
 	for i in n:   # קו מתאר
 		var k := 1.0 - float(i) / float(n)
-		z.draw_line(pts[i], pts[i + 1], Art.OUTLINE, w * (0.25 + 0.75 * k) + 2.0, true)
+		DrawBatch.line(z, pts[i], pts[i + 1], Art.OUTLINE, w * (0.25 + 0.75 * k) + 2.0, true)
 	for i in n:
 		var k := 1.0 - float(i) / float(n)
-		z.draw_line(pts[i], pts[i + 1], col(c), w * (0.25 + 0.75 * k), true)
-		z.draw_line(pts[i], pts[i + 1], col(Art.shade(c, -0.25)), w * (0.25 + 0.75 * k) * 0.35, true)
+		DrawBatch.line(z, pts[i], pts[i + 1], col(c), w * (0.25 + 0.75 * k), true)
+		DrawBatch.line(z, pts[i], pts[i + 1], col(Art.shade(c, -0.25)), w * (0.25 + 0.75 * k) * 0.35, true)
 	for i in range(2, n, 2):   # כפתורי יניקה בצד הפנימי
 		var dirv := (pts[i + 1] - pts[i - 1]).normalized()
 		var nrm := Vector2(-dirv.y, dirv.x)
 		var k := 1.0 - float(i) / float(n)
-		z.draw_circle(pts[i] + nrm * w * 0.38 * (0.25 + 0.75 * k), maxf(0.6, w * 0.16 * k + 0.4), col(Color("f0c0d0")))
+		DrawBatch.circle(z, pts[i] + nrm * w * 0.38 * (0.25 + 0.75 * k), maxf(0.6, w * 0.16 * k + 0.4), col(Color("f0c0d0")))
 
 
 func draw() -> bool:
@@ -222,8 +222,8 @@ func draw() -> bool:
 	Art.fill_shaded(z, body, shirt, 0.15, 0.35)
 	for i in 4:
 		var y := sh.y + 4.0 + float(i) * 4.5
-		z.draw_line(Vector2(-7.0 + float(i) * 0.3, y), Vector2(6.5, y - 0.5), col(Color("d8dce0")), 1.4)
-	z.draw_line(hip + Vector2(-7, -1), hip + Vector2(7, -2), col(Color("6a5030")), 2.0, true)   # חבל במקום חגורה
+		DrawBatch.line(z, Vector2(-7.0 + float(i) * 0.3, y), Vector2(6.5, y - 0.5), col(Color("d8dce0")), 1.4)
+	DrawBatch.line(z, hip + Vector2(-7, -1), hip + Vector2(7, -2), col(Color("6a5030")), 2.0, true)   # חבל במקום חגורה
 	# ראש: לסת עם זרועות קטנות
 	Art.oval_shaded(z, head, 6.0, 6.6, sk, 0.1)
 	for i in 4:
@@ -232,16 +232,16 @@ func draw() -> bool:
 		var mt := mp + Vector2(wig * 2.5 + 1.0, 8.0 + float(i % 2) * 2.5)
 		_tentacle(mp, mp + Vector2(-wig * 2.0, 4.0), mt, 2.2, tc)
 	var eye := head + Vector2(3.0, -1.5)
-	z.draw_circle(eye, 2.0, col(Color("e8e0a0")) if not z.dead else Color("3a3a2a"))
-	z.draw_line(eye + Vector2(-1.2, 0), eye + Vector2(1.2, 0), Color("1a1a1a"), 1.0)   # אישון אופקי כמו של דיונון
+	DrawBatch.circle(z, eye, 2.0, col(Color("e8e0a0")) if not z.dead else Color("3a3a2a"))
+	DrawBatch.line(z, eye + Vector2(-1.2, 0), eye + Vector2(1.2, 0), Color("1a1a1a"), 1.0)   # אישון אופקי כמו של דיונון
 	# כובע קש קרוע
 	Art.fill_shaded(z, PackedVector2Array([head + Vector2(-12, -4), head + Vector2(12, -5), head + Vector2(9, -2), head + Vector2(-9, -1)]), col(Color("c8a860")), 0.2, 0.3)
 	Art.fill_shaded(z, PackedVector2Array([head + Vector2(-6, -4), head + Vector2(-4, -11), head + Vector2(5, -11), head + Vector2(6, -4)]), col(Color("b89850")), 0.2, 0.3)
-	z.draw_line(head + Vector2(-5, -6), head + Vector2(5, -6), col(Color("7a3a2a")), 1.4)
+	DrawBatch.line(z, head + Vector2(-5, -6), head + Vector2(5, -6), col(Color("7a3a2a")), 1.4)
 	# יד קדמית
 	z._arm(sh + Vector2(2, 2), sh + Vector2(11.0, 8.0 + sin(p) * 2.0), sk, shirt)
 	# טיפות מים
 	if not z.dead and fmod(t, 0.9) < 0.3:
-		z.draw_circle(hip + Vector2(-4.0, 6.0 + fmod(t, 0.9) * 40.0), 1.0, Color(0.6, 0.8, 1.0, 0.7))
+		DrawBatch.circle(z, hip + Vector2(-4.0, 6.0 + fmod(t, 0.9) * 40.0), 1.0, Color(0.6, 0.8, 1.0, 0.7))
 	end_draw()
 	return true

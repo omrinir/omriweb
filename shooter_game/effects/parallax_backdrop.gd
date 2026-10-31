@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  PARALLAX BACKDROP - מערכת רקע עם שכבות שזזות במהירויות שונות.
 #  נמצא בתוך CanvasLayer (layer -10), כלומר מצויר בקואורדינטות מסך.
@@ -75,7 +76,8 @@ func _process(delta: float) -> void:
 	var every := Quality.bg_every()
 	var dy := cam_dy()
 	for n in _nodes:
-		n.step(_cam_x, dy, t, every <= 1 or (_frame + n.slot) % every == 0)
+		var ev := maxi(1, every - 1) if n.mode == 2 else (every * 2 if n.mode == 0 else every)   # overlay (ברקים): יותר תכוף; שמיים (לא זזים): פחות
+		n.step(_cam_x, dy, t, ev <= 1 or (_frame + n.slot) % ev == 0)
 
 
 # כמה המצלמה זזה אנכית מהמצב הרגיל (שלבים עם תת-קרקע / גגות)
@@ -109,10 +111,15 @@ class _Layer extends Node2D:
 			position = Vector2(sx, sy)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var vp := get_viewport_rect().size
 		if mode == 1:   # שכבות קרובות זזות גם קצת אנכית כשהמצלמה יורדת/עולה
-			draw_set_transform(Vector2(0.0, -_dy * factor * 0.5), 0.0, Vector2.ONE)
+			DrawBatch.set_transform(self, Vector2(0.0, -_dy * factor * 0.5), 0.0, Vector2.ONE)
 			fn.call(self, _dx * factor, vp, _t)
-			draw_set_transform_matrix(Transform2D.IDENTITY)
+			DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 		else:
 			fn.call(self, vp, _t)

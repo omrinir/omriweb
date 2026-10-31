@@ -204,14 +204,14 @@ func draw() -> bool:
 	# גו רחב בסרבל + פסים זוהרים
 	var torso := PackedVector2Array([hip + Vector2(-8, 3), hip + Vector2(8, 3), sh + Vector2(10, 2), sh + Vector2(6, -5), sh + Vector2(-8, -4), sh + Vector2(-10, 3)])
 	Art.fill_shaded(z, torso, suit, 0.15, 0.35)
-	z.draw_line(hip.lerp(sh, 0.35) + Vector2(-8, 0), hip.lerp(sh, 0.35) + Vector2(9, 0), stripe, 2.2)
-	z.draw_line(hip.lerp(sh, 0.62) + Vector2(-9, 0), hip.lerp(sh, 0.62) + Vector2(10, 0), stripe, 2.2)
-	z.draw_line(sh + Vector2(-6, -3), hip + Vector2(-5, 2), Color(1.0, 0.85, 0.5, 0.25), 1.0)   # כתפייה
+	DrawBatch.line(z, hip.lerp(sh, 0.35) + Vector2(-8, 0), hip.lerp(sh, 0.35) + Vector2(9, 0), stripe, 2.2)
+	DrawBatch.line(z, hip.lerp(sh, 0.62) + Vector2(-9, 0), hip.lerp(sh, 0.62) + Vector2(10, 0), stripe, 2.2)
+	DrawBatch.line(z, sh + Vector2(-6, -3), hip + Vector2(-5, 2), Color(1.0, 0.85, 0.5, 0.25), 1.0)   # כתפייה
 	# צרור מפתחות שמתנדנד על החגורה
 	var kp := hip + Vector2(6, 1)
 	var ka := Vector2.from_angle(PI * 0.5 + sin(z._time * 5.0 + p) * 0.6) * 5.0
-	z.draw_line(kp, kp + ka, col(Color("9a9a90")), 1.0)
-	z.draw_circle(kp + ka, 1.6, col(Color("c8b860")))
+	DrawBatch.line(z, kp, kp + ka, col(Color("9a9a90")), 1.0)
+	DrawBatch.circle(z, kp + ka, 1.6, col(Color("c8b860")))
 	# ראש קטן ושקוע בין הכתפיים, לסת שמוטה
 	Art.oval_shaded(z, head, 6.0, 6.5, sk, 0.15)
 	Art.oval(z, head + Vector2(-1.5, -4.0), 5.0, 2.5, col(Color("2a2420")), 0.1)   # כובע צמר
@@ -219,7 +219,7 @@ func draw() -> bool:
 	Art.fill(z, PackedVector2Array([head + Vector2(1, 2), head + Vector2(6, 1.5), head + Vector2(5.5, 3.0 + jaw), head + Vector2(1.5, 3.5 + jaw * 0.7)]), Color("2a0a0c"), Art.OUTLINE, 0.9)
 	var eye := Color(1.0, 0.65, 0.2)
 	Art.glow(z, head + Vector2(3.5, -1.0), 3.5, Color(eye, 0.5))
-	z.draw_circle(head + Vector2(3.5, -1.0), 1.0, eye)
+	DrawBatch.circle(z, head + Vector2(3.5, -1.0), 1.0, eye)
 	_big_arm(sh + Vector2(3, 1), hand_f, sk, suit)
 	end_draw()
 	return true

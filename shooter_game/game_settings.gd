@@ -85,6 +85,30 @@ func _ensure_buses() -> void:
 		AudioServer.add_bus_effect(m, lim)
 
 
+# מוזיקת תפריט / מפה / תוצאות (music_db.gd -> MENU). ממשיכה בין המסכים, נעצרת כשנכנסים לשלב
+var _menu_mp: AudioStreamPlayer = null
+
+func menu_music(on: bool) -> void:
+	var MusicDB = load("res://music_db.gd")
+	if on:
+		if _menu_mp != null or not MusicDB.exists(MusicDB.MENU):
+			return
+		_menu_mp = AudioStreamPlayer.new()
+		_menu_mp.bus = "Music"
+		_menu_mp.stream = MusicDB.load_stream(MusicDB.MENU)
+		_menu_mp.volume_db = -40.0
+		_menu_mp.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(_menu_mp)
+		_menu_mp.play()
+		create_tween().tween_property(_menu_mp, "volume_db", -9.0, 2.0)
+	elif _menu_mp != null:
+		var mp := _menu_mp
+		_menu_mp = null
+		var tw := create_tween()
+		tw.tween_property(mp, "volume_db", -40.0, 0.8)
+		tw.tween_callback(mp.queue_free)
+
+
 func apply_volumes() -> void:
 	for pair in [["Music", music_volume], ["SFX", sfx_volume]]:
 		var i := AudioServer.get_bus_index(pair[0])

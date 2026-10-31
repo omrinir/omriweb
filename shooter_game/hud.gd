@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 const Arsenal := preload("res://progression/arsenal.gd")
 const LevelClock := preload("res://progression/level_clock.gd")
 const Sfx := preload("res://sfx.gd")
@@ -25,6 +26,11 @@ var _pulse := 0.0
 var _score_shown := 0.0
 var _combo_pop := 0.0
 var _last_mult := 1
+# קומבו ו-STYLE מוצגים רק כשהם גדולים (קומבו x3+, STYLE A/S) - נכנסים ויוצאים בהדרגה
+const COMBO_SHOW_MULT := 3
+const STYLE_SHOW_RANK := 3
+var _combo_a := 0.0
+var _style_a := 0.0
 var difficulty := ""
 var difficulty_color := Color.WHITE
 
@@ -50,6 +56,8 @@ var _learn_alert := 0.0   # התראה "THEY'RE LEARNING YOU" (שניות שנש
 var _last_tick := -1      # צליל תקתוק בשניות האחרונות לפני GOLD / SILVER
 
 
+var _rf := 0
+
 func _process(delta: float) -> void:
 	_intro_t += delta / maxf(Engine.time_scale, 0.05)
 	_clock_update(delta)
@@ -57,11 +65,16 @@ func _process(delta: float) -> void:
 	_combo_pop = maxf(_combo_pop - delta * 3.0, 0.0)
 	_score_shown = move_toward(_score_shown, float(Game.run_score + Game.level_score), maxf(400.0 * delta, absf(float(Game.run_score + Game.level_score) - _score_shown) * 6.0 * delta))
 	var m := Game.multiplier()
+	_combo_a = move_toward(_combo_a, 1.0 if m >= COMBO_SHOW_MULT and Game.combo > 0 else 0.0, delta * 4.0)
+	_style_a = move_toward(_style_a, 1.0 if Game.style_rank() >= STYLE_SHOW_RANK else 0.0, delta * 3.0)
 	if m != _last_mult:
 		if m > _last_mult:
 			_combo_pop = 1.0
 		_last_mult = m
-	queue_redraw()
+	# כל פריים שני כשאין אנימציה (ה-HUD עולה ~0.6ms לציור)
+	_rf += 1
+	if _rf % 2 == 0 or _intro_t < 6.0 or _combo_pop > 0.0 or _pulse > 0.0 or (_combo_a > 0.0 and _combo_a < 1.0) or (_style_a > 0.0 and _style_a < 1.0):
+		queue_redraw()
 
 
 func _heart(c: Vector2, s: float) -> PackedVector2Array:
@@ -83,16 +96,33 @@ func _draw_intro(vp: Vector2) -> void:
 	var y := vp.y * 0.36
 	for i in 8:   # פס כהה רך
 		var h := 120.0 - float(i) * 12.0
-		draw_rect(Rect2(0, y - h * 0.5, vp.x, h), Color(0, 0, 0, 0.09 * a))
+		DrawBatch.rect(self, Rect2(0, y - h * 0.5, vp.x, h), Color(0, 0, 0, 0.09 * a))
 	var spread := 1.0 + 0.04 * _intro_t   # הכותרת "נפתחת" לאט
 	_text(Vector2(0, y - 34), "STAGE %d  ·  %s" % [Game.level, Game.level_name(Game.level).to_upper()], 18, Color(1, 1, 1, 0.7 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 	var f := ThemeDB.fallback_font
 	var title: String = t[0]
-	var fs := int(54.0 * spread)
+	# גודל פונט קבוע + סקייל: גודל פונט שמשתנה בכל פריים מרסטר אותיות מחדש (גמגום)
+	var fs := 64
+	var k := 54.0 * spread / float(fs)
 	var w := f.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	draw_string_outline(f, Vector2((vp.x - w) * 0.5, y + 22), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 6, Color(0, 0, 0, 0.8 * a))
-	draw_string(f, Vector2((vp.x - w) * 0.5, y + 22), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.85, 0.12, 0.1, a))
-	_text(Vector2(0, y + 52), t[1], 18, Color(0.9, 0.85, 0.8, 0.85 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+	DrawBatch.set_transform(self, Vector2(vp.x * 0.5, y + 22), 0.0, Vector2(k, k))
+	DrawBatch.string_outline(self, f, Vector2(-w * 0.5, 0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 7, Color(0, 0, 0, 0.8 * a))
+	DrawBatch.string(self, f, Vector2(-w * 0.5, 0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.85, 0.12, 0.1, a))
+	DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
+	# תיאור ארוך לא נכנס בשורה אחת: שוברים לשתי שורות ליד האמצע (שלא ייחתך בקצוות המסך)
+	var sub: String = t[1]
+	var sub_col := Color(0.9, 0.85, 0.8, 0.85 * a)
+	if f.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x > vp.x - 80.0:
+		var mid := sub.length() / 2
+		var cut := sub.rfind(" ", mid)
+		var cut2 := sub.find(" ", mid)
+		if cut < 0 or (cut2 >= 0 and cut2 - mid < mid - cut):
+			cut = cut2
+		if cut > 0:
+			_text(Vector2(0, y + 52), sub.substr(0, cut), 18, sub_col, HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+			_text(Vector2(0, y + 74), sub.substr(cut + 1), 18, sub_col, HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+			return
+	_text(Vector2(0, y + 52), sub, 18, sub_col, HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 
 
 # "העין": סמל עדין של כמה הזומבים "ערים" בשלב הזה. בלי מספרים - נפתחת יותר בכל שלב,
@@ -117,21 +147,31 @@ func _draw_eye(c: Vector2) -> void:
 	for i in range(1, 16):
 		var t := PI * float(i) / 16.0
 		lid.append(c + Vector2(cos(t) * w, sin(t) * h))
-	draw_colored_polygon(lid, Color(0.05, 0.02, 0.02, 0.8))
+	DrawBatch.colored_polygon(self, lid, Color(0.05, 0.02, 0.02, 0.8))
 	var ic := Color(0.75, 0.15, 0.1).lerp(Color(1.0, 0.35, 0.2), _eye_flash)
 	if h > 1.5:
-		draw_circle(c, minf(h, 5.0), Color(ic, 0.9))
-		draw_circle(c, minf(h, 5.0) * 0.4, Color(0, 0, 0, 0.9))
+		DrawBatch.circle(self, c, minf(h, 5.0), Color(ic, 0.9))
+		DrawBatch.circle(self, c, minf(h, 5.0) * 0.4, Color(0, 0, 0, 0.9))
 	lid.append(lid[0])
-	draw_polyline(lid, Color(0.85, 0.8, 0.75, 0.6), 1.2, true)
+	DrawBatch.polyline(self, lid, Color(0.85, 0.8, 0.75, 0.6), 1.2, true)
 	if _eye_flash > 0.0:
-		draw_circle(c, 18.0, Color(1.0, 0.2, 0.1, 0.12 * _eye_flash))
+		DrawBatch.circle(self, c, 18.0, Color(1.0, 0.2, 0.1, 0.12 * _eye_flash))
 
 
-func _text(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
+func _text(pos: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, fade := 1.0) -> void:
 	var f := ThemeDB.fallback_font
-	draw_string_outline(f, pos, t, align, width, size, 4, Color(0, 0, 0, 0.75))
-	draw_string(f, pos, t, align, width, size, col)
+	DrawBatch.string_outline(self, f, pos, t, align, width, size, 4, Color(0, 0, 0, 0.75 * fade))
+	DrawBatch.string(self, f, pos, t, align, width, size, col)
+
+
+# טקסט שקופץ / פועם: גודל פונט אחד קבוע (size) ומגדילים בסקייל k סביב נקודת העיגון.
+# (גודל פונט שמשתנה = כל האותיות מרוסטרות מחדש בכל גודל = גמגום של כמה ms בכל פריים בקומבו הראשון)
+func _text_k(anchor: Vector2, t: String, size: int, k: float, col: Color, align: int, fade := 1.0) -> void:
+	var w := 1000.0
+	var x := -w if align == HORIZONTAL_ALIGNMENT_RIGHT else (-w * 0.5 if align == HORIZONTAL_ALIGNMENT_CENTER else 0.0)
+	DrawBatch.set_transform(self, anchor, 0.0, Vector2(k, k))
+	_text(Vector2(x, 0.0), t, size, col, align, w, fade)
+	DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 # ============================================================
@@ -175,8 +215,8 @@ func _draw_clock(vp: Vector2) -> void:
 		tcol = red_c.lerp(Color.WHITE, 0.25 * beat)
 	elif urgent:
 		tcol = (gold_c if t <= p.x else silver_c).lerp(red_c, beat)
-	var fs := 30 + (int(3.0 * beat) if urgent or Game.learn_tier > 0 else 0)
-	_text(Vector2(0, 66), LevelClock.fmt(t), fs, tcol, HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+	var fk := (30.0 + 3.0 * beat) / 30.0 if urgent or Game.learn_tier > 0 else 1.0
+	_text_k(Vector2(vp.x * 0.5, 66), LevelClock.fmt(t), 30, fk, tcol, HORIZONTAL_ALIGNMENT_CENTER)
 	# פס: GOLD | SILVER | למידה (3 דרגות)
 	var full := p.y + LevelClock.LEARN_STEP * float(LevelClock.MAX_TIER)
 	var bw := 220.0
@@ -184,20 +224,20 @@ func _draw_clock(vp: Vector2) -> void:
 	var by := 74.0
 	var gx := bw * p.x / full
 	var sx := bw * p.y / full
-	draw_rect(Rect2(bx - 2, by - 2, bw + 4, 10), Color(0, 0, 0, 0.6))
-	draw_rect(Rect2(bx, by, gx, 6), Color(gold_c, 0.35))
-	draw_rect(Rect2(bx + gx, by, sx - gx, 6), Color(silver_c, 0.3))
-	draw_rect(Rect2(bx + sx, by, bw - sx, 6), Color(red_c, 0.3))
+	DrawBatch.rect(self, Rect2(bx - 2, by - 2, bw + 4, 10), Color(0, 0, 0, 0.6))
+	DrawBatch.rect(self, Rect2(bx, by, gx, 6), Color(gold_c, 0.35))
+	DrawBatch.rect(self, Rect2(bx + gx, by, sx - gx, 6), Color(silver_c, 0.3))
+	DrawBatch.rect(self, Rect2(bx + sx, by, bw - sx, 6), Color(red_c, 0.3))
 	var k := clampf(t / full, 0.0, 1.0)
 	var fill_c := gold_c if t <= p.x else (silver_c if t <= p.y else red_c)
-	draw_rect(Rect2(bx, by, bw * k, 6), fill_c)
-	draw_rect(Rect2(bx + bw * k - 1.5, by - 4, 3, 14), Color.WHITE)   # הסמן
+	DrawBatch.rect(self, Rect2(bx, by, bw * k, 6), fill_c)
+	DrawBatch.rect(self, Rect2(bx + bw * k - 1.5, by - 4, 3, 14), Color.WHITE)   # הסמן
 	for i in LevelClock.MAX_TIER:   # 3 עיניים בקטע האדום: נדלקות בכל דרגת למידה
 		var ex := bx + sx + (bw - sx) * (float(i) + 0.5) / float(LevelClock.MAX_TIER)
 		var on := i < Game.learn_tier
 		Art.oval(self, Vector2(ex, by + 17), 5.0, 2.6, Color(red_c, 0.95) if on else Color(0, 0, 0, 0.55), 0.0, Art.NONE)
 		if on:
-			draw_circle(Vector2(ex, by + 17), 1.6, Color(1, 0.9, 0.6))
+			DrawBatch.circle(self, Vector2(ex, by + 17), 1.6, Color(1, 0.9, 0.6))
 	# מה היעד עכשיו
 	var label := ""
 	var lcol := Color.WHITE
@@ -216,25 +256,28 @@ func _draw_clock(vp: Vector2) -> void:
 		var a := clampf(_learn_alert / 0.6, 0.0, 1.0) * clampf((2.8 - _learn_alert) / 0.2, 0.0, 1.0)
 		for i in 6:   # הבזק אדום בשוליים
 			var w := 40.0 + float(i) * 22.0
-			draw_rect(Rect2(0, 0, w, vp.y), Color(0.6, 0.0, 0.0, 0.05 * a))
-			draw_rect(Rect2(vp.x - w, 0, w, vp.y), Color(0.6, 0.0, 0.0, 0.05 * a))
+			DrawBatch.rect(self, Rect2(0, 0, w, vp.y), Color(0.6, 0.0, 0.0, 0.05 * a))
+			DrawBatch.rect(self, Rect2(vp.x - w, 0, w, vp.y), Color(0.6, 0.0, 0.0, 0.05 * a))
 		_text(Vector2(0, vp.y * 0.3), LevelClock.TIER_WORDS[Game.learn_tier], 42, Color(1.0, 0.2, 0.15, a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 		_text(Vector2(0, vp.y * 0.3 + 30), "too slow  -  they read your every move", 16, Color(1, 0.85, 0.8, 0.8 * a), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 
 
-func _draw() -> void:
+func _draw() -> void:   # UI / קווים דקים: בלי batch (Godot כבר מאחד מלבנים וקווים, וה-batch רק עולה CPU)
+	_draw_b()
+
+func _draw_b() -> void:
 	var vp := get_viewport_rect().size
 	_draw_intro(vp)
 	_draw_clock(vp)
 	if _intro_t < 1.0:   # מעבר שלב: נכנסים מתוך שחור
-		draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 1.0 - _intro_t))
+		DrawBatch.rect(self, Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 1.0 - _intro_t))
 	# BULLET TIME: המסך כחלחל-אפור
 	if Engine.time_scale < 0.99 and not _game_over and not Engine.has_meta("hitstop"):   # (לא בעצירת פגיעה קצרה - shake_camera.gd)
-		draw_rect(Rect2(Vector2.ZERO, vp), Color(0.55, 0.62, 0.8, 0.13))
+		DrawBatch.rect(self, Rect2(Vector2.ZERO, vp), Color(0.55, 0.62, 0.8, 0.13))
 		for i in 4:
 			var w := 60.0 - float(i) * 14.0
-			draw_rect(Rect2(Vector2.ZERO, Vector2(w, vp.y)), Color(0.1, 0.12, 0.2, 0.08))
-			draw_rect(Rect2(Vector2(vp.x - w, 0), Vector2(w, vp.y)), Color(0.1, 0.12, 0.2, 0.08))
+			DrawBatch.rect(self, Rect2(Vector2.ZERO, Vector2(w, vp.y)), Color(0.1, 0.12, 0.2, 0.08))
+			DrawBatch.rect(self, Rect2(Vector2(vp.x - w, 0), Vector2(w, vp.y)), Color(0.1, 0.12, 0.2, 0.08))
 	# ---- לבבות + מגן ----
 	for i in _max:
 		var c := hearts_pos + Vector2(float(i) * heart_gap, 0.0)
@@ -263,8 +306,8 @@ func _draw() -> void:
 			_text(Vector2(x, wy), "%s  %s" % [Game.WEAPON_NAMES[player.gun], at], 16, Color("ff6050") if low else Color.WHITE)
 			if player.is_reloading():   # בר טעינה
 				var k: float = 1.0 - player._reload_t / maxf(player._reload_total, 0.01)
-				draw_rect(Rect2(x, wy + 6.0, 120.0, 4.0), Color(0, 0, 0, 0.5))
-				draw_rect(Rect2(x, wy + 6.0, 120.0 * k, 4.0), Color(1.0, 0.85, 0.4))
+				DrawBatch.rect(self, Rect2(x, wy + 6.0, 120.0, 4.0), Color(0, 0, 0, 0.5))
+				DrawBatch.rect(self, Rect2(x, wy + 6.0, 120.0 * k, 4.0), Color(1.0, 0.85, 0.4))
 				_text(Vector2(x + 126.0, wy + 12.0), "RELOADING", 11, Color(1.0, 0.85, 0.4, 0.8))
 			elif msize > 0 and player.mag == 0 and player.ammo > 0:
 				_text(Vector2(x, wy + 16.0), "R  RELOAD", 12, Color(1.0, 0.5, 0.4, 0.6 + 0.4 * sin(_intro_t * 8.0)))
@@ -282,11 +325,11 @@ func _draw() -> void:
 		for b in player.boosts.keys():
 			var left: float = player.boosts[b]
 			var col: Color = PickupScript.BOOST_COLORS[b]
-			draw_rect(Rect2(Vector2(bx, 66), Vector2(30, 30)), Color(0, 0, 0, 0.55))
-			draw_rect(Rect2(Vector2(bx, 66), Vector2(30, 30)), col, false, 1.5)
+			DrawBatch.rect(self, Rect2(Vector2(bx, 66), Vector2(30, 30)), Color(0, 0, 0, 0.55))
+			DrawBatch.rect(self, Rect2(Vector2(bx, 66), Vector2(30, 30)), col, false, 1.5)
 			PickupScript.draw_boost_icon(self, Vector2(bx + 15, 81), b, col)
 			var k := clampf(left / (player.GOD_TIME if b == PickupScript.GOD else player.boost_time), 0.0, 1.0)
-			draw_rect(Rect2(Vector2(bx, 98), Vector2(30 * k, 3)), col)
+			DrawBatch.rect(self, Rect2(Vector2(bx, 98), Vector2(30 * k, 3)), col)
 			bx += 36.0
 	# ---- שלב, ניקוד, קומבו (ימין למעלה) ----
 	var rx := vp.x - 20.0
@@ -294,21 +337,23 @@ func _draw() -> void:
 	_draw_eye(Vector2(rx - 92.0, 25.0))
 	_text(Vector2(rx - 300, 58), "%d" % int(_score_shown), 26, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, 300)
 	var m := Game.multiplier()
-	if Game.combo > 0:
-		var size := int(20 + 10 * _combo_pop)
+	if Game.combo > 0 and _combo_a > 0.01:
+		var ca := _combo_a
 		var mc := Color("ffd34a") if m > 1 else Color(1, 1, 1, 0.8)
-		_text(Vector2(rx - 300, 88), "x%d   COMBO %d" % [m, Game.combo], size, mc, HORIZONTAL_ALIGNMENT_RIGHT, 300)
+		_text_k(Vector2(rx, 88), "x%d   COMBO %d" % [m, Game.combo], 20, 1.0 + 0.5 * _combo_pop, Color(mc, mc.a * ca), HORIZONTAL_ALIGNMENT_RIGHT, ca)
 		var k := clampf(Game.combo_t / Game.COMBO_WINDOW, 0.0, 1.0)
-		draw_rect(Rect2(Vector2(rx - 120, 96), Vector2(120, 3)), Color(0, 0, 0, 0.5))
-		draw_rect(Rect2(Vector2(rx - 120 * k, 96), Vector2(120 * k, 3)), mc)
-	# ---- דירוג סטייל ----
-	var sr := Game.style_rank()
-	var scol: Color = [Color(0.6, 0.6, 0.6), Color("7ad0ff"), Color("7aff8a"), Color("ffd34a"), Color("ff4a3a")][sr]
-	_text(Vector2(rx - 300, 150), Game.STYLE_RANKS[sr], 40, Color(scol, 0.4 + 0.6 * clampf(Game.style / 20.0, 0.0, 1.0)), HORIZONTAL_ALIGNMENT_RIGHT, 300)
-	_text(Vector2(rx - 300, 168), "STYLE", 12, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_RIGHT, 300)
-	var sk := fmod(Game.style, 20.0) / 20.0 if sr < 4 else 1.0
-	draw_rect(Rect2(Vector2(rx - 60, 174), Vector2(60, 3)), Color(0, 0, 0, 0.5))
-	draw_rect(Rect2(Vector2(rx - 60, 174), Vector2(60 * sk, 3)), scol)
+		DrawBatch.rect(self, Rect2(Vector2(rx - 120, 96), Vector2(120, 3)), Color(0, 0, 0, 0.5 * ca))
+		DrawBatch.rect(self, Rect2(Vector2(rx - 120 * k, 96), Vector2(120 * k, 3)), Color(mc, mc.a * ca))
+	# ---- דירוג סטייל (רק A / S) ----
+	if _style_a > 0.01:
+		var sa := _style_a
+		var sr := maxi(Game.style_rank(), STYLE_SHOW_RANK)
+		var scol: Color = [Color(0.6, 0.6, 0.6), Color("7ad0ff"), Color("7aff8a"), Color("ffd34a"), Color("ff4a3a")][sr]
+		_text(Vector2(rx - 300, 150), Game.STYLE_RANKS[sr], 40, Color(scol, sa), HORIZONTAL_ALIGNMENT_RIGHT, 300, sa)
+		_text(Vector2(rx - 300, 168), "STYLE", 12, Color(1, 1, 1, 0.6 * sa), HORIZONTAL_ALIGNMENT_RIGHT, 300, sa)
+		var sk := fmod(Game.style, 20.0) / 20.0 if sr < 4 else 1.0
+		DrawBatch.rect(self, Rect2(Vector2(rx - 60, 174), Vector2(60, 3)), Color(0, 0, 0, 0.5 * sa))
+		DrawBatch.rect(self, Rect2(Vector2(rx - 60, 174), Vector2(60 * sk, 3)), Color(scol, sa))
 	# ---- בר חיים של הבוס ----
 	if player != null:
 		for z in get_tree().get_nodes_in_group("zombies"):
@@ -319,14 +364,14 @@ func _draw() -> void:
 				if z.type_mod != null:   # בוס חדש (enemies/types): השם מ-stats()["boss_name"]
 					bname = str(z.type_mod.stats().get("boss_name", bname))
 				_text(Vector2(0, bp.y - 6), bname + ("" if z.kind != 7 or z._transformer == 0 else "   - SHOOT THE TRANSFORMER ON HIS BACK"), 16, Color("ff7060"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
-				draw_rect(Rect2(bp - Vector2(2, 2), Vector2(w + 4, 14)), Color(0, 0, 0, 0.7))
+				DrawBatch.rect(self, Rect2(bp - Vector2(2, 2), Vector2(w + 4, 14)), Color(0, 0, 0, 0.7))
 				var k := clampf(float(z.hp) / float(z.max_hp), 0.0, 1.0)
-				draw_rect(Rect2(bp, Vector2(w * k, 10)), Color("c0201c"))
-				draw_rect(Rect2(bp, Vector2(w * k, 3)), Color(1, 0.5, 0.45, 0.6))
+				DrawBatch.rect(self, Rect2(bp, Vector2(w * k, 10)), Color("c0201c"))
+				DrawBatch.rect(self, Rect2(bp, Vector2(w * k, 3)), Color(1, 0.5, 0.45, 0.6))
 				break
 	# ---- GAME OVER ----
 	if _game_over:
-		draw_rect(Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 0.55))
+		DrawBatch.rect(self, Rect2(Vector2.ZERO, vp), Color(0, 0, 0, 0.55))
 		_text(Vector2(0, vp.y / 2.0 - 40.0), "GAME OVER", 64, Color("ff4040"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 		_text(Vector2(0, vp.y / 2.0 + 4.0), "SCORE  %d" % (Game.run_score + Game.level_score), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 		_text(Vector2(0, vp.y / 2.0 + 34.0), "BEST  %d" % Game.high_scores[Settings.difficulty], 18, Color("d8a033"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)

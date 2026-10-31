@@ -1,4 +1,5 @@
 extends "res://environment/hazard.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  S7 STEAM PIPE - צינור קיטור שמתפרץ (שלב 7)
 #  במצב רגיל דולפים ממנו אדים קטנים. לפני פרץ: גלגל השסתום מסתובב,
@@ -102,56 +103,61 @@ func _hazard_tick(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var pipe := Color("4a5450")
 	var dark := Color("262c2a")
 	var back := -dir.x if dir != Vector2.DOWN else 0.0
 	if dir == Vector2.DOWN:
 		# צינור שיורד מהגשר: עמוד קצר למעלה + פתח
-		draw_rect(Rect2(-7, -40, 14, 30), pipe)
-		draw_rect(Rect2(-9, -12, 18, 8), dark)
-		draw_rect(Rect2(-6, -4, 12, 4), Color("1a1e1c"))
+		DrawBatch.rect(self, Rect2(-7, -40, 14, 30), pipe)
+		DrawBatch.rect(self, Rect2(-9, -12, 18, 8), dark)
+		DrawBatch.rect(self, Rect2(-6, -4, 12, 4), Color("1a1e1c"))
 		_valve(Vector2(14, -30))
 		_gauge(Vector2(-16, -30))
 	else:
 		# עמוד צינור מהריצפה, מרפק, ופתח שפונה לצד
 		var cx := back * 14.0
-		draw_rect(Rect2(cx - 7.0, -10.0, 14.0, height + 10.0), pipe)
-		draw_rect(Rect2(cx - 7.0, -10.0, 4.0, height + 10.0), Color(1, 1, 1, 0.08))
+		DrawBatch.rect(self, Rect2(cx - 7.0, -10.0, 14.0, height + 10.0), pipe)
+		DrawBatch.rect(self, Rect2(cx - 7.0, -10.0, 4.0, height + 10.0), Color(1, 1, 1, 0.08))
 		for by in [height - 6.0, height * 0.4]:   # טבעות חיזוק
-			draw_rect(Rect2(cx - 9.0, by, 18.0, 4.0), dark)
-		draw_rect(Rect2(minf(cx, 0.0) - 4.0, -7.0, absf(cx) + 8.0, 14.0), pipe)
-		draw_rect(Rect2(-dir.x * 2.0 - 4.0, -9.0, 8.0, 18.0), dark)   # פתח
-		draw_rect(Rect2(cx - 11.0, height - 4.0, 22.0, 4.0), dark)   # בסיס
+			DrawBatch.rect(self, Rect2(cx - 9.0, by, 18.0, 4.0), dark)
+		DrawBatch.rect(self, Rect2(minf(cx, 0.0) - 4.0, -7.0, absf(cx) + 8.0, 14.0), pipe)
+		DrawBatch.rect(self, Rect2(-dir.x * 2.0 - 4.0, -9.0, 8.0, 18.0), dark)   # פתח
+		DrawBatch.rect(self, Rect2(cx - 11.0, height - 4.0, 22.0, 4.0), dark)   # בסיס
 		_valve(Vector2(cx, -18.0))
 		_gauge(Vector2(cx + back * 16.0, 12.0))
 	# אדים
 	for pf in _puffs:
 		var k: float = pf[2] / pf[3]
 		var r := 4.0 + k * (18.0 if state == BLAST else 12.0)
-		draw_circle(pf[0], r, Color(0.88, 0.9, 0.92, (0.45 if state == BLAST else 0.25) * (1.0 - k)))
+		DrawBatch.circle(self, pf[0], r, Color(0.88, 0.9, 0.92, (0.45 if state == BLAST else 0.25) * (1.0 - k)))
 	if state == BLAST:   # ליבת הסילון הלבנה
 		var e := dir * length * 0.8
 		var n := dir.orthogonal()
-		draw_colored_polygon(PackedVector2Array([n * 4.0, -n * 4.0, e - n * 16.0, e + n * 16.0]), Color(1.0, 1.0, 1.0, 0.18))
+		DrawBatch.colored_polygon(self, PackedVector2Array([n * 4.0, -n * 4.0, e - n * 16.0, e + n * 16.0]), Color(1.0, 1.0, 1.0, 0.18))
 
 
 func _valve(c: Vector2) -> void:
-	draw_circle(c, 7.0, Color("6a1e18"))
-	draw_circle(c, 5.0, Color("8a2a20"))
+	DrawBatch.circle(self, c, 7.0, Color("6a1e18"))
+	DrawBatch.circle(self, c, 5.0, Color("8a2a20"))
 	for i in 3:
 		var a := _wheel + float(i) * TAU / 3.0
-		draw_line(c, c + Vector2.from_angle(a) * 6.0, Color("2a0e0c"), 1.6)
-	draw_circle(c, 1.5, Color("2a0e0c"))
+		DrawBatch.line(self, c, c + Vector2.from_angle(a) * 6.0, Color("2a0e0c"), 1.6)
+	DrawBatch.circle(self, c, 1.5, Color("2a0e0c"))
 
 
 func _gauge(c: Vector2) -> void:
-	draw_circle(c, 5.5, Color("1a1c1e"))
-	draw_circle(c, 4.5, Color("d8d4c4"))
+	DrawBatch.circle(self, c, 5.5, Color("1a1c1e"))
+	DrawBatch.circle(self, c, 4.5, Color("d8d4c4"))
 	var p := 0.15
 	if state == WARN:
 		p = 0.5 + _st * 0.7 + sin(_t * 40.0) * 0.06
 	elif state == BLAST:
 		p = 0.95 + sin(_t * 50.0) * 0.04
 	var a := lerpf(PI * 0.8, PI * 2.2, clampf(p, 0.0, 1.0))
-	draw_arc(c, 3.6, PI * 1.85, PI * 2.2, 6, Color(0.8, 0.1, 0.1), 1.2)
-	draw_line(c, c + Vector2.from_angle(a) * 3.8, Color(0.1, 0.1, 0.1), 1.0)
+	DrawBatch.arc(self, c, 3.6, PI * 1.85, PI * 2.2, 6, Color(0.8, 0.1, 0.1), 1.2)
+	DrawBatch.line(self, c, c + Vector2.from_angle(a) * 3.8, Color(0.1, 0.1, 0.1), 1.0)

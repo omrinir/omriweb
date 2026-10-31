@@ -129,7 +129,7 @@ func draw() -> bool:
 		kick = Vector2(-14, -6).lerp(Vector2(18, -14), k)
 	z._leg(hip + Vector2(-4, 0), Vector2(-7, 0), col(Color("1a1a1e")), sk, col(z.shoe))
 	z._leg(hip + Vector2(4, 0), kick, col(Color("1a1a1e")), sk, col(z.shoe))
-	z.draw_rect(Rect2(hip + Vector2(-10, -2), Vector2(20, 9)), col(z.pants))
+	DrawBatch.rect(z, Rect2(hip + Vector2(-10, -2), Vector2(20, 9)), col(z.pants))
 	# יד אחורית
 	var hb := sh + Vector2(-14, 6)
 	if saving():
@@ -137,28 +137,28 @@ func draw() -> bool:
 	elif winding == "throw":
 		hb = sh + Vector2(-8, -24).lerp(Vector2(10, -28), k)
 	z._arm(sh + Vector2(-8, 2), hb, Art.shade(sk, 0.25), Art.shade(shirt, 0.3))
-	z.draw_circle(hb, 5.0, glove)
+	DrawBatch.circle(z, hb, 5.0, glove)
 	if winding == "throw":   # הכדור ביד
-		z.draw_circle(hb + Vector2(0, -6), 4.0, Color(0.97, 0.97, 0.97))
-		z.draw_circle(hb + Vector2(1, -6), 1.2, Color(0.1, 0.1, 0.1))
+		DrawBatch.circle(z, hb + Vector2(0, -6), 4.0, Color(0.97, 0.97, 0.97))
+		DrawBatch.circle(z, hb + Vector2(1, -6), 1.2, Color(0.1, 0.1, 0.1))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-12, -3), sh + Vector2(12, -2), hip + Vector2(11, 2), hip + Vector2(-11, 2)]), shirt, 0.12, 0.4)
 	for q in 3:   # דוגמה
-		z.draw_line(sh + Vector2(-11, 6.0 + float(q) * 6.0), sh + Vector2(11, 4.0 + float(q) * 6.0), col(Color("1e7a3a")), 1.5)
-	z.draw_line(sh + Vector2(1, 4), sh + Vector2(1, 14), col(Color("f0f0f0")), 1.8)   # 1 (סימטרי - נראה טוב גם כשהוא הפוך)
-	z.draw_line(sh + Vector2(-1.5, 14), sh + Vector2(3.5, 14), col(Color("f0f0f0")), 1.4)
+		DrawBatch.line(z, sh + Vector2(-11, 6.0 + float(q) * 6.0), sh + Vector2(11, 4.0 + float(q) * 6.0), col(Color("1e7a3a")), 1.5)
+	DrawBatch.line(z, sh + Vector2(1, 4), sh + Vector2(1, 14), col(Color("f0f0f0")), 1.8)   # 1 (סימטרי - נראה טוב גם כשהוא הפוך)
+	DrawBatch.line(z, sh + Vector2(-1.5, 14), sh + Vector2(3.5, 14), col(Color("f0f0f0")), 1.4)
 	Art.oval_shaded(z, head, 7.0, 7.5, sk, 0.0)
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(0, -4), 7.4, 3.6, 0.0, 12), col(Color("1a1a1a")))   # כובע
-	z.draw_rect(Rect2(head + Vector2(3, -4), Vector2(9, 2)), col(Color("1a1a1a")))
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(0, -4), 7.4, 3.6, 0.0, 12), col(Color("1a1a1a")))   # כובע
+	DrawBatch.rect(z, Rect2(head + Vector2(3, -4), Vector2(9, 2)), col(Color("1a1a1a")))
 	if not z.dead:
-		z.draw_circle(head + Vector2(4.0, -0.5), 1.4, Color(1.0, 0.8, 0.35))
-	z.draw_line(head + Vector2(1, 4), head + Vector2(6, 4.5), col(Color("2a1a10")), 1.4)
+		DrawBatch.circle(z, head + Vector2(4.0, -0.5), 1.4, Color(1.0, 0.8, 0.35))
+	DrawBatch.line(z, head + Vector2(1, 4), head + Vector2(6, 4.5), col(Color("2a1a10")), 1.4)
 	# יד קדמית: כפפה
 	var hf := sh + Vector2(16, 8)
 	if saving():
 		hf = head + Vector2(8, 0)
 	z._arm(sh + Vector2(8, 2), hf, sk, shirt)
-	z.draw_circle(hf, 6.0, glove)
-	z.draw_arc(hf, 6.0, 0.0, TAU, 12, col(Color("2a9a4a")), 1.2)
+	DrawBatch.circle(z, hf, 6.0, glove)
+	DrawBatch.arc(z, hf, 6.0, 0.0, TAU, 12, col(Color("2a9a4a")), 1.2)
 	if saving() and not z.dead:
 		Art.glow(z, head, 14.0, Color(0.4, 1.0, 0.6, 0.25))
 	end_draw()

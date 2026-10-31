@@ -233,44 +233,44 @@ func draw() -> bool:
 	var k := wind_k()
 	var tt: float = z._time
 	# זחלים
-	z.draw_colored_polygon(PackedVector2Array([Vector2(-44, -1), Vector2(42, -1), Vector2(47, -8), Vector2(42, -15), Vector2(-44, -15), Vector2(-48, -8)]), dark)
+	DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(-44, -1), Vector2(42, -1), Vector2(47, -8), Vector2(42, -15), Vector2(-44, -15), Vector2(-48, -8)]), dark)
 	for q in 9:
 		var wx := -38.0 + float(q) * 10.0
-		z.draw_circle(Vector2(wx, -7.5), 4.6, col(Color("1a1a18")))
-		z.draw_circle(Vector2(wx, -7.5), 1.6, col(Color("5a5a50")))
+		DrawBatch.circle(z, Vector2(wx, -7.5), 4.6, col(Color("1a1a18")))
+		DrawBatch.circle(z, Vector2(wx, -7.5), 1.6, col(Color("5a5a50")))
 	# גוף
 	Art.fill_shaded(z, PackedVector2Array([Vector2(-46, -14), Vector2(40, -14), Vector2(48, -22), Vector2(36, -33), Vector2(-18, -33), Vector2(-20, -40), Vector2(-46, -40)]), armor, 0.14, 0.4)
-	z.draw_line(Vector2(40, -14), Vector2(48, -22), col(Color("6e7266")), 3.0)
-	z.draw_line(Vector2(48, -22), Vector2(36, -33), col(Color("6e7266")), 3.0)
+	DrawBatch.line(z, Vector2(40, -14), Vector2(48, -22), col(Color("6e7266")), 3.0)
+	DrawBatch.line(z, Vector2(48, -22), Vector2(36, -33), col(Color("6e7266")), 3.0)
 	for q in 10:
-		z.draw_circle(Vector2(-42.0 + float(q) * 8.5, -16.5), 0.8, col(Color("7a7e70")))
+		DrawBatch.circle(z, Vector2(-42.0 + float(q) * 8.5, -16.5), 0.8, col(Color("7a7e70")))
 	E.emblem(z, Vector2(8, -23), 6.0, col(Color(0.9, 0.88, 0.82)))
-	z.draw_rect(Rect2(Vector2(30, -24), Vector2(10, 3)), col(Color("1a1a1a")))   # מקלע משני
+	DrawBatch.rect(z, Rect2(Vector2(30, -24), Vector2(10, 3)), col(Color("1a1a1a")))   # מקלע משני
 	if _left > 0 and not z.dead:
 		Art.glow(z, Vector2(41, -22.5), 4.0, Color(1.0, 0.8, 0.3, 0.8))
 	# המנוע הפתוח (סיפון אחורי) + פיגום
-	z.draw_rect(Rect2(Vector2(-40, -42), Vector2(22, 9)), col(Color("1a1414")))
+	DrawBatch.rect(z, Rect2(Vector2(-40, -42), Vector2(22, 9)), col(Color("1a1414")))
 	if not z.dead:
 		var g := 0.6 + 0.4 * sin(tt * 5.0)
-		z.draw_rect(Rect2(Vector2(-38, -40), Vector2(18, 5)), Color(1.0, 0.45 * g + 0.2, 0.1, 0.95))
+		DrawBatch.rect(z, Rect2(Vector2(-38, -40), Vector2(18, 5)), Color(1.0, 0.45 * g + 0.2, 0.1, 0.95))
 		Art.glow(z, Vector2(-29, -38), 9.0, Color(1.0, 0.5, 0.15, 0.5 * g))
 		for q in 4:   # צינורות / חוטים חשופים
-			z.draw_line(Vector2(-38.0 + float(q) * 5.0, -40), Vector2(-36.0 + float(q) * 5.0, -46.0 - float(q % 2) * 2.0), col(Color("6a5040")), 0.8)
+			DrawBatch.line(z, Vector2(-38.0 + float(q) * 5.0, -40), Vector2(-36.0 + float(q) * 5.0, -46.0 - float(q % 2) * 2.0), col(Color("6a5040")), 0.8)
 	for px in [-46.0, -14.0]:   # פיגום
-		z.draw_line(Vector2(px, -40), Vector2(px, -66), col(Color("8a7a40")), 1.0)
-	z.draw_line(Vector2(-46, -66), Vector2(-14, -66), col(Color("8a7a40")), 1.0)
-	z.draw_line(Vector2(-46, -53), Vector2(-14, -53), col(Color("8a7a40")), 0.8)
-	z.draw_line(Vector2(-30, -66), Vector2(-30, -58), col(Color("1a1a1a")), 0.8)   # וו עגורן
-	z.draw_arc(Vector2(-30, -56), 2.0, 0.0, PI * 1.3, 6, col(Color("1a1a1a")), 0.8)
+		DrawBatch.line(z, Vector2(px, -40), Vector2(px, -66), col(Color("8a7a40")), 1.0)
+	DrawBatch.line(z, Vector2(-46, -66), Vector2(-14, -66), col(Color("8a7a40")), 1.0)
+	DrawBatch.line(z, Vector2(-46, -53), Vector2(-14, -53), col(Color("8a7a40")), 0.8)
+	DrawBatch.line(z, Vector2(-30, -66), Vector2(-30, -58), col(Color("1a1a1a")), 0.8)   # וו עגורן
+	DrawBatch.arc(z, Vector2(-30, -56), 2.0, 0.0, PI * 1.3, 6, col(Color("1a1a1a")), 0.8)
 	# צריח + תותח כפול
 	var rc := 4.0 * _recoil
 	for i in 2:
-		z.draw_rect(Rect2(Vector2(10.0 - rc, -51.0 + float(i) * 4.0), Vector2(38, 2.6)), dark)
-		z.draw_rect(Rect2(Vector2(44.0 - rc, -52.0 + float(i) * 4.0), Vector2(5, 4.4)), dark)
+		DrawBatch.rect(z, Rect2(Vector2(10.0 - rc, -51.0 + float(i) * 4.0), Vector2(38, 2.6)), dark)
+		DrawBatch.rect(z, Rect2(Vector2(44.0 - rc, -52.0 + float(i) * 4.0), Vector2(5, 4.4)), dark)
 	if winding == "twin" and not z.dead:
 		Art.glow(z, Vector2(50.0 - rc, -48.0), 4.0 + 6.0 * k, Color(1.0, 0.6, 0.2, 0.25 + 0.4 * k))
 	Art.fill_shaded(z, PackedVector2Array([Vector2(-14, -33), Vector2(20, -33), Vector2(22, -44), Vector2(12, -54), Vector2(-8, -54), Vector2(-16, -44)]), armor.lightened(0.05), 0.15, 0.4)
-	z.draw_rect(Rect2(Vector2(-6, -57), Vector2(10, 3)), dark)   # צוהר
+	DrawBatch.rect(z, Rect2(Vector2(-6, -57), Vector2(10, 3)), dark)   # צוהר
 	end_draw()
 	if not z.dead and Engine.get_physics_frames() % 7 == 0:   # ניצוצות ריתוך על הפיגום
 		Particles.burst(z.get_parent(), z.global_position + Vector2(z._dir * -30.0 * z.wf, -44.0) * z.sc, "spark", Vector2.UP, 1)

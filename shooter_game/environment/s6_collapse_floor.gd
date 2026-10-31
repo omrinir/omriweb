@@ -81,20 +81,25 @@ func collapse() -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var w := size.x
 	var h := size.y
 	if collapsed:   # נשארו רק בדלים שבורים בקצוות + ברזלים תלויים
 		for e in [0.0, w]:
 			var sgn := 1.0 if e == 0.0 else -1.0
-			draw_colored_polygon(PackedVector2Array([Vector2(e, 0), Vector2(e + sgn * 14.0, 2), Vector2(e + sgn * 8.0, h), Vector2(e, h)]), Color("4e4a46"))
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(e, 0), Vector2(e + sgn * 14.0, 2), Vector2(e + sgn * 8.0, h), Vector2(e, h)]), Color("4e4a46"))
 			for k in 3:
-				draw_line(Vector2(e + sgn * 4.0, 4 + k * 3), Vector2(e + sgn * (12.0 + k * 5.0), h + 6.0 + k * 6.0), Color("6a4a3a"), 1.2)
+				DrawBatch.line(self, Vector2(e + sgn * 4.0, 4 + k * 3), Vector2(e + sgn * (12.0 + k * 5.0), h + 6.0 + k * 6.0), Color("6a4a3a"), 1.2)
 		return
 	var shake := 0.0
 	if _creak > 0.0:
 		shake = sin(_t * 70.0) * 1.6 * (_creak / CREAK_TIME)
-	draw_set_transform(Vector2(shake, 0.0), 0.0, Vector2.ONE)
-	super._draw()
+	DrawBatch.set_transform(self, Vector2(shake, 0.0), 0.0, Vector2.ONE)
+	super._draw_b()
 	# סדקים גדולים + אריחים חסרים: סימן אזהרה שהקטע הזה לא יציב
 	var r := RandomNumberGenerator.new()
 	r.seed = _seed + 7
@@ -105,7 +110,7 @@ func _draw() -> void:
 		while y < h:
 			y += r.randf_range(3.0, 6.0)
 			pts.append(Vector2(cx + r.randf_range(-5, 5), minf(y, h)))
-		draw_polyline(pts, Color(0.1, 0.09, 0.08, 0.9), 1.2)
+		DrawBatch.polyline(self, pts, Color(0.1, 0.09, 0.08, 0.9), 1.2)
 	for i in 3:
-		draw_rect(Rect2(r.randf_range(4.0, w - 20.0), 0, r.randf_range(8.0, 16.0), 3), Color("2a2826"))
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+		DrawBatch.rect(self, Rect2(r.randf_range(4.0, w - 20.0), 0, r.randf_range(8.0, 16.0), 3), Color("2a2826"))
+	DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)

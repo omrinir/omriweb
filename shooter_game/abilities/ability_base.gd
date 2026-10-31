@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  ABILITY BASE - בסיס לכל יכולת (abilities/types/*.gd).
 #  player = הדמות (player.gd), power = רמת השדרוג POWER (0..5).
@@ -77,6 +78,11 @@ class RingFx extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := _t / life
-		draw_arc(Vector2.ZERO, radius * (0.3 + 0.7 * k), 0.0, TAU, 40, Color(color, 0.8 * (1.0 - k)), 4.0 * (1.0 - k) + 1.0, true)
-		draw_circle(Vector2.ZERO, radius * (0.3 + 0.7 * k), Color(color, 0.08 * (1.0 - k)))
+		DrawBatch.arc(self, Vector2.ZERO, radius * (0.3 + 0.7 * k), 0.0, TAU, 40, Color(color, 0.8 * (1.0 - k)), 4.0 * (1.0 - k) + 1.0, true)
+		DrawBatch.circle(self, Vector2.ZERO, radius * (0.3 + 0.7 * k), Color(color, 0.08 * (1.0 - k)))

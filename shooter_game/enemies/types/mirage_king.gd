@@ -60,7 +60,7 @@ func _extras() -> void:
 	var bone := col(Color("ece4d0"))
 	var dark := col(Color("3a2a1a"))
 	Art.oval(z, head + Vector2(0.5, -7.0), 5.5, 3.2, bone, 0.0, Art.OUTLINE, 1.0)   # גולגולת
-	z.draw_circle(head + Vector2(2.5, -7.0), 1.0, dark)
+	DrawBatch.circle(z, head + Vector2(2.5, -7.0), 1.0, dark)
 	for side in [0, 1]:   # קרני איל מסולסלות אחורה ולמטה (הרחוקה כהה יותר)
 		var c := head + Vector2(-4.0 + float(side) * 1.5, -4.0)
 		var pts := PackedVector2Array()
@@ -71,4 +71,4 @@ func _extras() -> void:
 		Art.limb(z, pts, 2.2 - float(side) * 0.4, bone if side == 0 else col(Color("b8ae98")))
 	for i in 3:   # עצמות תלויות על חוט
 		var bp := sh + Vector2(-5.0 + float(i) * 4.0, 6.0 + float(i % 2) * 2.0)
-		z.draw_line(bp, bp + Vector2(0.0, 4.0), bone, 1.4)
+		DrawBatch.line(z, bp, bp + Vector2(0.0, 4.0), bone, 1.4)

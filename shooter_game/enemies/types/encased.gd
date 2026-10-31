@@ -171,13 +171,13 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-3, 1), arm_l, Art.shade(sk, 0.25), Art.shade(coat, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(9, 0), hip + Vector2(8, 3), hip + Vector2(-8, 3)]), coat, 0.15, 0.4)
 	for q in 3:   # תפרי פוך
-		z.draw_line(sh + Vector2(-8, 4.0 + float(q) * 5.0), sh + Vector2(8, 4.0 + float(q) * 5.0), col(Art.shade(z.shirt, 0.3)), 1.0)
+		DrawBatch.line(z, sh + Vector2(-8, 4.0 + float(q) * 5.0), sh + Vector2(8, 4.0 + float(q) * 5.0), col(Art.shade(z.shirt, 0.3)), 1.0)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
-	z.draw_rect(Rect2(head + Vector2(-5.5, -6.5), Vector2(11, 4)), col(Color("c03a2a")))   # כובע צמר אדום
-	z.draw_rect(Rect2(head + Vector2(0, -2.5), Vector2(6, 3)), col(Color("1a2a3a")))   # משקפי קרח
-	z.draw_line(head + Vector2(-5, -1), head + Vector2(0, -1), col(Color("1a1a1a")), 1.0)
+	DrawBatch.rect(z, Rect2(head + Vector2(-5.5, -6.5), Vector2(11, 4)), col(Color("c03a2a")))   # כובע צמר אדום
+	DrawBatch.rect(z, Rect2(head + Vector2(0, -2.5), Vector2(6, 3)), col(Color("1a2a3a")))   # משקפי קרח
+	DrawBatch.line(z, head + Vector2(-5, -1), head + Vector2(0, -1), col(Color("1a1a1a")), 1.0)
 	for q in 4:   # כפור על הגוף
-		z.draw_circle(sh + Vector2(-6.0 + float(q) * 4.0, 2.0 + float(q % 2) * 8.0), 1.2, Color(0.9, 0.97, 1.0, 0.8))
+		DrawBatch.circle(z, sh + Vector2(-6.0 + float(q) * 4.0, 2.0 + float(q % 2) * 8.0), 1.2, Color(0.9, 0.97, 1.0, 0.8))
 	z._arm(sh + Vector2(3, 1), arm_r, sk, coat)
 	if frozen() and not z.dead:   # גוש הקרח
 		var k := 1.0 - float(ice) / float(ICE_HP)
@@ -190,13 +190,13 @@ func draw() -> bool:
 			pts = [Vector2(-18, 1), Vector2(-15, -48), Vector2(-4, -61), Vector2(14, -58), Vector2(20, -30), Vector2(17, 1)]
 		for v in pts:
 			blk.append(v + Vector2(shk, 0))
-		z.draw_colored_polygon(blk, Color(0.62, 0.84, 0.98, 0.62))
-		z.draw_colored_polygon(PackedVector2Array([blk[1] + Vector2(4, 0), blk[2] + Vector2(4, 4), blk[2] + Vector2(10, 4), blk[1] + Vector2(9, 8)]), Color(1, 1, 1, 0.35))
-		z.draw_polyline(blk + PackedVector2Array([blk[0]]), Color(0.25, 0.45, 0.7, 0.9), 1.4)
-		z.draw_rect(Rect2(blk[2].x, blk[2].y - 3.0, blk[3].x - blk[2].x + 4.0, 4.0), Color("eef4fa"))   # שלג על הראש
+		DrawBatch.colored_polygon(z, blk, Color(0.62, 0.84, 0.98, 0.62))
+		DrawBatch.colored_polygon(z, PackedVector2Array([blk[1] + Vector2(4, 0), blk[2] + Vector2(4, 4), blk[2] + Vector2(10, 4), blk[1] + Vector2(9, 8)]), Color(1, 1, 1, 0.35))
+		DrawBatch.polyline(z, blk + PackedVector2Array([blk[0]]), Color(0.25, 0.45, 0.7, 0.9), 1.4)
+		DrawBatch.rect(z, Rect2(blk[2].x, blk[2].y - 3.0, blk[3].x - blk[2].x + 4.0, 4.0), Color("eef4fa"))   # שלג על הראש
 		if k > 0.3 or state == CRACK:   # סדקים
-			z.draw_polyline(PackedVector2Array([Vector2(-6, -50), Vector2(-1, -38), Vector2(-7, -26), Vector2(-2, -14)]), Color(0.95, 1.0, 1.0, 0.9), 1.2)
+			DrawBatch.polyline(z, PackedVector2Array([Vector2(-6, -50), Vector2(-1, -38), Vector2(-7, -26), Vector2(-2, -14)]), Color(0.95, 1.0, 1.0, 0.9), 1.2)
 		if k > 0.6 or state == CRACK:
-			z.draw_polyline(PackedVector2Array([Vector2(12, -48), Vector2(6, -34), Vector2(12, -20), Vector2(8, -6)]), Color(0.95, 1.0, 1.0, 0.9), 1.2)
+			DrawBatch.polyline(z, PackedVector2Array([Vector2(12, -48), Vector2(6, -34), Vector2(12, -20), Vector2(8, -6)]), Color(0.95, 1.0, 1.0, 0.9), 1.2)
 	end_draw()
 	return true

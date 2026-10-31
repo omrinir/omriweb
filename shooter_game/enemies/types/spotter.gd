@@ -129,21 +129,21 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 2.0, 15.0), Art.shade(sk, 0.25), Art.shade(coat, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(9, 0), hip + Vector2(8, 3), hip + Vector2(-8, 3)]), coat, 0.15, 0.4)
 	for q in 3:   # תפרי פוך
-		z.draw_line(sh + Vector2(-8, 4.0 + float(q) * 5.0), sh + Vector2(8, 4.0 + float(q) * 5.0), col(Art.shade(z.shirt, 0.3)), 1.0)
+		DrawBatch.line(z, sh + Vector2(-8, 4.0 + float(q) * 5.0), sh + Vector2(8, 4.0 + float(q) * 5.0), col(Art.shade(z.shirt, 0.3)), 1.0)
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_rect(Rect2(head + Vector2(-5.5, -6), Vector2(11, 3.5)), col(Color("2a2a34")))   # כובע צמר
-	z.draw_line(head + Vector2(-5, -2), head + Vector2(5, -2.5), col(Color("1a1a1a")), 1.0)   # רצועת פנס ראש
+	DrawBatch.rect(z, Rect2(head + Vector2(-5.5, -6), Vector2(11, 3.5)), col(Color("2a2a34")))   # כובע צמר
+	DrawBatch.line(z, head + Vector2(-5, -2), head + Vector2(5, -2.5), col(Color("1a1a1a")), 1.0)   # רצועת פנס ראש
 	if not z.dead:
-		z.draw_circle(head + Vector2(5, -2.5), 1.6, Color(1.0, 0.2, 0.15))
-		z.draw_circle(head + Vector2(3.0, 0.5), 1.0, Color(0.85, 0.9, 0.5))
+		DrawBatch.circle(z, head + Vector2(5, -2.5), 1.6, Color(1.0, 0.2, 0.15))
+		DrawBatch.circle(z, head + Vector2(3.0, 0.5), 1.0, Color(0.85, 0.9, 0.5))
 	var hf := sh + Vector2(13, -1)
 	z._arm(sh + Vector2(3, 1), hf, sk, coat)
 	if lamp:   # פנס חיפוש
-		z.draw_rect(Rect2(hf + Vector2(-3, -5), Vector2(9, 9)), col(Color("3a3e48")))
-		z.draw_colored_polygon(PackedVector2Array([hf + Vector2(6, -6), hf + Vector2(9, -7), hf + Vector2(9, 6), hf + Vector2(6, 5)]), Color(1.0, 0.98, 0.85) if _beam > 0.1 else col(Color("8a8e98")))
+		DrawBatch.rect(z, Rect2(hf + Vector2(-3, -5), Vector2(9, 9)), col(Color("3a3e48")))
+		DrawBatch.colored_polygon(z, PackedVector2Array([hf + Vector2(6, -6), hf + Vector2(9, -7), hf + Vector2(9, 6), hf + Vector2(6, 5)]), Color(1.0, 0.98, 0.85) if _beam > 0.1 else col(Color("8a8e98")))
 	else:
-		z.draw_rect(Rect2(hf + Vector2(-3, -4), Vector2(8, 7)), col(Color("2a2a30")))
+		DrawBatch.rect(z, Rect2(hf + Vector2(-3, -4), Vector2(8, 7)), col(Color("2a2a30")))
 	end_draw()
 	if _beam > 0.05 and lamp and not z.dead:   # האלומה (עולם)
 		var pl := player()
@@ -152,6 +152,6 @@ func draw() -> bool:
 			var b: Vector2 = pl.global_position + Vector2(0, -26) - z.global_position
 			var nrm := (b - a).normalized().orthogonal()
 			var k := _beam * (1.0 if state == AIM else 0.6)
-			z.draw_colored_polygon(PackedVector2Array([a + nrm * 3.0, b + nrm * 34.0, b - nrm * 34.0, a - nrm * 3.0]), Color(1.0, 0.97, 0.8, 0.12 * k))
-			z.draw_colored_polygon(Art.ellipse(b, 30.0, 34.0, 0.0, 14), Color(1.0, 0.97, 0.8, 0.14 * k))
+			DrawBatch.colored_polygon(z, PackedVector2Array([a + nrm * 3.0, b + nrm * 34.0, b - nrm * 34.0, a - nrm * 3.0]), Color(1.0, 0.97, 0.8, 0.12 * k))
+			DrawBatch.colored_polygon(z, Art.ellipse(b, 30.0, 34.0, 0.0, 14), Color(1.0, 0.97, 0.8, 0.14 * k))
 	return true

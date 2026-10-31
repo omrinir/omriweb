@@ -191,7 +191,7 @@ func draw() -> bool:
 	begin_draw(k > 0.9)
 	if k < 1.0:   # נמס לתוך השלולית: מתכווץ לגובה ומתרחב קצת
 		var s := Vector2(z._dir * z.wf * z.sc * (1.0 + (1.0 - k) * 0.5), z.sc * maxf(k, 0.05))
-		z.draw_set_transform(Vector2.ZERO, sin(z._time * 30.0) * 0.06 * (1.0 - k), s)
+		DrawBatch.set_transform(z, Vector2.ZERO, sin(z._time * 30.0) * 0.06 * (1.0 - k), s)
 	var sk := col(z.skin)
 	var shirt := col(z.shirt)
 	var p: float = z._walk_phase
@@ -212,24 +212,24 @@ func draw() -> bool:
 	for side in [-1.0, 1.0]:
 		var a := sh + Vector2(-6.0 * side, 0.0)
 		var b := hip + Vector2(6.0 * side, -1.0)
-		z.draw_line(a, b, col(Color("5a3a1a")), 3.2, true)
+		DrawBatch.line(z, a, b, col(Color("5a3a1a")), 3.2, true)
 		for i in 4:
 			var q := a.lerp(b, 0.15 + float(i) * 0.22)
-			z.draw_circle(q, 0.9, col(Color("d8b040")))
-	z.draw_line(hip + Vector2(-7, -1), hip + Vector2(7, -2), col(Color("3a2414")), 2.4, true)   # חגורה
+			DrawBatch.circle(z, q, 0.9, col(Color("d8b040")))
+	DrawBatch.line(z, hip + Vector2(-7, -1), hip + Vector2(7, -2), col(Color("3a2414")), 2.4, true)   # חגורה
 	# ורידים זוהרים
 	if not z.dead:
 		var glow_k := 0.5 + 0.5 * sin(z._time * 5.0)
 		for v in [[sh + Vector2(-2, 3), sh + Vector2(2, 10), sh + Vector2(-1, 15)], [sh + Vector2(4, 2), sh + Vector2(6, 8)]]:
-			z.draw_polyline(PackedVector2Array(v), Color(1.0, 0.15, 0.2, 0.45 + 0.35 * glow_k), 1.2)
+			DrawBatch.polyline(z, PackedVector2Array(v), Color(1.0, 0.15, 0.2, 0.45 + 0.35 * glow_k), 1.2)
 	# ראש + כובע עור חצי-ירח
 	Art.oval_shaded(z, head, 5.8, 6.4, sk, 0.1)
-	z.draw_line(head + Vector2(1, 3), head + Vector2(6, 4), col(Color("3a0a0a")), 1.4)   # פה
-	z.draw_line(head + Vector2(3, 4), head + Vector2(3.5, 8), col(blood), 1.0)            # דם מהפה
+	DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(6, 4), col(Color("3a0a0a")), 1.4)   # פה
+	DrawBatch.line(z, head + Vector2(3, 4), head + Vector2(3.5, 8), col(blood), 1.0)            # דם מהפה
 	var eye := head + Vector2(3.0, -1.0)
 	if not z.dead:
 		Art.glow(z, eye, 4.0, Color(1.0, 0.15, 0.15, 0.7))
-	z.draw_circle(eye, 1.1, Color(1.0, 0.3, 0.3) if not z.dead else Color("2a1a1a"))
+	DrawBatch.circle(z, eye, 1.1, Color(1.0, 0.3, 0.3) if not z.dead else Color("2a1a1a"))
 	var hat := PackedVector2Array()
 	for i in 13:   # השוליים המורמים: חצי-ירח
 		var u := float(i) / 12.0
@@ -241,12 +241,12 @@ func draw() -> bool:
 	Art.fill(z, PackedVector2Array([head + Vector2(-5, -5), head + Vector2(-4, -11), head + Vector2(4, -11), head + Vector2(5, -5)]), col(Color("6a4426")))
 	for sx in [-6.0, 0.0, 6.0]:   # כוכבים על השוליים
 		var c := head + Vector2(sx, -11.5 + absf(sx) * 0.25)
-		z.draw_circle(c, 1.4, col(Color("e0c060")))
+		DrawBatch.circle(z, c, 1.4, col(Color("e0c060")))
 	# יד קדמית: מושטת קדימה
 	var hand := sh + Vector2(13.0, 6.0 + sin(p) * 2.0)
 	z._arm(sh + Vector2(2, 2), hand, sk, shirt)
 	Art.disc(z, hand + Vector2(1, 1), 1.6, col(blood), Art.NONE)
 	for q in _drips:   # טיפות דם נופלות
-		z.draw_circle(q[0], 1.2, blood)
+		DrawBatch.circle(z, q[0], 1.2, blood)
 	end_draw()
 	return true

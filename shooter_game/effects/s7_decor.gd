@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  S7 DECOR - קישוטי העולם של שלב 7 (מפעל חשוך). levels/stage_7.gd יוצר אותם.
 #    WallChunk  - קיר המפעל מאחורי הריצפה (אריח של 1024 פיקסלים, מצויר פעם אחת):
@@ -25,19 +26,24 @@ class WallChunk extends Node2D:
 		z_index = -3
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var w := 1024.0
 		# לוחות קיר
-		draw_rect(Rect2(0, -230, w, 230), Color("24221f"))
+		DrawBatch.rect(self, Rect2(0, -230, w, 230), Color("24221f"))
 		var px := 0.0
 		while px < w:
 			var pw := r.randf_range(90.0, 140.0)
 			var pc := Color("2a2723").lerp(Color("201e1b"), r.randf())
-			draw_rect(Rect2(px + 1, -228, pw - 2, 200), pc)
+			DrawBatch.rect(self, Rect2(px + 1, -228, pw - 2, 200), pc)
 			for q in 5:   # ניטים
-				draw_circle(Vector2(px + 5, -220 + q * 44), 1.3, Color("3a3631"))
-				draw_circle(Vector2(px + pw - 5, -220 + q * 44), 1.3, Color("3a3631"))
+				DrawBatch.circle(self, Vector2(px + 5, -220 + q * 44), 1.3, Color("3a3631"))
+				DrawBatch.circle(self, Vector2(px + pw - 5, -220 + q * 44), 1.3, Color("3a3631"))
 			if r.randf() < 0.3:   # כתם חלודה
 				Art.oval(self, Vector2(px + r.randf_range(20, pw - 20), r.randf_range(-200, -60)), r.randf_range(8, 18), r.randf_range(14, 30), Color(0.35, 0.18, 0.08, 0.35), 0.0, Art.NONE)
 			px += pw
@@ -45,14 +51,14 @@ class WallChunk extends Node2D:
 		var sx := 0.0
 		var i := 0
 		while sx < w:
-			draw_colored_polygon(PackedVector2Array([Vector2(sx, -26), Vector2(sx + 14, -26), Vector2(sx + 24, -16), Vector2(sx + 10, -16)]), Color("8a6c18") if i % 2 == 0 else Color("1a1814"))
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(sx, -26), Vector2(sx + 14, -26), Vector2(sx + 24, -16), Vector2(sx + 10, -16)]), Color("8a6c18") if i % 2 == 0 else Color("1a1814"))
 			sx += 14.0
 			i += 1
-		draw_rect(Rect2(0, -16, w, 16), Color("1a1815"))
+		DrawBatch.rect(self, Rect2(0, -16, w, 16), Color("1a1815"))
 		# צינורות לאורך הקיר
 		for pyv in [-188.0, -172.0]:
-			draw_rect(Rect2(0, pyv, w, 9), Color("33302b"))
-			draw_line(Vector2(0, pyv + 2), Vector2(w, pyv + 2), Color(0.6, 0.55, 0.45, 0.12), 1.0)
+			DrawBatch.rect(self, Rect2(0, pyv, w, 9), Color("33302b"))
+			DrawBatch.line(self, Vector2(0, pyv + 2), Vector2(w, pyv + 2), Color(0.6, 0.55, 0.45, 0.12), 1.0)
 		# פריטים לאורך הקיר
 		var x := r.randf_range(10.0, 80.0)
 		while x < w - 120.0:
@@ -70,26 +76,26 @@ class WallChunk extends Node2D:
 					Art.fill_shaded(self, PackedVector2Array([Vector2(x, -16), Vector2(x, -70), Vector2(x + 30, -86), Vector2(x + 110, -86), Vector2(x + 120, -16)]), Color("2c302e"), 0.15, 0.35, Color(0, 0, 0, 0.6))
 					_gear(Vector2(x + 40, -60), 16.0, Color("3a3c3a"))
 					_gear(Vector2(x + 70, -48), 10.0, Color("34363a"))
-					draw_rect(Rect2(x + 84, -76, 26, 16), Color("161816"))
-					draw_line(Vector2(x + 100, -86), Vector2(x + 128, -120), Color("2c302e"), 4.0)   # זרוע שבורה
+					DrawBatch.rect(self, Rect2(x + 84, -76, 26, 16), Color("161816"))
+					DrawBatch.line(self, Vector2(x + 100, -86), Vector2(x + 128, -120), Color("2c302e"), 4.0)   # זרוע שבורה
 					x += 150.0
 				2:   # ארון חשמל עם מחוגים
-					draw_rect(Rect2(x, -120, 60, 104), Color("2e3330"))
-					draw_rect(Rect2(x + 4, -116, 52, 96), Color("262a28"))
+					DrawBatch.rect(self, Rect2(x, -120, 60, 104), Color("2e3330"))
+					DrawBatch.rect(self, Rect2(x + 4, -116, 52, 96), Color("262a28"))
 					for q in 2:
 						var gc := Vector2(x + 18 + q * 24, -96)
-						draw_circle(gc, 7.0, Color("d0ccb8"))
-						draw_line(gc, gc + Vector2.from_angle(r.randf_range(-2.6, -0.4)) * 6.0, Color("201010"), 1.0)
-					draw_rect(Rect2(x + 10, -70, 40, 8), Color("161816"))
-					draw_colored_polygon(PackedVector2Array([Vector2(x + 30, -52), Vector2(x + 40, -36), Vector2(x + 20, -36)]), Color("b8901c"))
-					draw_line(Vector2(x + 30, -48), Vector2(x + 30, -41), Color("161816"), 1.5)
+						DrawBatch.circle(self, gc, 7.0, Color("d0ccb8"))
+						DrawBatch.line(self, gc, gc + Vector2.from_angle(r.randf_range(-2.6, -0.4)) * 6.0, Color("201010"), 1.0)
+					DrawBatch.rect(self, Rect2(x + 10, -70, 40, 8), Color("161816"))
+					DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(x + 30, -52), Vector2(x + 40, -36), Vector2(x + 20, -36)]), Color("b8901c"))
+					DrawBatch.line(self, Vector2(x + 30, -48), Vector2(x + 30, -41), Color("161816"), 1.5)
 					x += 90.0
 				3:   # חביות שמן
 					for q in r.randi_range(2, 3):
 						var bxx := x + q * 26
-						draw_rect(Rect2(bxx, -46, 24, 30), Color("3a2a1a") if q % 2 == 0 else Color("2a3a3a"))
-						draw_line(Vector2(bxx, -38), Vector2(bxx + 24, -38), Color(0, 0, 0, 0.35), 1.5)
-						draw_line(Vector2(bxx, -26), Vector2(bxx + 24, -26), Color(0, 0, 0, 0.35), 1.5)
+						DrawBatch.rect(self, Rect2(bxx, -46, 24, 30), Color("3a2a1a") if q % 2 == 0 else Color("2a3a3a"))
+						DrawBatch.line(self, Vector2(bxx, -38), Vector2(bxx + 24, -38), Color(0, 0, 0, 0.35), 1.5)
+						DrawBatch.line(self, Vector2(bxx, -26), Vector2(bxx + 24, -26), Color(0, 0, 0, 0.35), 1.5)
 					x += 100.0
 				4:   # שלט אזהרה / גרפיטי
 					var f := ThemeDB.fallback_font
@@ -97,45 +103,45 @@ class WallChunk extends Node2D:
 					var tag: String = tags[r.randi() % tags.size()]
 					var red := tag == "THEY WATCH" or tag == "WE SEE YOU"
 					if not red:
-						draw_rect(Rect2(x - 4, -150, tag.length() * 9.0 + 8.0, 24), Color("1a1814"))
-					draw_string(f, Vector2(x, -132), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.75, 0.12, 0.08, 0.75) if red else Color(0.8, 0.65, 0.2, 0.7))
+						DrawBatch.rect(self, Rect2(x - 4, -150, tag.length() * 9.0 + 8.0, 24), Color("1a1814"))
+					DrawBatch.string(self, f, Vector2(x, -132), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.75, 0.12, 0.08, 0.75) if red else Color(0.8, 0.65, 0.2, 0.7))
 					if red:   # עין מצוירת
 						var ec := Vector2(x + tag.length() * 4.5, -110)
-						draw_arc(ec, 10.0, PI * 1.15, PI * 1.85, 8, Color(0.75, 0.12, 0.08, 0.7), 2.0)
-						draw_arc(ec + Vector2(0, -12), 10.0, PI * 0.15, PI * 0.85, 8, Color(0.75, 0.12, 0.08, 0.7), 2.0)
-						draw_circle(ec + Vector2(0, -6), 3.0, Color(0.75, 0.12, 0.08, 0.7))
+						DrawBatch.arc(self, ec, 10.0, PI * 1.15, PI * 1.85, 8, Color(0.75, 0.12, 0.08, 0.7), 2.0)
+						DrawBatch.arc(self, ec + Vector2(0, -12), 10.0, PI * 0.15, PI * 0.85, 8, Color(0.75, 0.12, 0.08, 0.7), 2.0)
+						DrawBatch.circle(self, ec + Vector2(0, -6), 3.0, Color(0.75, 0.12, 0.08, 0.7))
 					x += tag.length() * 9.0 + 40.0
 				5:   # משטחי עץ ושקים
 					for q in 3:
-						draw_rect(Rect2(x, -22 - q * 8, 70, 4), Color("3a2e20"))
-					draw_rect(Rect2(x + 6, -52, 28, 22), Color("4a4030"))
-					draw_rect(Rect2(x + 36, -46, 26, 16), Color("40382a"))
+						DrawBatch.rect(self, Rect2(x, -22 - q * 8, 70, 4), Color("3a2e20"))
+					DrawBatch.rect(self, Rect2(x + 6, -52, 28, 22), Color("4a4030"))
+					DrawBatch.rect(self, Rect2(x + 36, -46, 26, 16), Color("40382a"))
 					x += 90.0
 				_:   # מנוע ענק עם רצועה
-					draw_circle(Vector2(x + 40, -60), 34.0, Color("2a2e2c"))
-					draw_circle(Vector2(x + 40, -60), 10.0, Color("1a1c1c"))
-					draw_rect(Rect2(x + 40, -94, 70, 78), Color("2a2e2c"))
-					draw_line(Vector2(x + 40, -94), Vector2(x + 110, -50), Color("121414"), 3.0)
-					draw_line(Vector2(x + 40, -26), Vector2(x + 110, -50), Color("121414"), 3.0)
+					DrawBatch.circle(self, Vector2(x + 40, -60), 34.0, Color("2a2e2c"))
+					DrawBatch.circle(self, Vector2(x + 40, -60), 10.0, Color("1a1c1c"))
+					DrawBatch.rect(self, Rect2(x + 40, -94, 70, 78), Color("2a2e2c"))
+					DrawBatch.line(self, Vector2(x + 40, -94), Vector2(x + 110, -50), Color("121414"), 3.0)
+					DrawBatch.line(self, Vector2(x + 40, -26), Vector2(x + 110, -50), Color("121414"), 3.0)
 					x += 140.0
 			x += r.randf_range(20.0, 90.0)
 
 	func _container(rc: Rect2, c: Color, r: RandomNumberGenerator) -> void:
-		draw_rect(rc, c)
+		DrawBatch.rect(self, rc, c)
 		var gx := rc.position.x + 4.0
 		while gx < rc.end.x - 2.0:   # צלעות
-			draw_line(Vector2(gx, rc.position.y + 3), Vector2(gx, rc.end.y - 3), c.darkened(0.3), 2.0)
+			DrawBatch.line(self, Vector2(gx, rc.position.y + 3), Vector2(gx, rc.end.y - 3), c.darkened(0.3), 2.0)
 			gx += 8.0
-		draw_rect(Rect2(rc.position, Vector2(rc.size.x, 3)), c.lightened(0.12))
+		DrawBatch.rect(self, Rect2(rc.position, Vector2(rc.size.x, 3)), c.lightened(0.12))
 		if r.randf() < 0.6:
-			draw_string(ThemeDB.fallback_font, rc.position + Vector2(10, 22), ["KX-07", "HAZMAT", "BIO", "07-B"][r.randi() % 4], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.85, 0.85, 0.8, 0.3))
+			DrawBatch.string(self, ThemeDB.fallback_font, rc.position + Vector2(10, 22), ["KX-07", "HAZMAT", "BIO", "07-B"][r.randi() % 4], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.85, 0.85, 0.8, 0.3))
 
 	func _gear(c: Vector2, rad: float, col: Color) -> void:
-		draw_circle(c, rad, col)
+		DrawBatch.circle(self, c, rad, col)
 		for q in 8:
 			var a := float(q) * TAU / 8.0
-			draw_rect(Rect2(c + Vector2.from_angle(a) * rad - Vector2(2.5, 2.5), Vector2(5, 5)), col)
-		draw_circle(c, rad * 0.35, Color("161816"))
+			DrawBatch.rect(self, Rect2(c + Vector2.from_angle(a) * rad - Vector2(2.5, 2.5), Vector2(5, 5)), col)
+		DrawBatch.circle(self, c, rad * 0.35, Color("161816"))
 
 
 # ---- מצלמת אבטחה שעוקבת אחרי השחקן ----
@@ -164,16 +170,21 @@ class Cctv extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_rect(Rect2(-4, -6, 8, 12), Color("1e2022"))   # בסיס בקיר
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.rect(self, Rect2(-4, -6, 8, 12), Color("1e2022"))   # בסיס בקיר
 		var dv := Vector2.from_angle(_a)
 		var tr := Transform2D(_a, Vector2(dv.x * 4.0, 2.0))
-		draw_colored_polygon(tr * PackedVector2Array([Vector2(0, -5), Vector2(20, -6), Vector2(22, 4), Vector2(0, 4)]), Color("34383c"))
-		draw_colored_polygon(tr * PackedVector2Array([Vector2(20, -4), Vector2(25, -4), Vector2(25, 2), Vector2(20, 2)]), Color("101214"))
+		DrawBatch.colored_polygon(self, tr * PackedVector2Array([Vector2(0, -5), Vector2(20, -6), Vector2(22, 4), Vector2(0, 4)]), Color("34383c"))
+		DrawBatch.colored_polygon(self, tr * PackedVector2Array([Vector2(20, -4), Vector2(25, -4), Vector2(25, 2), Vector2(20, 2)]), Color("101214"))
 		var on := fmod(_t * (3.0 if _sees else 1.0), 1.0) < 0.5
-		draw_circle(tr * Vector2(4, -2), 1.6, Color(1.0, 0.15, 0.1) if on else Color(0.3, 0.05, 0.05))
+		DrawBatch.circle(self, tr * Vector2(4, -2), 1.6, Color(1.0, 0.15, 0.1) if on else Color(0.3, 0.05, 0.05))
 		if _sees:   # קרן צפייה חלשה
 			var o := tr * Vector2(25, -1)
-			draw_colored_polygon(PackedVector2Array([o, o + dv.rotated(-0.18) * 200.0, o + dv.rotated(0.18) * 200.0]), Color(1.0, 0.2, 0.15, 0.04))
+			DrawBatch.colored_polygon(self, PackedVector2Array([o, o + dv.rotated(-0.18) * 200.0, o + dv.rotated(0.18) * 200.0]), Color(1.0, 0.2, 0.15, 0.04))
 
 
 # ---- עגורן גשר: נוסע הלוך ושוב עם ארגז מתנדנד ----
@@ -192,27 +203,32 @@ class Crane extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
-		draw_rect(Rect2(0, -8, span, 12), Color("201e1c"))
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.rect(self, Rect2(0, -8, span, 12), Color("201e1c"))
 		var x := 0.0
 		while x < span:   # מסבך
-			draw_line(Vector2(x, -8), Vector2(x + 20, 4), Color("161412"), 2.0)
+			DrawBatch.line(self, Vector2(x, -8), Vector2(x + 20, 4), Color("161412"), 2.0)
 			x += 20.0
 		var k := 0.5 + 0.5 * sin(_t * 0.18)
 		var tx := 40.0 + (span - 80.0) * k
 		var vel := cos(_t * 0.18)
-		draw_rect(Rect2(tx - 22, 2, 44, 14), Color("2c2a26"))
-		draw_circle(Vector2(tx - 12, 2), 4.0, Color("121110"))
-		draw_circle(Vector2(tx + 12, 2), 4.0, Color("121110"))
+		DrawBatch.rect(self, Rect2(tx - 22, 2, 44, 14), Color("2c2a26"))
+		DrawBatch.circle(self, Vector2(tx - 12, 2), 4.0, Color("121110"))
+		DrawBatch.circle(self, Vector2(tx + 12, 2), 4.0, Color("121110"))
 		var sw := -vel * 0.12 + sin(_t * 1.1) * 0.04
 		var hook := Vector2(tx, 16) + Vector2.from_angle(PI * 0.5 + sw) * drop
-		draw_line(Vector2(tx - 3, 16), hook + Vector2(-3, 0), Color("141210"), 1.5)
-		draw_line(Vector2(tx + 3, 16), hook + Vector2(3, 0), Color("141210"), 1.5)
+		DrawBatch.line(self, Vector2(tx - 3, 16), hook + Vector2(-3, 0), Color("141210"), 1.5)
+		DrawBatch.line(self, Vector2(tx + 3, 16), hook + Vector2(3, 0), Color("141210"), 1.5)
 		var tr := Transform2D(sw, hook)
 		Art.fill_shaded(self, tr * PackedVector2Array([Vector2(-30, 0), Vector2(30, 0), Vector2(30, 36), Vector2(-30, 36)]), Color("3a3226"), 0.15, 0.35, Color(0, 0, 0, 0.6))
-		draw_line(tr * Vector2(-30, 12), tr * Vector2(30, 12), Color(0, 0, 0, 0.35), 1.5)
-		draw_line(tr * Vector2(-30, 24), tr * Vector2(30, 24), Color(0, 0, 0, 0.35), 1.5)
+		DrawBatch.line(self, tr * Vector2(-30, 12), tr * Vector2(30, 12), Color(0, 0, 0, 0.35), 1.5)
+		DrawBatch.line(self, tr * Vector2(-30, 24), tr * Vector2(30, 24), Color(0, 0, 0, 0.35), 1.5)
 		var blink := fmod(_t, 1.2) < 0.2
-		draw_circle(Vector2(tx, 12), 2.0, Color(1.0, 0.6, 0.1) if blink else Color(0.3, 0.2, 0.1))
+		DrawBatch.circle(self, Vector2(tx, 12), 2.0, Color(1.0, 0.6, 0.1) if blink else Color(0.3, 0.2, 0.1))
 
 
 # ---- מאוורר בקיר ----
@@ -229,14 +245,19 @@ class WallFan extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
-		draw_rect(Rect2(-radius - 6, -radius - 6, radius * 2 + 12, radius * 2 + 12), Color("1c1b19"))
-		draw_circle(Vector2.ZERO, radius, Color("0c0b0a"))
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.rect(self, Rect2(-radius - 6, -radius - 6, radius * 2 + 12, radius * 2 + 12), Color("1c1b19"))
+		DrawBatch.circle(self, Vector2.ZERO, radius, Color("0c0b0a"))
 		for q in 4:
 			var a := _t * 7.0 + float(q) * TAU / 4.0
-			draw_colored_polygon(PackedVector2Array([Vector2.ZERO, Vector2.from_angle(a - 0.25) * radius * 0.95, Vector2.from_angle(a + 0.2) * radius * 0.95]), Color("2a2824"))
-		draw_circle(Vector2.ZERO, 4.0, Color("3a3834"))
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2.ZERO, Vector2.from_angle(a - 0.25) * radius * 0.95, Vector2.from_angle(a + 0.2) * radius * 0.95]), Color("2a2824"))
+		DrawBatch.circle(self, Vector2.ZERO, 4.0, Color("3a3834"))
 		for q in 4:   # סורג
-			draw_line(Vector2(-radius, -radius + q * radius * 0.66), Vector2(radius, -radius + q * radius * 0.66), Color(0.1, 0.1, 0.1, 0.7), 1.0)
+			DrawBatch.line(self, Vector2(-radius, -radius + q * radius * 0.66), Vector2(radius, -radius + q * radius * 0.66), Color(0.1, 0.1, 0.1, 0.7), 1.0)
 
 
 # ---- כיס חושך: צל עמוק מתחת למכונה שבורה (מחבוא ל-AMBUSHER) ----
@@ -248,21 +269,26 @@ class DarkPocket extends Node2D:
 		z_index = 4   # מעל הזומבים (3), מתחת לשחקן (4, נוסף אחרי)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := size.x
 		var h := size.y
 		# צל עם שוליים רכים
 		for i in 6:
 			var k := float(i) / 6.0
 			var gw := w * (1.0 - k * 0.5)
-			draw_rect(Rect2(-gw * 0.5, -h * (1.0 - k * 0.25), gw, h * (1.0 - k * 0.25)), Color(0.0, 0.0, 0.01, 0.16))
+			DrawBatch.rect(self, Rect2(-gw * 0.5, -h * (1.0 - k * 0.25), gw, h * (1.0 - k * 0.25)), Color(0.0, 0.0, 0.01, 0.16))
 		# מכסה מכונה שבורה מעל (נותן את הצל)
 		var top := -h - 6.0
 		Art.fill_shaded(self, PackedVector2Array([Vector2(-w * 0.55, top + 18), Vector2(-w * 0.45, top), Vector2(w * 0.4, top - 4), Vector2(w * 0.58, top + 14), Vector2(w * 0.5, top + 26), Vector2(-w * 0.5, top + 28)]), Color("23221f"), 0.12, 0.4, Color(0, 0, 0, 0.7))
-		draw_line(Vector2(-w * 0.4, top + 28), Vector2(-w * 0.42, 0), Color("161513"), 5.0)   # רגל
-		draw_line(Vector2(w * 0.44, top + 26), Vector2(w * 0.5, -40), Color("161513"), 4.0)   # רגל שבורה
+		DrawBatch.line(self, Vector2(-w * 0.4, top + 28), Vector2(-w * 0.42, 0), Color("161513"), 5.0)   # רגל
+		DrawBatch.line(self, Vector2(w * 0.44, top + 26), Vector2(w * 0.5, -40), Color("161513"), 4.0)   # רגל שבורה
 		for q in 3:   # כבלים תלויים
 			var cx := -w * 0.25 + float(q) * w * 0.25
-			draw_line(Vector2(cx, top + 26), Vector2(cx + 4, top + 60 + float(q) * 12.0), Color("0e0e0e"), 1.5)
+			DrawBatch.line(self, Vector2(cx, top + 26), Vector2(cx + 4, top + 60 + float(q) * 12.0), Color("0e0e0e"), 1.5)
 
 
 # ---- שרשראות כהות בחזית (מעל גובה הראש) ----
@@ -281,6 +307,11 @@ class FgChains extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for q in 2:
 			var ox := float(q) * 46.0
 			var ln := length * (1.0 if q == 0 else 0.75)
@@ -289,9 +320,9 @@ class FgChains extends Node2D:
 			for s in 16:
 				var u := float(s + 1) / 16.0
 				var p := Vector2(ox + sin(sw * 12.0 * u) * ln * 0.1 * u, top_y + u * ln)
-				draw_line(prev, p, Color(0.04, 0.035, 0.03, 0.92), 4.0 if s % 2 == 0 else 2.5)
+				DrawBatch.line(self, prev, p, Color(0.04, 0.035, 0.03, 0.92), 4.0 if s % 2 == 0 else 2.5)
 				prev = p
-			draw_arc(prev + Vector2(0, 9), 9.0, -0.4, PI + 0.5, 8, Color(0.04, 0.035, 0.03, 0.92), 3.5)
+			DrawBatch.arc(self, prev + Vector2(0, 9), 9.0, -0.4, PI + 0.5, 8, Color(0.04, 0.035, 0.03, 0.92), 3.5)
 
 
 # ---- מכשול מוצק: מכונה שבורה / גנרטור ----
@@ -322,34 +353,39 @@ class Machine extends StaticBody2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := size.x
 		var h := size.y
 		if kind == 1:   # גנרטור: גוף מעוגל, צלעות קירור, נורות
 			Art.fill_shaded(self, PackedVector2Array([Vector2(4, 0), Vector2(0, -h + 10), Vector2(10, -h), Vector2(w - 10, -h), Vector2(w, -h + 10), Vector2(w - 4, 0)]), Color("3e4a3c"), 0.2, 0.4)
 			for q in int((w - 30.0) / 8.0):
-				draw_line(Vector2(14 + q * 8, -h + 14), Vector2(14 + q * 8, -12), Color("26302a"), 2.0)
-			draw_rect(Rect2(w - 30, -h + 8, 20, 14), Color("1a1e1a"))
+				DrawBatch.line(self, Vector2(14 + q * 8, -h + 14), Vector2(14 + q * 8, -12), Color("26302a"), 2.0)
+			DrawBatch.rect(self, Rect2(w - 30, -h + 8, 20, 14), Color("1a1e1a"))
 			for q in 3:
 				var on := fmod(_t * (0.8 + float(q) * 0.5), 1.0) < 0.5
 				var lc := Color(1.0, 0.6, 0.15) if q < 2 else Color(0.3, 1.0, 0.4)
-				draw_circle(Vector2(w - 26 + q * 6, -h + 15), 1.8, lc if on else lc.darkened(0.7))
-			draw_rect(Rect2(0, -6, w, 6), Color("1e221e"))
-			draw_string(ThemeDB.fallback_font, Vector2(14, -h * 0.4), "GEN-7", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.85, 0.75, 0.3, 0.55))
+				DrawBatch.circle(self, Vector2(w - 26 + q * 6, -h + 15), 1.8, lc if on else lc.darkened(0.7))
+			DrawBatch.rect(self, Rect2(0, -6, w, 6), Color("1e221e"))
+			DrawBatch.string(self, ThemeDB.fallback_font, Vector2(14, -h * 0.4), "GEN-7", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.85, 0.75, 0.3, 0.55))
 		else:   # מכונה שבורה: בסיס, ראש עקום, גלגל שיניים, כבלים
 			Art.fill_shaded(self, PackedVector2Array([Vector2(0, 0), Vector2(0, -h * 0.6), Vector2(w * 0.3, -h * 0.6), Vector2(w * 0.35, -h), Vector2(w * 0.85, -h + 6), Vector2(w, -h * 0.55), Vector2(w, 0)]), Color("3a3c40"), 0.2, 0.45)
-			draw_circle(Vector2(w * 0.6, -h * 0.55), h * 0.22, Color("2a2c30"))
+			DrawBatch.circle(self, Vector2(w * 0.6, -h * 0.55), h * 0.22, Color("2a2c30"))
 			for q in 8:
 				var a := float(q) * TAU / 8.0
-				draw_circle(Vector2(w * 0.6, -h * 0.55) + Vector2.from_angle(a) * h * 0.22, 2.5, Color("2a2c30"))
-			draw_circle(Vector2(w * 0.6, -h * 0.55), 3.0, Color("6a6e74"))
+				DrawBatch.circle(self, Vector2(w * 0.6, -h * 0.55) + Vector2.from_angle(a) * h * 0.22, 2.5, Color("2a2c30"))
+			DrawBatch.circle(self, Vector2(w * 0.6, -h * 0.55), 3.0, Color("6a6e74"))
 			var x := 4.0
 			var i := 0
 			while x < w - 6.0:   # פס אזהרה בבסיס
-				draw_rect(Rect2(x, -9, 6, 5), Color("a8861c") if i % 2 == 0 else Color("1c1c1c"))
+				DrawBatch.rect(self, Rect2(x, -9, 6, 5), Color("a8861c") if i % 2 == 0 else Color("1c1c1c"))
 				x += 6.0
 				i += 1
-			draw_line(Vector2(w * 0.85, -h + 6), Vector2(w + 10, -h - 8), Color("2a2c30"), 3.0)
-			draw_line(Vector2(w * 0.2, -h * 0.6), Vector2(w * 0.12, -h * 0.85), Color("111111"), 1.5)
+			DrawBatch.line(self, Vector2(w * 0.85, -h + 6), Vector2(w + 10, -h - 8), Color("2a2c30"), 3.0)
+			DrawBatch.line(self, Vector2(w * 0.2, -h * 0.6), Vector2(w * 0.12, -h * 0.85), Color("111111"), 1.5)
 
 
 # ---- שוליים של תעלה: פסי אזהרה ----
@@ -360,10 +396,15 @@ class TrenchEdge extends Node2D:
 		z_index = 2
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for ex in [-14.0, width]:
 			var x: float = ex
 			for q in 3:
-				draw_rect(Rect2(x + float(q) * 5.0, -3, 3, 6), Color("b8901c"))
-		draw_line(Vector2(0, 0), Vector2(0, 60), Color("2a2a2e"), 3.0)
-		draw_line(Vector2(width, 0), Vector2(width, 60), Color("2a2a2e"), 3.0)
-		draw_rect(Rect2(2, 50, width - 4, 10), Color(0.04, 0.04, 0.05, 0.9))
+				DrawBatch.rect(self, Rect2(x + float(q) * 5.0, -3, 3, 6), Color("b8901c"))
+		DrawBatch.line(self, Vector2(0, 0), Vector2(0, 60), Color("2a2a2e"), 3.0)
+		DrawBatch.line(self, Vector2(width, 0), Vector2(width, 60), Color("2a2a2e"), 3.0)
+		DrawBatch.rect(self, Rect2(2, 50, width - 4, 10), Color(0.04, 0.04, 0.05, 0.9))

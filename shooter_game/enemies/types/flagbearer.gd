@@ -243,7 +243,7 @@ func draw() -> bool:
 	else:
 		o = E.soldier(self, z, Vector2(9, -6), "helmet", E.UNIFORM, Vector2(5, -2))
 	var sh: Vector2 = o.sh
-	z.draw_line(sh + Vector2(-6, -1), sh + Vector2(6, 18), col(Color("2a2018")), 2.0)   # חגורת נשיאה
+	DrawBatch.line(z, sh + Vector2(-6, -1), sh + Vector2(6, 18), col(Color("2a2018")), 2.0)   # חגורת נשיאה
 	if attacking:   # התורן והדגל בתנועה (מקומי - מתהפך עם הכיוון)
 		var tip := piv + u * POLE_LEN
 		var butt := piv - u * 10.0
@@ -252,19 +252,19 @@ func draw() -> bool:
 		var c0 := tip - u * 2.0
 		var c1 := tip - u * 30.0
 		var cloth := PackedVector2Array([c0, c0 + nn * 44.0 + u * wave, c1 + nn * 44.0 + u * (wave * 0.6), c1])
-		z.draw_colored_polygon(cloth, col(E.RED))
-		z.draw_line(c0, c1, col(E.RED_D), 2.0)
+		DrawBatch.colored_polygon(z, cloth, col(E.RED))
+		DrawBatch.line(z, c0, c1, col(E.RED_D), 2.0)
 		E.emblem(z, (c0 + c1) * 0.5 + nn * 20.0, 8.0)
-		z.draw_line(butt, tip, col(Color("5a4026")), 2.6)
-		z.draw_colored_polygon(PackedVector2Array([tip + u * 7.0, tip + Vector2(-u.y, u.x) * 2.5, tip - Vector2(-u.y, u.x) * 2.5]), col(E.BRASS))   # ראש חנית
+		DrawBatch.line(z, butt, tip, col(Color("5a4026")), 2.6)
+		DrawBatch.colored_polygon(z, PackedVector2Array([tip + u * 7.0, tip + Vector2(-u.y, u.x) * 2.5, tip - Vector2(-u.y, u.x) * 2.5]), col(E.BRASS))   # ראש חנית
 		if state == STRIKE:   # קו תנועה
 			var ub := Vector2(sin(a - 0.5), -cos(a - 0.5)) if move == "chop" else u
-			z.draw_line(piv + ub * POLE_LEN * 0.6, piv + ub * POLE_LEN, Color(1, 1, 1, 0.35), 3.0)
+			DrawBatch.line(z, piv + ub * POLE_LEN * 0.6, piv + ub * POLE_LEN, Color(1, 1, 1, 0.35), 3.0)
 		if state == WIND:   # ברק על ראש החנית - אזהרה
-			z.draw_circle(tip + u * 4.0, 2.5 + sin(z._time * 30.0), Color(1.0, 0.95, 0.7, 0.9))
+			DrawBatch.circle(z, tip + u * 4.0, 2.5 + sin(z._time * 30.0), Color(1.0, 0.95, 0.7, 0.9))
 	elif standing:
-		z.draw_line(Vector2(8, -4), Vector2(8, -POLE_H), col(Color("5a4026")), 2.2)   # התורן
-		z.draw_circle(Vector2(8, -POLE_H - 1.5), 2.0, col(E.BRASS))
+		DrawBatch.line(z, Vector2(8, -4), Vector2(8, -POLE_H), col(Color("5a4026")), 2.2)   # התורן
+		DrawBatch.circle(z, Vector2(8, -POLE_H - 1.5), 2.0, col(E.BRASS))
 	end_draw()
 	if standing and not z.dead and not attacking:   # הדגל (בעולם, לא מתהפך)
 		var top: Vector2 = flag_top() - z.global_position
@@ -273,5 +273,5 @@ func draw() -> bool:
 	elif not standing and _fall < 1.0:   # הדגל נופל
 		var k := clampf(_fall / 0.6, 0.0, 1.0)
 		var tip2: Vector2 = Vector2(z._dir * (8.0 + 60.0 * k), -POLE_H * (1.0 - k)) * z.sc
-		z.draw_line(Vector2(z._dir * 8.0, -4.0), tip2, Color("5a4026"), 2.2)
+		DrawBatch.line(z, Vector2(z._dir * 8.0, -4.0), tip2, Color("5a4026"), 2.2)
 	return true

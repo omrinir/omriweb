@@ -1,4 +1,5 @@
 extends CanvasLayer
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  מסך סיום שלב: כוכבים, סטטיסטיקות, ניקוד, ו"חנות" שדרוגים
 #  שקונים בנקודות SCRAP. משם ממשיכים לשלב הבא.
@@ -68,7 +69,11 @@ func _results_buttons(first := false) -> void:
 	var y := 560.0
 	var d := 1.6 if first else 0.0   # בפעם הראשונה מחכים שהכוכבים יופיעו
 	var next := _btn("NEXT LEVEL", Vector2(vp.x / 2.0 - 330.0, y), Vector2(220, 56), Color("b3121a"), 26, d)
-	next.pressed.connect(_next)
+	if Game.level > Game.IMPLEMENTED:   # סיימת את השלב האחרון של המשחק - אין "שלב הבא"
+		next.text = "MAIN MENU"
+		next.pressed.connect(_menu)
+	else:
+		next.pressed.connect(_next)
 	_btn("UPGRADES", Vector2(vp.x / 2.0 - 100.0, y), Vector2(200, 56), Color("d8a033"), 26, d + 0.1).pressed.connect(_shop)
 	_btn("MAP", Vector2(vp.x / 2.0 + 120.0, y), Vector2(210, 56), Color("5a5a62"), 26, d + 0.2).pressed.connect(_map)
 	next.call_deferred("grab_focus")
@@ -99,7 +104,8 @@ func _map() -> void:
 
 
 func _menu() -> void:
-	_leave(func(): get_tree().change_scene_to_file(MENU_SCENE))
+	var to := MENU_SCENE if Game.custom_test.is_empty() else "res://characters/maker.tscn"   # בדיקת דמות: חוזרים לעורך
+	_leave(func(): get_tree().change_scene_to_file(to))
 
 
 func _leave(then: Callable) -> void:
@@ -131,15 +137,20 @@ class ResultsPanel extends Node2D:
 
 	func _txt(p: Vector2, t: String, size: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0) -> void:
 		var f := ThemeDB.fallback_font
-		draw_string_outline(f, p, t, align, w, size, 5, Color(0, 0, 0, 0.85))
-		draw_string(f, p, t, align, w, size, col)
+		DrawBatch.string_outline(self, f, p, t, align, w, size, 5, Color(0, 0, 0, 0.85))
+		DrawBatch.string(self, f, p, t, align, w, size, col)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var vp := get_viewport_rect().size
 		var pw := 640.0
 		var px := (vp.x - pw) / 2.0
-		draw_rect(Rect2(Vector2(px, 60), Vector2(pw, 480)), Color(0.07, 0.06, 0.07, 0.94))
-		draw_rect(Rect2(Vector2(px, 60), Vector2(pw, 480)), Color("8a1a1a"), false, 2.0)
+		DrawBatch.rect(self, Rect2(Vector2(px, 60), Vector2(pw, 480)), Color(0.07, 0.06, 0.07, 0.94))
+		DrawBatch.rect(self, Rect2(Vector2(px, 60), Vector2(pw, 480)), Color("8a1a1a"), false, 2.0)
 		_results(vp, px, pw)
 
 	func _results(vp: Vector2, px: float, pw: float) -> void:
@@ -168,7 +179,7 @@ class ResultsPanel extends Node2D:
 			var a := clampf((_t - 0.9 - float(i) * 0.08) / 0.2, 0.0, 1.0)
 			if a <= 0.0:
 				continue
-			var y := 214.0 + float(i) * 28.0
+			var y := 210.0 + float(i) * 26.0   # השורה האחרונה ב-444 - מקום ל-SCRAP / NEW BEST / THEY FORGET YOU מתחת
 			var col := Color(0.85, 0.82, 0.78, a)
 			if i >= 8:
 				col = Color(1, 1, 1, a)
@@ -178,12 +189,12 @@ class ResultsPanel extends Node2D:
 			_txt(Vector2(px + 90, y), lines[i][1], 18, col, HORIZONTAL_ALIGNMENT_RIGHT, pw - 180.0)
 		if int(r.get("medal", 0)) == 2:   # GOLD: בשלב הבא הם זוכרים פחות עליך (progression/level_clock.gd)
 			var ga := clampf((_t - 1.9) / 0.4, 0.0, 1.0)
-			_txt(Vector2(0, 512), "THEY FORGET YOU  -  the next level knows less about how you fight", 15, Color(0.94, 0.75, 0.25, ga), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+			_txt(Vector2(0, 530), "THEY FORGET YOU  -  the next level knows less about how you fight", 14, Color(0.94, 0.75, 0.25, ga), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 		if _t > 1.8:
-			_txt(Vector2(0, 482), "+%d SCRAP" % r.scrap, 20, Color("d8a033"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+			_txt(Vector2(0, 478), "+%d SCRAP" % r.scrap, 20, Color("d8a033"), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 			if r.best:
 				var pulse := 0.7 + 0.3 * sin(_t * 6.0)
-				_txt(Vector2(0, 512), "NEW BEST SCORE!", 22, Color(1.0, 0.85, 0.3, pulse), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
+				_txt(Vector2(0, 505), "NEW BEST SCORE!", 22, Color(1.0, 0.85, 0.3, pulse), HORIZONTAL_ALIGNMENT_CENTER, vp.x)
 
 	func _star(c: Vector2, r_: float, col: Color) -> void:
 		if r_ <= 0.5:
@@ -193,7 +204,7 @@ class ResultsPanel extends Node2D:
 			var a := -PI / 2.0 + TAU * float(i) / 10.0
 			var rr := r_ if i % 2 == 0 else r_ * 0.45
 			pts.append(c + Vector2(cos(a), sin(a)) * rr)
-		draw_colored_polygon(pts, col)
+		DrawBatch.colored_polygon(self, pts, col)
 		var closed := PackedVector2Array(pts)
 		closed.append(pts[0])
-		draw_polyline(closed, Color(0, 0, 0, 0.8), 2.0, true)
+		DrawBatch.polyline(self, closed, Color(0, 0, 0, 0.8), 2.0, true)

@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  S9 HAZARDS - סכנות של שלב 9 ("THEY LEARN"):
 #    InfectionZone - שלולית הדבקה / ענן רעיל זמני (נוצר ע"י INFECTOR, או קבוע במעבדה)
@@ -59,6 +60,11 @@ class InfectionZone extends "res://environment/hazard.gd":
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var fade := clampf(life / 1.0, 0.0, 1.0) if life > 0.0 else 1.0
 		var grow := clampf(_t / 0.5, 0.0, 1.0)   # מתפשט בהתחלה (אזהרה)
 		var a := fade * grow
@@ -71,28 +77,28 @@ class InfectionZone extends "res://environment/hazard.gd":
 				var ang := _t * 0.6 + k * TAU + _seed
 				var p := Vector2(cos(ang) * width * 0.32 * grow, -34.0 + sin(ang * 1.3) * 16.0 - k * 10.0)
 				var r := (18.0 + 10.0 * sin(_t * 1.5 + float(i))) * (0.5 + 0.5 * grow)
-				draw_circle(p, r, Color(pu.lerp(g, k), 0.16 * a))
+				DrawBatch.circle(self, p, r, Color(pu.lerp(g, k), 0.16 * a))
 			for i in 6:   # נבגים קטנים שעולים
 				var q := fmod(_t * 0.4 + float(i) * 0.17, 1.0)
-				draw_circle(Vector2((float(i) / 5.0 - 0.5) * width * 0.8, -q * 76.0), 1.6, Color(0.8, 1.0, 0.5, 0.6 * a * (1.0 - q)))
+				DrawBatch.circle(self, Vector2((float(i) / 5.0 - 0.5) * width * 0.8, -q * 76.0), 1.6, Color(0.8, 1.0, 0.5, 0.6 * a * (1.0 - q)))
 			return
 		var pts := PackedVector2Array()
 		for i in 18:
 			var t := TAU * float(i) / 18.0
 			pts.append(Vector2(cos(t) * width * 0.5 * grow * (1.0 + 0.1 * sin(t * 3.0 + _t * 2.0)), sin(t) * 4.0 + 1.0))
-		draw_colored_polygon(pts, Color(pu, 0.6 * a))
+		DrawBatch.colored_polygon(self, pts, Color(pu, 0.6 * a))
 		var inner := PackedVector2Array()
 		for p in pts:
 			inner.append(p * Vector2(0.7, 0.6))
-		draw_colored_polygon(inner, Color(g, 0.45 * a))
+		DrawBatch.colored_polygon(self, inner, Color(g, 0.45 * a))
 		for i in 5:   # בועות שמתפוצצות
 			var k := fmod(_t * 1.1 + float(i) * 0.23, 1.0)
 			var bx := (float(i) / 4.0 - 0.5) * width * 0.75
-			draw_circle(Vector2(bx, -k * 12.0), 2.4 * (1.0 - k), Color(0.8, 1.0, 0.55, a * (1.0 - k)))
-		draw_circle(Vector2(0, -8), width * 0.55, Color(g, 0.05 * a))   # זוהר
+			DrawBatch.circle(self, Vector2(bx, -k * 12.0), 2.4 * (1.0 - k), Color(0.8, 1.0, 0.55, a * (1.0 - k)))
+		DrawBatch.circle(self, Vector2(0, -8), width * 0.55, Color(g, 0.05 * a))   # זוהר
 		for i in 3:   # אדים ירוקים מעל
 			var k := fmod(_t * 0.5 + float(i) * 0.33, 1.0)
-			draw_circle(Vector2((float(i) - 1.0) * width * 0.25, -6.0 - k * 26.0), 5.0 + k * 8.0, Color(g, 0.12 * a * (1.0 - k)))
+			DrawBatch.circle(self, Vector2((float(i) - 1.0) * width * 0.25, -6.0 - k * 26.0), 5.0 + k * 8.0, Color(g, 0.12 * a * (1.0 - k)))
 
 
 # ---- גוש הדבקה שעף בקשת ----
@@ -144,12 +150,17 @@ class InfectGlob extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for i in _trail.size():
 			var tp: Vector2 = _trail[i] - global_position
-			draw_circle(tp, 4.0 - float(i) * 0.6, Color(0.6, 1.0, 0.35, 0.35 - float(i) * 0.06))
+			DrawBatch.circle(self, tp, 4.0 - float(i) * 0.6, Color(0.6, 1.0, 0.35, 0.35 - float(i) * 0.06))
 		Art.glow(self, Vector2.ZERO, 10.0, Color(0.6, 1.0, 0.3, 0.5))
-		draw_circle(Vector2.ZERO, 5.0, Color(0.55, 0.22, 0.65))
-		draw_circle(Vector2(-1, -1), 2.6, Color(0.7, 1.0, 0.4))
+		DrawBatch.circle(self, Vector2.ZERO, 5.0, Color(0.55, 0.22, 0.65))
+		DrawBatch.circle(self, Vector2(-1, -1), 2.6, Color(0.7, 1.0, 0.4))
 
 
 # ---- גוש בטון שנזרק (EVOLVED) ----
@@ -188,9 +199,14 @@ class RubbleShot extends Node2D:
 		queue_free()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var pts := Transform2D(_rot, Vector2.ZERO) * PackedVector2Array([Vector2(-6, -4), Vector2(3, -7), Vector2(7, 1), Vector2(2, 6), Vector2(-6, 4)])
 		Art.fill(self, pts, Color("6a6560"), Art.OUTLINE, 1.2)
-		draw_line(pts[0], pts[2], Color(0.3, 0.28, 0.26), 1.0)
+		DrawBatch.line(self, pts[0], pts[2], Color(0.3, 0.28, 0.26), 1.0)
 
 
 # ---- תקרה / חזית שמתמוטטת ----
@@ -291,13 +307,18 @@ class CollapseZone extends "res://environment/hazard.gd":
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = _seed
 		var shake := Vector2(randf_range(-2.0, 2.0), randf_range(-1.0, 1.0)) if _state == 1 else Vector2.ZERO
 		# קורת פלדה שבורה + לוחות בטון תלויים (נראים גם כשהם "שקטים")
 		var beam_y := top - 16.0
-		draw_rect(Rect2(-width * 0.5 - 30.0, beam_y, width + 60.0, 10.0), Color("2e2a2a"))
-		draw_line(Vector2(-width * 0.5 - 30.0, beam_y), Vector2(width * 0.5 + 30.0, beam_y), Color(0.6, 0.55, 0.5, 0.4), 1.0)
+		DrawBatch.rect(self, Rect2(-width * 0.5 - 30.0, beam_y, width + 60.0, 10.0), Color("2e2a2a"))
+		DrawBatch.line(self, Vector2(-width * 0.5 - 30.0, beam_y), Vector2(width * 0.5 + 30.0, beam_y), Color(0.6, 0.55, 0.5, 0.4), 1.0)
 		if _state != 2 and _state != 3:
 			for i in 4:
 				var sx := -width * 0.5 + (float(i) + 0.15) * width / 4.0
@@ -306,12 +327,12 @@ class CollapseZone extends "res://environment/hazard.gd":
 				var tilt := r.randf_range(-0.12, 0.12)
 				var slab := Transform2D(tilt, Vector2(sx + sw * 0.5, top + sh * 0.5) + shake) * PackedVector2Array([Vector2(-sw * 0.5, -sh * 0.5), Vector2(sw * 0.5, -sh * 0.5), Vector2(sw * 0.5, sh * 0.5), Vector2(-sw * 0.5, sh * 0.5)])
 				Art.fill_shaded(self, slab, Color("6e6862"), 0.1, 0.35, Art.OUTLINE, 1.0)
-				draw_line(Vector2(sx + 3.0, top - 6.0), Vector2(sx + 5.0, top + 2.0) + shake, Color("6a4030"), 1.2)   # ברזל זיון
+				DrawBatch.line(self, Vector2(sx + 3.0, top - 6.0), Vector2(sx + 5.0, top + 2.0) + shake, Color("6a4030"), 1.2)   # ברזל זיון
 		# אזהרה: פסי אבק נושרים + קווי סדק
 		for d in _dust:
-			draw_line(d[0], d[0] + Vector2(0, 7), Color(0.75, 0.7, 0.62, 0.5 * (1.0 - float(d[1]))), 1.5)
+			DrawBatch.line(self, d[0], d[0] + Vector2(0, 7), Color(0.75, 0.7, 0.62, 0.5 * (1.0 - float(d[1]))), 1.5)
 		if _state == 1:
-			draw_rect(Rect2(-width * 0.5, -4.0, width, 4.0), Color(1.0, 0.3, 0.2, 0.25 + 0.2 * sin(_t * 30.0)))
+			DrawBatch.rect(self, Rect2(-width * 0.5, -4.0, width, 4.0), Color(1.0, 0.3, 0.2, 0.25 + 0.2 * sin(_t * 30.0)))
 		for c in _chunks:
 			var s: float = c[2]
 			var pts := Transform2D(c[3], c[0]) * PackedVector2Array([Vector2(-s, -s * 0.7), Vector2(s, -s), Vector2(s * 0.8, s), Vector2(-s * 0.9, s * 0.6)])

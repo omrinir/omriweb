@@ -161,33 +161,33 @@ func draw() -> bool:
 	var k := wind_k()
 	var bob := sin(tt * 0.8) * 1.2
 	# סנפירי זנב (מאחור)
-	z.draw_colored_polygon(PackedVector2Array([Vector2(-40, -34 + bob), Vector2(-56, -56 + bob), Vector2(-52, -34 + bob)]), col(Color("7a1a14")))
-	z.draw_colored_polygon(PackedVector2Array([Vector2(-40, -34 + bob), Vector2(-56, -14 + bob), Vector2(-52, -34 + bob)]), col(Color("7a1a14")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(-40, -34 + bob), Vector2(-56, -56 + bob), Vector2(-52, -34 + bob)]), col(Color("7a1a14")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(-40, -34 + bob), Vector2(-56, -14 + bob), Vector2(-52, -34 + bob)]), col(Color("7a1a14")))
 	# המעטפת
 	Art.fill_shaded(z, Art.ellipse(Vector2(0, -34 + bob), 50.0, 19.0, 0.0, 28), red, 0.18, 0.45)
 	for q in 7:   # קורות
 		var x := -36.0 + float(q) * 12.0
 		var hh := 19.0 * sqrt(maxf(0.0, 1.0 - pow(x / 50.0, 2.0)))
-		z.draw_line(Vector2(x, -34 - hh + bob), Vector2(x, -34 + hh + bob), col(Color("8a1c16")), 0.8)
-	z.draw_colored_polygon(Art.ellipse(Vector2(10, -38 + bob), 12.0, 10.0, 0.0, 16), col(Color(0.92, 0.9, 0.85)))
+		DrawBatch.line(z, Vector2(x, -34 - hh + bob), Vector2(x, -34 + hh + bob), col(Color("8a1c16")), 0.8)
+	DrawBatch.colored_polygon(z, Art.ellipse(Vector2(10, -38 + bob), 12.0, 10.0, 0.0, 16), col(Color(0.92, 0.9, 0.85)))
 	E.emblem(z, Vector2(10, -38 + bob), 9.0, col(Color(0.92, 0.9, 0.85)))
 	# מנועים
 	for ex in [-24.0, 24.0]:
 		var ep := Vector2(ex, -15 + bob)
-		z.draw_line(ep + Vector2(0, -2), ep + Vector2(0, -8), col(Color("2a2a2a")), 1.2)
-		z.draw_colored_polygon(Art.ellipse(ep, 6.0, 3.0, 0.0, 10), col(Color("3a3a36")))
+		DrawBatch.line(z, ep + Vector2(0, -2), ep + Vector2(0, -8), col(Color("2a2a2a")), 1.2)
+		DrawBatch.colored_polygon(z, Art.ellipse(ep, 6.0, 3.0, 0.0, 10), col(Color("3a3a36")))
 		var pa := tt * 30.0
-		z.draw_line(ep + Vector2(-6, 0) + Vector2(0, sin(pa) * 4.0), ep + Vector2(-6, 0) - Vector2(0, sin(pa) * 4.0), col(Color("1a1a1a")), 1.2)
+		DrawBatch.line(z, ep + Vector2(-6, 0) + Vector2(0, sin(pa) * 4.0), ep + Vector2(-6, 0) - Vector2(0, sin(pa) * 4.0), col(Color("1a1a1a")), 1.2)
 	# הגונדולה
 	Art.fill_shaded(z, PackedVector2Array([Vector2(-14, -14 + bob), Vector2(14, -14 + bob), Vector2(16, -6 + bob), Vector2(10, -1 + bob), Vector2(-12, -1 + bob), Vector2(-15, -6 + bob)]), col(Color("3a3a32")), 0.15, 0.4)
 	for q in 4:   # חלונות
-		z.draw_rect(Rect2(Vector2(-10.0 + float(q) * 6.0, -11 + bob), Vector2(4, 3)), Color(1.0, 0.85, 0.5, 0.8))
-	z.draw_rect(Rect2(Vector2(12, -6 + bob), Vector2(6, 1.6)), col(Color("1a1a1a")))   # מקלע
+		DrawBatch.rect(z, Rect2(Vector2(-10.0 + float(q) * 6.0, -11 + bob), Vector2(4, 3)), Color(1.0, 0.85, 0.5, 0.8))
+	DrawBatch.rect(z, Rect2(Vector2(12, -6 + bob), Vector2(6, 1.6)), col(Color("1a1a1a")))   # מקלע
 	if _left > 0 and not z.dead:
 		Art.glow(z, Vector2(19, -5 + bob), 3.0, Color(1.0, 0.8, 0.3, 0.8))
-	z.draw_rect(Rect2(Vector2(-6, -1.5 + bob), Vector2(10, 1.5)), col(Color("1a1a1a")) if winding != "bombs" else Color(1.0, 0.4, 0.2, 0.4 + 0.5 * k))   # תא פצצות
+	DrawBatch.rect(z, Rect2(Vector2(-6, -1.5 + bob), Vector2(10, 1.5)), col(Color("1a1a1a")) if winding != "bombs" else Color(1.0, 0.4, 0.2, 0.4 + 0.5 * k))   # תא פצצות
 	if _door > 0.0:
-		z.draw_rect(Rect2(Vector2(-12, -10 + bob), Vector2(5, 8)), Color("0a0a0a"))
+		DrawBatch.rect(z, Rect2(Vector2(-12, -10 + bob), Vector2(5, 8)), Color("0a0a0a"))
 	end_draw()
 	if not z.dead and Engine.get_physics_frames() % 120 == 0 and Art.on_screen(z, z.global_position):
 		Sfx.play("rz_engine", z.global_position, -8.0, 0.05, 2)

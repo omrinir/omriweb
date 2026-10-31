@@ -384,7 +384,7 @@ func draw() -> bool:
 		for k in 2:
 			var o := Vector2(-9.0 * float(k + 1), 2.0 * float(k + 1) if air else 0.0)
 			Art.fill(z, PackedVector2Array([sh + o + Vector2(-5, -1), sh + o + Vector2(5, 0), hip + o + Vector2(4, 0), hip + o + Vector2(-4, 0)]), Color(0.45, 0.9, 1.0, 0.16 - 0.06 * float(k)), Art.NONE)
-			z.draw_circle(head + o, 6.0, Color(0.45, 0.9, 1.0, 0.12 - 0.05 * float(k)))
+			DrawBatch.circle(z, head + o, 6.0, Color(0.45, 0.9, 1.0, 0.12 - 0.05 * float(k)))
 	# רגליים הפוכות (כמו של חיה)
 	var stride := 7.0
 	var f0 := Vector2(sin(p) * stride + 2.0, -maxf(0.0, cos(p)) * 4.0)
@@ -402,10 +402,10 @@ func draw() -> bool:
 	Art.fill_shaded(z, body, sk, 0.2, 0.35, Art.OUTLINE, 1.3)
 	for i in 4:
 		var rp := sh.lerp(hip, 0.25 + float(i) * 0.15)
-		z.draw_line(rp + Vector2(-1, 0), rp + Vector2(5, 1), col(Color(0.35, 0.38, 0.45, 0.8)), 0.8, true)
-	z.draw_polyline(PackedVector2Array([head + Vector2(-3, 3), sh + Vector2(-3, 2), sh.lerp(hip, 0.5) + Vector2(-2.5, 0), hip + Vector2(-2, -1)]), Color(cyan, 0.5 + 0.4 * pulse), 1.2, true)
-	z.draw_line(sh.lerp(hip, 0.3) + Vector2(-2, 0), sh.lerp(hip, 0.45) + Vector2(4, 1), Color(cyan, 0.4 * pulse), 0.8, true)
-	z.draw_line(sh.lerp(hip, 0.6) + Vector2(-2, 0), sh.lerp(hip, 0.75) + Vector2(3, 2), Color(cyan, 0.4 * pulse), 0.8, true)
+		DrawBatch.line(z, rp + Vector2(-1, 0), rp + Vector2(5, 1), col(Color(0.35, 0.38, 0.45, 0.8)), 0.8, true)
+	DrawBatch.polyline(z, PackedVector2Array([head + Vector2(-3, 3), sh + Vector2(-3, 2), sh.lerp(hip, 0.5) + Vector2(-2.5, 0), hip + Vector2(-2, -1)]), Color(cyan, 0.5 + 0.4 * pulse), 1.2, true)
+	DrawBatch.line(z, sh.lerp(hip, 0.3) + Vector2(-2, 0), sh.lerp(hip, 0.45) + Vector2(4, 1), Color(cyan, 0.4 * pulse), 0.8, true)
+	DrawBatch.line(z, sh.lerp(hip, 0.6) + Vector2(-2, 0), sh.lerp(hip, 0.75) + Vector2(3, 2), Color(cyan, 0.4 * pulse), 0.8, true)
 	# ראש: גולגולת מוארכת אחורה, מוח חשוף, כתר קוצים, 3 עיניים
 	Art.limb(z, PackedVector2Array([sh + Vector2(1, 0), head + Vector2(-2, 4)]), 3.6, dark)
 	for i in 4:   # קוצי עצם
@@ -414,12 +414,12 @@ func draw() -> bool:
 	Art.oval_shaded(z, head + Vector2(-2, -2), 6.0, 8.5, sk, -0.7, Art.OUTLINE, 1.3)
 	var brain_c := head + Vector2(-4, -6)
 	Art.oval(z, brain_c, 4.5, 3.6, col(Color("c890b0")), -0.6, Art.OUTLINE, 1.0)
-	z.draw_line(brain_c + Vector2(-3, 0), brain_c + Vector2(3, -1), col(Color("9a5a80")), 0.7, true)
+	DrawBatch.line(z, brain_c + Vector2(-3, 0), brain_c + Vector2(3, -1), col(Color("9a5a80")), 0.7, true)
 	Art.glow(z, brain_c, 6.0 + 2.0 * pulse, Color(cyan, 0.35 * pulse))
 	Art.fill(z, PackedVector2Array([head + Vector2(1.5, 3.5), head + Vector2(6.5, 2.5), head + Vector2(6.0, 5.5 + (2.0 if z._bite_anim > 0.0 else 0.0)), head + Vector2(2.0, 6.0)]), col(Color("1a0c14")), Art.OUTLINE, 0.8)
 	for e in [Vector2(3.5, -3.5), Vector2(4.6, -1.2), Vector2(3.6, 1.0)]:
 		Art.glow(z, head + e, 3.0, Color(cyan, 0.7))
-		z.draw_circle(head + e, 0.9, cyan.lightened(0.4))
+		DrawBatch.circle(z, head + e, 0.9, cyan.lightened(0.4))
 	# יד קדמית עם 3 טפרים ארוכים (מורמת בזריקה / צלילה)
 	var fh := sh + Vector2(13.0, 12.0 - sin(p) * 3.0)
 	if _throw_anim > 0.0 and not z.dead:
@@ -432,8 +432,8 @@ func draw() -> bool:
 	# הילת "למידה"
 	if _learn_fx > 0.0 and not z.dead:
 		var k := 1.0 - _learn_fx / 1.2
-		z.draw_arc(head + Vector2(-2, -3), 8.0 + k * 22.0, 0.0, TAU, 24, Color(cyan, 0.8 * (1.0 - k)), 1.5, true)
-		z.draw_arc(head + Vector2(-2, -3), 4.0 + k * 12.0, 0.0, TAU, 18, Color(cyan, 0.5 * (1.0 - k)), 1.0, true)
+		DrawBatch.arc(z, head + Vector2(-2, -3), 8.0 + k * 22.0, 0.0, TAU, 24, Color(cyan, 0.8 * (1.0 - k)), 1.5, true)
+		DrawBatch.arc(z, head + Vector2(-2, -3), 4.0 + k * 12.0, 0.0, TAU, 18, Color(cyan, 0.5 * (1.0 - k)), 1.0, true)
 	end_draw()
 	return true
 
@@ -446,7 +446,7 @@ func _dleg(hip: Vector2, foot: Vector2, c: Color) -> void:
 	Art.limb(z, PackedVector2Array([knee, ankle]), 4.0, c)
 	Art.limb(z, PackedVector2Array([ankle, foot + Vector2(2.0, 0.0)]), 2.8, c)
 	for i in 2:
-		z.draw_line(foot + Vector2(2, 0), foot + Vector2(6.0, -1.0 + float(i) * 1.5), col(Color("2a2a30")), 1.0, true)
+		DrawBatch.line(z, foot + Vector2(2, 0), foot + Vector2(6.0, -1.0 + float(i) * 1.5), col(Color("2a2a30")), 1.0, true)
 
 
 func _claw_arm(shoulder: Vector2, hand: Vector2, c: Color, dirv: Vector2) -> void:
@@ -455,4 +455,4 @@ func _claw_arm(shoulder: Vector2, hand: Vector2, c: Color, dirv: Vector2) -> voi
 	var dv := dirv.normalized() if dirv.length() > 0.01 else Vector2.RIGHT
 	for i in 3:
 		var a := dv.rotated(-0.35 + float(i) * 0.35)
-		z.draw_line(hand, hand + a * 7.5, col(Color("e8e4d8")), 1.2, true)
+		DrawBatch.line(z, hand, hand + a * 7.5, col(Color("e8e4d8")), 1.2, true)

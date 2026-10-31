@@ -254,15 +254,15 @@ func draw() -> bool:
 		Art.fill_shaded(z, PackedVector2Array([tk + Vector2(-6, -10), tk + Vector2(4, -10), tk + Vector2(5, 14), tk + Vector2(-7, 14)]), col(Color("7a3a2a")), 0.2, 0.35)
 		Art.disc(z, tk + Vector2(-1, -12), 3.0, col(Color("5a5a5a")))
 		Art.disc(z, tk + Vector2(-1, 0), 2.6, col(Color("e8e0c8")), Art.OUTLINE, 0.8)   # שעון לחץ
-		z.draw_line(tk + Vector2(-1, 0), tk + Vector2(-1, 0) + Vector2.from_angle(-PI * 0.5 + (1.4 if state == BLAST else (0.6 if state == REV else -0.6))) * 2.2, Color("c02020"), 0.8)
+		DrawBatch.line(z, tk + Vector2(-1, 0), tk + Vector2(-1, 0) + Vector2.from_angle(-PI * 0.5 + (1.4 if state == BLAST else (0.6 if state == REV else -0.6))) * 2.2, Color("c02020"), 0.8)
 		for i in tank:   # מד: כמה פגיעות המכל עוד יכול לספוג
-			z.draw_rect(Rect2(tk.x - 6.0 + float(i) * 4.0, tk.y + 16.0, 3.0, 2.0), Color(1.0, 0.8, 0.2))
+			DrawBatch.rect(z, Rect2(tk.x - 6.0 + float(i) * 4.0, tk.y + 16.0, 3.0, 2.0), Color(1.0, 0.8, 0.2))
 	else:
 		Art.fill(z, PackedVector2Array([tk + Vector2(-6, 2), tk + Vector2(4, 0), tk + Vector2(5, 14), tk + Vector2(-7, 14)]), col(Color("3a2a20")), Art.OUTLINE, 1.0)   # מכל קרוע
 	z._arm(sh + Vector2(-3, 2), sh + Vector2(12.0, 10.0), col(Art.shade(z.skin, 0.25)), Art.shade(suit, 0.3))
 	var body := PackedVector2Array([sh + Vector2(-7, -2), sh + Vector2(6, -1), hip + Vector2(6, -1), hip + Vector2(4, 3), hip + Vector2(-5, 3), sh + Vector2(-8, 5)])
 	Art.fill_shaded(z, body, suit, 0.15, 0.35)
-	z.draw_line(sh + Vector2(-6, 0), hip + Vector2(-5, -2), col(Color("2a2018")), 2.0)   # רצועה
+	DrawBatch.line(z, sh + Vector2(-6, 0), hip + Vector2(-5, -2), col(Color("2a2018")), 2.0)   # רצועה
 	# ראש: מסכת נשימה + משקפי מגן
 	Art.oval_shaded(z, head, 5.6, 6.0, sk, 0.1)
 	Art.fill_shaded(z, PackedVector2Array([head + Vector2(-6, -3), head + Vector2(6, -4), head + Vector2(6, 0), head + Vector2(-6, 0)]), col(Color("6a5a40")), 0.2, 0.3)   # כובע בד
@@ -276,17 +276,17 @@ func draw() -> bool:
 		var la := Vector2(_aim.x * z._dir, _aim.y)
 		noz = hand + la * 16.0
 	var hose := PackedVector2Array([tk + Vector2(-1, 12), tk + Vector2(2, 20), hip + Vector2(6, 2), hand])
-	z.draw_polyline(hose, Art.OUTLINE, 4.0)
-	z.draw_polyline(hose, col(Color("2a2a2e")), 2.4)
-	z.draw_line(hand, noz, Art.OUTLINE, 4.6, true)
-	z.draw_line(hand, noz, col(Color("8a8e96")), 2.6, true)
+	DrawBatch.polyline(z, hose, Art.OUTLINE, 4.0)
+	DrawBatch.polyline(z, hose, col(Color("2a2a2e")), 2.4)
+	DrawBatch.line(z, hand, noz, Art.OUTLINE, 4.6, true)
+	DrawBatch.line(z, hand, noz, col(Color("8a8e96")), 2.6, true)
 	z._arm(sh + Vector2(2, 2), hand, sk, suit)
 	if state == BLAST:   # הזרם
 		var la := Vector2(_aim.x * z._dir, _aim.y)
 		var nrm := Vector2(-la.y, la.x)
 		var lenl: float = _len / z.sc
 		# הילה חלשה מתחת לחלקיקים (הגרגרים עצמם = _jet)
-		z.draw_colored_polygon(PackedVector2Array([noz + nrm * 2.0, noz + la * lenl + nrm * (6.0 + lenl * 0.08), noz + la * lenl - nrm * (6.0 + lenl * 0.08), noz - nrm * 2.0]), Color(0.9, 0.78, 0.55, 0.16))
+		DrawBatch.colored_polygon(z, PackedVector2Array([noz + nrm * 2.0, noz + la * lenl + nrm * (6.0 + lenl * 0.08), noz + la * lenl - nrm * (6.0 + lenl * 0.08), noz - nrm * 2.0]), Color(0.9, 0.78, 0.55, 0.16))
 	elif state == REV and fmod(z._time, 0.15) < 0.07:
 		Art.glow(z, noz, 5.0, Color(1.0, 0.9, 0.6, 0.6))
 	end_draw()

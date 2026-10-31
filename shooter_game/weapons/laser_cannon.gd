@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  LASER CANNON - פריט מיוחד (progression/arsenal.gd -> SPECIALS "laser", CHARGES שימושים).
 #  מחזיקים את הירי: נטען CHARGE_T שניות - חלקיקים ירוקים נשאבים לקנה, הליבה זוהרת, צליל עולה.
@@ -88,7 +89,7 @@ static func draw_gun(ci: CanvasItem, hand: Vector2, la: Vector2, t: float, charg
 	Art.fill(ci, PackedVector2Array([g.call(-4.0, 3.5), g.call(2.0, 3.5), g.call(0.0, 9.0), g.call(-5.0, 8.0)]), Color("1e2022"), Art.OUTLINE, 1.0 * s)   # ידית
 	for i in 3:   # סלילים
 		var x := 6.0 + float(i) * 5.0
-		ci.draw_line(g.call(x, -5.0), g.call(x, 5.0), Color(0.3, 0.9, 0.4, 0.5 + 0.5 * charge), 2.0 * s)
+		DrawBatch.line(ci, g.call(x, -5.0), g.call(x, 5.0), Color(0.3, 0.9, 0.4, 0.5 + 0.5 * charge), 2.0 * s)
 	Art.fill(ci, PackedVector2Array([g.call(22.0, -4.0), g.call(28.0, -3.0), g.call(28.0, 3.0), g.call(22.0, 4.0)]), Color("4a5054"), Art.OUTLINE, 1.0 * s)   # פיה
 	var core: Vector2 = g.call(2.0, 0.0)
 	var pulse := 0.6 + 0.4 * sin(t * (8.0 + 30.0 * charge))
@@ -130,20 +131,25 @@ class ChargeFX extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var C := preload("res://weapons/laser_cannon.gd")
 		var k: float = clampf(pl.laser_charge / C.CHARGE_T, 0.0, 1.0) if pl != null and is_instance_valid(pl) else 0.0
 		for p in _p:
 			var v: Vector2 = p[0]
-			draw_line(v, v * 0.82, Color(C.COL, 0.85), float(p[2]))
-			draw_circle(v, float(p[2]) * 0.8, Color(C.CORE, 0.9))
-		draw_circle(Vector2.ZERO, 6.0 + 22.0 * k, Color(C.COL, 0.12 + 0.2 * k))
-		draw_circle(Vector2.ZERO, 3.0 + 9.0 * k, Color(C.COL, 0.35 + 0.3 * k))
-		draw_circle(Vector2.ZERO, 2.0 + 4.0 * k, Color(C.CORE, 0.9))
+			DrawBatch.line(self, v, v * 0.82, Color(C.COL, 0.85), float(p[2]))
+			DrawBatch.circle(self, v, float(p[2]) * 0.8, Color(C.CORE, 0.9))
+		DrawBatch.circle(self, Vector2.ZERO, 6.0 + 22.0 * k, Color(C.COL, 0.12 + 0.2 * k))
+		DrawBatch.circle(self, Vector2.ZERO, 3.0 + 9.0 * k, Color(C.COL, 0.35 + 0.3 * k))
+		DrawBatch.circle(self, Vector2.ZERO, 2.0 + 4.0 * k, Color(C.CORE, 0.9))
 		for i in 3:   # טבעות שמתכווצות
 			var rk := fmod(_t * 2.5 + float(i) / 3.0, 1.0)
-			draw_arc(Vector2.ZERO, 50.0 * (1.0 - rk) * (1.0 - 0.3 * k), 0.0, TAU, 24, Color(C.COL, 0.5 * rk * (0.4 + k)), 1.5)
+			DrawBatch.arc(self, Vector2.ZERO, 50.0 * (1.0 - rk) * (1.0 - 0.3 * k), 0.0, TAU, 24, Color(C.COL, 0.5 * rk * (0.4 + k)), 1.5)
 		if k > 0.85 and fmod(_t * 20.0, 1.0) < 0.5:   # כמעט מלא - מהבהב
-			draw_circle(Vector2.ZERO, 14.0, Color(1, 1, 1, 0.35))
+			DrawBatch.circle(self, Vector2.ZERO, 14.0, Color(1, 1, 1, 0.35))
 
 
 # ---- הקרן ----
@@ -256,6 +262,11 @@ class Beam extends Node2D:
 					b.hit_by_blast(_to, 30.0)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var C := preload("res://weapons/laser_cannon.gd")
 		var k := 1.0
 		if _t < 0.15:   # פיצוץ בהתחלה: עבה פי 2
@@ -267,10 +278,10 @@ class Beam extends Node2D:
 		var seg := _to - _from
 		var n := seg.normalized().rotated(PI * 0.5)
 		# שכבות זוהר
-		draw_line(_from, _to, Color(C.COL, 0.12), w * 3.0)
-		draw_line(_from, _to, Color(C.COL, 0.3), w * 1.8)
-		draw_line(_from, _to, Color(C.COL, 0.85), w)
-		draw_line(_from, _to, Color(C.CORE, 0.95), w * 0.4)
+		DrawBatch.line(self, _from, _to, Color(C.COL, 0.12), w * 3.0)
+		DrawBatch.line(self, _from, _to, Color(C.COL, 0.3), w * 1.8)
+		DrawBatch.line(self, _from, _to, Color(C.COL, 0.85), w)
+		DrawBatch.line(self, _from, _to, Color(C.CORE, 0.95), w * 0.4)
 		# סלילי אנרגיה סביב הקרן
 		var steps := int(seg.length() / 18.0)
 		if steps > 1 and k > 0.05:
@@ -279,18 +290,18 @@ class Beam extends Node2D:
 				for i in steps + 1:
 					var u := float(i) / float(steps)
 					pts.append(_from + seg * u + n * sin(u * seg.length() * 0.05 - _t * 40.0 * sgn) * w * 0.9 * sgn)
-				draw_polyline(pts, Color(C.CORE, 0.55 * k), 1.6)
+				DrawBatch.polyline(self, pts, Color(C.CORE, 0.55 * k), 1.6)
 		# פיה + נקודת פגיעה
-		draw_circle(_from, w * 1.1, Color(C.COL, 0.5))
-		draw_circle(_from, w * 0.55, Color(C.CORE, 0.95))
-		draw_circle(_to, w * 1.6, Color(C.COL, 0.35))
-		draw_circle(_to, w * 0.8, Color(C.CORE, 0.85))
+		DrawBatch.circle(self, _from, w * 1.1, Color(C.COL, 0.5))
+		DrawBatch.circle(self, _from, w * 0.55, Color(C.CORE, 0.95))
+		DrawBatch.circle(self, _to, w * 1.6, Color(C.COL, 0.35))
+		DrawBatch.circle(self, _to, w * 0.8, Color(C.CORE, 0.85))
 		for r in _rings:   # גלי הדף מהפיה
 			var rk: float = float(r[1]) / 0.35
-			draw_arc(r[0], 10.0 + rk * 70.0 * (2.0 if _t < 0.2 else 1.0), 0.0, TAU, 24, Color(C.COL, 0.6 * (1.0 - rk)), 2.5)
+			DrawBatch.arc(self, r[0], 10.0 + rk * 70.0 * (2.0 if _t < 0.2 else 1.0), 0.0, TAU, 24, Color(C.COL, 0.6 * (1.0 - rk)), 2.5)
 		for s in _sparks:
 			var p: Vector2 = s[0]
 			var v: Vector2 = s[1]
-			draw_line(p, p - v * 0.03, Color(C.COL, clampf(float(s[2]) * 2.5, 0.0, 1.0)), float(s[3]))
+			DrawBatch.line(self, p, p - v * 0.03, Color(C.COL, clampf(float(s[2]) * 2.5, 0.0, 1.0)), float(s[3]))
 		if _t < 0.12:   # הבזק על כל המסך סביב הפיה
-			draw_circle(_from, 180.0 * (1.0 - _t / 0.12), Color(0.8, 1.0, 0.8, 0.35 * (1.0 - _t / 0.12)))
+			DrawBatch.circle(self, _from, 180.0 * (1.0 - _t / 0.12), Color(0.8, 1.0, 0.8, 0.35 * (1.0 - _t / 0.12)))

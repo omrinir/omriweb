@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 const Arsenal := preload("res://progression/arsenal.gd")
 const Sfx := preload("res://sfx.gd")   # אפקטים קוליים
 const AbilityDB := preload("res://abilities/ability_db.gd")
@@ -37,11 +38,13 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
+var _rf := 0
+
 func _process(delta: float) -> void:
 	var rd := delta / maxf(Engine.time_scale, 0.05)   # זמן אמיתי (לא מושפע מההאטה)
 	_t += rd
 	var want: bool = player != null and not player.dead and player.controllable and not get_tree().paused \
-		and Input.is_physical_key_pressed(KEY_Q)
+		and Input.is_physical_key_pressed(KEY_Q) and not Engine.has_meta("bullet_cam")   # (מצלמת קליע: הזמן שלה)
 	if want and not _open:
 		_open = true
 		Engine.time_scale = slow
@@ -87,7 +90,11 @@ func _process(delta: float) -> void:
 		_pop = move_toward(_pop, 0.0, rd * 3.0)
 		_shine = move_toward(_shine, 1.0, rd * 1.8)
 		_name_t -= rd
-	queue_redraw()   # תמיד מציירים מחדש (כך הגלגל נעלם לגמרי כשסוגרים)
+	# מציירים מחדש בכל פריים כשהגלגל פתוח / יש אנימציה; אחרת כל פריים שני (הבר עולה ~0.7ms לציור)
+	_rf += 1
+	var busy := _open or _k > 0.0 or _pop > 0.0 or _name_t > -0.2 or _shine < 1.0 or (player != null and absf(_bar_x - float(player.cur_slot)) > 0.01)
+	if busy or _rf % 2 == 0:
+		queue_redraw()
 
 
 func _input(event: InputEvent) -> void:
@@ -138,7 +145,10 @@ func _sector(c: Vector2, a0: float, a1: float, r0: float, r1: float) -> PackedVe
 	return pts
 
 
-func _draw() -> void:
+func _draw() -> void:   # UI / קווים דקים: בלי batch (Godot כבר מאחד מלבנים וקווים, וה-batch רק עולה CPU)
+	_draw_b()
+
+func _draw_b() -> void:
 	_draw_bar()
 	if _k <= 0.001:
 		return
@@ -148,7 +158,7 @@ func _draw() -> void:
 	var a := e
 	var sc := 0.7 + 0.3 * e
 	var f := ThemeDB.fallback_font
-	draw_rect(Rect2(Vector2.ZERO, vs), Color(0, 0, 0, 0.4 * a))
+	DrawBatch.rect(self, Rect2(Vector2.ZERO, vs), Color(0, 0, 0, 0.4 * a))
 	# לשוניות
 	var names := ["WEAPONS", "POWERS"]
 	var tab_cols := [Color(1.0, 0.75, 0.35), Color(0.45, 0.75, 1.0)]
@@ -160,15 +170,15 @@ func _draw() -> void:
 		sb.bg_color = Color(tab_cols[i], 0.85 * a) if on else Color(0.1, 0.1, 0.12, 0.85 * a)
 		sb.border_color = Color(tab_cols[i], a)
 		sb.set_border_width_all(2)
-		draw_style_box(sb, r)
-		draw_string(f, r.position + Vector2(0, 23), names[i], HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 16, Color(0.05, 0.05, 0.07, a) if on else Color(tab_cols[i], 0.8 * a))
-	draw_string(f, c + Vector2(-150, -r_out - 88.0), "TAB / WHEEL", HORIZONTAL_ALIGNMENT_CENTER, 300, 11, Color(1, 1, 1, 0.4 * a))
+		DrawBatch.style_box(self, sb, r)
+		DrawBatch.string(self, f, r.position + Vector2(0, 23), names[i], HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 16, Color(0.05, 0.05, 0.07, a) if on else Color(tab_cols[i], 0.8 * a))
+	DrawBatch.string(self, f, c + Vector2(-150, -r_out - 88.0), "TAB / WHEEL", HORIZONTAL_ALIGNMENT_CENTER, 300, 11, Color(1, 1, 1, 0.4 * a))
 	# הגלגל (מסתובב קצת כשמחליפים עמוד)
 	var spin := (_page_k - float(_page)) * 1.2
 	var acc_page: Color = tab_cols[_page]
 	for i in 6:
-		draw_circle(c, (r_out + 28.0 - float(i) * 4.0) * sc, Color(acc_page, 0.035 * a))
-	draw_circle(c, (r_out + 8.0) * sc, Color(0.05, 0.05, 0.07, 0.9 * a))
+		DrawBatch.circle(self, c, (r_out + 28.0 - float(i) * 4.0) * sc, Color(acc_page, 0.035 * a))
+	DrawBatch.circle(self, c, (r_out + 8.0) * sc, Color(0.05, 0.05, 0.07, 0.9 * a))
 	var gap := deg_to_rad(1.8)
 	var n := _sectors()
 	var step := 360.0 / float(n)
@@ -188,42 +198,42 @@ func _draw() -> void:
 			col = col.lerp(acc if s != null else acc_page, 0.35)
 		var off := Vector2.from_angle(mid) * pop * 0.5
 		var seg := _sector(c + off, a0, a1, r_in * sc, (r_out + pop) * sc)
-		draw_colored_polygon(seg, Color(col, 0.93 * a))
+		DrawBatch.colored_polygon(self, seg, Color(col, 0.93 * a))
 		seg.append(seg[0])
-		draw_polyline(seg, Color(acc, (0.95 if hov else 0.3) * a), 2.0 if hov else 1.0, true)
+		DrawBatch.polyline(self, seg, Color(acc, (0.95 if hov else 0.3) * a), 2.0 if hov else 1.0, true)
 		if _page == 0 and player != null and i == player.cur_slot and player.weapon == player.GUN:
-			draw_arc(c + off, (r_out + pop + 6.0) * sc, a0, a1, 16, Color(1, 1, 1, 0.95 * a), 3.0, true)
+			DrawBatch.arc(self, c + off, (r_out + pop + 6.0) * sc, a0, a1, 16, Color(1, 1, 1, 0.95 * a), 3.0, true)
 		var ic := c + off + Vector2.from_angle(mid) * ((r_in + r_out) * 0.52 + pop * 0.4) * sc
 		var key := str(i + 1) if _page == 0 else (str((i + 6) % 10) if i < 5 else "")
-		draw_string(f, c + off + Vector2.from_angle(mid) * (r_in + 13.0) * sc + Vector2(-4, 5), key, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.45 * a))
+		DrawBatch.string(self, f, c + off + Vector2.from_angle(mid) * (r_in + 13.0) * sc + Vector2(-4, 5), key, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.45 * a))
 		if _page == 0:
 			if s != null:
 				draw_weapon(self, ic + Vector2(0, -6), s.id, sc * (1.25 if hov else 1.05), a)
 				var low: bool = s.ammo <= Upgrades.ammo_max(s.id) / 5
-				draw_string(f, ic + Vector2(-30, 24), str(s.ammo), HORIZONTAL_ALIGNMENT_CENTER, 60, 15, Color(1.0, 0.4, 0.3, a) if low else Color(1, 1, 1, 0.85 * a))
+				DrawBatch.string(self, f, ic + Vector2(-30, 24), str(s.ammo), HORIZONTAL_ALIGNMENT_CENTER, 60, 15, Color(1.0, 0.4, 0.3, a) if low else Color(1, 1, 1, 0.85 * a))
 				if hov:   # כפתור זריקה
-					draw_string(f, ic + Vector2(-40, 40), "RMB/G: DROP", HORIZONTAL_ALIGNMENT_CENTER, 80, 10, Color(1.0, 0.5, 0.4, 0.9 * a))
+					DrawBatch.string(self, f, ic + Vector2(-40, 40), "RMB/G: DROP", HORIZONTAL_ALIGNMENT_CENTER, 80, 10, Color(1.0, 0.5, 0.4, 0.9 * a))
 			else:
-				draw_string(f, ic + Vector2(-30, 5), "EMPTY", HORIZONTAL_ALIGNMENT_CENTER, 60, 12, Color(1, 1, 1, 0.25 * a))
+				DrawBatch.string(self, f, ic + Vector2(-30, 5), "EMPTY", HORIZONTAL_ALIGNMENT_CENTER, 60, 12, Color(1, 1, 1, 0.25 * a))
 		else:   # POWERS: יכולות + הפריט
 			var ab: String = player.abilities.slot(i) if player != null and player.abilities != null else ""
 			if ab == player.abilities.ITEM:
 				draw_item(self, ic + Vector2(0, -6), player.special, sc * (1.3 if hov else 1.1), a)
-				draw_string(f, ic + Vector2(-30, 24), "x%d" % player.special_uses, HORIZONTAL_ALIGNMENT_CENTER, 60, 14, Color(1, 1, 1, 0.85 * a))
+				DrawBatch.string(self, f, ic + Vector2(-30, 24), "x%d" % player.special_uses, HORIZONTAL_ALIGNMENT_CENTER, 60, 14, Color(1, 1, 1, 0.85 * a))
 				if i == player.abilities.cur:
-					draw_arc(c + off, (r_out + pop + 6.0) * sc, a0, a1, 16, Color(1, 1, 1, 0.95 * a), 3.0, true)
+					DrawBatch.arc(self, c + off, (r_out + pop + 6.0) * sc, a0, a1, 16, Color(1, 1, 1, 0.95 * a), 3.0, true)
 			elif ab != "":
 				AbilityDB.draw_icon(self, ic + Vector2(0, -4), ab, sc * (1.35 if hov else 1.1), a)
 				var ck: float = player.abilities.cooldown_k(ab)
 				if ck > 0.0:
-					draw_arc(ic + Vector2(0, -4), 17.0 * sc, -PI / 2.0, -PI / 2.0 + TAU * ck, 20, Color(1, 1, 1, 0.5 * a), 3.0, true)
+					DrawBatch.arc(self, ic + Vector2(0, -4), 17.0 * sc, -PI / 2.0, -PI / 2.0 + TAU * ck, 20, Color(1, 1, 1, 0.5 * a), 3.0, true)
 				if i == player.abilities.cur:
-					draw_arc(c + off, (r_out + pop + 6.0) * sc, a0, a1, 16, Color(1, 1, 1, 0.95 * a), 3.0, true)
+					DrawBatch.arc(self, c + off, (r_out + pop + 6.0) * sc, a0, a1, 16, Color(1, 1, 1, 0.95 * a), 3.0, true)
 			else:
-				draw_string(f, ic + Vector2(-30, 5), "EMPTY", HORIZONTAL_ALIGNMENT_CENTER, 60, 12, Color(1, 1, 1, 0.25 * a))
+				DrawBatch.string(self, f, ic + Vector2(-30, 5), "EMPTY", HORIZONTAL_ALIGNMENT_CENTER, 60, 12, Color(1, 1, 1, 0.25 * a))
 	# מרכז
-	draw_circle(c, (r_in - 6.0) * sc, Color(0.03, 0.03, 0.04, 0.96 * a))
-	draw_arc(c, (r_in - 6.0) * sc, 0.0, TAU, 40, Color(acc_page, 0.35 * a), 1.5, true)
+	DrawBatch.circle(self, c, (r_in - 6.0) * sc, Color(0.03, 0.03, 0.04, 0.96 * a))
+	DrawBatch.arc(self, c, (r_in - 6.0) * sc, 0.0, TAU, 40, Color(acc_page, 0.35 * a), 1.5, true)
 	var title: String = names[_page]
 	var sub := "HOLD Q"
 	var tcol := Color(1, 1, 1, a)
@@ -249,9 +259,9 @@ func _draw() -> void:
 		else:
 			title = "EMPTY"
 			sub = "MORE IN LATER STAGES"
-	draw_string(f, c + Vector2(-60, -2), title, HORIZONTAL_ALIGNMENT_CENTER, 120, 16, tcol)
-	draw_string(f, c + Vector2(-60, 17), sub, HORIZONTAL_ALIGNMENT_CENTER, 120, 12, Color(1, 1, 1, 0.6 * a))
-	draw_string(f, c + Vector2(-250, (r_out + 42.0) * sc), ("RELEASE Q = SELECT      C = USE      E / MOUSE WHEEL = NEXT" if _page == 1 else "RELEASE Q = EQUIP      RMB / G = DROP"), HORIZONTAL_ALIGNMENT_CENTER, 500, 13, Color(1, 1, 1, 0.5 * a))
+	DrawBatch.string(self, f, c + Vector2(-60, -2), title, HORIZONTAL_ALIGNMENT_CENTER, 120, 16, tcol)
+	DrawBatch.string(self, f, c + Vector2(-60, 17), sub, HORIZONTAL_ALIGNMENT_CENTER, 120, 12, Color(1, 1, 1, 0.6 * a))
+	DrawBatch.string(self, f, c + Vector2(-250, (r_out + 42.0) * sc), ("RELEASE Q = SELECT      C = USE      E / MOUSE WHEEL = NEXT" if _page == 1 else "RELEASE Q = EQUIP      RMB / G = DROP"), HORIZONTAL_ALIGNMENT_CENTER, 500, 13, Color(1, 1, 1, 0.5 * a))
 
 
 # ---- בר הנשקים בפינה: 5 קופסאות, הנבחר מורם וזוהר ----
@@ -267,7 +277,7 @@ func _draw_bar() -> void:
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = Color(0, 0, 0, 0.35)
 	bg.set_corner_radius_all(10)
-	draw_style_box(bg, Rect2(org - Vector2(6, 6), Vector2(5.0 * (bw + sp) + 6.0, bh + 20.0)))
+	DrawBatch.style_box(self, bg, Rect2(org - Vector2(6, 6), Vector2(5.0 * (bw + sp) + 6.0, bh + 20.0)))
 	# סימון זז (מחליק לנשק הנבחר)
 	var gun_on: bool = player.weapon == player.GUN
 	if gun_on:
@@ -275,8 +285,8 @@ func _draw_bar() -> void:
 		var s = player.slots[player.cur_slot]
 		var hc: Color = Game.WEAPON_COLORS[s.id] if s != null else Color.WHITE
 		for i in 3:
-			draw_rect(Rect2(hx - 3.0 - float(i) * 2.0, org.y - 3.0 - float(i) * 2.0, bw + 6.0 + float(i) * 4.0, bh + 6.0 + float(i) * 4.0), Color(hc, 0.12 - float(i) * 0.03), false, 2.0)
-		draw_rect(Rect2(hx, org.y + bh + 4.0, bw, 3.0), hc)
+			DrawBatch.rect(self, Rect2(hx - 3.0 - float(i) * 2.0, org.y - 3.0 - float(i) * 2.0, bw + 6.0 + float(i) * 4.0, bh + 6.0 + float(i) * 4.0), Color(hc, 0.12 - float(i) * 0.03), false, 2.0)
+		DrawBatch.rect(self, Rect2(hx, org.y + bh + 4.0, bw, 3.0), hc)
 	for i in 5:
 		var s = player.slots[i] if i < player.slots.size() else null
 		var cur: bool = i == player.cur_slot and gun_on
@@ -293,30 +303,30 @@ func _draw_bar() -> void:
 			sb.bg_color = Color(0.1, 0.1, 0.12, 0.9).lerp(wc, 0.18 if cur else 0.05)
 			sb.border_color = Color(wc, 0.95 if cur else 0.35)
 			sb.set_border_width_all(2 if cur else 1)
-		draw_style_box(sb, r)
-		draw_string(f, r.position + Vector2(4, 11), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1, 1, 1, 0.45))
+		DrawBatch.style_box(self, sb, r)
+		DrawBatch.string(self, f, r.position + Vector2(4, 11), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1, 1, 1, 0.45))
 		if s != null:
 			var wob := sin(_pop * TAU * 2.0) * 0.12 * _pop if cur else 0.0
-			draw_set_transform(r.get_center() + Vector2(0, -3), wob, Vector2.ONE)
+			DrawBatch.set_transform(self, r.get_center() + Vector2(0, -3), wob, Vector2.ONE)
 			draw_weapon(self, Vector2.ZERO, s.id, (0.62 + 0.12 * _pop) if cur else 0.55, 1.0 if cur else 0.6)
-			draw_set_transform_matrix(Transform2D.IDENTITY)
+			DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 			# פס תחמושת
 			var k := float(s.ammo) / float(Upgrades.ammo_max(s.id))
-			draw_rect(Rect2(r.position + Vector2(5, bh - 6), Vector2(bw - 10, 3)), Color(0, 0, 0, 0.5))
-			draw_rect(Rect2(r.position + Vector2(5, bh - 6), Vector2((bw - 10) * k, 3)), Color(1.0, 0.35, 0.3) if k < 0.2 else Color(Game.WEAPON_COLORS[s.id], 0.9))
-			draw_string(f, r.position + Vector2(0, 11), str(s.ammo), HORIZONTAL_ALIGNMENT_RIGHT, bw - 4, 10, Color(1, 1, 1, 0.8 if cur else 0.45))
+			DrawBatch.rect(self, Rect2(r.position + Vector2(5, bh - 6), Vector2(bw - 10, 3)), Color(0, 0, 0, 0.5))
+			DrawBatch.rect(self, Rect2(r.position + Vector2(5, bh - 6), Vector2((bw - 10) * k, 3)), Color(1.0, 0.35, 0.3) if k < 0.2 else Color(Game.WEAPON_COLORS[s.id], 0.9))
+			DrawBatch.string(self, f, r.position + Vector2(0, 11), str(s.ammo), HORIZONTAL_ALIGNMENT_RIGHT, bw - 4, 10, Color(1, 1, 1, 0.8 if cur else 0.45))
 			# פס אור שעובר אחרי החלפה
 			if cur and _shine < 1.0:
 				var sx := r.position.x + (bw + 30.0) * _shine - 15.0
-				draw_colored_polygon(PackedVector2Array([Vector2(sx, r.position.y), Vector2(sx + 10, r.position.y), Vector2(sx - 2, r.end.y), Vector2(sx - 12, r.end.y)]), Color(1, 1, 1, 0.35 * (1.0 - _shine)))
+				DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(sx, r.position.y), Vector2(sx + 10, r.position.y), Vector2(sx - 2, r.end.y), Vector2(sx - 12, r.end.y)]), Color(1, 1, 1, 0.35 * (1.0 - _shine)))
 	_draw_ability_bar(Vector2(org.x, org.y + bh + 30.0))
 	# שם הנשק קופץ אחרי החלפה
 	if _name_t > 0.0 and gun_on and player.slots[player.cur_slot] != null:
 		var id: int = player.slots[player.cur_slot].id
 		var al := clampf(_name_t, 0.0, 1.0)
 		var px := org.x + _bar_x * (bw + sp) + bw * 0.5
-		draw_string_outline(f, Vector2(px - 60.0, org.y + bh + 24.0 - 4.0 * _pop), Game.WEAPON_NAMES[id], HORIZONTAL_ALIGNMENT_CENTER, 120, 15, 4, Color(0, 0, 0, 0.7 * al))
-		draw_string(f, Vector2(px - 60.0, org.y + bh + 24.0 - 4.0 * _pop), Game.WEAPON_NAMES[id], HORIZONTAL_ALIGNMENT_CENTER, 120, 15, Color(Game.WEAPON_COLORS[id], al))
+		DrawBatch.string_outline(self, f, Vector2(px - 60.0, org.y + bh + 24.0 - 4.0 * _pop), Game.WEAPON_NAMES[id], HORIZONTAL_ALIGNMENT_CENTER, 120, 15, 4, Color(0, 0, 0, 0.7 * al))
+		DrawBatch.string(self, f, Vector2(px - 60.0, org.y + bh + 24.0 - 4.0 * _pop), Game.WEAPON_NAMES[id], HORIZONTAL_ALIGNMENT_CENTER, 120, 15, Color(Game.WEAPON_COLORS[id], al))
 
 
 # ============================================================
@@ -332,11 +342,11 @@ static func draw_weapon(ci: CanvasItem, p: Vector2, id: int, s: float, alpha := 
 		var arr := PackedVector2Array()
 		for q in pts:
 			arr.append(p + q * s)
-		ci.draw_colored_polygon(arr, col)
+		DrawBatch.colored_polygon(ci, arr, col)
 		arr.append(arr[0])
-		ci.draw_polyline(arr, Color(0, 0, 0, 0.7 * alpha), 1.0, true)
+		DrawBatch.polyline(ci, arr, Color(0, 0, 0, 0.7 * alpha), 1.0, true)
 	var ln := func(a: Vector2, b: Vector2, col: Color, w: float) -> void:
-		ci.draw_line(p + a * s, p + b * s, col, maxf(w * s, 1.0), true)
+		DrawBatch.line(ci, p + a * s, p + b * s, col, maxf(w * s, 1.0), true)
 	if preload("res://weapons/gun_art.gd").draw_icon(ci, p, id, s, alpha):   # נשקי ההתקדמות
 		return
 	match id:
@@ -379,7 +389,7 @@ static func draw_weapon(ci: CanvasItem, p: Vector2, id: int, s: float, alpha := 
 			poly.call([Vector2(-14, -4), Vector2(6, -4), Vector2(6, 2), Vector2(-14, 3)], metal)
 			ln.call(Vector2(6, -2), Vector2(40, -2), steel, 2.2)
 			poly.call([Vector2(-10, -11), Vector2(6, -11), Vector2(8, -9), Vector2(8, -6), Vector2(-12, -6), Vector2(-12, -9)], metal)   # כוונת
-			ci.draw_circle(p + Vector2(8.5, -8.5) * s, 2.0 * s, Color(0.45, 0.8, 1.0, 0.9 * alpha))
+			DrawBatch.circle(ci, p + Vector2(8.5, -8.5) * s, 2.0 * s, Color(0.45, 0.8, 1.0, 0.9 * alpha))
 			ln.call(Vector2(-4, -6), Vector2(-4, -4), metal, 2.0)
 			ln.call(Vector2(-10, -2), Vector2(-6, -6), steel, 1.4)                                    # בריח
 			ln.call(Vector2(18, 0), Vector2(14, 9), steel, 1.2)                                       # דו-רגל
@@ -392,8 +402,8 @@ static func draw_weapon(ci: CanvasItem, p: Vector2, id: int, s: float, alpha := 
 			ln.call(Vector2(-12, -5), Vector2(12, -5), Color(1, 1, 1, 0.4 * alpha), 0.8)
 			ln.call(Vector2(-3, 3), Vector2(-1, 8), metal, 1.4)                                       # הדק
 			for k in 2:
-				ci.draw_circle(p + Vector2(25, -3 + k * 4) * s, 1.4 * s, Color(0.75, 0.6, 1.0, alpha))
-			ci.draw_circle(p + Vector2(10, -1.5) * s, 1.6 * s, Color(1.0, 0.25, 0.2, alpha))           # נורית
+				DrawBatch.circle(ci, p + Vector2(25, -3 + k * 4) * s, 1.4 * s, Color(0.75, 0.6, 1.0, alpha))
+			DrawBatch.circle(ci, p + Vector2(10, -1.5) * s, 1.6 * s, Color(1.0, 0.25, 0.2, alpha))           # נורית
 		5:   # אקדח: מחליק, ידית וקנה קצר
 			poly.call([Vector2(-12, -6), Vector2(14, -6), Vector2(14, 0), Vector2(-12, 0)], metal)
 			poly.call([Vector2(-11, 0), Vector2(-2, 0), Vector2(-5, 14), Vector2(-14, 13)], Color(0.22, 0.18, 0.16, alpha))   # ידית
@@ -423,24 +433,24 @@ static func draw_weapon(ci: CanvasItem, p: Vector2, id: int, s: float, alpha := 
 			poly.call([Vector2(-8, 0), Vector2(8, 0), Vector2(9, 14), Vector2(-9, 14)], Color(0.95, 0.55, 0.12, 0.8 * alpha))
 			poly.call([Vector2(-3, -20), Vector2(3, -20), Vector2(3, -12), Vector2(-3, -12)], Color(0.3, 0.5, 0.28, 0.85 * alpha))
 			ln.call(Vector2(0, -20), Vector2(4, -27), Color(0.85, 0.78, 0.6, alpha), 2.0)
-			ci.draw_circle(p + Vector2(5, -29) * s, 4.0 * s, Color(1.0, 0.55, 0.15, 0.85 * alpha))
-			ci.draw_circle(p + Vector2(5, -30) * s, 2.0 * s, Color(1.0, 0.9, 0.5, alpha))
+			DrawBatch.circle(ci, p + Vector2(5, -29) * s, 4.0 * s, Color(1.0, 0.55, 0.15, 0.85 * alpha))
+			DrawBatch.circle(ci, p + Vector2(5, -30) * s, 2.0 * s, Color(1.0, 0.9, 0.5, alpha))
 		9:   # משגר רימונים: קנה עבה, תוף מסתובב, קת
 			poly.call([Vector2(-30, -2), Vector2(-14, -4), Vector2(-14, 4), Vector2(-28, 8)], Color(0.24, 0.27, 0.2, alpha))
 			poly.call([Vector2(-14, -7), Vector2(30, -7), Vector2(30, 3), Vector2(-14, 3)], Color(0.3, 0.36, 0.24, alpha))
-			ci.draw_circle(p + Vector2(-4, 4) * s, 8.0 * s, metal)
+			DrawBatch.circle(ci, p + Vector2(-4, 4) * s, 8.0 * s, metal)
 			for k in 6:
 				var an := TAU * float(k) / 6.0
-				ci.draw_circle(p + (Vector2(-4, 4) + Vector2.from_angle(an) * 5.0) * s, 1.6 * s, Color(0.5, 0.55, 0.4, alpha))
-			ci.draw_circle(p + Vector2(30, -2) * s, 3.0 * s, Color(0, 0, 0, 0.8 * alpha))
+				DrawBatch.circle(ci, p + (Vector2(-4, 4) + Vector2.from_angle(an) * 5.0) * s, 1.6 * s, Color(0.5, 0.55, 0.4, alpha))
+			DrawBatch.circle(ci, p + Vector2(30, -2) * s, 3.0 * s, Color(0, 0, 0, 0.8 * alpha))
 			ln.call(Vector2(-12, -6), Vector2(28, -6), hi, 0.8)
 		10:   # שוטגאן אוטומטי: גוף מרובע, מחסנית תוף, קנה עבה
 			poly.call([Vector2(-32, -2), Vector2(-14, -5), Vector2(-14, 3), Vector2(-30, 8)], Color(0.2, 0.2, 0.22, alpha))
 			poly.call([Vector2(-14, -6), Vector2(10, -6), Vector2(10, 4), Vector2(-14, 4)], metal)
 			ln.call(Vector2(10, -3), Vector2(36, -3), steel, 3.6)
 			ln.call(Vector2(10, 2), Vector2(28, 2), metal, 2.6)
-			ci.draw_circle(p + Vector2(-2, 10) * s, 7.0 * s, metal)                                    # תוף
-			ci.draw_circle(p + Vector2(-2, 10) * s, 2.5 * s, steel)
+			DrawBatch.circle(ci, p + Vector2(-2, 10) * s, 7.0 * s, metal)                                    # תוף
+			DrawBatch.circle(ci, p + Vector2(-2, 10) * s, 2.5 * s, steel)
 			poly.call([Vector2(-11, 4), Vector2(-7, 4), Vector2(-9, 11), Vector2(-13, 10)], metal)
 			ln.call(Vector2(10, -4.5), Vector2(34, -4.5), Color(1.0, 0.35, 0.2, 0.7 * alpha), 0.8)
 		11:   # משגר טילים: צינור ירוק, ידיות, כוונת, ראש נפץ אדום
@@ -476,26 +486,26 @@ func _draw_ability_bar(org: Vector2) -> void:
 		sb.bg_color = Color(0.08, 0.08, 0.1, 0.9).lerp(col, 0.15 if cur else 0.04)
 		sb.border_color = Color(col, 0.95 if cur else 0.35)
 		sb.set_border_width_all(2 if cur else 1)
-		draw_style_box(sb, r.grow(2.0) if cur else r)
+		DrawBatch.style_box(self, sb, r.grow(2.0) if cur else r)
 		if id == ab.ITEM:
 			draw_item(self, r.get_center() + Vector2(0, -2), player.special, 0.75, 1.0)
-			draw_string(f, r.position + Vector2(0, bs - 2), "x%d" % player.special_uses, HORIZONTAL_ALIGNMENT_RIGHT, bs - 2, 9, Color.WHITE)
+			DrawBatch.string(self, f, r.position + Vector2(0, bs - 2), "x%d" % player.special_uses, HORIZONTAL_ALIGNMENT_RIGHT, bs - 2, 9, Color.WHITE)
 		else:
 			var ck: float = ab.cooldown_k(id)
 			AbilityDB.draw_icon(self, r.get_center(), id, 0.75, 1.0 if ck <= 0.0 else 0.35)
 			if ck > 0.0:   # טעינה: חלק כהה שיורד
-				draw_rect(Rect2(r.position, Vector2(bs, bs * ck)), Color(0, 0, 0, 0.55))
+				DrawBatch.rect(self, Rect2(r.position, Vector2(bs, bs * ck)), Color(0, 0, 0, 0.55))
 			if ab.is_active(id):
-				draw_rect(r.grow(2.0), Color(col, 0.6 + 0.3 * sin(_t * 10.0)), false, 2.0)
+				DrawBatch.rect(self, r.grow(2.0), Color(col, 0.6 + 0.3 * sin(_t * 10.0)), false, 2.0)
 		if i < 5:
-			draw_string(f, r.position + Vector2(2, 9), str((i + 6) % 10), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 1, 1, 0.4))
+			DrawBatch.string(self, f, r.position + Vector2(2, 9), str((i + 6) % 10), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 1, 1, 0.4))
 	var tx := org.x + float(list.size()) * (bs + 5.0) + 4.0
-	draw_string(f, Vector2(tx, org.y + 13.0), "C  USE", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.65))
-	draw_string(f, Vector2(tx, org.y + 26.0), "E  NEXT", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.45))
+	DrawBatch.string(self, f, Vector2(tx, org.y + 13.0), "C  USE", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.65))
+	DrawBatch.string(self, f, Vector2(tx, org.y + 26.0), "E  NEXT", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.45))
 	var cid: String = ab.cur_id
 	if cid != "":   # השם של מה שנבחר, מתחת לבר
-		draw_string_outline(f, Vector2(org.x, org.y + bs + 14.0), ab.power_name(cid), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color(0, 0, 0, 0.6))
-		draw_string(f, Vector2(org.x, org.y + bs + 14.0), ab.power_name(cid), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(ab.power_color(cid), 0.9))
+		DrawBatch.string_outline(self, f, Vector2(org.x, org.y + bs + 14.0), ab.power_name(cid), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color(0, 0, 0, 0.6))
+		DrawBatch.string(self, f, Vector2(org.x, org.y + bs + 14.0), ab.power_name(cid), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(ab.power_color(cid), 0.9))
 
 
 # אייקון של פריט מיוחד (progression/arsenal.gd -> SPECIALS) לבר ולגלגל. s ~1 = 24 פיקסלים
@@ -510,10 +520,12 @@ static func draw_item(ci: CanvasItem, c: Vector2, kind: String, s: float, alpha 
 			preload("res://effects/mind_control.gd").draw_device(ci, c + Vector2(-8.0, 0.0) * s, Vector2.RIGHT, t, 1.3 * s)
 		"gravity":
 			preload("res://weapons/gravity_grenade.gd").draw_icon(ci, c, s, t)
+		"tiger":
+			preload("res://effects/spirit_tiger.gd").draw_icon(ci, c, s, t)
 		"grenade":
-			ci.draw_circle(c + Vector2(0.0, 2.0) * s, 6.5 * s, Color(Color("6d8236"), alpha))
-			ci.draw_circle(c + Vector2(-2.0, 0.0) * s, 2.5 * s, Color(Color("8aa048"), alpha))
-			ci.draw_rect(Rect2(c + Vector2(-2.0, -7.0) * s, Vector2(4.0, 4.0) * s), Color(Color("9a9aa2"), alpha))
+			DrawBatch.circle(ci, c + Vector2(0.0, 2.0) * s, 6.5 * s, Color(Color("6d8236"), alpha))
+			DrawBatch.circle(ci, c + Vector2(-2.0, 0.0) * s, 2.5 * s, Color(Color("8aa048"), alpha))
+			DrawBatch.rect(ci, Rect2(c + Vector2(-2.0, -7.0) * s, Vector2(4.0, 4.0) * s), Color(Color("9a9aa2"), alpha))
 		_:
 			var wid: int = int(preload("res://progression/arsenal.gd").SPECIALS.get(kind, {}).get("weapon", -1))
 			if wid >= 0:

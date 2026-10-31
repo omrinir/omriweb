@@ -157,7 +157,7 @@ func draw() -> bool:
 	z._leg(hip + Vector2(-2, 0), f[1], col(Art.shade(z.pants, 0.25)), sk, col(z.shoe))
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	for ft in f:   # דורבנות
-		z.draw_circle(ft + Vector2(-4, -2), 1.5, col(Color("e0c040")))
+		DrawBatch.circle(z, ft + Vector2(-4, -2), 1.5, col(Color("e0c040")))
 	var hb := sh + Vector2(-6.0 - sin(p) * 2.0, 15.0)
 	var hf := sh + Vector2(10.0, -2.0 + sin(z._time * 9.0) * 3.0)   # יד מורמת בריקוד
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(cape, 0.3))
@@ -165,30 +165,30 @@ func draw() -> bool:
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(8, 0), hip + Vector2(8, 4), hip + Vector2(-2, 12), hip + Vector2(-12, 8)]), cape, 0.12, 0.4)
 	for q in 6:
 		var sp := sh + Vector2(-6.0 + float(q % 3) * 5.0, 4.0 + float(q / 3) * 7.0)
-		z.draw_circle(sp, 1.0, Color(1.0, 0.9, 0.4, 0.4 + 0.6 * absf(sin(z._time * 5.0 + float(q)))))
-	z.draw_line(hip + Vector2(-7, -3), hip + Vector2(7, -3), col(Color("e0c040")), 2.0)   # חגורה
+		DrawBatch.circle(z, sp, 1.0, Color(1.0, 0.9, 0.4, 0.4 + 0.6 * absf(sin(z._time * 5.0 + float(q)))))
+	DrawBatch.line(z, hip + Vector2(-7, -3), hip + Vector2(7, -3), col(Color("e0c040")), 2.0)   # חגורה
 	if mask > 0 and not z.dead:   # מסכת השטן
 		var m := head
 		Art.fill_shaded(z, PackedVector2Array([m + Vector2(-8, 6), m + Vector2(-9, -4), m + Vector2(-4, -9), m + Vector2(4, -9), m + Vector2(9, -4), m + Vector2(9, 6), m + Vector2(3, 10), m + Vector2(-3, 10)]), col(Color("c8202a")), 0.15, 0.35, Art.OUTLINE, 1.2)
 		for sgn in [-1.0, 1.0]:   # קרניים מתפתלות
 			Art.fill(z, PackedVector2Array([m + Vector2(sgn * 4.0, -8), m + Vector2(sgn * 11.0, -16), m + Vector2(sgn * 9.0, -24), m + Vector2(sgn * 13.0, -28), m + Vector2(sgn * 14.0, -18), m + Vector2(sgn * 7.0, -7)]), col(Color("e0c040")), Art.OUTLINE, 1.0)
-		z.draw_circle(m + Vector2(-3, -2), 3.2, Color("f4f0e0"))   # עיניים בולטות
-		z.draw_circle(m + Vector2(5, -2), 3.2, Color("f4f0e0"))
-		z.draw_circle(m + Vector2(-2.5, -2), 1.5, Color(0.9, 0.1, 0.05))
-		z.draw_circle(m + Vector2(5.5, -2), 1.5, Color(0.9, 0.1, 0.05))
-		z.draw_line(m + Vector2(-5, 5), m + Vector2(7, 5), col(Color("2a0a0a")), 2.0)
+		DrawBatch.circle(z, m + Vector2(-3, -2), 3.2, Color("f4f0e0"))   # עיניים בולטות
+		DrawBatch.circle(z, m + Vector2(5, -2), 3.2, Color("f4f0e0"))
+		DrawBatch.circle(z, m + Vector2(-2.5, -2), 1.5, Color(0.9, 0.1, 0.05))
+		DrawBatch.circle(z, m + Vector2(5.5, -2), 1.5, Color(0.9, 0.1, 0.05))
+		DrawBatch.line(z, m + Vector2(-5, 5), m + Vector2(7, 5), col(Color("2a0a0a")), 2.0)
 		for q in 3:   # ניבים
-			z.draw_colored_polygon(PackedVector2Array([m + Vector2(-4.0 + float(q) * 4.0, 5), m + Vector2(-3.0 + float(q) * 4.0, 9), m + Vector2(-2.0 + float(q) * 4.0, 5)]), Color("f4f0e0"))
-		z.draw_polyline(PackedVector2Array([m + Vector2(-6, -9), m + Vector2(-2, -13), m + Vector2(2, -10), m + Vector2(6, -14)]), col(Color("2a8a3a")), 2.0)   # נחש על הראש
+			DrawBatch.colored_polygon(z, PackedVector2Array([m + Vector2(-4.0 + float(q) * 4.0, 5), m + Vector2(-3.0 + float(q) * 4.0, 9), m + Vector2(-2.0 + float(q) * 4.0, 5)]), Color("f4f0e0"))
+		DrawBatch.polyline(z, PackedVector2Array([m + Vector2(-6, -9), m + Vector2(-2, -13), m + Vector2(2, -10), m + Vector2(6, -14)]), col(Color("2a8a3a")), 2.0)   # נחש על הראש
 	else:
 		Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 		if not z.dead:
-			z.draw_circle(head + Vector2(3.0, -0.5), 1.0, Color(0.85, 0.9, 0.5))
+			DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.0, Color(0.85, 0.9, 0.5))
 	z._arm(sh + Vector2(3, 1), hf, sk, cape)
-	z.draw_colored_polygon(Art.ellipse(hf + Vector2(1, -2), 3.0, 4.5, 0.0, 8), col(Color("e8e0c8")))   # מטפחת לבנה ביד
+	DrawBatch.colored_polygon(z, Art.ellipse(hf + Vector2(1, -2), 3.0, 4.5, 0.0, 8), col(Color("e8e0c8")))   # מטפחת לבנה ביד
 	if state == DIZZY:
 		for k in 3:
 			var a: float = z._time * 5.0 + float(k) * TAU / 3.0
-			z.draw_circle(head + Vector2(cos(a) * 9.0, -18.0 + sin(a) * 2.5), 1.3, Color(1.0, 0.95, 0.5))
+			DrawBatch.circle(z, head + Vector2(cos(a) * 9.0, -18.0 + sin(a) * 2.5), 1.3, Color(1.0, 0.95, 0.5))
 	end_draw()
 	return true

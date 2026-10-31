@@ -387,6 +387,11 @@ class Worm extends Node2D:
 		return false
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var pts := PackedVector2Array()
 		var n := 7
 		for q in n:
@@ -394,9 +399,9 @@ class Worm extends Node2D:
 			var x := -_dir * u * 11.0
 			var y := -2.0 + sin(_t * 12.0 + u * 6.0 + _seed) * 1.6 * (0.4 + u)
 			pts.append(Vector2(x, y))
-		draw_polyline(pts, Color(0.35, 0.05, 0.08, 0.6), 3.4)
-		draw_polyline(pts, Color(0.95, 0.93, 0.86), 2.2)
-		draw_circle(pts[0], 1.5, Color(0.9, 0.5, 0.5))
+		DrawBatch.polyline(self, pts, Color(0.35, 0.05, 0.08, 0.6), 3.4)
+		DrawBatch.polyline(self, pts, Color(0.95, 0.93, 0.86), 2.2)
+		DrawBatch.circle(self, pts[0], 1.5, Color(0.9, 0.5, 0.5))
 
 
 # ============================================================
@@ -429,11 +434,11 @@ func draw() -> bool:
 	# גוף: מעיל ארוך, צווארון מורם
 	var torso := PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(6, 0), hip + Vector2(-7, -2)])
 	Art.fill_shaded(z, torso, coat, 0.1, 0.35)
-	z.draw_line(sh + Vector2(3, 1), hip + Vector2(3, -3), col(Art.shade(z.shirt, 0.45)), 1.0)
+	DrawBatch.line(z, sh + Vector2(3, 1), hip + Vector2(3, -3), col(Art.shade(z.shirt, 0.45)), 1.0)
 	for q in 3:
-		z.draw_circle(sh.lerp(hip, 0.25 + float(q) * 0.22) + Vector2(4.5, -1), 0.8, col(Color("4a4a50")))
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-1, 3), sh + Vector2(3, 2), sh + Vector2(1, 10)]), col(Color("d8d4cc")))   # חולצה מתחת
-	z.draw_line(sh + Vector2(0, 6), sh + Vector2(1, 9), Color(0.9, 0.9, 0.85), 0.7)   # דם לבן
+		DrawBatch.circle(z, sh.lerp(hip, 0.25 + float(q) * 0.22) + Vector2(4.5, -1), 0.8, col(Color("4a4a50")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-1, 3), sh + Vector2(3, 2), sh + Vector2(1, 10)]), col(Color("d8d4cc")))   # חולצה מתחת
+	DrawBatch.line(z, sh + Vector2(0, 6), sh + Vector2(1, 9), Color(0.9, 0.9, 0.85), 0.7)   # דם לבן
 	# צווארון מורם
 	Art.fill(z, PackedVector2Array([sh + Vector2(-7, 0), sh + Vector2(-6, -7), sh + Vector2(-2, -3), sh + Vector2(1, -2), sh + Vector2(6, 0)]), col(Art.shade(z.shirt, -0.08)), Art.OUTLINE, 0.9)
 	# הגרון הנפוח
@@ -464,33 +469,33 @@ func _arm(s: Vector2, h: Vector2, back: bool) -> void:
 	Art.limb(z, PackedVector2Array([el.lerp(h, 0.65), h]), 1.9, col(Art.shade(z.skin, 0.2 if back else 0.0)))
 	var dir := (h - el).normalized()
 	for q in 3:   # אצבעות ארוכות עם ציפורניים
-		z.draw_line(h, h + dir.rotated((float(q) - 1.0) * 0.4) * 3.6, col(Color("2a2a26")), 0.8)
+		DrawBatch.line(z, h, h + dir.rotated((float(q) - 1.0) * 0.4) * 3.6, col(Color("2a2a26")), 0.8)
 
 
 func _head(c: Vector2, sk: Color) -> void:
 	var open: float = 1.0 if (state == EXTEND or state == HOLD) else (clampf(_t / RET_T, 0.0, 1.0) if state == RETRACT else 0.0)
 	# קרקפת קירחה, ורידים שחורים, אוזניים מחודדות
 	Art.oval_shaded(z, c, 4.8, 5.8, sk, 0.0)
-	z.draw_colored_polygon(PackedVector2Array([c + Vector2(-3.5, -1), c + Vector2(-6.5, -3.5), c + Vector2(-4.0, 1.5)]), col(Art.shade(z.skin, 0.2)))
+	DrawBatch.colored_polygon(z, PackedVector2Array([c + Vector2(-3.5, -1), c + Vector2(-6.5, -3.5), c + Vector2(-4.0, 1.5)]), col(Art.shade(z.skin, 0.2)))
 	if not z.dead:
 		var vc := Color(0.12, 0.1, 0.14, 0.7)
-		z.draw_polyline(PackedVector2Array([c + Vector2(-2, -5.5), c + Vector2(-0.5, -3), c + Vector2(-1.5, 0)]), vc, 0.6)
-		z.draw_polyline(PackedVector2Array([c + Vector2(2, -5.6), c + Vector2(1.2, -3.4)]), vc, 0.6)
+		DrawBatch.polyline(z, PackedVector2Array([c + Vector2(-2, -5.5), c + Vector2(-0.5, -3), c + Vector2(-1.5, 0)]), vc, 0.6)
+		DrawBatch.polyline(z, PackedVector2Array([c + Vector2(2, -5.6), c + Vector2(1.2, -3.4)]), vc, 0.6)
 		# עיניים: אדומות עם שוליים כהים
-		z.draw_colored_polygon(Art.ellipse(c + Vector2(2.4, -1.0), 1.9, 1.4, 0.0, 8), col(Color("3a0a10")))
-		z.draw_circle(c + Vector2(2.6, -1.0), 0.9, Color(1.0, 0.25, 0.2))
-		z.draw_colored_polygon(Art.ellipse(c + Vector2(-1.6, -1.0), 1.2, 1.1, 0.0, 8), col(Color("3a0a10")))
-		z.draw_circle(c + Vector2(-1.4, -1.0), 0.6, Color(0.9, 0.2, 0.2, 0.8))
+		DrawBatch.colored_polygon(z, Art.ellipse(c + Vector2(2.4, -1.0), 1.9, 1.4, 0.0, 8), col(Color("3a0a10")))
+		DrawBatch.circle(z, c + Vector2(2.6, -1.0), 0.9, Color(1.0, 0.25, 0.2))
+		DrawBatch.colored_polygon(z, Art.ellipse(c + Vector2(-1.6, -1.0), 1.2, 1.1, 0.0, 8), col(Color("3a0a10")))
+		DrawBatch.circle(z, c + Vector2(-1.4, -1.0), 0.6, Color(0.9, 0.2, 0.2, 0.8))
 		Art.glow(z, c + Vector2(2.6, -1.0), 3.5, Color(1.0, 0.2, 0.15, 0.4))
 	# לסת: נשמטת ונפרדת כשעוקץ
 	var jaw := c + Vector2(1.5, 3.0)
 	if open > 0.0:
-		z.draw_colored_polygon(PackedVector2Array([jaw + Vector2(0, 0), jaw + Vector2(5.5, -0.5), jaw + Vector2(5.0, 1.5 + 4.5 * open), jaw + Vector2(0.5, 1.5 + 4.0 * open)]), col(Color("3a0610")))
-		z.draw_line(jaw + Vector2(0.5, 1.5 + 4.0 * open), jaw + Vector2(5.0, 1.5 + 4.5 * open), col(sk.darkened(0.15)), 1.6)   # הלסת שנשמטה
-		z.draw_line(jaw + Vector2(3, 0), jaw + Vector2(6.5, -2.0 - 2.0 * open), col(sk.darkened(0.2)), 1.0)   # הלחי נקרעת לצדדים
+		DrawBatch.colored_polygon(z, PackedVector2Array([jaw + Vector2(0, 0), jaw + Vector2(5.5, -0.5), jaw + Vector2(5.0, 1.5 + 4.5 * open), jaw + Vector2(0.5, 1.5 + 4.0 * open)]), col(Color("3a0610")))
+		DrawBatch.line(z, jaw + Vector2(0.5, 1.5 + 4.0 * open), jaw + Vector2(5.0, 1.5 + 4.5 * open), col(sk.darkened(0.15)), 1.6)   # הלסת שנשמטה
+		DrawBatch.line(z, jaw + Vector2(3, 0), jaw + Vector2(6.5, -2.0 - 2.0 * open), col(sk.darkened(0.2)), 1.0)   # הלחי נקרעת לצדדים
 	else:
-		z.draw_line(jaw + Vector2(0.5, 0.5), jaw + Vector2(4.5, 0.2), col(Color("2a0a10")), 1.0)
-		z.draw_line(jaw + Vector2(0.4, 2.2), jaw + Vector2(4.2, 2.0), col(sk.darkened(0.25)), 0.8)
+		DrawBatch.line(z, jaw + Vector2(0.5, 0.5), jaw + Vector2(4.5, 0.2), col(Color("2a0a10")), 1.0)
+		DrawBatch.line(z, jaw + Vector2(0.4, 2.2), jaw + Vector2(4.2, 2.0), col(sk.darkened(0.25)), 0.8)
 
 
 func _draw_sting(head: Vector2) -> void:
@@ -504,11 +509,11 @@ func _draw_sting(head: Vector2) -> void:
 		var wob: float = sin(u * 9.0 + t * 30.0) * 1.2 * u * (1.0 if state == EXTEND else 0.4)
 		pts.append(a + Vector2(u * l, wob))
 	Art.limb(z, pts, 2.6, col(Color("c25a6a")))
-	z.draw_polyline(pts, Color(1.0, 0.75, 0.8, 0.6), 0.8)
+	DrawBatch.polyline(z, pts, Color(1.0, 0.75, 0.8, 0.6), 0.8)
 	for q in 4:   # טבעות שרירים
 		var p: Vector2 = pts[2 + q * 2]
-		z.draw_line(p + Vector2(0, -2.2), p + Vector2(0, 2.2), col(Color("8a2a3a")), 0.8)
+		DrawBatch.line(z, p + Vector2(0, -2.2), p + Vector2(0, 2.2), col(Color("8a2a3a")), 0.8)
 	var e: Vector2 = pts[n]
-	z.draw_colored_polygon(PackedVector2Array([e + Vector2(0, -2.8), e + Vector2(6, 0), e + Vector2(0, 2.8)]), col(Color("e8d8c0")))   # הקוץ
+	DrawBatch.colored_polygon(z, PackedVector2Array([e + Vector2(0, -2.8), e + Vector2(6, 0), e + Vector2(0, 2.8)]), col(Color("e8d8c0")))   # הקוץ
 	if _hit and state == HOLD:
 		Art.glow(z, e, 5.0, Color(1.0, 0.2, 0.25, 0.6))

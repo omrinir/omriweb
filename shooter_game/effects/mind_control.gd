@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  MIND CONTROL - פריט מיוחד (progression/arsenal.gd -> SPECIALS "mind", שימוש אחד).
 #  יורים קרן סגולה על זומבי -> 25 שניות (DURATION) אתה הזומבי:
@@ -278,15 +279,20 @@ class Beam extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := life / 0.35
 		var n := (b - a).orthogonal().normalized()
 		var pts := PackedVector2Array()
 		for i in 13:
 			var u := float(i) / 12.0
 			pts.append(a.lerp(b, u) + n * sin(u * 18.0 + life * 40.0) * 5.0 * k)
-		draw_polyline(pts, Color(COL, 0.35 * k), 9.0 * k, true)
-		draw_polyline(pts, Color(0.92, 0.8, 1.0, 0.9 * k), 2.5, true)
-		draw_circle(b, 12.0 * k, Color(COL, 0.4 * k))
+		DrawBatch.polyline(self, pts, Color(COL, 0.35 * k), 9.0 * k, true)
+		DrawBatch.polyline(self, pts, Color(0.92, 0.8, 1.0, 0.9 * k), 2.5, true)
+		DrawBatch.circle(self, b, 12.0 * k, Color(COL, 0.4 * k))
 
 
 # ---- הילה על הזומבי שבשליטה ----
@@ -302,11 +308,16 @@ class Aura extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var c := Vector2(0.0, -28.0 * sc)
 		var p := 0.5 + 0.5 * sin(_t * 6.0)
-		draw_circle(c, (30.0 + 4.0 * p) * sc, Color(COL, 0.16))
-		draw_arc(c, (34.0 + 3.0 * p) * sc, _t * 2.0, _t * 2.0 + PI * 1.3, 20, Color(COL, 0.6), 2.0, true)
-		draw_arc(c + Vector2(0, -34.0 * sc), 6.0 * sc, 0.0, TAU, 12, Color(0.9, 0.75, 1.0, 0.8), 1.5, true)   # "קורונה" מעל הראש
+		DrawBatch.circle(self, c, (30.0 + 4.0 * p) * sc, Color(COL, 0.16))
+		DrawBatch.arc(self, c, (34.0 + 3.0 * p) * sc, _t * 2.0, _t * 2.0 + PI * 1.3, 20, Color(COL, 0.6), 2.0, true)
+		DrawBatch.arc(self, c + Vector2(0, -34.0 * sc), 6.0 * sc, 0.0, TAU, 12, Color(0.9, 0.75, 1.0, 0.8), 1.5, true)   # "קורונה" מעל הראש
 
 
 # ---- הגיבור בטראנס ----
@@ -321,11 +332,16 @@ class Trance extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var c := Vector2(0.0, -58.0)
 		for i in 3:
 			var r := 6.0 + float(i) * 5.0
-			draw_arc(c, r, _t * (2.0 + float(i)), _t * (2.0 + float(i)) + PI, 14, Color(COL, 0.75 - float(i) * 0.2), 1.6, true)
-		draw_circle(Vector2(0, -26), 26.0, Color(COL, 0.08))
+			DrawBatch.arc(self, c, r, _t * (2.0 + float(i)), _t * (2.0 + float(i)) + PI, 14, Color(COL, 0.75 - float(i) * 0.2), 1.6, true)
+		DrawBatch.circle(self, Vector2(0, -26), 26.0, Color(COL, 0.08))
 
 
 # ---- טיימר ומסגרת סגולה על המסך ----
@@ -336,6 +352,11 @@ class Hud extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if session == null:
 			return
 		var vs := get_viewport().get_visible_rect().size
@@ -343,26 +364,26 @@ class Hud extends Node2D:
 		var a := 0.25 + 0.1 * sin(Time.get_ticks_msec() * 0.008)
 		for i in 4:   # מסגרת סגולה
 			var w := 26.0 - float(i) * 6.0
-			draw_rect(Rect2(Vector2.ZERO, vs), Color(COL, a * 0.35), false, w)
+			DrawBatch.rect(self, Rect2(Vector2.ZERO, vs), Color(COL, a * 0.35), false, w)
 		var font := ThemeDB.fallback_font
 		var txt := "MIND CONTROL  %.1f" % maxf(session.t, 0.0)
 		var tw := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
 		var y := 150.0
-		draw_string(font, Vector2(vs.x * 0.5 - tw * 0.5 + 2, y + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0, 0, 0, 0.6))
-		draw_string(font, Vector2(vs.x * 0.5 - tw * 0.5, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.9, 0.75, 1.0))
-		draw_rect(Rect2(vs.x * 0.5 - 120.0, y + 10.0, 240.0, 6.0), Color(0, 0, 0, 0.5))
-		draw_rect(Rect2(vs.x * 0.5 - 120.0, y + 10.0, 240.0 * k, 6.0), COL)
+		DrawBatch.string(self, font, Vector2(vs.x * 0.5 - tw * 0.5 + 2, y + 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0, 0, 0, 0.6))
+		DrawBatch.string(self, font, Vector2(vs.x * 0.5 - tw * 0.5, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.9, 0.75, 1.0))
+		DrawBatch.rect(self, Rect2(vs.x * 0.5 - 120.0, y + 10.0, 240.0, 6.0), Color(0, 0, 0, 0.5))
+		DrawBatch.rect(self, Rect2(vs.x * 0.5 - 120.0, y + 10.0, 240.0 * k, 6.0), COL)
 		var ab = session.ability
 		if ab != null:   # היכולת + טעינה
 			var label := ("SKILL: " if TouchAPI.on() else "C / RMB: ") + str(ab.info().name)
 			var lw := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
 			var ready: bool = ab.ready_k() >= 1.0
-			draw_string(font, Vector2(vs.x * 0.5 - lw * 0.5, y + 36.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.85, 0.4) if ready else Color(1, 1, 1, 0.5))
-			draw_rect(Rect2(vs.x * 0.5 - 60.0, y + 42.0, 120.0 * ab.ready_k(), 3.0), Color(1.0, 0.85, 0.4, 0.8))
+			DrawBatch.string(self, font, Vector2(vs.x * 0.5 - lw * 0.5, y + 36.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.85, 0.4) if ready else Color(1, 1, 1, 0.5))
+			DrawBatch.rect(self, Rect2(vs.x * 0.5 - 60.0, y + 42.0, 120.0 * ab.ready_k(), 3.0), Color(1.0, 0.85, 0.4, 0.8))
 		if not TouchAPI.on():
 			var hint := "A/D move   SHIFT run   W jump   LMB claw"
 			var hw := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-			draw_string(font, Vector2(vs.x * 0.5 - hw * 0.5, y + 62.0), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.7))
+			DrawBatch.string(self, font, Vector2(vs.x * 0.5 - hw * 0.5, y + 62.0), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.7))
 
 
 # ============================================================
@@ -376,8 +397,8 @@ static func draw_device(ci: CanvasItem, hand: Vector2, la: Vector2, t: float, s 
 	var glow := 0.6 + 0.4 * sin(t * 8.0)
 	for i in 3:   # סלילים
 		var x := 0.0 + float(i) * 3.0
-		ci.draw_line(tr * Vector2(x, -3.5), tr * Vector2(x, 2.5), Color(COL, glow), 1.4 * s)
-	ci.draw_line(tr * Vector2(10, -0.5), tr * Vector2(13, -0.5), Color("4a4458"), 2.0 * s)   # קנה
+		DrawBatch.line(ci, tr * Vector2(x, -3.5), tr * Vector2(x, 2.5), Color(COL, glow), 1.4 * s)
+	DrawBatch.line(ci, tr * Vector2(10, -0.5), tr * Vector2(13, -0.5), Color("4a4458"), 2.0 * s)   # קנה
 	var tip := tr * Vector2(14, -0.5)
-	ci.draw_arc(tip, 3.2 * s, la.angle() - 1.3, la.angle() + 1.3, 8, Color("8a84a0"), 1.3 * s, true)   # צלחת
+	DrawBatch.arc(ci, tip, 3.2 * s, la.angle() - 1.3, la.angle() + 1.3, 8, Color("8a84a0"), 1.3 * s, true)   # צלחת
 	Art.glow(ci, tip, 4.0 * s, Color(COL, 0.5 * glow))

@@ -11,6 +11,11 @@ const SCENES := [
 	preload("res://story/scenes/l17_stranger.gd"),
 	preload("res://story/scenes/l52_quisling.gd"),
 	preload("res://story/scenes/l54_stranger.gd"),
+	preload("res://story/scenes/l55_stranger.gd"),
+	preload("res://story/scenes/l57_chorus.gd"),
+	preload("res://story/scenes/l59_stranger.gd"),
+	preload("res://story/scenes/l60_file.gd"),
+	preload("res://story/scenes/l62_hive.gd"),
 ]
 
 

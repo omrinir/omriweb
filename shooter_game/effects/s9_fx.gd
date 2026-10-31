@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")   # כל הציור של זומבי ב-draw call אחד
 # ============================================================
 #  S9 FX - אפקטים של שלב 9 ("THEY LEARN"):
 #    OrderLinks  - קווי פקודה מה-COMMANDER לכל זומבי שקיבל פקודה (רואים מי שומע למי)
@@ -30,6 +31,11 @@ class OrderLinks extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := 1.0 - _t / LIFE
 		var o: Vector2 = from_z.global_position + Vector2(0, -60) - global_position
 		for tz in targets:
@@ -40,9 +46,9 @@ class OrderLinks extends Node2D:
 			for i in n:   # קו מקווקו שזורם מהמפקד אל הזומבי
 				var k0 := (float(i) + fmod(_t * 4.0, 1.0)) / float(maxi(n, 1))
 				var k1 := minf(k0 + 0.5 / float(maxi(n, 1)), 1.0)
-				draw_line(o.lerp(e, k0), o.lerp(e, k1), Color(color, 0.75 * a), 1.6, true)
+				DrawBatch.line(self, o.lerp(e, k0), o.lerp(e, k1), Color(color, 0.75 * a), 1.6, true)
 			# חץ קטן מעל הזומבי
-			draw_colored_polygon(PackedVector2Array([e + Vector2(-5, -8), e + Vector2(5, -8), e + Vector2(0, -1)]), Color(color, 0.9 * a))
+			DrawBatch.colored_polygon(self, PackedVector2Array([e + Vector2(-5, -8), e + Vector2(5, -8), e + Vector2(0, -1)]), Color(color, 0.9 * a))
 			Art.glow(self, e, 7.0, Color(color, 0.5 * a))
 
 
@@ -65,9 +71,14 @@ class LightRain extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for d in _drops:
 			var p := Vector2(d[0], d[1])
-			draw_line(p, p + Vector2(-d[3] * 0.3, d[3]), Color(0.75, 0.72, 0.78, 0.22), 1.0)
+			DrawBatch.line(self, p, p + Vector2(-d[3] * 0.3, d[3]), Color(0.75, 0.72, 0.78, 0.22), 1.0)
 
 
 # ============================================================
@@ -79,7 +90,7 @@ static func burning_tower(ci: CanvasItem, x: float, base_y: float, w: float, h: 
 	r.seed = seed_v
 	var top := base_y - h
 	var cut := r.randf_range(0.2, 0.8) * w
-	ci.draw_colored_polygon(PackedVector2Array([Vector2(x, base_y), Vector2(x, top + 20), Vector2(x + cut, top + r.randf_range(-10, 40)), Vector2(x + cut + 8, top + 50), Vector2(x + w, top + r.randf_range(10, 60)), Vector2(x + w, base_y)]), col)
+	DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(x, base_y), Vector2(x, top + 20), Vector2(x + cut, top + r.randf_range(-10, 40)), Vector2(x + cut + 8, top + 50), Vector2(x + w, top + r.randf_range(10, 60)), Vector2(x + w, base_y)]), col)
 	var wy := top + 60.0
 	while wy < base_y - 20.0:
 		var wx := x + 8.0
@@ -87,18 +98,18 @@ static func burning_tower(ci: CanvasItem, x: float, base_y: float, w: float, h: 
 			var q := r.randf()
 			if q < 0.12:   # חלון בוער
 				var fl := 0.6 + 0.4 * sin(t * 8.0 + wx * 0.3 + wy)
-				ci.draw_rect(Rect2(wx, wy, 7, 9), Color(1.0, 0.45 + 0.2 * fl, 0.1, 0.85))
-				ci.draw_circle(Vector2(wx + 3.5, wy + 2), 9.0 * fl, Color(1.0, 0.4, 0.1, 0.12))
+				DrawBatch.rect(ci, Rect2(wx, wy, 7, 9), Color(1.0, 0.45 + 0.2 * fl, 0.1, 0.85))
+				DrawBatch.circle(ci, Vector2(wx + 3.5, wy + 2), 9.0 * fl, Color(1.0, 0.4, 0.1, 0.12))
 			elif q < 0.18:
-				ci.draw_rect(Rect2(wx, wy, 7, 9), Color(1.0, 0.8, 0.5, 0.35))
+				DrawBatch.rect(ci, Rect2(wx, wy, 7, 9), Color(1.0, 0.8, 0.5, 0.35))
 			wx += 14.0
 		wy += 18.0
 	# להבות על הגג השבור
 	for i in 4:
 		var fx := x + cut - 20.0 + float(i) * 12.0
 		var fh := 18.0 + 10.0 * sin(t * 9.0 + float(i) * 1.9 + float(seed_v))
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(fx - 7, top + 40), Vector2(fx, top + 40 - fh), Vector2(fx + 7, top + 40)]), Color(1.0, 0.55, 0.15, 0.8))
-	ci.draw_circle(Vector2(x + cut, top + 30), 40.0, Color(1.0, 0.45, 0.15, 0.08))
+		DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(fx - 7, top + 40), Vector2(fx, top + 40 - fh), Vector2(fx + 7, top + 40)]), Color(1.0, 0.55, 0.15, 0.8))
+	DrawBatch.circle(ci, Vector2(x + cut, top + 30), 40.0, Color(1.0, 0.45, 0.15, 0.08))
 
 
 # שלד של גורד שחקים (קורות פלדה חשופות)
@@ -110,34 +121,34 @@ static func skeleton_tower(ci: CanvasItem, x: float, base_y: float, w: float, h:
 	for f in floors:
 		var y := base_y - float(f) * 26.0
 		var span := w * (1.0 if f < floors * 0.6 else r.randf_range(0.3, 0.9))
-		ci.draw_line(Vector2(x, y), Vector2(x + span, y), col, 2.0)
+		DrawBatch.line(ci, Vector2(x, y), Vector2(x + span, y), col, 2.0)
 		if r.randf() < 0.5 and f < floors - 1:
-			ci.draw_line(Vector2(x + r.randf_range(0, span * 0.5), y), Vector2(x + r.randf_range(span * 0.5, span), y - 26.0), col, 1.0)
+			DrawBatch.line(ci, Vector2(x + r.randf_range(0, span * 0.5), y), Vector2(x + r.randf_range(span * 0.5, span), y - 26.0), col, 1.0)
 	for c in cols:
 		var cx := x + float(c) * 22.0
 		var ch := h * (1.0 if c % 3 != 2 else r.randf_range(0.5, 0.9))
-		ci.draw_line(Vector2(cx, base_y), Vector2(cx, base_y - ch), col, 2.0)
+		DrawBatch.line(ci, Vector2(cx, base_y), Vector2(cx, base_y - ch), col, 2.0)
 	# קורה תלויה שמתנדנדת
-	ci.draw_line(Vector2(x + w, base_y - h * 0.7), Vector2(x + w + 30, base_y - h * 0.7 + 40), col, 2.5)
+	DrawBatch.line(ci, Vector2(x + w, base_y - h * 0.7), Vector2(x + w + 30, base_y - h * 0.7 + 40), col, 2.5)
 
 
 # מנוף בנייה (אלמנט "מפעל")
 static func crane(ci: CanvasItem, x: float, base_y: float, h: float, col: Color, t: float) -> void:
-	ci.draw_rect(Rect2(x, base_y - h, 10, h), col)
+	DrawBatch.rect(ci, Rect2(x, base_y - h, 10, h), col)
 	for i in int(h / 20.0):   # הצלבות
 		var y := base_y - float(i) * 20.0
-		ci.draw_line(Vector2(x, y), Vector2(x + 10, y - 20), Color(col, 0.6), 1.0)
+		DrawBatch.line(ci, Vector2(x, y), Vector2(x + 10, y - 20), Color(col, 0.6), 1.0)
 	var arm := 170.0
-	ci.draw_rect(Rect2(x - 60, base_y - h - 8, arm + 60, 8), col)
-	ci.draw_line(Vector2(x + 5, base_y - h - 30), Vector2(x + arm, base_y - h - 8), col, 1.5)
-	ci.draw_line(Vector2(x + 5, base_y - h - 30), Vector2(x - 60, base_y - h - 8), col, 1.5)
+	DrawBatch.rect(ci, Rect2(x - 60, base_y - h - 8, arm + 60, 8), col)
+	DrawBatch.line(ci, Vector2(x + 5, base_y - h - 30), Vector2(x + arm, base_y - h - 8), col, 1.5)
+	DrawBatch.line(ci, Vector2(x + 5, base_y - h - 30), Vector2(x - 60, base_y - h - 8), col, 1.5)
 	# כבל + וו שמתנדנד ברוח
 	var sw := sin(t * 0.7) * 10.0
 	var hook := Vector2(x + arm - 20 + sw, base_y - h + 70)
-	ci.draw_line(Vector2(x + arm - 20, base_y - h), hook, Color(col, 0.8), 1.0)
-	ci.draw_rect(Rect2(hook + Vector2(-8, 0), Vector2(16, 12)), col)
+	DrawBatch.line(ci, Vector2(x + arm - 20, base_y - h), hook, Color(col, 0.8), 1.0)
+	DrawBatch.rect(ci, Rect2(hook + Vector2(-8, 0), Vector2(16, 12)), col)
 	if int(t * 1.5) % 2 == 0:
-		ci.draw_circle(Vector2(x + 5, base_y - h - 32), 2.0, Color(1.0, 0.2, 0.2, 0.9))
+		DrawBatch.circle(ci, Vector2(x + 5, base_y - h - 32), 2.0, Color(1.0, 0.2, 0.2, 0.9))
 
 
 # כיפת מעבדה שבורה עם זוהר ירוק (אלמנט "מעבדה")
@@ -148,17 +159,17 @@ static func lab_dome(ci: CanvasItem, x: float, base_y: float, r: float, col: Col
 		var rr := r * (0.75 if i == 5 or i == 6 else 1.0)   # חור בכיפה
 		pts.append(Vector2(x + cos(a) * rr, base_y + sin(a) * rr))
 	pts.append(Vector2(x + r, base_y))
-	ci.draw_colored_polygon(pts, col)
+	DrawBatch.colored_polygon(ci, pts, col)
 	var pulse := 0.5 + 0.5 * sin(t * 1.3)
-	ci.draw_circle(Vector2(x - r * 0.05, base_y - r * 0.8), r * 0.4, Color(0.4, 1.0, 0.45, 0.10 + 0.08 * pulse))
-	ci.draw_circle(Vector2(x - r * 0.05, base_y - r * 0.8), r * 0.18, Color(0.6, 1.0, 0.5, 0.15 + 0.1 * pulse))
+	DrawBatch.circle(ci, Vector2(x - r * 0.05, base_y - r * 0.8), r * 0.4, Color(0.4, 1.0, 0.45, 0.10 + 0.08 * pulse))
+	DrawBatch.circle(ci, Vector2(x - r * 0.05, base_y - r * 0.8), r * 0.18, Color(0.6, 1.0, 0.5, 0.15 + 0.1 * pulse))
 	for i in 5:   # צלעות מתכת
 		var a := PI + PI * (0.1 + 0.8 * float(i) / 4.0)
-		ci.draw_line(Vector2(x, base_y), Vector2(x + cos(a) * r, base_y + sin(a) * r), Color(col.lightened(0.15), 0.6), 1.0)
+		DrawBatch.line(ci, Vector2(x, base_y), Vector2(x + cos(a) * r, base_y + sin(a) * r), Color(col.lightened(0.15), 0.6), 1.0)
 	# אנטנה עם מנורה
-	ci.draw_line(Vector2(x + r * 0.5, base_y - r * 0.85), Vector2(x + r * 0.55, base_y - r * 1.35), col, 2.0)
+	DrawBatch.line(ci, Vector2(x + r * 0.5, base_y - r * 0.85), Vector2(x + r * 0.55, base_y - r * 1.35), col, 2.0)
 	if int(t * 2.0) % 3 == 0:
-		ci.draw_circle(Vector2(x + r * 0.55, base_y - r * 1.35), 2.5, Color(0.5, 1.0, 0.5, 0.9))
+		DrawBatch.circle(ci, Vector2(x + r * 0.55, base_y - r * 1.35), 2.5, Color(0.5, 1.0, 0.5, 0.9))
 
 
 # המון זומבים שצועד לאורך האופק (זז לבד - האזור בשליטתם)
@@ -172,12 +183,12 @@ static func horde(ci: CanvasItem, scroll: float, vp: Vector2, t: float, y: float
 		var h := r.randf_range(9.0, 14.0)
 		var bob := absf(sin(t * 3.0 + float(i))) * 1.2
 		var py := y + r.randf_range(-3.0, 3.0) - bob
-		ci.draw_rect(Rect2(x - 2.0, py - h, 4.0, h * 0.65), col)                       # גוף
-		ci.draw_circle(Vector2(x + 0.5, py - h - 1.5), 2.2, col)                         # ראש
-		ci.draw_line(Vector2(x + 1, py - h * 0.8), Vector2(x + 6, py - h * 0.75 + bob), col, 1.2)   # ידיים מושטות
+		DrawBatch.rect(ci, Rect2(x - 2.0, py - h, 4.0, h * 0.65), col)                       # גוף
+		DrawBatch.circle(ci, Vector2(x + 0.5, py - h - 1.5), 2.2, col)                         # ראש
+		DrawBatch.line(ci, Vector2(x + 1, py - h * 0.8), Vector2(x + 6, py - h * 0.75 + bob), col, 1.2)   # ידיים מושטות
 		var st := sin(t * 3.0 + float(i)) * 2.0
-		ci.draw_line(Vector2(x - 1, py - h * 0.35), Vector2(x - 1 + st, py), col, 1.3)     # רגליים
-		ci.draw_line(Vector2(x + 1, py - h * 0.35), Vector2(x + 1 - st, py), col, 1.3)
+		DrawBatch.line(ci, Vector2(x - 1, py - h * 0.35), Vector2(x - 1 + st, py), col, 1.3)     # רגליים
+		DrawBatch.line(ci, Vector2(x + 1, py - h * 0.35), Vector2(x + 1 - st, py), col, 1.3)
 
 
 # זרקור שמסתובב בשמיים (מחנה ניצולים רחוק / מסוק)
@@ -186,5 +197,5 @@ static func searchlight(ci: CanvasItem, base: Vector2, t: float, phase: float, c
 	var d := Vector2.from_angle(a)
 	var n := Vector2(-d.y, d.x)
 	var far := base + d * 700.0
-	ci.draw_colored_polygon(PackedVector2Array([base - n * 3.0, base + n * 3.0, far + n * 70.0, far - n * 70.0]), col)
-	ci.draw_circle(base, 4.0, Color(1.0, 1.0, 0.85, 0.5))
+	DrawBatch.colored_polygon(ci, PackedVector2Array([base - n * 3.0, base + n * 3.0, far + n * 70.0, far - n * 70.0]), col)
+	DrawBatch.circle(ci, base, 4.0, Color(1.0, 1.0, 0.85, 0.5))

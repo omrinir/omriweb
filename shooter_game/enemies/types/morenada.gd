@@ -150,11 +150,11 @@ func draw() -> bool:
 		var u := fposmod(float(q) / 5.0 + _ang * 0.08, 1.0)
 		var tx := lerpf(-9.0, 9.0, u)
 		var bx := lerpf(-15.0, 15.0, u)
-		z.draw_line(sh + Vector2(tx, 5), hip + Vector2(bx, 7), col(Color("e0c040")), 1.6)
+		DrawBatch.line(z, sh + Vector2(tx, 5), hip + Vector2(bx, 7), col(Color("e0c040")), 1.6)
 	for q in 3:   # סלסולים
 		var yy := lerpf(sh.y + 10.0, hip.y + 6.0, float(q) / 2.0)
 		var ww := lerpf(10.0, 15.0, float(q) / 2.0)
-		z.draw_line(Vector2(-ww, yy), Vector2(ww, yy), col(Color("f0f0ff")), 1.2)
+		DrawBatch.line(z, Vector2(-ww, yy), Vector2(ww, yy), col(Color("f0f0ff")), 1.2)
 	for sgn in [-1.0, 1.0]:   # כתפיות ענקיות
 		Art.oval_shaded(z, sh + Vector2(sgn * 10.0, 0), 6.0, 4.0, col(Color("e0c040")), 0.0)
 	var hb := sh + Vector2(-14, 10)
@@ -166,29 +166,29 @@ func draw() -> bool:
 	z._arm(sh + Vector2(9, 1), hf, sk, silver)
 	var ra := _ang * 2.0   # מטרקה
 	var rc := hf + Vector2(2, -2)
-	z.draw_line(rc, rc + Vector2(0, 8), col(Color("6a4a2a")), 2.0)
-	z.draw_rect(Rect2(rc + Vector2.from_angle(ra) * 6.0 - Vector2(4, 3), Vector2(8, 6)), col(Color("c02a2a")))
+	DrawBatch.line(z, rc, rc + Vector2(0, 8), col(Color("6a4a2a")), 2.0)
+	DrawBatch.rect(z, Rect2(rc + Vector2.from_angle(ra) * 6.0 - Vector2(4, 3), Vector2(8, 6)), col(Color("c02a2a")))
 	# מסכה שחורה עם עיניים בולטות ומקטרת, כתר נוצות
 	Art.oval_shaded(z, head, 6.5, 7.0, col(Color("2a2226")), 0.0)
 	if not z.dead:
-		z.draw_circle(head + Vector2(-1.5, -1.5), 2.8, Color("f4f0e0"))
-		z.draw_circle(head + Vector2(4.0, -1.5), 2.8, Color("f4f0e0"))
-		z.draw_circle(head + Vector2(-1.0, -1.5), 1.2, Color(0.1, 0.1, 0.1))
-		z.draw_circle(head + Vector2(4.5, -1.5), 1.2, Color(0.1, 0.1, 0.1))
-		z.draw_colored_polygon(Art.ellipse(head + Vector2(2.5, 4.5), 3.0, 1.6, 0.0, 8), col(Color("c02a2a")))   # שפתיים אדומות
-		z.draw_line(head + Vector2(5, 5), head + Vector2(12, 7), col(Color("6a4a2a")), 1.6)   # מקטרת
-		z.draw_rect(Rect2(head + Vector2(11, 4), Vector2(3, 3)), col(Color("4a3020")))
-	z.draw_rect(Rect2(head + Vector2(-6, -11), Vector2(12, 4)), col(Color("e0c040")))
+		DrawBatch.circle(z, head + Vector2(-1.5, -1.5), 2.8, Color("f4f0e0"))
+		DrawBatch.circle(z, head + Vector2(4.0, -1.5), 2.8, Color("f4f0e0"))
+		DrawBatch.circle(z, head + Vector2(-1.0, -1.5), 1.2, Color(0.1, 0.1, 0.1))
+		DrawBatch.circle(z, head + Vector2(4.5, -1.5), 1.2, Color(0.1, 0.1, 0.1))
+		DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(2.5, 4.5), 3.0, 1.6, 0.0, 8), col(Color("c02a2a")))   # שפתיים אדומות
+		DrawBatch.line(z, head + Vector2(5, 5), head + Vector2(12, 7), col(Color("6a4a2a")), 1.6)   # מקטרת
+		DrawBatch.rect(z, Rect2(head + Vector2(11, 4), Vector2(3, 3)), col(Color("4a3020")))
+	DrawBatch.rect(z, Rect2(head + Vector2(-6, -11), Vector2(12, 4)), col(Color("e0c040")))
 	for q in 5:   # נוצות
 		var fx := -5.0 + float(q) * 2.5
-		z.draw_line(head + Vector2(fx, -11), head + Vector2(fx + float(q - 2) * 1.5, -22), col([Color("e03050"), Color("40c0f0"), Color("f0f0f0"), Color("e03050"), Color("40c0f0")][q]), 2.0)
+		DrawBatch.line(z, head + Vector2(fx, -11), head + Vector2(fx + float(q - 2) * 1.5, -22), col([Color("e03050"), Color("40c0f0"), Color("f0f0f0"), Color("e03050"), Color("40c0f0")][q]), 2.0)
 	if spinning:   # קווי תנועה
 		for q in 3:
 			var a := _ang + float(q) * TAU / 3.0
-			z.draw_arc(hip + Vector2(0, -6), 20.0, a, a + 1.2, 6, Color(1, 1, 1, 0.35), 1.5)
+			DrawBatch.arc(z, hip + Vector2(0, -6), 20.0, a, a + 1.2, 6, Color(1, 1, 1, 0.35), 1.5)
 	if state == DIZZY:
 		for k in 3:
 			var a: float = z._time * 5.0 + float(k) * TAU / 3.0
-			z.draw_circle(head + Vector2(cos(a) * 10.0, -26.0 + sin(a) * 2.5), 1.4, Color(1.0, 0.95, 0.5))
+			DrawBatch.circle(z, head + Vector2(cos(a) * 10.0, -26.0 + sin(a) * 2.5), 1.4, Color(1.0, 0.95, 0.5))
 	end_draw()
 	return true

@@ -171,9 +171,9 @@ func draw() -> bool:
 	Art.fill_shaded(z, body, suit, 0.15, 0.35)
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(6, 0), hip + Vector2(6, -4), hip + Vector2(-6, -3)]), vest, 0.2, 0.3)
 	for y in [sh.y + 8.0, sh.y + 12.0]:
-		z.draw_line(Vector2(sh.x - 7.0, y), Vector2(sh.x + 6.0, y - 0.5), col(Color("e8e8d0")), 1.6)
-	z.draw_line(hip + Vector2(-7, -1), hip + Vector2(7, -2), col(Color("2a2a20")), 2.6, true)   # חגורת כלים
-	z.draw_rect(Rect2(hip.x - 6.0, hip.y - 2.0, 3.0, 5.0), col(Color("4a3a20")))
+		DrawBatch.line(z, Vector2(sh.x - 7.0, y), Vector2(sh.x + 6.0, y - 0.5), col(Color("e8e8d0")), 1.6)
+	DrawBatch.line(z, hip + Vector2(-7, -1), hip + Vector2(7, -2), col(Color("2a2a20")), 2.6, true)   # חגורת כלים
+	DrawBatch.rect(z, Rect2(hip.x - 6.0, hip.y - 2.0, 3.0, 5.0), col(Color("4a3a20")))
 	# שקע בגב (כאן הכבל מתחבר)
 	var sock := sh + Vector2(-9.0, 4.0)
 	Art.disc(z, sock, 3.2, col(Color("3a3a40")))
@@ -183,29 +183,29 @@ func draw() -> bool:
 	Art.oval_shaded(z, head, 6.0, 6.4, sk, 0.1)
 	var jaw := 2.0 + ck * 4.0 + (2.0 if state == RECOVER else 0.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(1.5, 2), head + Vector2(7, 1.5), head + Vector2(6.5, 4 + jaw), head + Vector2(2, 4.5 + jaw * 0.6)]), col(Color("101418")), Art.OUTLINE, 0.8)
-	z.draw_line(head + Vector2(2.5, 2), head + Vector2(2.5, -1), col(Color("b0b0b8")), 1.0)
-	z.draw_line(head + Vector2(6.0, 2), head + Vector2(6.5, -0.5), col(Color("b0b0b8")), 1.0)
+	DrawBatch.line(z, head + Vector2(2.5, 2), head + Vector2(2.5, -1), col(Color("b0b0b8")), 1.0)
+	DrawBatch.line(z, head + Vector2(6.0, 2), head + Vector2(6.5, -0.5), col(Color("b0b0b8")), 1.0)
 	if not z.dead and (ck > 0.0 or state == RECOVER or fmod(t, 1.3) < 0.1):
 		var mc := head + Vector2(5.0, 3.5 + jaw * 0.4)
 		Art.glow(z, mc, 5.0 + ck * 10.0, Color(0.45, 0.8, 1.0, 0.45 + ck * 0.5))
 		for i in int(1.0 + ck * 4.0):
-			z.draw_line(mc, mc + Vector2(randf_range(-2, 8), randf_range(-6, 6)), Color(0.85, 0.95, 1.0), 1.0)
+			DrawBatch.line(z, mc, mc + Vector2(randf_range(-2, 8), randf_range(-6, 6)), Color(0.85, 0.95, 1.0), 1.0)
 	var eye := head + Vector2(3.0, -1.5)
-	z.draw_circle(eye, 1.3, Color(0.6, 0.9, 1.0) if not z.dead else Color("2a2a2a"))
+	DrawBatch.circle(z, eye, 1.3, Color(0.6, 0.9, 1.0) if not z.dead else Color("2a2a2a"))
 	# קסדה צהובה סדוקה
 	var helm := PackedVector2Array()
 	for i in 11:
 		var a := lerpf(PI, TAU, float(i) / 10.0)
 		helm.append(head + Vector2(cos(a) * 7.5, -2.0 + sin(a) * 7.0))
 	Art.fill_shaded(z, helm, col(Color("e8c020")), 0.25, 0.3)
-	z.draw_line(head + Vector2(-9, -2), head + Vector2(10, -2.5), col(Color("c8a010")), 2.0)
-	z.draw_polyline(PackedVector2Array([head + Vector2(-2, -8.5), head + Vector2(0, -6), head + Vector2(-1, -4)]), Color("3a3010"), 0.8)
+	DrawBatch.line(z, head + Vector2(-9, -2), head + Vector2(10, -2.5), col(Color("c8a010")), 2.0)
+	DrawBatch.polyline(z, PackedVector2Array([head + Vector2(-2, -8.5), head + Vector2(0, -6), head + Vector2(-1, -4)]), Color("3a3010"), 0.8)
 	# יד קדמית בכפפת גומי - בטעינה מורמת אל הפה, עם קשת חשמל בין האצבעות
 	var hand := sh + Vector2(11.0, 8.0 + sin(p) * 2.0)
 	if ck > 0.0:
 		hand = sh + Vector2(lerpf(11.0, 13.0, ck), lerpf(8.0, -2.0, ck))
 	z._arm(sh + Vector2(2, 2), hand, col(Color("1a1a1a")), suit)
 	if ck > 0.3 and not z.dead:
-		z.draw_line(hand, hand + Vector2(randf_range(2, 6), randf_range(-5, 5)), Color(0.8, 0.95, 1.0), 1.0)
+		DrawBatch.line(z, hand, hand + Vector2(randf_range(2, 6), randf_range(-5, 5)), Color(0.8, 0.95, 1.0), 1.0)
 	end_draw()
 	return true

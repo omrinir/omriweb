@@ -170,35 +170,35 @@ func draw() -> bool:
 	if not tank_burst:
 		var tc := sh + Vector2(-10, 7)
 		Art.fill_shaded(z, PackedVector2Array([tc + Vector2(-5, -9), tc + Vector2(4, -9), tc + Vector2(5, 13), tc + Vector2(-5, 13)]), col(Color("4a7a3a")), 0.2, 0.4)
-		z.draw_rect(Rect2(tc + Vector2(-3, -12), Vector2(4, 3)), col(Color("8a8e90")))
+		DrawBatch.rect(z, Rect2(tc + Vector2(-3, -12), Vector2(4, 3)), col(Color("8a8e90")))
 		var crack := clampf(float(tank_hits) / float(TANK_HP), 0.0, 1.0)
 		if crack > 0.0:   # סדקים + דליפה
-			z.draw_line(tc + Vector2(-2, -4), tc + Vector2(2, 2), Color(0.1, 0.1, 0.1), 1.0)
+			DrawBatch.line(z, tc + Vector2(-2, -4), tc + Vector2(2, 2), Color(0.1, 0.1, 0.1), 1.0)
 			if not z.dead:
-				z.draw_circle(tc + Vector2(-5, 2), 2.0 + crack * 2.0, Color(0.6, 1.0, 0.3, 0.5))
-		z.draw_circle(tc + Vector2(0, 4), 3.0, col(Color("d8c020")))   # סימן ביו
+				DrawBatch.circle(z, tc + Vector2(-5, 2), 2.0 + crack * 2.0, Color(0.6, 1.0, 0.3, 0.5))
+		DrawBatch.circle(z, tc + Vector2(0, 4), 3.0, col(Color("d8c020")))   # סימן ביו
 	z._arm(sh + Vector2(-4, 1), sh + Vector2(-5.0 - sin(p) * 3.0, 15.0), suit_d, suit_d)
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -2), sh + Vector2(7, -1), sh + Vector2(9, 8), hip + Vector2(7, 2), hip + Vector2(-7, 2), sh + Vector2(-9, 8)]), suit, 0.18, 0.35)
-	z.draw_line(sh + Vector2(-2, 2), hip + Vector2(-1, 0), col(Color("8a7a20")), 1.2)   # רוכסן
+	DrawBatch.line(z, sh + Vector2(-2, 2), hip + Vector2(-1, 0), col(Color("8a7a20")), 1.2)   # רוכסן
 	# ברדס + מסכה
 	Art.oval_shaded(z, head, 6.8, 7.0, suit, 0.0)
-	z.draw_rect(Rect2(head + Vector2(-1, -4), Vector2(7, 5)), col(Color("1a2a2a")))   # חלון
+	DrawBatch.rect(z, Rect2(head + Vector2(-1, -4), Vector2(7, 5)), col(Color("1a2a2a")))   # חלון
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -1.5), 1.0, Color(1.0, 0.5, 0.2))
-	z.draw_circle(head + Vector2(5, 4), 2.6, col(Color("2a2a2a")))   # פילטר
-	z.draw_circle(head + Vector2(1, 5), 2.2, col(Color("2a2a2a")))
+		DrawBatch.circle(z, head + Vector2(3.5, -1.5), 1.0, Color(1.0, 0.5, 0.2))
+	DrawBatch.circle(z, head + Vector2(5, 4), 2.6, col(Color("2a2a2a")))   # פילטר
+	DrawBatch.circle(z, head + Vector2(1, 5), 2.2, col(Color("2a2a2a")))
 	# יד קדמית + צינור + מרסס
 	var hand := sh + (Vector2(16, 8) if state != WALK else Vector2(10.0 + sin(p) * 2.0, 12.0))
 	z._arm(sh + Vector2(3, 1), hand, suit, suit)
 	if not tank_burst:
-		z.draw_polyline(PackedVector2Array([sh + Vector2(-10, 4), sh + Vector2(-4, 18), hand + Vector2(-4, 6), hand]), col(Color("2a2a2a")), 1.6)
-	z.draw_line(hand, hand + Vector2(8, -1), col(Color("6a6e70")), 2.6)
+		DrawBatch.polyline(z, PackedVector2Array([sh + Vector2(-10, 4), sh + Vector2(-4, 18), hand + Vector2(-4, 6), hand]), col(Color("2a2a2a")), 1.6)
+	DrawBatch.line(z, hand, hand + Vector2(8, -1), col(Color("6a6e70")), 2.6)
 	if state == AIM and not z.dead:
-		z.draw_circle(hand + Vector2(9, 1 + fmod(z._time * 6.0, 1.0) * 6.0), 1.2, Color(0.6, 1.0, 0.3, 0.9))
+		DrawBatch.circle(z, hand + Vector2(9, 1 + fmod(z._time * 6.0, 1.0) * 6.0), 1.2, Color(0.6, 1.0, 0.3, 0.9))
 	if state == SPRAY and not z.dead:
 		for q in 4:
 			var k := fmod(z._time * 4.0 + float(q) * 0.25, 1.0)
-			z.draw_circle(hand + Vector2(10.0 + k * 40.0, sin(float(q) * 2.0) * k * 6.0), 2.0 + k * 7.0, Color(0.55, 0.9, 0.3, 0.5 * (1.0 - k)))
+			DrawBatch.circle(z, hand + Vector2(10.0 + k * 40.0, sin(float(q) * 2.0) * k * 6.0), 2.0 + k * 7.0, Color(0.55, 0.9, 0.3, 0.5 * (1.0 - k)))
 	end_draw()
 	return true
 
@@ -245,8 +245,13 @@ class GasCloud extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(minf(_t / 0.3, (life - _t) / 0.8), 0.0, 1.0)
 		for i in 5:
 			var o := Vector2(sin(_seed + float(i) * 1.7 + _t * 0.8), cos(_seed + float(i) * 2.3 + _t * 0.6)) * radius * 0.45
-			draw_circle(o, radius * (0.55 + 0.1 * float(i % 3)), Color(0.45, 0.8, 0.25, 0.16 * a))
-		draw_circle(Vector2.ZERO, radius * 0.4, Color(0.6, 0.95, 0.35, 0.15 * a))
+			DrawBatch.circle(self, o, radius * (0.55 + 0.1 * float(i % 3)), Color(0.45, 0.8, 0.25, 0.16 * a))
+		DrawBatch.circle(self, Vector2.ZERO, radius * 0.4, Color(0.6, 0.95, 0.35, 0.15 * a))

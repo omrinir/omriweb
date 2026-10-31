@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  CROSSHAIR - כוונת דינמית במקום חץ העכבר (כמו Enter the Gungeon / Nuclear Throne)
 #  4 קווים סביב העכבר: סגורה במנוחה, נפתחת עם כל ירייה (ירי ממושך = עוד ועוד, player._bloom)
@@ -42,6 +43,11 @@ func _active() -> bool:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	if not _shown:
 		return
 	var m := get_viewport().get_mouse_position()
@@ -56,9 +62,9 @@ func _draw() -> void:
 	for d in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]:
 		var a: Vector2 = m + d * gap
 		var b: Vector2 = m + d * (gap + ln)
-		draw_line(a + Vector2(1, 1), b + Vector2(1, 1), sh, 2.6)
-		draw_line(a, b, col, 2.0)
-	draw_circle(m + Vector2(0.6, 0.6), 1.9, sh)
-	draw_circle(m, 1.5, col)
+		DrawBatch.line(self, a + Vector2(1, 1), b + Vector2(1, 1), sh, 2.6)
+		DrawBatch.line(self, a, b, col, 2.0)
+	DrawBatch.circle(self, m + Vector2(0.6, 0.6), 1.9, sh)
+	DrawBatch.circle(self, m, 1.5, col)
 	if player.weapon != player.GUN:   # פריט מיוחד (רימון / משגר): עיגול במקום פיזור
-		draw_arc(m, 10.0, 0.0, TAU, 20, Color(col, 0.6), 1.2, true)
+		DrawBatch.arc(self, m, 10.0, 0.0, TAU, 20, Color(col, 0.6), 1.2, true)

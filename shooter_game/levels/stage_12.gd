@@ -1,4 +1,5 @@
 extends "res://levels/stage_base.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  STAGE 12 - "THE LIGHTHOUSE" (אזור צפון-מזרח, שלב 3) - "THEY WEAR OUR FACES"
 #  הכפר הקבור: כפר דייגים בחוף סיארה שהדיונות בלעו (השראה: טטז'ובה). שקיעה אדומה-דם,
@@ -73,26 +74,26 @@ func build_background(layer: CanvasLayer) -> Node:
 		Kit.gradient_sky(ci, v, [Color("1a0a14"), Color("3a1020"), Color("7a1e1e"), Color("b8401e"), Color("d8702a")])
 		var sun := Vector2(v.x * 0.62, 452.0)
 		for i in 5:
-			ci.draw_circle(sun, 160.0 - float(i) * 26.0, Color(1.0, 0.35, 0.15, 0.05 + float(i) * 0.03))
-		ci.draw_circle(sun, 52.0, Color("ff6a3a"))
+			DrawBatch.circle(ci, sun, 160.0 - float(i) * 26.0, Color(1.0, 0.35, 0.15, 0.05 + float(i) * 0.03))
+		DrawBatch.circle(ci, sun, 52.0, Color("ff6a3a"))
 		Kit.clouds(ci, 0.0, v, t, 150.0, Color(0.16, 0.05, 0.08, 0.55), 31, 4.0)
 		Kit.birds(ci, v, t, 17, Color(0.05, 0.02, 0.02, 0.85), 9)   # עורבים
 	# שכבה 1: ים בוער, השמש שוקעת, ספינה טרופה, המגדלור על הכף
 	bg.add_layer(0.10, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
-		ci.draw_rect(Rect2(0, 452, v.x, 80), Color("3a1418"))
+		DrawBatch.rect(ci, Rect2(0, 452, v.x, 80), Color("3a1418"))
 		var r0 := RandomNumberGenerator.new()
 		r0.seed = 12
 		for i in 30:   # השתקפות השמש בגלים
 			var gx := v.x * 0.62 + r0.randf_range(-120.0, 120.0) * (1.0 + float(i) * 0.03)
 			var gy := 456.0 + float(i) * 2.4
 			if sin(t * 2.0 + float(i)) > -0.2:
-				ci.draw_line(Vector2(gx, gy), Vector2(gx + r0.randf_range(8.0, 24.0), gy), Color(1.0, 0.45, 0.2, 0.55), 1.5)
+				DrawBatch.line(ci, Vector2(gx, gy), Vector2(gx + r0.randf_range(8.0, 24.0), gy), Color(1.0, 0.45, 0.2, 0.55), 1.5)
 		var period := 1600.0
 		var start := int(floor(sc / period)) - 1
 		for k in range(start, start + 3):
 			var x := float(k) * period - sc
 			Decor.shipwreck(ci, Vector2(x + 300.0, 478.0), 0.9, Color("1a0a0e"))
-			ci.draw_colored_polygon(PackedVector2Array([Vector2(x + 1000, 532), Vector2(x + 1080, 470), Vector2(x + 1200, 455), Vector2(x + 1320, 470), Vector2(x + 1400, 532)]), Color("24101a"))   # הכף
+			DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(x + 1000, 532), Vector2(x + 1080, 470), Vector2(x + 1200, 455), Vector2(x + 1320, 470), Vector2(x + 1400, 532)]), Color("24101a"))   # הכף
 			var lit := maxf(0.0, sin(t * 0.55)) ** 6.0
 			Decor.lighthouse(ci, Vector2(x + 1200.0, 460.0), 120.0, t, lit))
 	# שכבה 2: דיונות ענק שבולעות את הכפר, הכנסייה הקבורה, בית הקברות
@@ -107,8 +108,8 @@ func build_background(layer: CanvasLayer) -> Node:
 				Decor.buried_church(ci, Vector2(x + 650.0, 560.0), 1.0, Color("2a1418"))
 			for q in 3:
 				var hx := x + r.randf_range(0.0, period)
-				ci.draw_rect(Rect2(hx, 535.0, r.randf_range(40.0, 70.0), 30.0), Color("301a1c"))   # גגות מבצבצים
-				ci.draw_colored_polygon(PackedVector2Array([Vector2(hx - 4, 535), Vector2(hx + 64, 535), Vector2(hx + 30, 520)]), Color("301a1c"))
+				DrawBatch.rect(ci, Rect2(hx, 535.0, r.randf_range(40.0, 70.0), 30.0), Color("301a1c"))   # גגות מבצבצים
+				DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(hx - 4, 535), Vector2(hx + 64, 535), Vector2(hx + 30, 520)]), Color("301a1c"))
 			Decor.dune(ci, x - 100.0, 600.0, 760.0, 90.0, Color("6a3a2a"))
 			Decor.dune(ci, x + 520.0, 600.0, 900.0, 70.0, Color("5a3024"))
 			for q in 5:   # צלבים על הדיונה
@@ -126,13 +127,13 @@ func build_background(layer: CanvasLayer) -> Node:
 			r.seed = k * 733 + 2
 			for q in 2:   # עץ קרנאובה מת (בלי כתר)
 				var tx := x + r.randf_range(0.0, period)
-				ci.draw_line(Vector2(tx, 640), Vector2(tx + r.randf_range(-20, 20), 420), dark, 5.0)
+				DrawBatch.line(ci, Vector2(tx, 640), Vector2(tx + r.randf_range(-20, 20), 420), dark, 5.0)
 				for b in 3:
 					var by := 440.0 + float(b) * 12.0
-					ci.draw_line(Vector2(tx, by), Vector2(tx + (16.0 if b % 2 == 0 else -16.0), by - 10.0 + sin(t + float(b)) * 2.0), dark, 2.0)
+					DrawBatch.line(ci, Vector2(tx, by), Vector2(tx + (16.0 if b % 2 == 0 else -16.0), by - 10.0 + sin(t + float(b)) * 2.0), dark, 2.0)
 			for q in 6:   # עמודי גדר שבורים
 				var fx := x + 500.0 + float(q) * 30.0
-				ci.draw_line(Vector2(fx, 640), Vector2(fx + r.randf_range(-6, 6), 590.0 + r.randf_range(-10, 10)), dark, 3.0)
+				DrawBatch.line(ci, Vector2(fx, 640), Vector2(fx + r.randf_range(-6, 6), 590.0 + r.randf_range(-10, 10)), dark, 3.0)
 		Kit.ground_fade(ci, v, 575.0))
 	layer.add_child(bg)
 	return bg

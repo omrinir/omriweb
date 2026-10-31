@@ -15,6 +15,7 @@ const LeavesScript := preload("res://leaves.gd")
 const ZombieScene := preload("res://zombie.tscn")
 const HudScript := preload("res://hud.gd")
 const CameraScript := preload("res://shake_camera.gd")
+const SmoothMotion := preload("res://effects/smooth_motion.gd")
 const LevelClock := preload("res://progression/level_clock.gd")
 const PropScript := preload("res://prop.gd")
 const StreetPropScript := preload("res://street_prop.gd")
@@ -35,6 +36,9 @@ const CEIL_Y := 250.0   # רכבת תחתית: גובה התקרה
 const SUBWAY_WEIGHTS := [0.25, 0.14, 0.08, 0.08, 0.05, 0.0, 0.07, 0.0, 0.1, 0.1, 0.12, 0.07]
 const SUBWAY_GENS := [["train", 3.0], ["crates", 1.5], ["barrels", 1.5], ["barrier", 1.0], ["rubble", 1.0], ["block", 1.0], ["sandbags", 1.0]]
 const FogScript := preload("res://fog.gd")
+const MistScript := preload("res://effects/toxic_mist.gd")   # ערפל אפור-בהיר שזז כשעוברים בו
+const DarkEyes := preload("res://effects/dark_eyes.gd")   # עיניים בחושך (שלבים חשוכים)
+const MIST_LEVELS := {2: [1.0, "green"], 4: [0.55, "gray"]}   # שלב -> [עובי, צבע (toxic_mist.gd COLORS)]
 const PauseScript := preload("res://pause_menu.gd")
 const SurvivorScript := preload("res://survivor.gd")
 const WeaponDB := preload("res://weapons/weapon_db.gd")
@@ -48,6 +52,8 @@ const ExitScript := preload("res://exit.gd")
 const ResultsScript := preload("res://results.gd")
 const SquadScript := preload("res://ai/squad_director.gd")
 const StageRegistry := preload("res://levels/stage_registry.gd")   # שלבים 5-9: levels/stage_N.gd
+const MusicDB := preload("res://music_db.gd")
+const LevelEvents := preload("res://levels/level_events.gd")
 var _stage: Node = null
 
 @export_group("Level")
@@ -104,12 +110,18 @@ var _time := 0.0
 var clock_paused := false   # סצנת סיפור: שעון השלב עוצר (progression/level_clock.gd)
 var _player: Node
 var _pause: Node
+var _event: Node = null   # HOLD / ESCAPE / RESCUE של השלב (levels/level_events.gd), אם יש
 var _finished := false
 var _gens: Array = GENERATORS
 
 
+func _on_node_added(n: Node) -> void:
+	SmoothMotion.on_node_added(n)
+
+
 func _ready() -> void:
 	get_tree().paused = false
+	get_tree().node_added.connect(_on_node_added)   # תנועה חלקה (effects/smooth_motion.gd)
 	Sfx.warm_up()   # מייצר את כל הצלילים פעם אחת
 	# רמת הקושי מהתפריט
 	var diff: Dictionary = Settings.preset()
@@ -136,8 +148,10 @@ func _ready() -> void:
 		zombies_per_screen *= _stage.zombie_density()
 	_start_music()
 	zombies_per_screen *= 1.0 + 0.15 * float(mini(Game.level, 5) - 1)
+	zombies_per_screen *= Game.harder()   # שלבים 1-57: +25% זומבים
 	if _stage == null:
 		zombie_weights[2] += 0.04 * float(Game.level - 1)
+	_custom_weights()
 	var vp := get_viewport_rect().size
 	level_w = vp.x * float(maxi(level_screens, 8))
 	Game.clock_pars = LevelClock.pars(Game.level, level_w, Settings.difficulty)
@@ -218,12 +232,24 @@ func _ready() -> void:
 	add_child(preload("res://ui/monologue.gd").new())
 	# מד רצף הריגות מהיר מעל השחקן (ui/kill_streak.gd)
 	add_child(preload("res://ui/kill_streak.gd").new())
+	# חץ אדום בקצה המסך: זומבי עומד להגיע אליך מחוץ למסך (ui/threat_arrows.gd)
+	var arrows = preload("res://ui/threat_arrows.gd").new()
+	arrows.main = self
+	add_child(arrows)
 	# שלב חשוך: טיפ לפנס (4 שניות, אחרי כותרת השלב)
 	if Game.is_night() or Game.is_subway() or (_stage != null and _stage.dark_level()):
 		var tip = preload("res://ui/tip_banner.gd").new()
 		tip.seconds = 4.0
 		tip.sub = "Press E until FLASHLIGHT is picked, then C to turn it on"
 		add_child(tip)
+		# מדי פעם עיניים זוהרות בחושך (effects/dark_eyes.gd). שכבה 1 + אחרון בין הילדים = מעל שכבות החושך
+		var el := CanvasLayer.new()
+		el.layer = 1
+		el.follow_viewport_enabled = true
+		var eyes = DarkEyes.new()
+		eyes.main = self
+		el.add_child(eyes)
+		add_child.call_deferred(el)
 
 	# "המפקד הנסתר": תורות התקפה, תקשורת, פקודות (ai/squad_director.gd)
 	var squad = SquadScript.new()
@@ -258,6 +284,9 @@ func _ready() -> void:
 	player.world_w = level_w
 	if Game.use_checkpoint and int(Game.checkpoint.get("level", -1)) == Game.level:   # TRY AGAIN / CONTINUE מנקודת הביקורת
 		_start_at_checkpoint(player)
+	# חימום shader של ריסוס הדם עכשיו, ולא בהריגה הראשונה (effects/flesh_fx.gd -> prewarm)
+	preload("res://effects/flesh_fx.gd").prewarm(self, player.position + Vector2(160.0, -60.0))
+	preload("res://effects/boom_fx.gd").prewarm(self)   # ככה גם לפיצוץ הראשון (אור מצטבר)
 
 	# מצלמה שעוקבת אחרי השחקן ונעצרת בקצוות הרמה
 	if TouchAPI.on():
@@ -284,8 +313,12 @@ func _ready() -> void:
 	fog_layer.visible = _stage == null or (_stage.fog() and _stage.underground_depth() <= 0.0)
 	fog_layer.layer = 1
 	add_child(fog_layer)
-	var fog = FogScript.new()
+	var fog = MistScript.new() if MIST_LEVELS.has(Game.level) else FogScript.new()   # שלבים 2, 4: ערפל שזז כשעוברים בו
 	fog.y_screen = vp.y - (vp.y - floor_y) * camera_zoom - 6.0
+	if MIST_LEVELS.has(Game.level):
+		fog.zoom = camera_zoom
+		fog.thick = MIST_LEVELS[Game.level][0]
+		fog.tint = MIST_LEVELS[Game.level][1]
 	fog_layer.add_child(fog)
 
 	# טקסט עזרה + לבבות
@@ -293,9 +326,9 @@ func _ready() -> void:
 	hud.layer = 2
 	add_child(hud)
 	var label := Label.new()
-	label.text = "A/D move (x2 run)  W jump/climb  S crouch (SxS drop)  LMB fire  R reload  Q wheel  1-5  C use power  E next power  G drop  SHIFT roll  RMB scope  L aim"
+	label.text = PauseScript.CONTROLS
 	label.position = Vector2(12, 8)
-	label.visible = not TouchAPI.on()   # טלפון: אין מקלדת
+	label.visible = not TouchAPI.on() and Game.level <= PauseScript.SHOW_CONTROLS_UNTIL   # טלפון: אין מקלדת. אחרי שלב 3: ESC מציג אותם
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	label.add_theme_constant_override("shadow_offset_x", 1)
@@ -324,6 +357,12 @@ func _ready() -> void:
 	var wheel = WheelScript.new()   # גלגל נשקים (TAB)
 	wheel.player = player
 	hud.add_child(wheel)
+	# מצלמת קליע לצלף: לפעמים (1-2 בשלב) הזמן נעצר והמצלמה עוקבת אחרי הקליע עד ההריגה. ה-HUD דועך בזמן הזה
+	for n in [label, bar, xh, wheel]:
+		n.add_to_group("cine_hide")
+	var bcam = preload("res://effects/bullet_cam.gd").new()
+	bcam.main = self
+	add_child(bcam)
 	# קיר שקוף: מי שרץ קדימה ומשאיר 4+ זומבים ערים מאחור - חייב להרוג אותם (environment/pass_barrier.gd)
 	var barrier = preload("res://environment/pass_barrier.gd").new()
 	barrier.main = self
@@ -335,6 +374,20 @@ func _ready() -> void:
 		pace.floor_y = floor_y
 		pace.budget = int(round(float(level_screens) * zombies_per_screen * pace.BUDGET_SHARE))
 		add_child(pace)
+		# מאחור: מדי פעם זומבי מתגנב מאחורי השחקן כשהוא עסוק קדימה (levels/flank_director.gd)
+		var flank = preload("res://levels/flank_director.gd").new()
+		flank.main = self
+		flank.floor_y = floor_y
+		add_child(flank)
+	# סוג שלב מיוחד: HOLD / ESCAPE / RESCUE (levels/level_events.gd)
+	var ev = LevelEvents.make(Game.level)
+	if ev != null:
+		_event = ev
+		ev.main = self
+		ev.floor_y = floor_y
+		ev.hud_layer = hud
+		add_child(ev)
+		ev.start()
 	# סצנות סיפור בתוך השלב (story/story_db.gd): דמות עומדת בשלב, מגיעים אליה -> שיחה. פעם אחת בכל משחק של השלב
 	for sc in preload("res://story/story_db.gd").for_level(Game.level):
 		if not Game.story_seen.has(sc.id):
@@ -929,6 +982,16 @@ func _streety() -> bool:
 	return Game.is_street() or (_stage != null and _stage.street_props())
 
 
+# דמויות מ-CHARACTER MAKER (characters/saved/*.tres) שסימנו להן את השלב הזה (levels / share),
+# ובדיקה מהעורך (TRY IN LEVEL: Game.custom_test - הדמות שבבדיקה, גם לפני שנשמרה)
+func _custom_weights() -> void:
+	var cc: GDScript = preload("res://enemies/zombie_registry.gd").custom()
+	var test: Dictionary = Game.custom_test
+	if not test.is_empty() and test.get("preset") != null:
+		cc.live[int(test.kind)] = test.preset
+	cc.add_weights(zombie_weights, Game.level, test)
+
+
 # {kind: weight} -> מערך לפי מספר סוג (כמו zombie_weights)
 func _weights_array(d: Dictionary) -> Array:
 	var mx := 0
@@ -963,7 +1026,8 @@ func _pick_kind(rng: RandomNumberGenerator) -> int:
 
 func _start_at_checkpoint(player: Node2D) -> void:
 	var cp: Dictionary = Game.checkpoint
-	player.position.x = _checkpoint.position.x + 30.0
+	var at_hold: bool = cp.has("hold")   # מתת ב-HOLD THE LINE: מתחילים ממש לפני הזירה (levels/events/hold.gd)
+	player.position.x = float(cp.x) if at_hold else _checkpoint.position.x + 30.0
 	_time = float(cp.get("time", 0.0))   # השעון ממשיך מנקודת הביקורת
 	Game.level_time = _time
 	player.slots = (cp.slots as Array).duplicate(true)
@@ -973,7 +1037,8 @@ func _start_at_checkpoint(player: Node2D) -> void:
 		if player.slots[i] != null:
 			player.cur_slot = i
 			break
-	_checkpoint.set_reached()
+	if not at_hold:   # נקודת הביקורת שבאמצע עוד לפניך - תשמור כשתעבור אותה
+		_checkpoint.set_reached()
 	var gx := 0   # מתנות ההתקדמות שעוד לא נלקחו (נשק חדש / MOD) עוברות לנקודת הביקורת
 	for pk in get_tree().get_nodes_in_group("pickups"):
 		if pk.gift and pk.global_position.x < player.position.x:
@@ -1040,6 +1105,14 @@ func _spawn_supplies(_rng: RandomNumberGenerator, floor_y: float) -> void:
 		lz.life = 100000.0
 		add_child(lz)
 		lz.setup(Vector2(get_viewport_rect().size.x * 0.12 + 280.0, floor_y - 30.0), Vector2.ZERO)
+	# בדיקה: SPIRIT TIGER בתחילת שלב Arsenal.TEST_TIGER_LEVEL
+	if Game.level == Arsenal.TEST_TIGER_LEVEL:
+		var tg = PickupScript.new()
+		tg.kind = PickupScript.SPECIAL
+		tg.special = "tiger"
+		tg.life = 100000.0
+		add_child(tg)
+		tg.setup(Vector2(_free_spot(get_viewport_rect().size.x * 0.12 + 220.0), floor_y - 30.0), Vector2.ZERO)
 	# שיקוי GOD MODE: שלב 3, ואז כל 2-3 שלבים - באמצע השלב, שם יש זומבים (progression/arsenal.gd)
 	if Arsenal.has_potion(Game.level):
 		var pot = PickupScript.new()
@@ -1133,9 +1206,11 @@ func _make_exit(floor_y: float) -> void:
 	if _stage != null:
 		boss.kind = _stage.boss_kind()
 	boss.position = Vector2(level_w - 480.0, floor_y)
+	if LevelEvents.mid_boss(Game.level):   # הבוס באמצע השלב, והשער נפתח כשהוא מת (levels/level_events.gd)
+		boss.position.x = _free_spot(level_w * LevelEvents.MID_BOSS_AT)
 	boss.chase_range = 650.0
 	var diff: Dictionary = Settings.preset()
-	boss.speed_mult = diff.zombie_speed
+	boss.speed_mult = diff.zombie_speed * (1.0 + 0.4 * (Game.harder() - 1.0))
 	add_child(boss)
 	boss.world_w = level_w
 	boss._dir = -1.0
@@ -1144,11 +1219,13 @@ func _make_exit(floor_y: float) -> void:
 # מוזיקת רקע: שלב רחוב = TOTAL WAR, רכבת תחתית = מתח ואימה. מתנגנת בלופ ונכנסת בהדרגה
 @export var music_volume_db := -7.0   # היה -14: המוזיקה נבלעה מתחת ליריות
 func _start_music() -> void:
+	Settings.menu_music(false)
 	var path := "res://music/level2_suspense.mp3" if Game.is_subway() or Game.is_night() else "res://music/level1_total_war.mp3"
 	if Game.level == 1:
 		path = "res://music/level1_zombie_joyride.ogg"   # "Zombie Joyride" (EDM). OGG = קובץ קטן בערך פי 2.5 מ-MP3 באותה איכות
 	if _stage != null:
 		path = _stage.music()
+	path = MusicDB.level_track(Game.level, path)   # שיר לכל אזור (music_db.gd)
 	if path == "":   # השלב מנגן בעצמו (למשל התזמורת של שלב 32)
 		return
 	var stream := _load_music(path)
@@ -1159,40 +1236,97 @@ func _start_music() -> void:
 		print("[MUSIC] music volume is 0 in the settings (pause menu) - you won't hear ", path)
 	else:
 		print("[MUSIC] playing ", path)
+	if _mood == null:   # המוזיקה מגיבה לסכנה (effects/music_mood.gd)
+		_mood = MusicMood.new()
+		_mood.main = self
+		add_child(_mood)
 	var mp := AudioStreamPlayer.new()
-	mp.bus = "Music"   # עוצמה: Settings.music_volume
+	mp.bus = MusicMood.BUS   # -> "Music". עוצמה: Settings.music_volume
 	mp.stream = stream
 	mp.volume_db = -40.0
 	mp.process_mode = Node.PROCESS_MODE_ALWAYS   # ממשיכה גם בהשהיה
 	add_child(mp)
 	mp.play()
 	create_tween().tween_property(mp, "volume_db", music_volume_db, 2.5)
+	_music = mp
 
 
-# טוען מוזיקה. אם העורך עוד לא ייבא את הקובץ - קוראים אותו ישירות (OGG / MP3)
+# ---- מוזיקת בוס: בוס חי קרוב (כמו בר החיים ב-hud.gd) -> BOSS, מת -> חזרה לשיר של השלב ----
+var _music: AudioStreamPlayer = null
+var _boss_music: AudioStreamPlayer = null
+var _boss_check := 0.0
+var _boss_hush := 0.0          # השקט שלפני הבוס: כמה שניות כבר (עד BOSS_HUSH_MAX, פעם אחת לכל בוס)
+const BOSS_HUSH_X := 1350.0    # בוס שעוד לא פגשת קרוב מזה (אבל לא ב-900): המוזיקה נסוגה לשקט
+const BOSS_HUSH_MAX := 3.0
+
+func _update_boss_music(delta: float) -> void:
+	_boss_check -= delta
+	if _boss_check > 0.0 or _music == null or not MusicDB.exists(MusicDB.BOSS):
+		return
+	_boss_check = 0.5
+	var near: Node = null
+	var ahead := false
+	if _player != null and not _player.dead:
+		for z in get_tree().get_nodes_in_group("zombies"):
+			if z.is_boss() and z.hp > 0:
+				var bd: float = absf(z.global_position.x - _player.global_position.x)
+				if bd < 900.0:
+					near = z
+					break
+				ahead = ahead or (bd < BOSS_HUSH_X and not z.has_meta("boss_met"))
+	var on: bool = _boss_music != null and bool(_boss_music.get_meta("on", false))
+	if ahead and near == null and not on and _boss_hush < BOSS_HUSH_MAX:
+		_boss_hush += 0.5
+		music_hush(0.6)
+	if (near != null) == on:
+		return
+	if _boss_music == null:
+		_boss_music = AudioStreamPlayer.new()
+		_boss_music.bus = MusicMood.BUS
+		_boss_music.stream = MusicDB.load_stream(MusicDB.BOSS)
+		_boss_music.volume_db = -40.0
+		_boss_music.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(_boss_music)
+	_boss_music.set_meta("on", near != null)
+	var tw := create_tween().set_parallel(true)
+	if near != null:
+		near.set_meta("boss_met", true)
+		if not _boss_music.playing:
+			_boss_music.play()
+		if _boss_hush > 0.0:   # אחרי השקט: הבוס נכנס על שקט (בלי שהשיר של השלב חוזר לרגע)
+			_music.volume_db = -40.0
+			music_hit()
+		_boss_hush = 0.0
+		tw.tween_property(_boss_music, "volume_db", music_volume_db, 1.2)
+		tw.tween_property(_music, "volume_db", -40.0, 1.2)
+	else:
+		tw.tween_property(_boss_music, "volume_db", -40.0, 2.5)
+		tw.tween_property(_music, "volume_db", music_volume_db, 2.5)
+
+
+# ---- המוזיקה מגיבה לסכנה (effects/music_mood.gd). levels/events: hush = השקט שלפני, hit = זה התחיל ----
+const MusicMood := preload("res://effects/music_mood.gd")
+var _mood: Node = null
+
+func music_hush(t := 0.15) -> void:
+	if _mood != null:
+		_mood.hush(t)
+
+func music_hit() -> void:
+	if _mood != null:
+		_mood.hit()
+
+func music_hot(t := 1.0) -> void:
+	if _mood != null:
+		_mood.hot(t)
+
+
+# טוען מוזיקה בלופ (music_db.gd)
 func _load_music(path: String) -> AudioStream:
-	var stream: AudioStream = null
-	if OS.has_feature("mobile"):   # טלפון: גרסה קלה של המוזיקה (music/mobile/*.ogg 64k - רק בבניית אנדרואיד, כדי שה-APK יהיה קטן)
-		var light := "res://music/mobile/" + path.get_file().get_basename() + ".ogg"
-		if ResourceLoader.exists(light):
-			path = light
-	if ResourceLoader.exists(path):
-		stream = load(path) as AudioStream
-	if stream == null and FileAccess.file_exists(path):
-		if path.ends_with(".ogg"):
-			stream = AudioStreamOggVorbis.load_from_file(path)
-		elif path.ends_with(".mp3"):
-			var mp3 := AudioStreamMP3.new()
-			mp3.data = FileAccess.get_file_as_bytes(path)
-			stream = mp3
-	if stream is AudioStreamMP3:
-		(stream as AudioStreamMP3).loop = true
-	elif stream is AudioStreamOggVorbis:
-		(stream as AudioStreamOggVorbis).loop = true
-	return stream
-
+	return MusicDB.load_stream(path)
 
 func _process(delta: float) -> void:
+	_update_boss_music(delta)
 	if not _finished and _player != null and not _player.dead and not clock_paused:
 		_time += delta
 		Game.level_time = _time
@@ -1221,7 +1355,7 @@ func _spawn_zombie(x: float, floor_y: float, kind := 0, rng: RandomNumberGenerat
 	var z = ZombieScene.instantiate()
 	z.kind = kind   # 0 = רגיל, 1 = רץ, 2 = ענק, 3 = יורק, 4 = צורח ... (ראה zombie.gd)
 	var diff: Dictionary = Settings.preset()
-	z.speed_mult = diff.zombie_speed
+	z.speed_mult = diff.zombie_speed * (1.0 + 0.4 * (Game.harder() - 1.0))   # שלבים 1-57: +10% מהירות
 	z.smart_mult = diff.smart * Game.intelligence()   # THEY LEARN: חכמים יותר בכל שלב
 	if rng != null and rng.randf() < dormant_chance and kind < 7:
 		z.dormant = true   # שוכב על הריצפה וקם כשמתקרבים

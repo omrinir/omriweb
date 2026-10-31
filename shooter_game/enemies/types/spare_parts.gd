@@ -239,7 +239,7 @@ func _stitches(a: Vector2, b: Vector2) -> void:
 	var n := Vector2(-d.y, d.x)
 	for i in 3:
 		var c := a.lerp(b, 0.3 + float(i) * 0.2)
-		z.draw_line(c - n * 2.0, c + n * 2.0, Color(0.15, 0.1, 0.1), 0.8)
+		DrawBatch.line(z, c - n * 2.0, c + n * 2.0, Color(0.15, 0.1, 0.1), 0.8)
 
 
 func _draw_standing(sk: Color, shirt: Color, pa: Color, blood: Color, rip_k: float) -> void:
@@ -263,14 +263,14 @@ func _draw_standing(sk: Color, shirt: Color, pa: Color, blood: Color, rip_k: flo
 	Art.oval(z, hip + Vector2(-2.5, -2.0), 2.2, 1.6, Color(0.45, 0.35, 0.2, 0.45), 0.0, Art.NONE)
 	Art.fill(z, PackedVector2Array([hip + Vector2(1.0, -9.0), hip + Vector2(5.5, -10.0), hip + Vector2(5.0, -4.0), hip + Vector2(2.0, -5.0)]), Art.shade(sk, 0.1), Art.NONE)
 	_stitches(hip + Vector2(2.2, -8.8), hip + Vector2(4.6, -4.8))
-	z.draw_line(sh + Vector2(-6.0, 1.0), hip + Vector2(-5.0, 1.0), Color(0, 0, 0, 0.22), 1.6)
+	DrawBatch.line(z, sh + Vector2(-6.0, 1.0), hip + Vector2(-5.0, 1.0), Color(0, 0, 0, 0.22), 1.6)
 	_stitches(sh + Vector2(-5, 2), sh + Vector2(5, 3))
 	_head(head, sk)
 	if has_hand:
 		z._arm(sh + Vector2(2, 2), front_hand, sk, shirt)
 		if state == RIP_HAND and rip_k > 0.4:
 			for i in 3:
-				z.draw_line(front_hand, front_hand + Vector2(randf_range(-2, 4), randf_range(1, 6)), blood, 1.2)
+				DrawBatch.line(z, front_hand, front_hand + Vector2(randf_range(-2, 4), randf_range(1, 6)), blood, 1.2)
 	else:
 		_stump(sh + Vector2(2, 2), sh + Vector2(9.0, 7.0), sk, blood)
 
@@ -294,7 +294,7 @@ func _draw_sitting(sk: Color, shirt: Color, pa: Color, blood: Color, rip_k: floa
 		Art.fill(z, PackedVector2Array([foot + Vector2(-2, -4), foot + Vector2(3, -4), foot + Vector2(4, 1), foot + Vector2(-2, 1)]), col(z.shoe), Art.OUTLINE, 1.0)
 		if pulling and i == legs - 1 and rip_k > 0.5:
 			for q in 3:
-				z.draw_line(hip + Vector2(3, 0), hip + Vector2(3, 0) + Vector2(randf_range(-3, 5), randf_range(-1, 5)), blood, 1.2)
+				DrawBatch.line(z, hip + Vector2(3, 0), hip + Vector2(3, 0) + Vector2(randf_range(-3, 5), randf_range(-1, 5)), blood, 1.2)
 	var body := PackedVector2Array([sh + Vector2(-6, -2), sh + Vector2(6, -1), hip + Vector2(6, -1), hip + Vector2(4, 3), hip + Vector2(-5, 3), sh + Vector2(-7, 5)])
 	Art.fill_shaded(z, body, shirt, 0.15, 0.35)
 	_head(head, sk)
@@ -317,7 +317,7 @@ func _draw_crawling(sk: Color, shirt: Color, pa: Color, blood: Color, t: float) 
 	Art.disc(z, hip + Vector2(-1, 3), 3.0, blood, Art.NONE)
 	var body := PackedVector2Array([hip + Vector2(-5, -5), sh + Vector2(2, -5), sh + Vector2(3, 5), hip + Vector2(-5, 5)])
 	Art.fill_shaded(z, body, shirt, 0.15, 0.35)
-	z.draw_line(hip + Vector2(-5, -1), hip + Vector2(-20, 0), Color(0.45, 0.03, 0.05, 0.7), 2.0)   # שובל דם
+	DrawBatch.line(z, hip + Vector2(-5, -1), hip + Vector2(-20, 0), Color(0.45, 0.03, 0.05, 0.7), 2.0)   # שובל דם
 	_stump(sh + Vector2(0, 3), sh + Vector2(-3, 8), sk, blood)
 	var hand := sh + Vector2(14.0 + pull * 5.0, 9.0)
 	if state == HOLD:
@@ -330,18 +330,18 @@ func _head(head: Vector2, sk: Color) -> void:
 	Art.oval_shaded(z, head, 5.6, 6.2, sk, 0.1)
 	# טלאי עור בצבע אחר שנתפר על הגולגולת ("חלקי חילוף")
 	Art.fill(z, PackedVector2Array([head + Vector2(-5.4, -1.0), head + Vector2(-1.0, -5.6), head + Vector2(-3.6, -5.2), head + Vector2(-5.6, -3.0)]), col(Color("b89a86")), Art.NONE)
-	z.draw_line(head + Vector2(-5, -1), head + Vector2(-1, -5), Color(0.15, 0.1, 0.1), 0.8)   # תפר בקרקפת
+	DrawBatch.line(z, head + Vector2(-5, -1), head + Vector2(-1, -5), Color(0.15, 0.1, 0.1), 0.8)   # תפר בקרקפת
 	_stitches(head + Vector2(-5, -1), head + Vector2(-1, -5))
 	Art.oval(z, head + Vector2(2.8, -0.8), 2.3, 1.8, Color(0.12, 0.0, 0.04, 0.5), 0.0, Art.NONE)   # ארובה שקועה
 	if not z.dead:
 		Art.glow(z, head + Vector2(3.0, -1.0), 3.2, Color(0.95, 0.85, 0.4, 0.55))
-	z.draw_circle(head + Vector2(3.0, -1.0), 1.1, Color(0.9, 0.85, 0.5) if not z.dead else Color("2a2a2a"))
-	z.draw_line(head + Vector2(-0.4, -2.2), head + Vector2(1.0, -0.4), Color(0.15, 0.1, 0.1), 0.7)   # עין תפורה (X)
-	z.draw_line(head + Vector2(-0.4, -0.4), head + Vector2(1.0, -2.2), Color(0.15, 0.1, 0.1), 0.7)
+	DrawBatch.circle(z, head + Vector2(3.0, -1.0), 1.1, Color(0.9, 0.85, 0.5) if not z.dead else Color("2a2a2a"))
+	DrawBatch.line(z, head + Vector2(-0.4, -2.2), head + Vector2(1.0, -0.4), Color(0.15, 0.1, 0.1), 0.7)   # עין תפורה (X)
+	DrawBatch.line(z, head + Vector2(-0.4, -0.4), head + Vector2(1.0, -2.2), Color(0.15, 0.1, 0.1), 0.7)
 	# לסת עם שיניים + ריר דם
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(0.8, 2.4), head + Vector2(5.4, 2.4), head + Vector2(4.8, 5.0), head + Vector2(1.2, 4.6)]), Color("2a0a0c"))
-	z.draw_line(head + Vector2(1.4, 2.8), head + Vector2(5.0, 2.8), Color("ddd4b0"), 0.8)
-	z.draw_line(head + Vector2(2.0, 4.8), head + Vector2(1.8, 7.0), Color(0.5, 0.03, 0.05, 0.9), 1.0)
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(0.8, 2.4), head + Vector2(5.4, 2.4), head + Vector2(4.8, 5.0), head + Vector2(1.2, 4.6)]), Color("2a0a0c"))
+	DrawBatch.line(z, head + Vector2(1.4, 2.8), head + Vector2(5.0, 2.8), Color("ddd4b0"), 0.8)
+	DrawBatch.line(z, head + Vector2(2.0, 4.8), head + Vector2(1.8, 7.0), Color(0.5, 0.03, 0.05, 0.9), 1.0)
 	Art.disc(z, head + Vector2(-2.6, 0.8), 1.5, Art.shade(sk, 0.15), Art.OUTLINE, 0.7)   # אוזן
 
 

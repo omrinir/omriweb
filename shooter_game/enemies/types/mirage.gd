@@ -242,12 +242,12 @@ func draw() -> bool:
 			_cast_shadow()
 		for p in _dust:
 			var k: float = p[1] / 0.6
-			z.draw_circle(p[0] + Vector2(-z._dir * k * 10.0, -k * 6.0), 2.5 + k * 5.0, Color(0.85, 0.75, 0.58, 0.45 * (1.0 - k)))
+			DrawBatch.circle(z, p[0] + Vector2(-z._dir * k * 10.0, -k * 6.0), 2.5 + k * 5.0, Color(0.85, 0.75, 0.58, 0.45 * (1.0 - k)))
 	z.modulate.a = a
 	if is_copy:   # אוויר רועד: כל הגוף זז קצת הצידה בגלים
 		var wob := sin(z._time * 11.0 + _seed) * 1.2
 		var s := Vector2(z._dir * z.wf * z.sc, z.sc)
-		z.draw_set_transform(Vector2(wob, 0.0), sin(z._time * 7.0 + _seed) * 0.02, s)
+		DrawBatch.set_transform(z, Vector2(wob, 0.0), sin(z._time * 7.0 + _seed) * 0.02, s)
 	else:
 		begin_draw(false)
 	_body()
@@ -264,16 +264,16 @@ func _extras() -> void:   # לבוס: כתר עצמות וכו'
 # טרנספורם: נקודה בגובה y מעל הרגליים -> זזה שמאלה (0.85*y) ויורדת אל פס הקרקע (0.24*y)
 func _cast_shadow() -> void:
 	var sc: float = z.sc
-	z.draw_set_transform_matrix(Transform2D(Vector2(z.wf * sc, 0.0), Vector2(0.85 * sc, -0.24 * sc), Vector2(0.0, 1.0)))
+	DrawBatch.set_transform_matrix(z, Transform2D(Vector2(z.wf * sc, 0.0), Vector2(0.85 * sc, -0.24 * sc), Vector2(0.0, 1.0)))
 	var c := SHADOW_COL
-	z.draw_colored_polygon(Art.ellipse(Vector2(0.0, -2.0), 9.0, 3.0, 0.0, 10), c)
-	z.draw_line(Vector2(-3.0, 0.0), Vector2(-1.0, -25.0), c, 4.5)   # רגליים
-	z.draw_line(Vector2(3.0, 0.0), Vector2(1.0, -25.0), c, 4.5)
-	z.draw_colored_polygon(Art.ellipse(Vector2(0.0, -35.0), 8.0, 12.0, 0.0, 12), c)   # גוף
-	z.draw_circle(Vector2(3.0, -52.0), 7.0, c)   # ראש
-	z.draw_line(Vector2(-6.0, -40.0), Vector2(-9.0, -26.0), c, 3.5)   # ידיים
-	z.draw_line(Vector2(6.0, -40.0), Vector2(10.0, -27.0), c, 3.5)
-	z.draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.colored_polygon(z, Art.ellipse(Vector2(0.0, -2.0), 9.0, 3.0, 0.0, 10), c)
+	DrawBatch.line(z, Vector2(-3.0, 0.0), Vector2(-1.0, -25.0), c, 4.5)   # רגליים
+	DrawBatch.line(z, Vector2(3.0, 0.0), Vector2(1.0, -25.0), c, 4.5)
+	DrawBatch.colored_polygon(z, Art.ellipse(Vector2(0.0, -35.0), 8.0, 12.0, 0.0, 12), c)   # גוף
+	DrawBatch.circle(z, Vector2(3.0, -52.0), 7.0, c)   # ראש
+	DrawBatch.line(z, Vector2(-6.0, -40.0), Vector2(-9.0, -26.0), c, 3.5)   # ידיים
+	DrawBatch.line(z, Vector2(6.0, -40.0), Vector2(10.0, -27.0), c, 3.5)
+	DrawBatch.set_transform_matrix(z, Transform2D.IDENTITY)
 
 
 func _body() -> void:
@@ -302,8 +302,8 @@ func _body() -> void:
 	var robe := PackedVector2Array([sh + Vector2(-7.5, -1.0), sh + Vector2(6.5, 0.0), hip + Vector2(6.0, 4.0),
 		hip + Vector2(5.0 - wind * 0.3, 11.0), hip + Vector2(1.0, 8.0), hip + Vector2(-2.5 - wind * 0.5, 12.5), hip + Vector2(-6.5 - wind, 9.0), hip + Vector2(-7.0, 2.0)])
 	Art.fill_shaded(z, robe, rag, 0.12, 0.35, Art.OUTLINE, 1.2)
-	z.draw_line(sh + Vector2(-1.0, 2.0), hip + Vector2(0.0, 4.0), col(Art.shade(z.shirt, 0.3)), 1.0)   # קפל
-	z.draw_line(hip + Vector2(-6.5, 0.5), hip + Vector2(6.0, 1.5), col(Color("6a5238")), 1.6)   # חבל במותן
+	DrawBatch.line(z, sh + Vector2(-1.0, 2.0), hip + Vector2(0.0, 4.0), col(Art.shade(z.shirt, 0.3)), 1.0)   # קפל
+	DrawBatch.line(z, hip + Vector2(-6.5, 0.5), hip + Vector2(6.0, 1.5), col(Color("6a5238")), 1.6)   # חבל במותן
 	for i in 3:   # טלאים וכתמי זיעה/חול
 		Art.oval(z, sh.lerp(hip, 0.3 + 0.2 * float(i)) + Vector2(-2.0 + float(i) * 2.5, 2.0), 2.2, 1.4, Color(0.55, 0.45, 0.3, 0.25), 0.3, Art.NONE)
 	# צוואר וראש עטוף
@@ -311,19 +311,19 @@ func _body() -> void:
 	var wrap := rag.lerp(col(Color("e8dcc0")), 0.3)
 	Art.oval(z, head + Vector2(-1.5, -1.0), 8.0, 8.4, wrap, 0.1)   # כיסוי ראש
 	Art.oval_shaded(z, head + Vector2(1.5, 0.5), 5.4, 5.6, sk, 0.0, Art.OUTLINE, 1.0)   # פנים
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-2.0, 1.5), head + Vector2(7.0, 1.0), head + Vector2(6.0, 6.5), head + Vector2(-1.0, 7.0)]), wrap)   # צעיף על הפה
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-2.0, 1.5), head + Vector2(7.0, 1.0), head + Vector2(6.0, 6.5), head + Vector2(-1.0, 7.0)]), wrap)   # צעיף על הפה
 	var tail := PackedVector2Array([head + Vector2(-7.0, -1.0), head + Vector2(-13.0 - wind, 4.0), head + Vector2(-16.0 - wind * 1.6, 10.0 + wind * 0.5)])
 	Art.limb(z, tail, 2.6, wrap)   # קצה הצעיף מתנופף מאחור
-	z.draw_line(head + Vector2(0.5, -1.5), head + Vector2(5.5, -1.5), col(Color("6a5238")), 1.0)   # קו כיסוי מעל העיניים
+	DrawBatch.line(z, head + Vector2(0.5, -1.5), head + Vector2(5.5, -1.5), col(Color("6a5238")), 1.0)   # קו כיסוי מעל העיניים
 	for e in 2:   # עיניים חיוורות זוהרות
 		var ep := head + Vector2(2.5 + float(e) * 2.8, 0.0)
 		Art.glow(z, ep, 3.0, Color(0.9, 0.95, 1.0, 0.35))
-		z.draw_circle(ep, 0.9, Color(0.95, 0.97, 1.0))
-	z.draw_line(head + Vector2(3.0, -5.0), head + Vector2(4.5, -3.0), Color(0.3, 0.2, 0.1, 0.5), 0.6)   # סדק בעור
+		DrawBatch.circle(z, ep, 0.9, Color(0.95, 0.97, 1.0))
+	DrawBatch.line(z, head + Vector2(3.0, -5.0), head + Vector2(4.5, -3.0), Color(0.3, 0.2, 0.1, 0.5), 0.6)   # סדק בעור
 	# יד קדמית: אצבעות ארוכות ויבשות
 	z._arm(sh + Vector2(2.0, 1.0), fh, sk, rag)
 	for i in 3:
-		z.draw_line(fh, fh + Vector2.from_angle(0.5 + float(i) * 0.4) * 3.5, sk2, 0.8)
+		DrawBatch.line(z, fh, fh + Vector2.from_angle(0.5 + float(i) * 0.4) * 3.5, sk2, 0.8)
 
 
 # ============================================================
@@ -345,15 +345,20 @@ class Shimmer extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := t / 0.55
 		for i in 5:
 			var y := (-8.0 - float(i) * 10.0) * sc
 			var w := (10.0 + k * 22.0) * sc
 			var off := sin(t * 30.0 + float(i) * 1.7) * 4.0 * k
-			draw_line(Vector2(-w + off, y), Vector2(w + off, y), Color(col, 0.55 * (1.0 - k)), 2.0)
+			DrawBatch.line(self, Vector2(-w + off, y), Vector2(w + off, y), Color(col, 0.55 * (1.0 - k)), 2.0)
 		for i in 7:
 			var a := float(i) / 7.0 * TAU
-			draw_circle(Vector2(cos(a) * k * 20.0 * sc, -24.0 * sc + sin(a) * k * 26.0 * sc), 2.0 * (1.0 - k) + 0.5, Color(1.0, 0.98, 0.9, 0.6 * (1.0 - k)))
+			DrawBatch.circle(self, Vector2(cos(a) * k * 20.0 * sc, -24.0 * sc + sin(a) * k * 26.0 * sc), 2.0 * (1.0 - k) + 0.5, Color(1.0, 0.98, 0.9, 0.6 * (1.0 - k)))
 
 
 # ============================================================
@@ -403,13 +408,18 @@ class Dissolve extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var fade := clampf((LIFE - t) / 0.45, 0.0, 1.0)
 		for i in 3:   # גל חום קצר במקום הדמות
 			var k := clampf(t / 0.35, 0.0, 1.0)
 			var yy := -_h * (0.25 + 0.3 * float(i))
 			var off := sin(t * 40.0 + float(i) * 2.0) * 3.0
-			draw_line(Vector2(-12.0 - k * 14.0 + off, yy), Vector2(12.0 + k * 14.0 + off, yy), Color(1.0, 0.97, 0.88, 0.35 * (1.0 - k)), 2.0)
+			DrawBatch.line(self, Vector2(-12.0 - k * 14.0 + off, yy), Vector2(12.0 + k * 14.0 + off, yy), Color(1.0, 0.97, 0.88, 0.35 * (1.0 - k)), 2.0)
 		for q in parts:
 			var a := fade if t >= q[4] else 1.0
 			var sz: float = q[3] * (1.0 if t < q[4] else lerpf(1.0, 0.55, clampf((t - q[4]) / 0.7, 0.0, 1.0)))
-			draw_rect(Rect2(q[0] - Vector2(sz, sz) * 0.5, Vector2(sz, sz)), Color(q[2], a))
+			DrawBatch.rect(self, Rect2(q[0] - Vector2(sz, sz) * 0.5, Vector2(sz, sz)), Color(q[2], a))

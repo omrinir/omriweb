@@ -164,17 +164,17 @@ func draw() -> bool:
 	# תוף תחמושת על הגב + חגורת כדורים
 	var drum := sh + Vector2(-12, 8)
 	Art.disc(z, drum, 7.5, col(Color("4a4a44")), Art.OUTLINE, 1.2)
-	z.draw_arc(drum, 4.5, 0.0, TAU, 10, col(Color("6a6a60")), 1.2)
+	DrawBatch.arc(z, drum, 4.5, 0.0, TAU, 10, col(Color("6a6a60")), 1.2)
 	# גוף רחב, אפוד צבאי
 	var body := PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(9, 0), hip + Vector2(8, 3), hip + Vector2(-8, 3)])
 	Art.fill_shaded(z, body, vest, 0.15, 0.4)
 	for i in 3:   # כיסים
-		z.draw_rect(Rect2(sh + Vector2(-6 + float(i) * 4.5, 7), Vector2(3.5, 4)), col(Art.shade(z.shirt, 0.3)))
+		DrawBatch.rect(z, Rect2(sh + Vector2(-6 + float(i) * 4.5, 7), Vector2(3.5, 4)), col(Art.shade(z.shirt, 0.3)))
 	# ראש עם בנדנה
 	Art.oval_shaded(z, head, 6.5, 6.8, sk, 0.0)
-	z.draw_line(head + Vector2(-6, -3), head + Vector2(6, -4), col(Color("c02020")), 3.0)
-	z.draw_line(head + Vector2(-6, -3), head + Vector2(-10, 2), col(Color("c02020")), 1.6)
-	z.draw_circle(head + Vector2(3.0, -0.5), 1.3, Color(1.0, 0.8, 0.3))
+	DrawBatch.line(z, head + Vector2(-6, -3), head + Vector2(6, -4), col(Color("c02020")), 3.0)
+	DrawBatch.line(z, head + Vector2(-6, -3), head + Vector2(-10, 2), col(Color("c02020")), 1.6)
+	DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.3, Color(1.0, 0.8, 0.3))
 	Art.fill(z, PackedVector2Array([head + Vector2(1, 3), head + Vector2(6.5, 2.5), head + Vector2(6, 5.5), head + Vector2(1.5, 5.5)]), col(Color("2a0a0a")), Art.OUTLINE, 0.8)
 	# המיניגאן (בקואורדינטות מקומיות: הזווית יחסית לכיוון)
 	var la := Vector2(cos(_ang) * z._dir, sin(_ang)).normalized()
@@ -185,14 +185,14 @@ func draw() -> bool:
 	Art.fill_shaded(z, tr * PackedVector2Array([Vector2(-8, -5), Vector2(6, -5), Vector2(6, 5), Vector2(-8, 5)]), col(Color("3a3e44")), 0.2, 0.4, Art.OUTLINE, 1.2)   # גוף המנוע
 	for i in 3:   # קנים מסתובבים
 		var off := sin(_spin + float(i) * TAU / 3.0) * 3.0
-		z.draw_line(tr * Vector2(6, off), tr * Vector2(30, off), Art.OUTLINE, 3.2)
-		z.draw_line(tr * Vector2(6, off), tr * Vector2(30, off), hot, 1.8)
-	z.draw_line(tr * Vector2(26, -4), tr * Vector2(26, 4), Art.OUTLINE, 2.0)
+		DrawBatch.line(z, tr * Vector2(6, off), tr * Vector2(30, off), Art.OUTLINE, 3.2)
+		DrawBatch.line(z, tr * Vector2(6, off), tr * Vector2(30, off), hot, 1.8)
+	DrawBatch.line(z, tr * Vector2(26, -4), tr * Vector2(26, 4), Art.OUTLINE, 2.0)
 	if _flash > 0.0:   # להבת לוע
 		var m := tr * Vector2(32, 0)
 		Art.glow(z, m, 9.0, Color(1.0, 0.8, 0.3, 0.9))
-		z.draw_colored_polygon(PackedVector2Array([m + la.orthogonal() * 3.0, m + la * 12.0, m - la.orthogonal() * 3.0]), Color(1.0, 0.9, 0.5))
-	z.draw_line(drum + Vector2(4, 2), tr * Vector2(-4, 5), col(Color("b08a30")), 2.0)   # חגורת כדורים
+		DrawBatch.colored_polygon(z, PackedVector2Array([m + la.orthogonal() * 3.0, m + la * 12.0, m - la.orthogonal() * 3.0]), Color(1.0, 0.9, 0.5))
+	DrawBatch.line(z, drum + Vector2(4, 2), tr * Vector2(-4, 5), col(Color("b08a30")), 2.0)   # חגורת כדורים
 	# ידיים על הנשק
 	z._arm(sh + Vector2(-3, 1), tr * Vector2(-2, 4), col(Art.shade(z.skin, 0.25)), Art.shade(vest, 0.3))
 	z._arm(sh + Vector2(4, 2), tr * Vector2(10, -4), sk, vest)

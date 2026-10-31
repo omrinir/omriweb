@@ -145,20 +145,20 @@ func draw() -> bool:
 	var sh: Vector2 = o.sh
 	var hip: Vector2 = o.hip
 	var hf: Vector2 = o.hf
-	z.draw_line(sh + Vector2(-6, 0), hip + Vector2(-5, 2), col(Color("2a2a20")), 1.6)   # רתמה
-	z.draw_line(sh + Vector2(6, 0), hip + Vector2(5, 2), col(Color("2a2a20")), 1.6)
-	z.draw_rect(Rect2(hf + Vector2(-2, -2), Vector2(10, 3)), col(Color("1a1a1a")))   # SMG
-	z.draw_rect(Rect2(hf + Vector2(2, 0), Vector2(2, 4)), col(Color("1a1a1a")))
+	DrawBatch.line(z, sh + Vector2(-6, 0), hip + Vector2(-5, 2), col(Color("2a2a20")), 1.6)   # רתמה
+	DrawBatch.line(z, sh + Vector2(6, 0), hip + Vector2(5, 2), col(Color("2a2a20")), 1.6)
+	DrawBatch.rect(z, Rect2(hf + Vector2(-2, -2), Vector2(10, 3)), col(Color("1a1a1a")))   # SMG
+	DrawBatch.rect(z, Rect2(hf + Vector2(2, 0), Vector2(2, 4)), col(Color("1a1a1a")))
 	if not in_air:
-		z.draw_rect(Rect2(sh + Vector2(-11, 2), Vector2(6, 12)), col(Color("4a4a38")))   # המצנח המקופל על הגב
+		DrawBatch.rect(z, Rect2(sh + Vector2(-11, 2), Vector2(6, 12)), col(Color("4a4a38")))   # המצנח המקופל על הגב
 	end_draw()
 	if in_air and chute and not z.dead:   # המצנח (בעולם)
 		var top: Vector2 = Vector2(0, -105) * z.sc
 		var w: float = 44.0 * z.sc
-		z.draw_colored_polygon(Art.ellipse(top, w * 0.5, 16.0 * z.sc, 0.0, 16), E.RED)
-		z.draw_rect(Rect2(top + Vector2(-w * 0.5, 0), Vector2(w, 6.0)), E.RED_D)
+		DrawBatch.colored_polygon(z, Art.ellipse(top, w * 0.5, 16.0 * z.sc, 0.0, 16), E.RED)
+		DrawBatch.rect(z, Rect2(top + Vector2(-w * 0.5, 0), Vector2(w, 6.0)), E.RED_D)
 		E.emblem(z, top + Vector2(0, -2), 6.0 * z.sc)
 		for q in 4:
 			var ax: float = -w * 0.5 + float(q) * w / 3.0
-			z.draw_line(top + Vector2(ax, 4.0), Vector2(0, -38) * z.sc, Color(0.15, 0.15, 0.15, 0.8), 0.8)
+			DrawBatch.line(z, top + Vector2(ax, 4.0), Vector2(0, -38) * z.sc, Color(0.15, 0.15, 0.15, 0.8), 0.8)
 	return true

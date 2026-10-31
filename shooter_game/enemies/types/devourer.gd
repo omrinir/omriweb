@@ -229,7 +229,7 @@ func draw() -> bool:
 	for i in 3:
 		var a := -0.6 + float(i) * 0.6
 		var v0 := belly + Vector2(cos(a), sin(a)) * 4.0
-		z.draw_polyline(PackedVector2Array([v0, v0 + Vector2(cos(a) * 6.0, sin(a) * 4.0 - 2.0), v0 + Vector2(cos(a) * 10.0, sin(a) * 9.0)]), Color(0.75, 0.35, 1.0, vg), 1.2)
+		DrawBatch.polyline(z, PackedVector2Array([v0, v0 + Vector2(cos(a) * 6.0, sin(a) * 4.0 - 2.0), v0 + Vector2(cos(a) * 10.0, sin(a) * 9.0)]), Color(0.75, 0.35, 1.0, vg), 1.2)
 	# הפה האנכי בבטן
 	var mh := 11.0 * swell
 	var mw := 2.5 + open * 7.0
@@ -238,8 +238,8 @@ func draw() -> bool:
 	Art.fill(z, PackedVector2Array([mc + Vector2(0, -mh), mc + Vector2(mw, -mh * 0.4), mc + Vector2(mw, mh * 0.4), mc + Vector2(0, mh), mc + Vector2(-mw * 0.6, 0)]), col(Color("2a0410")), Art.OUTLINE, 1.0)
 	for i in 5:   # שיניים משני הצדדים
 		var y := -mh * 0.75 + float(i) * mh * 0.38
-		z.draw_colored_polygon(PackedVector2Array([mc + Vector2(-mw * 0.4, y - 1.2), mc + Vector2(-mw * 0.4, y + 1.2), mc + Vector2(-mw * 0.4 + 2.5, y)]), col(Color("e8dcc0")))
-		z.draw_colored_polygon(PackedVector2Array([mc + Vector2(mw, y - 1.2), mc + Vector2(mw, y + 1.2), mc + Vector2(mw - 2.5, y)]), col(Color("e8dcc0")))
+		DrawBatch.colored_polygon(z, PackedVector2Array([mc + Vector2(-mw * 0.4, y - 1.2), mc + Vector2(-mw * 0.4, y + 1.2), mc + Vector2(-mw * 0.4 + 2.5, y)]), col(Color("e8dcc0")))
+		DrawBatch.colored_polygon(z, PackedVector2Array([mc + Vector2(mw, y - 1.2), mc + Vector2(mw, y + 1.2), mc + Vector2(mw - 2.5, y)]), col(Color("e8dcc0")))
 	if _prey != null and is_instance_valid(_prey):   # לשונות שתופסות את הנבלע
 		var tp: Vector2 = z.to_local(_prey.global_position + Vector2(0.0, -24.0 * _prey.scale.y))
 		tp = Vector2(tp.x * z._dir / (z.wf * z.sc), tp.y / z.sc)
@@ -250,10 +250,10 @@ func draw() -> bool:
 			for q in 7:
 				var u := float(q) / 6.0
 				pts.append(mc.lerp(mid, u).lerp(mid.lerp(tp + off, u), u))
-			z.draw_polyline(pts, col(Color("b04a6a")), 2.2 - float(i) * 0.4)
+			DrawBatch.polyline(z, pts, col(Color("b04a6a")), 2.2 - float(i) * 0.4)
 	# ראש קטן ושמוט
 	Art.oval_shaded(z, head, 5.5, 5.8, sk, 0.1)
-	z.draw_circle(head + Vector2(2.5, -1.0), 1.2, Color(0.85, 0.5, 1.0) if not z.dead else Color("2a2a2a"))
-	z.draw_line(head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a0a10")), 1.2)
+	DrawBatch.circle(z, head + Vector2(2.5, -1.0), 1.2, Color(0.85, 0.5, 1.0) if not z.dead else Color("2a2a2a"))
+	DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a0a10")), 1.2)
 	end_draw()
 	return true

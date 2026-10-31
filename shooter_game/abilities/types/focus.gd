@@ -60,7 +60,7 @@ class Tint extends CanvasLayer:
 		if _k <= 0.0:
 			return
 		var vs := _c.get_viewport_rect().size
-		_c.draw_rect(Rect2(Vector2.ZERO, vs), Color(0.35, 0.55, 1.0, 0.07 * _k))
+		DrawBatch.rect(_c, Rect2(Vector2.ZERO, vs), Color(0.35, 0.55, 1.0, 0.07 * _k))
 		for i in 6:   # קצוות כהים
 			var m := 18.0 * float(i)
-			_c.draw_rect(Rect2(Vector2(m, m), vs - Vector2(m, m) * 2.0), Color(0.02, 0.04, 0.12, 0.05 * _k), false, 18.0)
+			DrawBatch.rect(_c, Rect2(Vector2(m, m), vs - Vector2(m, m) * 2.0), Color(0.02, 0.04, 0.12, 0.05 * _k), false, 18.0)

@@ -153,25 +153,25 @@ func draw() -> bool:
 	var armor := col(Color("4e5244"))
 	var dark := col(Color("2c2e26"))
 	var ph: float = z._walk_phase
-	z.draw_colored_polygon(PackedVector2Array([Vector2(-20, -1), Vector2(20, -1), Vector2(24, -6), Vector2(20, -11), Vector2(-20, -11), Vector2(-24, -6)]), dark)
+	DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(-20, -1), Vector2(20, -1), Vector2(24, -6), Vector2(20, -11), Vector2(-20, -11), Vector2(-24, -6)]), dark)
 	for q in 5:
 		var wx := -16.0 + float(q) * 8.0
-		z.draw_circle(Vector2(wx, -5), 3.4, col(Color("1a1a18")))
-		z.draw_line(Vector2(wx, -5), Vector2(wx, -5) + Vector2.from_angle(ph + float(q)) * 2.6, col(Color("5a5a50")), 1.0)
+		DrawBatch.circle(z, Vector2(wx, -5), 3.4, col(Color("1a1a18")))
+		DrawBatch.line(z, Vector2(wx, -5), Vector2(wx, -5) + Vector2.from_angle(ph + float(q)) * 2.6, col(Color("5a5a50")), 1.0)
 	Art.fill_shaded(z, PackedVector2Array([Vector2(-21, -10), Vector2(16, -10), Vector2(24, -16), Vector2(14, -26), Vector2(-18, -26), Vector2(-22, -18)]), armor, 0.14, 0.4)
-	z.draw_line(Vector2(16, -10), Vector2(24, -16), col(Color("6a6e60")), 2.5)   # השריון הקדמי העבה
-	z.draw_line(Vector2(24, -16), Vector2(14, -26), col(Color("6a6e60")), 2.5)
+	DrawBatch.line(z, Vector2(16, -10), Vector2(24, -16), col(Color("6a6e60")), 2.5)   # השריון הקדמי העבה
+	DrawBatch.line(z, Vector2(24, -16), Vector2(14, -26), col(Color("6a6e60")), 2.5)
 	E.emblem(z, Vector2(-6, -17), 4.2, col(Color(0.9, 0.88, 0.82)))
-	z.draw_rect(Rect2(Vector2(18, -15), Vector2(10, 2.4)), col(Color("1a1a1a")))   # מקלע
+	DrawBatch.rect(z, Rect2(Vector2(18, -15), Vector2(10, 2.4)), col(Color("1a1a1a")))   # מקלע
 	if _left > 0 and not z.dead:
 		Art.glow(z, Vector2(29, -14), 4.0, Color(1.0, 0.8, 0.3, 0.8))
 	# צוהר + הנהג
-	z.draw_rect(Rect2(Vector2(-4, -29), Vector2(12, 3)), dark)
+	DrawBatch.rect(z, Rect2(Vector2(-4, -29), Vector2(12, 3)), dark)
 	if not z.dead:
 		Art.oval_shaded(z, Vector2(2, -33), 4.2, 4.6, col(z.skin), 0.0)
 		E.helmet(z, Vector2(2, -32), col(E.STEEL))
-		z.draw_circle(Vector2(4.5, -33), 1.0, Color(1.0, 0.25, 0.2))
+		DrawBatch.circle(z, Vector2(4.5, -33), 1.0, Color(1.0, 0.25, 0.2))
 	end_draw()
 	if _turn > 0.0 and not z.dead:   # מסתובב
-		z.draw_arc(Vector2(0, -20), 26.0, -PI * 0.8, -PI * 0.8 + TAU * clampf(_turn / (TURN_LEARNED if learned(z.get_parent()) else TURN_T), 0.0, 1.0), 16, Color(1.0, 0.85, 0.4, 0.6), 2.0)
+		DrawBatch.arc(z, Vector2(0, -20), 26.0, -PI * 0.8, -PI * 0.8 + TAU * clampf(_turn / (TURN_LEARNED if learned(z.get_parent()) else TURN_T), 0.0, 1.0), 16, Color(1.0, 0.85, 0.4, 0.6), 2.0)
 	return true

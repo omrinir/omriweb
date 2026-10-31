@@ -154,13 +154,18 @@ class Package extends StaticBody2D:
 		queue_free()
 
 	func _draw() -> void:
-		draw_rect(Rect2(-9, -14, 18, 14), Color("b08a5a"))
-		draw_rect(Rect2(-9, -14, 18, 14), Color("5a4026"), false, 1.0)
-		draw_rect(Rect2(-9, -9, 18, 3), Color("d8c8a0"))   # סרט דביק
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.rect(self, Rect2(-9, -14, 18, 14), Color("b08a5a"))
+		DrawBatch.rect(self, Rect2(-9, -14, 18, 14), Color("5a4026"), false, 1.0)
+		DrawBatch.rect(self, Rect2(-9, -9, 18, 3), Color("d8c8a0"))   # סרט דביק
 		var on := _beep > 0.0 and fposmod(_t * 8.0, 1.0) < 0.4
-		draw_circle(Vector2(5, -15), 2.0, Color(1.0, 0.15, 0.1) if on else Color(0.4, 0.1, 0.1))
+		DrawBatch.circle(self, Vector2(5, -15), 2.0, Color(1.0, 0.15, 0.1) if on else Color(0.4, 0.1, 0.1))
 		if on:
-			draw_circle(Vector2(5, -15), 6.0, Color(1.0, 0.2, 0.1, 0.25))
+			DrawBatch.circle(self, Vector2(5, -15), 6.0, Color(1.0, 0.2, 0.1, 0.25))
 
 
 # ============================================================
@@ -179,21 +184,21 @@ func draw() -> bool:
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	if left > 0:   # ארגז משלוחים
 		Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-20, -8), sh + Vector2(-6, -8), sh + Vector2(-6, 14), sh + Vector2(-20, 14)]), col(Color("d02a2a")), 0.12, 0.4, Art.OUTLINE, 1.0)
-		z.draw_rect(Rect2(sh + Vector2(-19, -2), Vector2(12, 3)), col(Color("f0f0f0")))
+		DrawBatch.rect(z, Rect2(sh + Vector2(-19, -2), Vector2(12, 3)), col(Color("f0f0f0")))
 		for q in left:
-			z.draw_rect(Rect2(sh + Vector2(-18.0 + float(q) * 4.0, -12), Vector2(4, 4)), col(Color("b08a5a")))
+			DrawBatch.rect(z, Rect2(sh + Vector2(-18.0 + float(q) * 4.0, -12), Vector2(4, 4)), col(Color("b08a5a")))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 3.0, 15.0), Art.shade(sk, 0.25), Art.shade(coat, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(7, 3), hip + Vector2(-7, 3)]), coat, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-7, 8), sh + Vector2(7, 8), col(Color("e0e060")), 1.5)   # פס מחזיר אור
+	DrawBatch.line(z, sh + Vector2(-7, 8), sh + Vector2(7, 8), col(Color("e0e060")), 1.5)   # פס מחזיר אור
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, 2), head + Vector2(-6, -5), head + Vector2(0, -8), head + Vector2(6, -5), head + Vector2(6, -2), head + Vector2(-2, -2), head + Vector2(-3, 3)]), col(Color("1a1a1a")))   # קסדה פתוחה
-	z.draw_line(head + Vector2(-1, -2), head + Vector2(7, -3), Color(0.6, 0.8, 1.0, 0.6), 1.2)   # משקף
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-6, 2), head + Vector2(-6, -5), head + Vector2(0, -8), head + Vector2(6, -5), head + Vector2(6, -2), head + Vector2(-2, -2), head + Vector2(-3, 3)]), col(Color("1a1a1a")))   # קסדה פתוחה
+	DrawBatch.line(z, head + Vector2(-1, -2), head + Vector2(7, -3), Color(0.6, 0.8, 1.0, 0.6), 1.2)   # משקף
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, 0.0), 1.1, Color(1.0, 0.85, 0.4))
+		DrawBatch.circle(z, head + Vector2(3.0, 0.0), 1.1, Color(1.0, 0.85, 0.4))
 	var hf := sh + Vector2(6, 16) if state == PLACE else sh + Vector2(12, 4 + sin(p) * 2.0)
 	z._arm(sh + Vector2(3, 1), hf, sk, coat)
 	if state == PLACE:
-		z.draw_rect(Rect2(hf + Vector2(-4, -2), Vector2(8, 6)), col(Color("b08a5a")))
+		DrawBatch.rect(z, Rect2(hf + Vector2(-4, -2), Vector2(8, 6)), col(Color("b08a5a")))
 	end_draw()
 	return true

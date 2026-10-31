@@ -108,10 +108,10 @@ func draw() -> bool:
 	var o: Dictionary = E.soldier(self, z, Vector2(13, -2), "cap", E.UNIFORM_D, Vector2(-2, -20) if raised else Vector2(999, 0))
 	var hf: Vector2 = o.hf
 	var hip: Vector2 = o.hip
-	z.draw_colored_polygon(PackedVector2Array([hip + Vector2(-8, 4), hip + Vector2(8, 4), hip + Vector2(9, 12), hip + Vector2(-9, 12)]), col(E.UNIFORM_D))   # שולי המעיל
-	z.draw_rect(Rect2(hf + Vector2(0, -2), Vector2(8, 3)), col(Color("1a1a1a")))   # אקדח
-	z.draw_rect(Rect2(hf + Vector2(0, 0), Vector2(3, 4)), col(Color("1a1a1a")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([hip + Vector2(-8, 4), hip + Vector2(8, 4), hip + Vector2(9, 12), hip + Vector2(-9, 12)]), col(E.UNIFORM_D))   # שולי המעיל
+	DrawBatch.rect(z, Rect2(hf + Vector2(0, -2), Vector2(8, 3)), col(Color("1a1a1a")))   # אקדח
+	DrawBatch.rect(z, Rect2(hf + Vector2(0, 0), Vector2(3, 4)), col(Color("1a1a1a")))
 	var sh: Vector2 = o.sh
-	z.draw_line(sh + Vector2(-7, -1), sh + Vector2(-3, -1), col(E.BRASS), 2.0)   # כותפת
+	DrawBatch.line(z, sh + Vector2(-7, -1), sh + Vector2(-3, -1), col(E.BRASS), 2.0)   # כותפת
 	end_draw()
 	return true

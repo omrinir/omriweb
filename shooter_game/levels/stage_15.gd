@@ -1,4 +1,5 @@
 extends "res://levels/stage_base.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  STAGE 15 - "CARNIVAL OF THE DEAD" (אזור צפון-מזרח, שלב 6) - "THEY DANCE WITH DEATH"
 #  בוקר אחרי קרנבל שלא נגמר באולינדה: שמש זהובה נמוכה, שמיים תכולים, הים ומגדלי רסיפה באובך,
@@ -94,8 +95,8 @@ func build_background(layer: CanvasLayer) -> Node:
 				var bw := r.randf_range(90.0, 150.0)
 				var bh := r.randf_range(70.0, 120.0)
 				var c: Color = Decor.PASTELS[r.randi() % Decor.PASTELS.size()]
-				ci.draw_rect(Rect2(x + float(i) * 160.0, 600.0 - bh, bw, bh), c.lerp(Color(0.95, 0.9, 0.85), 0.4))
-				ci.draw_rect(Rect2(x + float(i) * 160.0 - 3.0, 594.0 - bh, bw + 6.0, 7.0), Color("c87048"))
+				DrawBatch.rect(ci, Rect2(x + float(i) * 160.0, 600.0 - bh, bw, bh), c.lerp(Color(0.95, 0.9, 0.85), 0.4))
+				DrawBatch.rect(ci, Rect2(x + float(i) * 160.0 - 3.0, 594.0 - bh, bw + 6.0, 7.0), Color("c87048"))
 			Decor.bunting_line(ci, Vector2(x + 40.0, 470.0), Vector2(x + 600.0, 480.0), 40.0, t, k)
 		Kit.ground_fade(ci, v, 595.0))
 	layer.add_child(bg)

@@ -313,11 +313,16 @@ class WordRing extends Node2D:
 			src.on_sick()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(1.0 - r / RING_R, 0.0, 1.0)
 		var hot := Color(1.0, 0.32, 0.22)
-		draw_arc(Vector2.ZERO, r, 0.0, TAU, 72, Color(hot, 0.5 * a), 3.0)
-		draw_arc(Vector2.ZERO, r - 7.0, 0.0, TAU, 72, Color(1.0, 0.85, 0.6, 0.22 * a), 1.5)
-		draw_arc(Vector2.ZERO, r + 5.0, 0.0, TAU, 72, Color(hot, 0.15 * a), 6.0)
+		DrawBatch.arc(self, Vector2.ZERO, r, 0.0, TAU, 72, Color(hot, 0.5 * a), 3.0)
+		DrawBatch.arc(self, Vector2.ZERO, r - 7.0, 0.0, TAU, 72, Color(1.0, 0.85, 0.6, 0.22 * a), 1.5)
+		DrawBatch.arc(self, Vector2.ZERO, r + 5.0, 0.0, TAU, 72, Color(hot, 0.15 * a), 6.0)
 		var n := clampi(int(TAU * r / 110.0), 3, 14)
 		var fs := 17
 		var w := FONT.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
@@ -325,10 +330,10 @@ class WordRing extends Node2D:
 		for k in n:
 			var ang := float(k) / float(n) * TAU + _spin + r * 0.0015
 			var jit := Vector2(float((fr * 7 + k * 13) % 5) - 2.0, float((fr * 11 + k * 5) % 5) - 2.0) * 0.8
-			draw_set_transform(Vector2.from_angle(ang) * r + jit, ang + PI * 0.5, Vector2.ONE)
-			draw_string_outline(FONT, Vector2(-w * 0.5, 6), word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.05, 0.0, 0.0, 0.7 * a))
-			draw_string(FONT, Vector2(-w * 0.5, 6), word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1.0, 0.9 - 0.4 * (1.0 - a), 0.7 - 0.4 * (1.0 - a), a))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			DrawBatch.set_transform(self, Vector2.from_angle(ang) * r + jit, ang + PI * 0.5, Vector2.ONE)
+			DrawBatch.string_outline(self, FONT, Vector2(-w * 0.5, 6), word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.05, 0.0, 0.0, 0.7 * a))
+			DrawBatch.string(self, FONT, Vector2(-w * 0.5, 6), word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1.0, 0.9 - 0.4 * (1.0 - a), 0.7 - 0.4 * (1.0 - a), a))
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 # ============================================================
@@ -381,21 +386,26 @@ class Painter extends Node2D:
 		return out
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var vs := get_viewport_rect().size
 		var k := clampf((owner_s.t + 0.25) / 0.45, 0.0, 1.0) * clampf((owner_s.total - owner_s.t) / 0.12 + 0.3, 0.0, 1.0)
 		var fr := int(Time.get_ticks_msec() / 70)
 		# קצוות אדומים פועמים
 		var edge := Color(0.7, 0.05, 0.05, 0.22 * k)
-		draw_rect(Rect2(0, 0, vs.x, 26), edge)
-		draw_rect(Rect2(0, vs.y - 26, vs.x, 26), edge)
-		draw_rect(Rect2(0, 0, 30, vs.y), edge)
-		draw_rect(Rect2(vs.x - 30, 0, 30, vs.y), edge)
+		DrawBatch.rect(self, Rect2(0, 0, vs.x, 26), edge)
+		DrawBatch.rect(self, Rect2(0, vs.y - 26, vs.x, 26), edge)
+		DrawBatch.rect(self, Rect2(0, 0, 30, vs.y), edge)
+		DrawBatch.rect(self, Rect2(vs.x - 30, 0, 30, vs.y), edge)
 		# פסי רעש
 		var rr := RandomNumberGenerator.new()
 		rr.seed = fr
 		for i in 5:
 			var y := rr.randf() * vs.y
-			draw_rect(Rect2(0, y, vs.x, rr.randf_range(2.0, 7.0)), Color(1, 1, 1, rr.randf_range(0.03, 0.09) * k))
+			DrawBatch.rect(self, Rect2(0, y, vs.x, rr.randf_range(2.0, 7.0)), Color(1, 1, 1, rr.randf_range(0.03, 0.09) * k))
 		# המילה בכל מקום - עם אותיות מבולבלות
 		for i in 14:
 			var p := Vector2(rr.randf() * vs.x, rr.randf_range(40.0, vs.y - 40.0))
@@ -404,15 +414,15 @@ class Painter extends Node2D:
 			var fs := rr.randi_range(18, 44)
 			var txt: String = _scrambled(owner_s.word, fr * 31 + i)
 			var c := Color(1.0, rr.randf_range(0.2, 0.6), rr.randf_range(0.15, 0.3), rr.randf_range(0.35, 0.8) * k)
-			draw_set_transform(p, rr.randf_range(-0.25, 0.25), Vector2.ONE)
-			draw_string_outline(FONT, Vector2.ZERO, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 5, Color(0, 0, 0, 0.6 * k))
-			draw_string(FONT, Vector2.ZERO, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, c)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			DrawBatch.set_transform(self, p, rr.randf_range(-0.25, 0.25), Vector2.ONE)
+			DrawBatch.string_outline(self, FONT, Vector2.ZERO, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 5, Color(0, 0, 0, 0.6 * k))
+			DrawBatch.string(self, FONT, Vector2.ZERO, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, c)
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
 		var big: String = owner_s.word
 		var bw := FONT.get_string_size(big, HORIZONTAL_ALIGNMENT_LEFT, -1, 72).x
 		var bp := Vector2(vs.x * 0.5 - bw * 0.5 + rr.randf_range(-6, 6), vs.y * 0.32 + rr.randf_range(-4, 4))
-		draw_string_outline(FONT, bp, big, HORIZONTAL_ALIGNMENT_LEFT, -1, 72, 8, Color(0, 0, 0, 0.45 * k))
-		draw_string(FONT, bp, big, HORIZONTAL_ALIGNMENT_LEFT, -1, 72, Color(1.0, 0.3, 0.2, 0.55 * k))
+		DrawBatch.string_outline(self, FONT, bp, big, HORIZONTAL_ALIGNMENT_LEFT, -1, 72, 8, Color(0, 0, 0, 0.45 * k))
+		DrawBatch.string(self, FONT, bp, big, HORIZONTAL_ALIGNMENT_LEFT, -1, 72, Color(1.0, 0.3, 0.2, 0.55 * k))
 
 
 # ============================================================
@@ -437,13 +447,18 @@ class Letters extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf((1.3 - t) / 0.5, 0.0, 1.0)
 		for i in word.length():
 			var p: Vector2 = Vector2(float(i) * 11.0 - float(word.length()) * 5.5, 0) + _v[i] * t * 0.5
-			draw_set_transform(p, t * (3.0 if i % 2 == 0 else -3.0), Vector2.ONE)
-			draw_string_outline(FONT, Vector2(-5, 6), word[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 4, Color(0, 0, 0, 0.7 * a))
-			draw_string(FONT, Vector2(-5, 6), word[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.75, 0.5, a))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			DrawBatch.set_transform(self, p, t * (3.0 if i % 2 == 0 else -3.0), Vector2.ONE)
+			DrawBatch.string_outline(self, FONT, Vector2(-5, 6), word[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 4, Color(0, 0, 0, 0.7 * a))
+			DrawBatch.string(self, FONT, Vector2(-5, 6), word[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.75, 0.5, a))
+		DrawBatch.set_transform(self, Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 # ============================================================
@@ -485,33 +500,33 @@ func draw() -> bool:
 	var torso := PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), sh + Vector2(6.5 + inh * 1.5, 10), hip + Vector2(6, 1), hip + Vector2(-6, 1), sh + Vector2(-8, 9)])
 	Art.fill_shaded(z, torso, sh_c, 0.12, 0.3)
 	for q in 3:   # כתמים
-		z.draw_circle(sh + Vector2(-3.0 + float(q) * 3.5, 8.0 + float(q % 2) * 6.0), 1.4 + float(q % 2) * 0.6, col(Color(0.42, 0.08, 0.06, 0.55)))
-	z.draw_line(sh + Vector2(-5, 0), hip + Vector2(-4, 0), col(Color("3a2a22")), 1.4)   # כתפיות
-	z.draw_line(sh + Vector2(4, 0), hip + Vector2(4, 0), col(Color("3a2a22")), 1.4)
+		DrawBatch.circle(z, sh + Vector2(-3.0 + float(q) * 3.5, 8.0 + float(q % 2) * 6.0), 1.4 + float(q % 2) * 0.6, col(Color(0.42, 0.08, 0.06, 0.55)))
+	DrawBatch.line(z, sh + Vector2(-5, 0), hip + Vector2(-4, 0), col(Color("3a2a22")), 1.4)   # כתפיות
+	DrawBatch.line(z, sh + Vector2(4, 0), hip + Vector2(4, 0), col(Color("3a2a22")), 1.4)
 	var tie_sway := sin(t * 3.0 + p) * 1.5
 	Art.fill(z, PackedVector2Array([sh + Vector2(1, 1), sh + Vector2(3, 1), sh + Vector2(3.5 + tie_sway, 14), sh + Vector2(1.8 + tie_sway, 16), sh + Vector2(0.5 + tie_sway, 13)]), col(_tie), Art.OUTLINE, 0.8)
 	Art.fill(z, PackedVector2Array([hip + Vector2(-7, -1), hip + Vector2(7, -1), hip + Vector2(7, 4), hip + Vector2(-7, 4)]), pa, Art.OUTLINE, 1.0)
 	z._leg(hip + Vector2(3, 0), f[0], pa, sk, col(z.shoe))
 	# אוזניות סביב הצוואר (שדרן)
 	var neck := sh + Vector2(1, -2)
-	z.draw_arc(neck + Vector2(0, -1), 5.0, 0.2, PI - 0.2, 8, col(Color("2a2a30")), 1.6)
+	DrawBatch.arc(z, neck + Vector2(0, -1), 5.0, 0.2, PI - 0.2, 8, col(Color("2a2a30")), 1.6)
 	Art.oval(z, neck + Vector2(5, 1), 2.0, 2.6, col(Color("3a3a42")), 0.0, Art.OUTLINE, 0.8)
 	Art.oval(z, neck + Vector2(-5, 1), 2.0, 2.6, col(Color("3a3a42")), 0.0, Art.OUTLINE, 0.8)
-	z.draw_line(neck + Vector2(-5, 3), hip + Vector2(-8, 2), col(Color("1a1a1e")), 0.8)   # כבל קרוע
+	DrawBatch.line(z, neck + Vector2(-5, 3), hip + Vector2(-8, 2), col(Color("1a1a1e")), 0.8)   # כבל קרוע
 	# ראש: שיער דליל, לסת שמוטה
 	Art.oval_shaded(z, head, 5.4, 6.0, sk, 0.05)
 	for q in 4:
-		z.draw_line(head + Vector2(-4.0 + float(q) * 2.0, -5.0), head + Vector2(-5.5 + float(q) * 2.0, -7.5 - float(q % 2)), col(Color("4a4038")), 0.9)
+		DrawBatch.line(z, head + Vector2(-4.0 + float(q) * 2.0, -5.0), head + Vector2(-5.5 + float(q) * 2.0, -7.5 - float(q % 2)), col(Color("4a4038")), 0.9)
 	var jaw := 1.0 + inh * 1.5 + (2.5 if state == SHOUT or silenced else 0.0)
 	face(head, Vector2(3.5, -0.8))
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(1.5, 2.5), head + Vector2(5.4, 2.0), head + Vector2(5.0, 3.0 + jaw), head + Vector2(1.8, 3.0 + jaw * 0.8)]), col(Color("2a0808")))
-	z.draw_line(head + Vector2(2.5, 2.0), head + Vector2(3.4, 4.0 + jaw), col(Color(0.6, 0.1, 0.1, 0.7)), 0.7)   # שפה סדוקה
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(1.5, 2.5), head + Vector2(5.4, 2.0), head + Vector2(5.0, 3.0 + jaw), head + Vector2(1.8, 3.0 + jaw * 0.8)]), col(Color("2a0808")))
+	DrawBatch.line(z, head + Vector2(2.5, 2.0), head + Vector2(3.4, 4.0 + jaw), col(Color(0.6, 0.1, 0.1, 0.7)), 0.7)   # שפה סדוקה
 	# יד קדמית + המגפון
 	var mega := _mega_local()
 	if silenced:
 		var hf := sh + Vector2(15, 4 + sin(p + 1.5) * 2.0)
 		_arm2(sh + Vector2(4, 1), hf, sk, sh_c, 4.4, true)
-		z.draw_line(hf, hf + Vector2(4, 3), col(Color("e8d890")), 2.0)   # שבר של הידית
+		DrawBatch.line(z, hf, hf + Vector2(4, 3), col(Color("e8d890")), 2.0)   # שבר של הידית
 	else:
 		var hf := mega + Vector2(-7.5, 5.5)
 		_arm2(sh + Vector2(4, 1), hf, sk, sh_c, 4.4, true)
@@ -544,24 +559,24 @@ func _megaphone(m: Vector2, inh: float) -> void:
 	m += shake
 	var k := 1.3
 	# ידית
-	z.draw_line(m + Vector2(-7, 1) * k, m + Vector2(-6, 6) * k, col(Color("2a2a2e")), 2.6)
+	DrawBatch.line(z, m + Vector2(-7, 1) * k, m + Vector2(-6, 6) * k, col(Color("2a2a2e")), 2.6)
 	# קונוס
 	var cone := PackedVector2Array([m + Vector2(-9, -1.5) * k, m + Vector2(-9, 1.5) * k, m + Vector2(4, 5.5) * k, m + Vector2(4, -5.5) * k])
 	Art.fill_shaded(z, cone, body, 0.25, 0.3, Art.OUTLINE, 1.1)
-	z.draw_line(m + Vector2(-8, -1.2) * k, m + Vector2(3, -4.6) * k, col(Color(1, 1, 1, 0.35)), 1.0)   # ברק
+	DrawBatch.line(z, m + Vector2(-8, -1.2) * k, m + Vector2(3, -4.6) * k, col(Color(1, 1, 1, 0.35)), 1.0)   # ברק
 	Art.oval(z, m + Vector2(4, 0) * k, 1.6 * k, 5.6 * k, col(Color("3a3428")), 0.0, Art.OUTLINE, 1.0)
-	z.draw_line(m + Vector2(-4, -2.5) * k, m + Vector2(0, 3.5) * k, col(Color("2a2418")), 0.9)   # סדק
-	z.draw_line(m + Vector2(-1, -3.5) * k, m + Vector2(1, -4.6) * k, col(Color("2a2418")), 0.8)
-	z.draw_rect(Rect2(m + Vector2(-5, -3.3) * k, Vector2(3, 6.6) * k), col(Color(0.8, 0.8, 0.8, 0.55)))   # סלוטייפ
-	z.draw_circle(m + Vector2(-9.5, 0) * k, 1.4, col(Color("c03020")))   # נורית אדומה
+	DrawBatch.line(z, m + Vector2(-4, -2.5) * k, m + Vector2(0, 3.5) * k, col(Color("2a2418")), 0.9)   # סדק
+	DrawBatch.line(z, m + Vector2(-1, -3.5) * k, m + Vector2(1, -4.6) * k, col(Color("2a2418")), 0.8)
+	DrawBatch.rect(z, Rect2(m + Vector2(-5, -3.3) * k, Vector2(3, 6.6) * k), col(Color(0.8, 0.8, 0.8, 0.55)))   # סלוטייפ
+	DrawBatch.circle(z, m + Vector2(-9.5, 0) * k, 1.4, col(Color("c03020")))   # נורית אדומה
 	if mega_hits > 0:   # נפגע פעם אחת - סדק גדול
-		z.draw_line(m + Vector2(-8, 0) * k, m + Vector2(3, -4) * k, col(Color("1a1410")), 1.2)
+		DrawBatch.line(z, m + Vector2(-8, 0) * k, m + Vector2(3, -4) * k, col(Color("1a1410")), 1.2)
 	if _crack > 0.0:
 		Art.glow(z, m, 9.0, Color(1, 1, 0.9, 0.7))
 	if state == SHOUT and not z.dead:   # קווי קול
 		for q in 3:
 			var rr := 9.0 + float(q) * 4.5 + (SHOUT_T - _st) * 30.0
-			z.draw_arc(m + Vector2(5, 0) * k, rr, -0.6, 0.6, 8, Color(1.0, 0.4, 0.25, 0.75 - float(q) * 0.18), 1.6)
+			DrawBatch.arc(z, m + Vector2(5, 0) * k, rr, -0.6, 0.6, 8, Color(1.0, 0.4, 0.25, 0.75 - float(q) * 0.18), 1.6)
 
 
 func _bubble(inh: float) -> void:
@@ -578,7 +593,7 @@ func _bubble(inh: float) -> void:
 		jag.append(c + Vector2(cos(a) * w * 0.5, sin(a) * h * 0.62) * rr)
 	var hot := inh > 0.0 or state == SHOUT
 	Art.fill(z, jag, Color(1.0, 0.94, 0.86, 0.92) if not hot else Color(1.0, 0.82, 0.7, 0.95), Art.OUTLINE, 1.2)
-	z.draw_colored_polygon(PackedVector2Array([c + Vector2(-3, h * 0.5), c + Vector2(4, h * 0.5), c + Vector2(z._dir * 6.0, h * 0.5 + 7.0)]), Color(1.0, 0.94, 0.86, 0.92))
+	DrawBatch.colored_polygon(z, PackedVector2Array([c + Vector2(-3, h * 0.5), c + Vector2(4, h * 0.5), c + Vector2(z._dir * 6.0, h * 0.5 + 7.0)]), Color(1.0, 0.94, 0.86, 0.92))
 	var jit := Vector2(sin(t * 50.0), cos(t * 43.0)) * 1.2 * inh
 	var tc := Color(0.15, 0.05, 0.05).lerp(Color(0.85, 0.08, 0.05), inh)
-	z.draw_string(FONT, c + Vector2(-w * 0.5 + 6.0, float(fs) * 0.36) + jit, word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tc)
+	DrawBatch.string(z, FONT, c + Vector2(-w * 0.5 + 6.0, float(fs) * 0.36) + jit, word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tc)

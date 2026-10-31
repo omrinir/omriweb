@@ -146,33 +146,33 @@ func draw() -> bool:
 	# תרמיל רדיו + אנטנה
 	var pack := sh + Vector2(-11, -1)
 	Art.fill_shaded(z, PackedVector2Array([pack, pack + Vector2(7, 0), pack + Vector2(7, 16), pack + Vector2(0, 16)]), col(Color("3a4230")), 0.15, 0.4)
-	z.draw_rect(Rect2(pack + Vector2(1.5, 3), Vector2(4, 3)), col(Color("1a1e16")))
-	z.draw_circle(pack + Vector2(3.5, 10), 1.3, Color(0.3, 1.0, 0.4) if state == WALK else Color(1.0, 0.3, 0.2))
+	DrawBatch.rect(z, Rect2(pack + Vector2(1.5, 3), Vector2(4, 3)), col(Color("1a1e16")))
+	DrawBatch.circle(z, pack + Vector2(3.5, 10), 1.3, Color(0.3, 1.0, 0.4) if state == WALK else Color(1.0, 0.3, 0.2))
 	var sway: float = sin(z._time * 5.0) * 3.0 + z.velocity.x * -0.02
 	var ant := PackedVector2Array([pack + Vector2(2, 0), pack + Vector2(1.0 + sway * 0.3, -12), pack + Vector2(sway * 0.7, -24), pack + Vector2(sway, -34)])
-	z.draw_polyline(ant, col(Color("2a2a2c")), 1.4)
+	DrawBatch.polyline(z, ant, col(Color("2a2a2c")), 1.4)
 	var tip: Vector2 = ant[3]
 	if kneel:
 		var blink := fmod(z._time * 6.0, 1.0) < 0.5
-		z.draw_circle(tip, 2.2, Color(1.0, 0.3, 0.2) if blink else Color(0.5, 0.1, 0.1))
+		DrawBatch.circle(z, tip, 2.2, Color(1.0, 0.3, 0.2) if blink else Color(0.5, 0.1, 0.1))
 		for q in 3:   # גלי רדיו
 			var k := fmod(z._time * 1.5 + float(q) / 3.0, 1.0)
-			z.draw_arc(tip, 4.0 + k * 22.0, -2.4, -0.7, 10, Color(0.5, 0.85, 1.0, 0.7 * (1.0 - k)), 1.4)
+			DrawBatch.arc(z, tip, 4.0 + k * 22.0, -2.4, -0.7, 10, Color(0.5, 0.85, 1.0, 0.7 * (1.0 - k)), 1.4)
 		var prog := clampf(1.0 - _st / TRANSMIT_T, 0.0, 1.0)   # בר התקדמות קטן מעל הראש
-		z.draw_rect(Rect2(head + Vector2(-8, -16), Vector2(16, 3)), Color(0, 0, 0, 0.6))
-		z.draw_rect(Rect2(head + Vector2(-8, -16), Vector2(16.0 * prog, 3)), Color(1.0, 0.4, 0.3))
+		DrawBatch.rect(z, Rect2(head + Vector2(-8, -16), Vector2(16, 3)), Color(0, 0, 0, 0.6))
+		DrawBatch.rect(z, Rect2(head + Vector2(-8, -16), Vector2(16.0 * prog, 3)), Color(1.0, 0.4, 0.3))
 	else:
-		z.draw_circle(tip, 1.4, col(Color("4a4a4c")))
+		DrawBatch.circle(z, tip, 1.4, col(Color("4a4a4c")))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 3.0, 14.0), Art.shade(sk, 0.25), Art.shade(shirt, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)]), shirt, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-5, 0), hip + Vector2(3, 0), col(Color("2a2e20")), 1.6)   # רצועה
+	DrawBatch.line(z, sh + Vector2(-5, 0), hip + Vector2(3, 0), col(Color("2a2e20")), 1.6)   # רצועה
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	face(head, Vector2(3.5, -1.0))
-	z.draw_arc(head + Vector2(0, -1), 6.2, PI * 1.05, TAU * 0.98, 10, col(Color("1e1e20")), 1.8)   # אוזניות
-	z.draw_circle(head + Vector2(-4.5, 0), 2.4, col(Color("2a2a2c")))
-	z.draw_line(head + Vector2(-3, 2), head + Vector2(4, 4), col(Color("2a2a2c")), 1.0)   # מיקרופון
+	DrawBatch.arc(z, head + Vector2(0, -1), 6.2, PI * 1.05, TAU * 0.98, 10, col(Color("1e1e20")), 1.8)   # אוזניות
+	DrawBatch.circle(z, head + Vector2(-4.5, 0), 2.4, col(Color("2a2a2c")))
+	DrawBatch.line(z, head + Vector2(-3, 2), head + Vector2(4, 4), col(Color("2a2a2c")), 1.0)   # מיקרופון
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -1.0), 0.9, Color(1.0, 0.5, 0.2))
+		DrawBatch.circle(z, head + Vector2(3.5, -1.0), 0.9, Color(1.0, 0.5, 0.2))
 	if kneel:   # יד לאוזן
 		z._arm(sh + Vector2(3, 1), head + Vector2(-2, 2), sk, shirt)
 	else:

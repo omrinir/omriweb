@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  שלב 12 (צפון-מזרח, "THE LIGHTHOUSE") - חפצים משותפים:
 #   ThrownHand - כף יד כרותה שנזרקת (SPARE PARTS). פוגעת בשחקן (1), נוחתת ונשארת לכמה שניות.
@@ -48,14 +49,19 @@ class ThrownHand extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		Art.limb(self, PackedVector2Array([Vector2(-6, 0), Vector2(1, 0)]), 4.2, skin)
 		Art.disc(self, Vector2(-7, 0), 2.4, Color(0.5, 0.03, 0.05), Art.NONE)
 		Art.disc(self, Vector2(2, 0), 3.2, skin)
 		for i in 4:   # אצבעות
 			var a := -0.8 + float(i) * 0.5
 			var d := Vector2.from_angle(a)
-			draw_line(Vector2(3, 0) + d, Vector2(3, 0) + d * 5.5, Art.OUTLINE, 2.2, true)
-			draw_line(Vector2(3, 0) + d, Vector2(3, 0) + d * 5.5, skin, 1.2, true)
+			DrawBatch.line(self, Vector2(3, 0) + d, Vector2(3, 0) + d * 5.5, Art.OUTLINE, 2.2, true)
+			DrawBatch.line(self, Vector2(3, 0) + d, Vector2(3, 0) + d * 5.5, skin, 1.2, true)
 
 	const Art := preload("res://art.gd")
 	const Particles := preload("res://particles.gd")
@@ -100,6 +106,11 @@ class QuickSand extends "res://environment/hazard.gd":
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var hw := width * 0.5
 		var pts := PackedVector2Array()
 		for i in 17:   # שקע מעוגל בחול
@@ -107,21 +118,21 @@ class QuickSand extends "res://environment/hazard.gd":
 			pts.append(Vector2(lerpf(-hw, hw, u), -1.0 + sin(u * PI) * 6.0))
 		pts.append(Vector2(hw, 7.0))   # מתחת לשקע (אחרת המצולע נחתך)
 		pts.append(Vector2(-hw, 7.0))
-		draw_colored_polygon(pts, Color("8a6a40"))
+		DrawBatch.colored_polygon(self, pts, Color("8a6a40"))
 		for k in 3:   # טבעות שמסתובבות לאט (מערבולת)
 			var rr := fposmod(_t * 10.0 + float(k) * 14.0, 42.0)
-			draw_arc(Vector2(0, 1), rr * hw / 42.0, PI + 0.2, TAU - 0.2, 14, Color(0.35, 0.25, 0.12, 0.5 * (1.0 - rr / 42.0)), 1.5)
+			DrawBatch.arc(self, Vector2(0, 1), rr * hw / 42.0, PI + 0.2, TAU - 0.2, 14, Color(0.35, 0.25, 0.12, 0.5 * (1.0 - rr / 42.0)), 1.5)
 		for i in 3:   # בועות
 			var bx := sin(_t * 1.3 + float(i) * 2.0) * hw * 0.6
 			if fmod(_t + float(i) * 0.7, 2.0) < 0.3:
-				draw_circle(Vector2(bx, 0.0), 2.0, Color(0.45, 0.35, 0.2))
+				DrawBatch.circle(self, Vector2(bx, 0.0), 2.0, Color(0.45, 0.35, 0.2))
 		if _hand_t < 0.0 and _hand_t > -2.5:   # יד של שלד עולה ונבלעת
 			var k := -_hand_t / 2.5
 			var h := sin(k * PI) * 18.0
 			var hx := hw * 0.3
-			draw_line(Vector2(hx, 2), Vector2(hx + 2, -h), Color("d8d0b8"), 2.0)
+			DrawBatch.line(self, Vector2(hx, 2), Vector2(hx + 2, -h), Color("d8d0b8"), 2.0)
 			for f in 4:
-				draw_line(Vector2(hx + 2, -h), Vector2(hx - 2 + float(f) * 2.0, -h - 6.0), Color("d8d0b8"), 1.2)
+				DrawBatch.line(self, Vector2(hx + 2, -h), Vector2(hx - 2 + float(f) * 2.0, -h - 6.0), Color("d8d0b8"), 1.2)
 		elif _hand_t <= -2.5:
 			_hand_t = randf_range(4.0, 8.0)
 

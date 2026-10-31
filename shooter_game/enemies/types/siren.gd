@@ -201,7 +201,7 @@ func draw() -> bool:
 		var w1 := sin(t * 1.8 + float(i) * 0.7) * 3.0
 		var w2 := sin(t * 1.3 + float(i) * 1.1) * 4.0
 		var pts := PackedVector2Array([root, root + Vector2(-5.0 + w1 * 0.4, -5.0), root + Vector2(-11.0 + w1, -7.0 + w2 * 0.5 - float(i) * 0.6), root + Vector2(-18.0 + w1 * 1.3, -4.0 + w2 - float(i) * 0.8), root + Vector2(-24.0 + w1 * 1.6, -1.0 + w2 * 1.3 - float(i) * 0.5)])
-		z.draw_polyline(pts, Color(hair, 0.85), 1.3, true)
+		DrawBatch.polyline(z, pts, Color(hair, 0.85), 1.3, true)
 	# יד אחורית
 	var bh := sh + Vector2(-4.0, 18.0 + sin(t * 1.5) * 2.0)
 	if singing:
@@ -213,8 +213,8 @@ func draw() -> bool:
 	Art.fill_shaded(z, dress, coat, 0.1, 0.35)
 	for i in 4:   # רצועות קרועות שמתנופפות
 		var sx := -7.0 + float(i) * 4.5
-		z.draw_line(Vector2(sx, hem - 2.0), Vector2(sx - 2.0 + sin(t * 3.0 + float(i)) * 2.0, hem + 5.0), coat_d, 1.2)
-	z.draw_line(sh + Vector2(1, 1), hip + Vector2(2, 3), coat_d, 1.0)   # שולי החלוק
+		DrawBatch.line(z, Vector2(sx, hem - 2.0), Vector2(sx - 2.0 + sin(t * 3.0 + float(i)) * 2.0, hem + 5.0), coat_d, 1.2)
+	DrawBatch.line(z, sh + Vector2(1, 1), hip + Vector2(2, 3), coat_d, 1.0)   # שולי החלוק
 	Art.oval(z, hip.lerp(sh, 0.4) + Vector2(3, 0), 2.2, 3.5, col(Color(0.5, 0.05, 0.05, 0.7)), 0.0, Art.NONE)   # כתם דם
 	# צוואר + שק גרון זוהר
 	var pulse := 0.5 + 0.5 * sin(t * (12.0 if singing else 3.0))
@@ -227,16 +227,16 @@ func draw() -> bool:
 	Art.oval_shaded(z, head, 5.0, 6.5, sk, 0.0)
 	for e in [Vector2(1.5, -1.5), Vector2(4.2, -1.2)]:
 		var ev: Vector2 = e
-		z.draw_circle(head + ev, 1.1, Color(0.95, 0.92, 1.0))
+		DrawBatch.circle(z, head + ev, 1.1, Color(0.95, 0.92, 1.0))
 		Art.glow(z, head + ev, 2.6, Color(0.85, 0.75, 1.0, 0.5))
 	if singing:
 		Art.oval(z, head + Vector2(3.0, 3.0), 1.6, 2.6, Color(0.1, 0.0, 0.05), 0.0, Art.NONE)
 	else:
-		z.draw_line(head + Vector2(1.5, 3.0), head + Vector2(4.5, 3.2), Color(0.25, 0.05, 0.1), 0.9)
+		DrawBatch.line(z, head + Vector2(1.5, 3.0), head + Vector2(4.5, 3.2), Color(0.25, 0.05, 0.1), 0.9)
 	# שיער מקדימה
 	for i in 3:
 		var r0 := head + Vector2(-3.0 + float(i) * 2.0, -5.5)
-		z.draw_line(r0, r0 + Vector2(-3.0 + sin(t * 2.0 + float(i)) * 1.5, 7.0), hair, 1.4)
+		DrawBatch.line(z, r0, r0 + Vector2(-3.0 + sin(t * 2.0 + float(i)) * 1.5, 7.0), hair, 1.4)
 	# יד קדמית
 	var fh := sh + Vector2(6.0, 18.0 + sin(t * 1.5 + 1.0) * 2.0)
 	if singing:
@@ -245,18 +245,18 @@ func draw() -> bool:
 		fh = sh + Vector2(16.0, 2.0)
 	Art.limb(z, PackedVector2Array([sh + Vector2(2, 1), sh.lerp(fh, 0.5) + Vector2(2, 1), fh]), 2.6, sk)
 	for i in 3:   # אצבעות ארוכות
-		z.draw_line(fh, fh + Vector2(3.0, -2.0 + float(i) * 2.0), sk, 0.9)
+		DrawBatch.line(z, fh, fh + Vector2(3.0, -2.0 + float(i) * 2.0), sk, 0.9)
 	# "מד גודל הקבוצה": כדורים קטנים שמקיפים את הגרון (1-3)
 	if not z.dead:
 		for i in wave_size():
 			var a := t * 2.0 + TAU * float(i) / float(wave_size())
-			z.draw_circle(throat + Vector2(cos(a) * 9.0, sin(a) * 4.0), 1.2, Color(1.0, 0.5, 0.9, 0.8))
+			DrawBatch.circle(z, throat + Vector2(cos(a) * 9.0, sin(a) * 4.0), 1.2, Color(1.0, 0.5, 0.9, 0.8))
 	# טבעות קול בזמן השיר
 	if singing:
 		var k := 1.0 - _song_t / SONG_TIME
 		for i in 3:
 			var q := fmod(k * 2.0 + float(i) * 0.33, 1.0)
-			z.draw_arc(throat, 6.0 + q * 46.0, -1.2, 1.2, 16, Color(1.0, 0.55, 0.95, 0.7 * (1.0 - q)), 2.0, true)
-			z.draw_arc(throat, 6.0 + q * 46.0, PI - 1.2, PI + 1.2, 16, Color(1.0, 0.55, 0.95, 0.45 * (1.0 - q)), 1.5, true)
+			DrawBatch.arc(z, throat, 6.0 + q * 46.0, -1.2, 1.2, 16, Color(1.0, 0.55, 0.95, 0.7 * (1.0 - q)), 2.0, true)
+			DrawBatch.arc(z, throat, 6.0 + q * 46.0, PI - 1.2, PI + 1.2, 16, Color(1.0, 0.55, 0.95, 0.45 * (1.0 - q)), 1.5, true)
 	end_draw()
 	return true

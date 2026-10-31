@@ -1,4 +1,5 @@
 extends "res://levels/stage_base.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  STAGE 9 - "THEY LEARN" (השיא)
 #  עיר הרוסה ענקית בשליטת הזומבים, שמחברת את כל הסביבות: רחובות -> מפעל -> גגות ->
@@ -131,8 +132,8 @@ func build_background(layer: CanvasLayer) -> Node:
 		var start := int(floor(sc / period)) - 1
 		for k in range(start, start + 3):
 			var x := float(k) * period - sc
-			ci.draw_rect(Rect2(x + 200, 380, 16, 220), Color("100a0c"))
-			ci.draw_colored_polygon(PackedVector2Array([Vector2(x + 190, 380), Vector2(x + 240, 360), Vector2(x + 226, 392)]), Color("100a0c"))
+			DrawBatch.rect(ci, Rect2(x + 200, 380, 16, 220), Color("100a0c"))
+			DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(x + 190, 380), Vector2(x + 240, 360), Vector2(x + 226, 392)]), Color("100a0c"))
 			Fx.searchlight(ci, Vector2(x + 640.0, 600.0), t, float(k))
 		Kit.ground_fade(ci, v, 570.0))
 	layer.add_child(bg)
@@ -293,10 +294,15 @@ class EarthFill extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var cam := get_viewport().get_camera_2d()
 		if cam == null:
 			return
 		var cx := cam.get_screen_center_position().x
-		draw_rect(Rect2(cx - 800.0, top, 1600.0, depth), Color("1a1512"))
+		DrawBatch.rect(self, Rect2(cx - 800.0, top, 1600.0, depth), Color("1a1512"))
 		for i in 8:
-			draw_rect(Rect2(cx - 800.0, top + float(i) * 40.0 + 10.0, 1600.0, 2.0), Color(0, 0, 0, 0.25))
+			DrawBatch.rect(self, Rect2(cx - 800.0, top + float(i) * 40.0 + 10.0, 1600.0, 2.0), Color(0, 0, 0, 0.25))

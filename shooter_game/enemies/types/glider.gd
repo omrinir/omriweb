@@ -273,16 +273,16 @@ func draw() -> bool:
 	z._leg(hip + Vector2(-2, 0), f[1], col(Art.shade(z.pants, 0.25)), col(Art.shade(z.skin, 0.2)), col(z.shoe))
 	# כנף מקופלת מאחור (בד מהיד לירך, קרוע)
 	var bh := sh + Vector2(-6.0 - sin(p) * 2.0, 14.0)
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-3, 1), bh, hip + Vector2(-6, 4), hip + Vector2(-9, -2), sh + Vector2(-9, 6)]), Color(memb, 0.95))
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-3, 1), bh, hip + Vector2(-6, 4), hip + Vector2(-9, -2), sh + Vector2(-9, 6)]), Color(memb, 0.95))
 	z._arm(sh + Vector2(-3, 1), bh, Art.shade(sk, 0.25), Art.shade(suit, 0.3))
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-6, -1), sh + Vector2(6, 0), hip + Vector2(5, 2), hip + Vector2(-5, 2)]), suit, 0.12, 0.4)
-	z.draw_line(sh + Vector2(0, 2), hip + Vector2(0, 0), col(Color("2a2016")), 1.2)   # רוכסן
+	DrawBatch.line(z, sh + Vector2(0, 2), hip + Vector2(0, 0), col(Color("2a2016")), 1.2)   # רוכסן
 	_head(head, sk)
 	var fh := sh + Vector2(8.0 + sin(p) * 2.0, 12.0)
 	if state == PERCH:   # ידיים פרושות קצת, מוכן לקפוץ
 		fh = sh + Vector2(13.0, 2.0)
-		z.draw_colored_polygon(PackedVector2Array([sh + Vector2(3, 1), fh, hip + Vector2(4, 0)]), Color(memb, 0.9))
+		DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(3, 1), fh, hip + Vector2(4, 0)]), Color(memb, 0.9))
 	z._arm(sh + Vector2(3, 1), fh, sk, suit)
 	end_draw()
 	return true
@@ -292,10 +292,10 @@ func _head(head: Vector2, sk: Color) -> void:
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	# כובע טייס מעור + משקפי טיסה
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, 1), head + Vector2(-5, -5), head + Vector2(2, -7.5), head + Vector2(6, -3), head + Vector2(4, -1), head + Vector2(-2, -2), head + Vector2(-3, 4)]), col(Color("6a4a2a")), Art.OUTLINE, 1.0)
-	z.draw_line(head + Vector2(-5, 3), head + Vector2(-6, 8), col(Color("4a3220")), 1.4)   # רצועה
+	DrawBatch.line(z, head + Vector2(-5, 3), head + Vector2(-6, 8), col(Color("4a3220")), 1.4)   # רצועה
 	for gx in [1.5, 5.0]:
-		z.draw_circle(head + Vector2(gx, -2.2), 1.8, col(Color("2a2a2e")))
-		z.draw_circle(head + Vector2(gx, -2.2), 1.1, Color(0.85, 0.75, 0.3, 0.9) if not z.dead else Color(0.3, 0.3, 0.3))
+		DrawBatch.circle(z, head + Vector2(gx, -2.2), 1.8, col(Color("2a2a2e")))
+		DrawBatch.circle(z, head + Vector2(gx, -2.2), 1.1, Color(0.85, 0.75, 0.3, 0.9) if not z.dead else Color(0.3, 0.3, 0.3))
 	Art.fill(z, PackedVector2Array([head + Vector2(1, 2.5), head + Vector2(5.5, 2.0), head + Vector2(5, 4.6), head + Vector2(1.5, 4.6)]), col(Color("2a0a0a")), Art.OUTLINE, 0.7)
 
 
@@ -303,7 +303,7 @@ func _head(head: Vector2, sk: Color) -> void:
 func _draw_glide() -> bool:
 	var s := Vector2(z._dir * z.wf * z.sc, z.sc)
 	var tilt := -0.12 if state == GLIDE else 0.35
-	z.draw_set_transform_matrix(Transform2D(tilt * z._dir, Vector2(0, -26.0 * z.sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO))
+	DrawBatch.set_transform_matrix(z, Transform2D(tilt * z._dir, Vector2(0, -26.0 * z.sc)) * Transform2D(0.0, s, 0.0, Vector2.ZERO))
 	var sk := col(z.skin)
 	var suit := col(z.shirt)
 	var memb := col(Color("6a2e22"))
@@ -315,7 +315,7 @@ func _draw_glide() -> bool:
 	var hand := Vector2(22, -8 + flap * 0.5) if state == GLIDE else Vector2(18, 6)
 	var foot := Vector2(-24, 3)
 	# כנף אחורית (כהה)
-	z.draw_colored_polygon(PackedVector2Array([hand + Vector2(-3, -2), nk, hip, foot + Vector2(2, -3), Vector2(-14, -10 + flap), Vector2(0, -15 - flap), Vector2(12, -14)]), Art.shade(memb, 0.35))
+	DrawBatch.colored_polygon(z, PackedVector2Array([hand + Vector2(-3, -2), nk, hip, foot + Vector2(2, -3), Vector2(-14, -10 + flap), Vector2(0, -15 - flap), Vector2(12, -14)]), Art.shade(memb, 0.35))
 	Art.limb(z, PackedVector2Array([hip, hip + Vector2(-8, 1), foot]), 3.0, col(z.pants))
 	Art.limb(z, PackedVector2Array([nk, nk + Vector2(6, -3), hand]), 2.8, Art.shade(sk, 0.2))
 	# גוף
@@ -324,7 +324,7 @@ func _draw_glide() -> bool:
 	# כנף קדמית עם קצה מסורק וקרוע
 	var wing := PackedVector2Array([hand, nk + Vector2(0, 3), hip + Vector2(0, 4), foot, Vector2(-16, 12 + flap), Vector2(-9, 9), Vector2(-4, 14 - flap), Vector2(2, 9), Vector2(8, 13 + flap), Vector2(13, 6)])
 	Art.fill(z, wing, Color(memb, 0.92), Art.OUTLINE, 1.0)
-	z.draw_line(hand, hip + Vector2(0, 4), Color(0, 0, 0, 0.25), 1.0)   # קפל
+	DrawBatch.line(z, hand, hip + Vector2(0, 4), Color(0, 0, 0, 0.25), 1.0)   # קפל
 	Art.limb(z, PackedVector2Array([hip + Vector2(0, 3), hip + Vector2(-8, 4), foot + Vector2(1, 2)]), 3.2, col(Art.shade(z.pants, -0.1)))
 	Art.limb(z, PackedVector2Array([nk + Vector2(1, 3), nk + Vector2(7, 2), hand + Vector2(0, 2)]), 3.0, sk)
 	end_draw()

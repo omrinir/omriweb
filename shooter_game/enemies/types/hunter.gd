@@ -259,19 +259,19 @@ func draw() -> bool:
 	Art.fill(z, PackedVector2Array([hip + Vector2(-4, -4), sh + Vector2(1, -5), sh + Vector2(-2, 2), hip.lerp(sh, 0.5) + Vector2(0, 6), hip + Vector2(-2, 6)]), rag, Art.OUTLINE, 1.0)
 	for i in 3:   # קרעים תלויים
 		var tp: Vector2 = hip.lerp(sh, 0.2 + 0.3 * float(i)) + Vector2(0, 5)
-		z.draw_line(tp, tp + Vector2(sin(z._time * 3.0 + float(i)) * 1.5, 5), rag, 1.4)
+		DrawBatch.line(z, tp, tp + Vector2(sin(z._time * 3.0 + float(i)) * 1.5, 5), rag, 1.4)
 	for i in 6:   # חוליות
 		var vp: Vector2 = hip.lerp(sh, float(i) / 5.0) + Vector2(0, -5.5)
-		z.draw_colored_polygon(PackedVector2Array([vp + Vector2(-1.5, 0.5), vp + Vector2(0, -2.5), vp + Vector2(1.5, 0.5)]), col(Color("c8c0b0")))
+		DrawBatch.colored_polygon(z, PackedVector2Array([vp + Vector2(-1.5, 0.5), vp + Vector2(0, -2.5), vp + Vector2(1.5, 0.5)]), col(Color("c8c0b0")))
 	# ראש מוארך עם לסת ועדשה אדומה
 	var jaw := 2.5 if z._bite_anim > 0.0 or air else 0.8
 	Art.fill_shaded(z, PackedVector2Array([head + Vector2(-6, -4), head + Vector2(4, -5), head + Vector2(10, -1), head + Vector2(9, 1), head + Vector2(-5, 3)]), sk, 0.2, 0.35, Art.OUTLINE, 1.2)
 	Art.fill(z, PackedVector2Array([head + Vector2(-3, 3), head + Vector2(8, 1.5 + jaw), head + Vector2(6, 3.5 + jaw), head + Vector2(-3, 5)]), dark, Art.OUTLINE, 1.0)
 	for i in 3:   # שיניים
-		z.draw_line(head + Vector2(2.0 + float(i) * 2.0, 1.2), head + Vector2(2.0 + float(i) * 2.0, 1.2 + jaw * 0.8), col(Color("e8e0c8")), 0.8)
+		DrawBatch.line(z, head + Vector2(2.0 + float(i) * 2.0, 1.2), head + Vector2(2.0 + float(i) * 2.0, 1.2 + jaw * 0.8), col(Color("e8e0c8")), 0.8)
 	var eye := head + Vector2(3.5, -2.0)
-	z.draw_circle(eye, 1.9, Color(0.1, 0.0, 0.0))
-	z.draw_circle(eye, 1.2, Color(1.0, 0.12, 0.1))
+	DrawBatch.circle(z, eye, 1.9, Color(0.1, 0.0, 0.0))
+	DrawBatch.circle(z, eye, 1.2, Color(1.0, 0.12, 0.1))
 	Art.glow(z, eye, 4.5, Color(1.0, 0.1, 0.05, 0.6))
 	# יד קדמית
 	var fh := sh + Vector2(6.0 + sin(p) * 6.0, 24.0 - maxf(0.0, cos(p)) * 3.0)
@@ -285,7 +285,7 @@ func draw() -> bool:
 
 func _claws(at: Vector2, c: Color) -> void:
 	for i in 3:
-		z.draw_line(at, at + Vector2(4.0, -1.0 + float(i) * 1.5), c, 1.0, true)
+		DrawBatch.line(z, at, at + Vector2(4.0, -1.0 + float(i) * 1.5), c, 1.0, true)
 
 
 # האזהרה: סורג אוורור שרועד + עין אדומה מבצבצת
@@ -293,15 +293,15 @@ func _draw_tell() -> void:
 	var k := clampf(_t / TELL_TIME, 0.0, 1.0)
 	var shake := sin(_t * 60.0) * 1.5 * k
 	var g := Vector2(shake, -2.0)
-	z.draw_rect(Rect2(g + Vector2(-20, -4), Vector2(40, 6)), Color(0.08, 0.08, 0.1))
+	DrawBatch.rect(z, Rect2(g + Vector2(-20, -4), Vector2(40, 6)), Color(0.08, 0.08, 0.1))
 	for i in 6:
-		z.draw_line(g + Vector2(-18 + i * 7, -4), g + Vector2(-18 + i * 7, 2), Color(0.55, 0.58, 0.62), 2.0)
-	z.draw_rect(Rect2(g + Vector2(-21, -5), Vector2(42, 8)), Color(0.4, 0.42, 0.46), false, 1.5)
+		DrawBatch.line(z, g + Vector2(-18 + i * 7, -4), g + Vector2(-18 + i * 7, 2), Color(0.55, 0.58, 0.62), 2.0)
+	DrawBatch.rect(z, Rect2(g + Vector2(-21, -5), Vector2(42, 8)), Color(0.4, 0.42, 0.46), false, 1.5)
 	var a := clampf(k * 1.6, 0.0, 1.0) * (0.6 + 0.4 * sin(_t * 14.0))
 	Art.glow(z, g + Vector2(0, -9), 10.0 + 8.0 * k, Color(1.0, 0.1, 0.05, 0.7 * a))
-	z.draw_circle(g + Vector2(-3, -8), 1.6, Color(1.0, 0.2, 0.1, a))
-	z.draw_circle(g + Vector2(3, -8), 1.6, Color(1.0, 0.2, 0.1, a))
+	DrawBatch.circle(z, g + Vector2(-3, -8), 1.6, Color(1.0, 0.2, 0.1, a))
+	DrawBatch.circle(z, g + Vector2(3, -8), 1.6, Color(1.0, 0.2, 0.1, a))
 	if k > 0.5:   # ניצוץ של "ברק" בעין - glint
 		var gl := (k - 0.5) * 2.0
-		z.draw_line(g + Vector2(-9 * gl, -8), g + Vector2(9 * gl, -8), Color(1.0, 0.9, 0.8, 0.8 * (1.0 - gl * 0.5)), 1.0)
-		z.draw_line(g + Vector2(0, -8 - 7 * gl), g + Vector2(0, -8 + 7 * gl), Color(1.0, 0.9, 0.8, 0.8 * (1.0 - gl * 0.5)), 1.0)
+		DrawBatch.line(z, g + Vector2(-9 * gl, -8), g + Vector2(9 * gl, -8), Color(1.0, 0.9, 0.8, 0.8 * (1.0 - gl * 0.5)), 1.0)
+		DrawBatch.line(z, g + Vector2(0, -8 - 7 * gl), g + Vector2(0, -8 + 7 * gl), Color(1.0, 0.9, 0.8, 0.8 * (1.0 - gl * 0.5)), 1.0)

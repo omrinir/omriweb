@@ -267,26 +267,26 @@ func draw() -> bool:
 		Vector2(hip.x + 1.0, hem_y + 2.0), Vector2(hip.x - 7.0 - flap, hem_y + 1.0), Vector2(hip.x - 10.0 - flap * 1.4, hem_y - 3.0), hip + Vector2(-7, 0)])
 	Art.fill_shaded(z, coat_pts, coat, 0.12, 0.4)
 	# חגורה + פסי גשם מבריקים
-	z.draw_line(hip + Vector2(-6, -4), hip + Vector2(7, -3), col(Color("16141a")), 2.0)
+	DrawBatch.line(z, hip + Vector2(-6, -4), hip + Vector2(7, -3), col(Color("16141a")), 2.0)
 	for i in 3:
 		var a: Vector2 = sh.lerp(hip, 0.2 + float(i) * 0.25) + Vector2(-3.0 + float(i), 0.0)
-		z.draw_line(a, a + Vector2(-1.0, 5.0), Color(0.75, 0.85, 1.0, 0.25), 1.0)
+		DrawBatch.line(z, a, a + Vector2(-1.0, 5.0), Color(0.75, 0.85, 1.0, 0.25), 1.0)
 	# צווארון מורם
 	Art.fill(z, PackedVector2Array([sh + Vector2(-5, 0), sh + Vector2(-3, -7), sh + Vector2(1, -3), sh + Vector2(5, -6), sh + Vector2(5, 1)]), coat_d, Art.OUTLINE, 1.0)
 	# ראש צנום
 	Art.oval_shaded(z, head + Vector2(0, 1), 5.0, 6.5, sk, 0.1)
-	z.draw_line(head + Vector2(1, 3), head + Vector2(5, 4), Color(0.15, 0.0, 0.05), 1.2)
+	DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(5, 4), Color(0.15, 0.0, 0.05), 1.2)
 	# כובע רחב שוליים
 	var brim_tilt := -0.12 if striking else 0.05
 	Art.fill_shaded(z, PackedVector2Array([head + Vector2(-5, -5), head + Vector2(-4.5, -9.5), head + Vector2(-1, -10.5), head + Vector2(1, -9.2), head + Vector2(4, -10.5), head + Vector2(6, -9), head + Vector2(6.5, -5)]), col(Color("221f26")), 0.2, 0.3)
 	Art.oval(z, head + Vector2(1.0, -4.8), 12.5, 2.0, col(Color("19171c")), brim_tilt)
-	z.draw_line(head + Vector2(-4.8, -6.4), head + Vector2(6.4, -6.4), col(Color("6a2a2c")), 1.6)   # סרט אדום כהה
+	DrawBatch.line(z, head + Vector2(-4.8, -6.4), head + Vector2(6.4, -6.4), col(Color("6a2a2c")), 1.6)   # סרט אדום כהה
 	# עיניים ירוקות שמחזירות אור (חזקות יותר כשמציץ / מסתער)
 	var glow_k := 1.0 if (striking or _peek > 0.0) else 0.55
 	var eye := Color(0.55, 1.0, 0.45)
 	for e in [Vector2(2.5, -2.0), Vector2(5.0, -1.8)]:
 		Art.glow(z, head + e, 3.2, Color(eye, 0.6 * glow_k))
-		z.draw_circle(head + e, 0.9, Color(eye, glow_k))
+		DrawBatch.circle(z, head + e, 0.9, Color(eye, glow_k))
 	# יד קדמית: מושטת עם אצבעות ארוכות (מסתער) / נשענת על המחסה
 	var fh := sh + (Vector2(24, -2) if striking else (Vector2(13, 4) if k > 0.5 else Vector2(9, 15)))
 	_long_arm(sh + Vector2(2, 1), fh, sk, coat)
@@ -302,4 +302,4 @@ func _long_arm(shoulder: Vector2, hand: Vector2, sk: Color, sleeve: Color) -> vo
 	var dvec := (hand - elbow).normalized()
 	for i in 4:   # אצבעות ארוכות ודקות
 		var a := dvec.rotated(-0.5 + float(i) * 0.33)
-		z.draw_line(hand, hand + a * 6.0, col(Art.shade(z.skin, 0.1)), 1.0, true)
+		DrawBatch.line(z, hand, hand + a * 6.0, col(Art.shade(z.skin, 0.1)), 1.0, true)

@@ -386,8 +386,13 @@ class Rock extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_rect(Rect2(-3, -2, 6, 4), Color("4a4a50"))
-		draw_rect(Rect2(-3, -2, 6, 1.2), Color("8a8a90"))
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.rect(self, Rect2(-3, -2, 6, 4), Color("4a4a50"))
+		DrawBatch.rect(self, Rect2(-3, -2, 6, 1.2), Color("8a8a90"))
 
 
 # ============================================================
@@ -411,7 +416,7 @@ func draw() -> bool:
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, sk.darkened(0.2))
 	for q in 2:   # השוק החשופה
 		var fq: Vector2 = f[q]
-		z.draw_line(hip.lerp(fq, 0.55), fq + Vector2(0, -2), col(sk.darkened(0.1 * float(q))), 2.2)
+		DrawBatch.line(z, hip.lerp(fq, 0.55), fq + Vector2(0, -2), col(sk.darkened(0.1 * float(q))), 2.2)
 	# יד אחורית ארוכה
 	var hb := sh + Vector2(-4.0 + sin(t * 9.0) * 4.0 * crouch, 20.0 - 4.0 * crouch)
 	_arm(sh + Vector2(-2, 1), hb, true)
@@ -421,10 +426,10 @@ func draw() -> bool:
 	for q in 4:
 		var u := 0.18 + float(q) * 0.15
 		var a := sh.lerp(hip, u)
-		z.draw_line(a + Vector2(-1, 0), a + Vector2(4.5, 1.2), col(Art.shade(z.skin, 0.35)), 0.8)
+		DrawBatch.line(z, a + Vector2(-1, 0), a + Vector2(4.5, 1.2), col(Art.shade(z.skin, 0.35)), 0.8)
 	for q in 5:   # עמוד שדרה
-		z.draw_circle(sh.lerp(hip, 0.1 + float(q) * 0.18) + Vector2(-5.0, 0), 0.9, col(Art.shade(z.skin, -0.12)))
-	z.draw_colored_polygon(Art.ellipse(sh.lerp(hip, 0.45) + Vector2(1, 0), 1.6, 2.4, 0.3, 8), Color(0.3, 0.12, 0.12, 0.35))   # כתם
+		DrawBatch.circle(z, sh.lerp(hip, 0.1 + float(q) * 0.18) + Vector2(-5.0, 0), 0.9, col(Art.shade(z.skin, -0.12)))
+	DrawBatch.colored_polygon(z, Art.ellipse(sh.lerp(hip, 0.45) + Vector2(1, 0), 1.6, 2.4, 0.3, 8), Color(0.3, 0.12, 0.12, 0.35))   # כתם
 	_head(head, sk)
 	# יד קדמית: טפרים קדימה, או מסתירה את העיניים מהאור
 	var hf := sh + Vector2(9.0 + sin(t * 9.0 + PI) * 4.0 * crouch, 16.0 - 5.0 * crouch)
@@ -445,34 +450,34 @@ func _arm(s: Vector2, h: Vector2, back: bool) -> void:
 	Art.limb(z, PackedVector2Array([s, el, h]), 2.2, c)
 	var dir := (h - el).normalized()
 	for q in 3:   # טפרים
-		z.draw_line(h, h + dir.rotated((float(q) - 1.0) * 0.45) * 4.0, col(Color("2a2420")), 0.9)
+		DrawBatch.line(z, h, h + dir.rotated((float(q) - 1.0) * 0.45) * 4.0, col(Color("2a2420")), 0.9)
 
 
 func _head(c: Vector2, sk: Color) -> void:
 	Art.oval_shaded(z, c, 4.6, 5.2, sk, -0.1)
-	z.draw_colored_polygon(PackedVector2Array([c + Vector2(-3.5, -1.5), c + Vector2(-6.0, -4.0), c + Vector2(-3.8, 1.0)]), col(Art.shade(z.skin, 0.2)))   # אוזן
+	DrawBatch.colored_polygon(z, PackedVector2Array([c + Vector2(-3.5, -1.5), c + Vector2(-6.0, -4.0), c + Vector2(-3.8, 1.0)]), col(Art.shade(z.skin, 0.2)))   # אוזן
 	if z.dead:
 		return
 	# עיניים שחורות ענקיות עם נקודת אור
-	z.draw_colored_polygon(Art.ellipse(c + Vector2(2.2, -1.2), 2.3, 2.0, 0.2, 10), col(Color("06060a")))
-	z.draw_colored_polygon(Art.ellipse(c + Vector2(-1.8, -1.2), 1.6, 1.7, 0.0, 8), col(Color("06060a")))
-	z.draw_circle(c + Vector2(2.9, -1.8), 0.6, Color(1, 1, 1, 0.95))
-	z.draw_circle(c + Vector2(-1.4, -1.6), 0.45, Color(1, 1, 1, 0.8))
+	DrawBatch.colored_polygon(z, Art.ellipse(c + Vector2(2.2, -1.2), 2.3, 2.0, 0.2, 10), col(Color("06060a")))
+	DrawBatch.colored_polygon(z, Art.ellipse(c + Vector2(-1.8, -1.2), 1.6, 1.7, 0.0, 8), col(Color("06060a")))
+	DrawBatch.circle(z, c + Vector2(2.9, -1.8), 0.6, Color(1, 1, 1, 0.95))
+	DrawBatch.circle(z, c + Vector2(-1.4, -1.6), 0.45, Color(1, 1, 1, 0.8))
 	# פה פעור עם שיניים
 	var o: float = 1.6 if (z._bite_anim > 0.0 or state == WIND or _recoil > 0.0) else 0.6
-	z.draw_colored_polygon(PackedVector2Array([c + Vector2(0.5, 2.0), c + Vector2(5.2, 1.5), c + Vector2(4.8, 3.2 + o), c + Vector2(0.8, 3.0 + o)]), col(Color("1a0608")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([c + Vector2(0.5, 2.0), c + Vector2(5.2, 1.5), c + Vector2(4.8, 3.2 + o), c + Vector2(0.8, 3.0 + o)]), col(Color("1a0608")))
 	for q in 4:
 		var x := 1.0 + float(q) * 1.1
-		z.draw_line(c + Vector2(x, 2.0), c + Vector2(x + 0.2, 2.9), col(Color("e8e2cc")), 0.6)
-		z.draw_line(c + Vector2(x, 3.0 + o), c + Vector2(x + 0.2, 2.2 + o), col(Color("e8e2cc")), 0.6)
+		DrawBatch.line(z, c + Vector2(x, 2.0), c + Vector2(x + 0.2, 2.9), col(Color("e8e2cc")), 0.6)
+		DrawBatch.line(z, c + Vector2(x, 3.0 + o), c + Vector2(x + 0.2, 2.2 + o), col(Color("e8e2cc")), 0.6)
 	# ורידים על הקרקפת
-	z.draw_polyline(PackedVector2Array([c + Vector2(-2, -4.5), c + Vector2(0, -2.8), c + Vector2(-0.5, -0.5)]), Color(0.3, 0.3, 0.4, 0.5), 0.6)
+	DrawBatch.polyline(z, PackedVector2Array([c + Vector2(-2, -4.5), c + Vector2(0, -2.8), c + Vector2(-0.5, -0.5)]), Color(0.3, 0.3, 0.4, 0.5), 0.6)
 
 
 # תלוי הפוך מתחת לקורה העליונה: הגוף אופקי, הידיים והרגליים אוחזות למעלה
 func _draw_hang() -> bool:
 	var s := Vector2(z._dir * z.wf * z.sc, z.sc)
-	z.draw_set_transform(Vector2(0, -52.0 * z.sc), 0.0, s)
+	DrawBatch.set_transform(z, Vector2(0, -52.0 * z.sc), 0.0, s)
 	var sk := col(z.skin)
 	var t: float = z._time
 	var p: float = z._walk_phase
@@ -481,7 +486,7 @@ func _draw_hang() -> bool:
 	# גוף אופקי מתחת לקורה
 	Art.fill_shaded(z, PackedVector2Array([body + Vector2(-12, -4), body + Vector2(10, -5), body + Vector2(9, 3), body + Vector2(-11, 3)]), sk, 0.12, 0.35)
 	for q in 4:
-		z.draw_line(body + Vector2(-6.0 + float(q) * 4.0, -3.0), body + Vector2(-5.0 + float(q) * 4.0, 2.0), col(Art.shade(z.skin, 0.35)), 0.7)
+		DrawBatch.line(z, body + Vector2(-6.0 + float(q) * 4.0, -3.0), body + Vector2(-5.0 + float(q) * 4.0, 2.0), col(Art.shade(z.skin, 0.35)), 0.7)
 	# גפיים: ארבע ידיים/רגליים אוחזות בקורה (זוחל)
 	var anchors := [Vector2(9, -4), Vector2(5, -4), Vector2(-7, -3), Vector2(-11, -3)]
 	for q in 4:
@@ -490,13 +495,13 @@ func _draw_hang() -> bool:
 		var g := Vector2(a.x + sin(ph) * 5.0, grip - maxf(0.0, cos(ph)) * 2.0)
 		var mid := a.lerp(g, 0.5) + Vector2(-3.0 if q < 2 else 3.0, 2.0)
 		Art.limb(z, PackedVector2Array([a, mid, g]), 2.0, col(Art.shade(z.skin, 0.1 * float(q % 2))))
-		z.draw_line(g, g + Vector2(2.5, -1.5), col(Color("2a2420")), 0.8)
+		DrawBatch.line(z, g, g + Vector2(2.5, -1.5), col(Color("2a2420")), 0.8)
 	z._leg(body + Vector2(-11, 0), body + Vector2(-20, -10 + sin(p) * 2.0), col(z.pants), sk, sk.darkened(0.3))
 	# הראש תלוי ומסתכל למטה אליך
 	var hc := body + Vector2(14, 4)
 	Art.oval_shaded(z, hc, 4.4, 5.0, sk, 0.4)
-	z.draw_colored_polygon(Art.ellipse(hc + Vector2(1.5, 1.5), 2.0, 2.2, 0.3, 10), col(Color("06060a")))
-	z.draw_circle(hc + Vector2(2.0, 2.2), 0.5, Color(1, 1, 1, 0.95))
-	z.draw_colored_polygon(PackedVector2Array([hc + Vector2(-1, 3.0), hc + Vector2(3, 4.0), hc + Vector2(1.5, 6.0 + sin(t * 6.0))]), col(Color("1a0608")))
-	z.draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.colored_polygon(z, Art.ellipse(hc + Vector2(1.5, 1.5), 2.0, 2.2, 0.3, 10), col(Color("06060a")))
+	DrawBatch.circle(z, hc + Vector2(2.0, 2.2), 0.5, Color(1, 1, 1, 0.95))
+	DrawBatch.colored_polygon(z, PackedVector2Array([hc + Vector2(-1, 3.0), hc + Vector2(3, 4.0), hc + Vector2(1.5, 6.0 + sin(t * 6.0))]), col(Color("1a0608")))
+	DrawBatch.set_transform_matrix(z, Transform2D.IDENTITY)
 	return true

@@ -73,11 +73,16 @@ class Zap extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(_t / 0.22, 0.0, 1.0)
 		for p in to:
 			var pts := PackedVector2Array([from])
 			for i in range(1, 6):
 				pts.append(from.lerp(p, float(i) / 6.0) + Vector2(randf_range(-9, 9), randf_range(-9, 9)))
 			pts.append(p)
-			draw_polyline(pts, Color(0.35, 0.8, 1.0, 0.5 * a), 4.0, true)
-			draw_polyline(pts, Color(0.9, 0.97, 1.0, a), 1.4, true)
+			DrawBatch.polyline(self, pts, Color(0.35, 0.8, 1.0, 0.5 * a), 4.0, true)
+			DrawBatch.polyline(self, pts, Color(0.9, 0.97, 1.0, a), 1.4, true)

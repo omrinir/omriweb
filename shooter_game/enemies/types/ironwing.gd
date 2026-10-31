@@ -167,19 +167,19 @@ func _wing(root: Vector2, ang: float, span: float, broken_w: bool) -> void:
 	for i in 4:   # מניפה של מוטות מתכת: מהקצה אחורה ולמטה
 		ribs.append(elbow + Vector2.from_angle(tip_a - 0.32 * float(i)) * span * (0.62 - 0.1 * float(i)))
 	# בד המפרש: משולשים בין המוטות (לא מצולע אחד - שלא יתהפך)
-	z.draw_colored_polygon(PackedVector2Array([root, elbow, ribs[0]]), cloth)
+	DrawBatch.colored_polygon(z, PackedVector2Array([root, elbow, ribs[0]]), cloth)
 	for i in 3:
-		z.draw_colored_polygon(PackedVector2Array([elbow, ribs[i], ribs[i + 1]]), cloth.darkened(0.06 * float(i)))
-	z.draw_colored_polygon(PackedVector2Array([root, ribs[3], elbow]), cloth.darkened(0.15))
+		DrawBatch.colored_polygon(z, PackedVector2Array([elbow, ribs[i], ribs[i + 1]]), cloth.darkened(0.06 * float(i)))
+	DrawBatch.colored_polygon(z, PackedVector2Array([root, ribs[3], elbow]), cloth.darkened(0.15))
 	for i in 3:   # קרעים בבד
 		var hp: Vector2 = (ribs[i] as Vector2).lerp(elbow, 0.4)
-		z.draw_line(hp, hp + Vector2(3, 5), Color(0.2, 0.18, 0.15, 0.8), 1.2)
+		DrawBatch.line(z, hp, hp + Vector2(3, 5), Color(0.2, 0.18, 0.15, 0.8), 1.2)
 	Art.limb(z, PackedVector2Array([root, elbow, ribs[0]]), 3.2, metal)
 	for i in range(1, 4):
-		z.draw_line(elbow, ribs[i], dark, 1.8)
-		z.draw_circle(ribs[i], 1.2, dark)
+		DrawBatch.line(z, elbow, ribs[i], dark, 1.8)
+		DrawBatch.circle(z, ribs[i], 1.2, dark)
 	Art.disc(z, elbow, 2.8, dark)   # מנוע סרוו
-	z.draw_line(root + Vector2(2, 3), elbow.lerp(root, 0.4) + Vector2(0, 4), col(Color("8a8e96")), 1.4)   # בוכנה
+	DrawBatch.line(z, root + Vector2(2, 3), elbow.lerp(root, 0.4) + Vector2(0, 4), col(Color("8a8e96")), 1.4)   # בוכנה
 
 
 func draw() -> bool:
@@ -207,20 +207,20 @@ func draw() -> bool:
 	var body := PackedVector2Array([sh + Vector2(-7, -2), sh + Vector2(6, -1), hip + Vector2(6, -1), hip + Vector2(4, 3), hip + Vector2(-5, 3), sh + Vector2(-8, 5)])
 	Art.fill_shaded(z, body, shirt, 0.15, 0.35)
 	# רתמה + מנוע על הגב
-	z.draw_line(sh + Vector2(-6, 0), hip + Vector2(5, -2), col(Color("2a2420")), 2.4)
-	z.draw_line(sh + Vector2(4, 0), hip + Vector2(-5, -2), col(Color("2a2420")), 2.4)
+	DrawBatch.line(z, sh + Vector2(-6, 0), hip + Vector2(5, -2), col(Color("2a2420")), 2.4)
+	DrawBatch.line(z, sh + Vector2(4, 0), hip + Vector2(-5, -2), col(Color("2a2420")), 2.4)
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-13, -4), sh + Vector2(-5, -4), sh + Vector2(-5, 12), sh + Vector2(-13, 12)]), col(Color("4a4e56")), 0.2, 0.3)
 	var led_on := state == WIND or fmod(z._time, 0.8) < 0.15
 	if not z.dead:
-		z.draw_circle(sh + Vector2(-9, -1), 1.6, Color(1.0, 0.2, 0.15) if led_on else Color(0.35, 0.1, 0.1))
+		DrawBatch.circle(z, sh + Vector2(-9, -1), 1.6, Color(1.0, 0.2, 0.15) if led_on else Color(0.35, 0.1, 0.1))
 		if led_on:
 			Art.glow(z, sh + Vector2(-9, -1), 6.0, Color(1.0, 0.2, 0.15, 0.6))
-	z.draw_line(sh + Vector2(-9, 10), head + Vector2(-5, 3), col(Color("8a2a2a")), 1.0)   # חוטים לתוך הגוף
+	DrawBatch.line(z, sh + Vector2(-9, 10), head + Vector2(-5, 3), col(Color("8a2a2a")), 1.0)   # חוטים לתוך הגוף
 	# ראש עם משקפי טיסה
 	Art.oval_shaded(z, head, 5.6, 6.0, sk, 0.1)
-	z.draw_line(head + Vector2(-6, -2), head + Vector2(6, -2), col(Color("3a2a20")), 2.0)
+	DrawBatch.line(z, head + Vector2(-6, -2), head + Vector2(6, -2), col(Color("3a2a20")), 2.0)
 	Art.disc(z, head + Vector2(3.5, -2.0), 2.4, Color(0.9, 0.3, 0.2, 0.9) if state == WIND else col(Color("6a8a9a")), Art.OUTLINE, 0.9)
-	z.draw_line(head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a0a10")), 1.2)
+	DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(5, 3.5), col(Color("2a0a10")), 1.2)
 	z._arm(sh + Vector2(2, 2), sh + Vector2(12.0, 8.0) if state != DIVE else sh + Vector2(14.0, 2.0), sk, shirt)
 	var a_front := -PI * 0.5 - 0.3 + flap * 0.8 + fold * 1.4
 	_wing(wroot, a_front, 54.0 * (1.0 - 0.35 * fold), broken)

@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  קישוטים לשלב 44 ("THE DAM") - סכר איטאיפו על נהר הפרנה (גבול ברזיל-פרגוואי). אזור חמישי, שלב 8.
 #  אימפריית המתים תפסה את תחנת הכוח הגדולה ביבשת כדי להפעיל את מכונת המלחמה. הקרב על דרך הכתר של הסכר.
@@ -34,19 +35,19 @@ static func dam_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
 	var k := fposmod(t, per) / per
 	var px := -200.0 + k * (v.x + 400.0)
 	var py := v.y * 0.14
-	ci.draw_colored_polygon(PackedVector2Array([Vector2(px - 50, py), Vector2(px + 46, py - 4), Vector2(px + 54, py), Vector2(px + 46, py + 6), Vector2(px - 50, py + 5)]), Color("2a3038"))
-	ci.draw_line(Vector2(px - 10, py), Vector2(px + 10, py - 30), Color("2a3038"), 4.0)
-	ci.draw_line(Vector2(px - 10, py), Vector2(px + 10, py + 30), Color("2a3038"), 4.0)
-	ci.draw_line(Vector2(px - 48, py), Vector2(px - 56, py - 14), Color("2a3038"), 3.0)
+	DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(px - 50, py), Vector2(px + 46, py - 4), Vector2(px + 54, py), Vector2(px + 46, py + 6), Vector2(px - 50, py + 5)]), Color("2a3038"))
+	DrawBatch.line(ci, Vector2(px - 10, py), Vector2(px + 10, py - 30), Color("2a3038"), 4.0)
+	DrawBatch.line(ci, Vector2(px - 10, py), Vector2(px + 10, py + 30), Color("2a3038"), 4.0)
+	DrawBatch.line(ci, Vector2(px - 48, py), Vector2(px - 56, py - 14), Color("2a3038"), 3.0)
 	for q in 4:   # מצנחים שנפתחו מאחור
 		var age := k * per - float(q) * 1.4
 		if age > 0.5 and age < 10.0:
 			var cx := px - 80.0 - age * 34.0 - float(q) * 10.0
 			var cy := py + age * 26.0
-			ci.draw_colored_polygon(Art.ellipse(Vector2(cx, cy), 9.0, 5.0, 0.0, 10), Color(0.8, 0.2, 0.18, 0.85))
-			ci.draw_line(Vector2(cx - 8, cy + 2), Vector2(cx, cy + 14), Color(0.2, 0.2, 0.2, 0.7), 0.8)
-			ci.draw_line(Vector2(cx + 8, cy + 2), Vector2(cx, cy + 14), Color(0.2, 0.2, 0.2, 0.7), 0.8)
-			ci.draw_circle(Vector2(cx, cy + 15), 1.8, Color(0.15, 0.15, 0.15, 0.8))
+			DrawBatch.colored_polygon(ci, Art.ellipse(Vector2(cx, cy), 9.0, 5.0, 0.0, 10), Color(0.8, 0.2, 0.18, 0.85))
+			DrawBatch.line(ci, Vector2(cx - 8, cy + 2), Vector2(cx, cy + 14), Color(0.2, 0.2, 0.2, 0.7), 0.8)
+			DrawBatch.line(ci, Vector2(cx + 8, cy + 2), Vector2(cx, cy + 14), Color(0.2, 0.2, 0.2, 0.7), 0.8)
+			DrawBatch.circle(ci, Vector2(cx, cy + 15), 1.8, Color(0.15, 0.15, 0.15, 0.8))
 
 
 # ---- העמק והנהר ----
@@ -59,20 +60,20 @@ static func far_river(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float)
 		hills.append(Vector2(x, y - 120.0 - sin(wx * 0.004) * 40.0 - sin(wx * 0.011) * 18.0))
 		x += 40.0
 	hills.append(Vector2(v.x, v.y))
-	ci.draw_colored_polygon(hills, Color("4a6450"))
-	ci.draw_rect(Rect2(0, y - 40.0, v.x, v.y - y + 40.0), Color("5a7a88"))   # הנהר
+	DrawBatch.colored_polygon(ci, hills, Color("4a6450"))
+	DrawBatch.rect(ci, Rect2(0, y - 40.0, v.x, v.y - y + 40.0), Color("5a7a88"))   # הנהר
 	for q in 8:
 		var rx := fposmod(float(q) * 170.0 - sc * 0.5 + t * 10.0, v.x + 80.0) - 40.0
-		ci.draw_line(Vector2(rx, y - 30.0 + float(q % 3) * 8.0), Vector2(rx + 40.0, y - 30.0 + float(q % 3) * 8.0), Color(0.9, 0.95, 1.0, 0.25), 1.5)
+		DrawBatch.line(ci, Vector2(rx, y - 30.0 + float(q % 3) * 8.0), Vector2(rx + 40.0, y - 30.0 + float(q % 3) * 8.0), Color(0.9, 0.95, 1.0, 0.25), 1.5)
 	var period := 600.0
 	var start := int(floor(sc / period)) - 1
 	for k in range(start, start + int(ceil(v.x / period)) + 2):   # עמודי מתח גבוה
 		var px := float(k) * period - sc + 200.0
 		var py := y - 150.0 - sin((px + sc) * 0.004) * 40.0
-		ci.draw_line(Vector2(px - 18, py + 80), Vector2(px, py - 30), Color("3a4048"), 2.0)
-		ci.draw_line(Vector2(px + 18, py + 80), Vector2(px, py - 30), Color("3a4048"), 2.0)
-		ci.draw_line(Vector2(px - 22, py - 10), Vector2(px + 22, py - 10), Color("3a4048"), 2.0)
-		ci.draw_line(Vector2(px - 16, py + 10), Vector2(px + 16, py + 10), Color("3a4048"), 1.5)
+		DrawBatch.line(ci, Vector2(px - 18, py + 80), Vector2(px, py - 30), Color("3a4048"), 2.0)
+		DrawBatch.line(ci, Vector2(px + 18, py + 80), Vector2(px, py - 30), Color("3a4048"), 2.0)
+		DrawBatch.line(ci, Vector2(px - 22, py - 10), Vector2(px + 22, py - 10), Color("3a4048"), 2.0)
+		DrawBatch.line(ci, Vector2(px - 16, py + 10), Vector2(px + 16, py + 10), Color("3a4048"), 1.5)
 		var nx := px + period
 		var ny := y - 150.0 - sin((nx + sc) * 0.004) * 40.0
 		for w in 2:
@@ -80,47 +81,47 @@ static func far_river(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float)
 			for i in 9:
 				var u := float(i) / 8.0
 				pts.append(Vector2(lerpf(px, nx, u), lerpf(py - 10.0 + float(w) * 20.0, ny - 10.0 + float(w) * 20.0, u) + sin(u * PI) * 26.0))
-			ci.draw_polyline(pts, Color(0.2, 0.22, 0.25, 0.6), 1.0)
+			DrawBatch.polyline(ci, pts, Color(0.2, 0.22, 0.25, 0.6), 1.0)
 
 
 # ---- חזית הסכר וערוץ השפך ----
 static func mid_dam(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> void:
 	var top := y - 300.0
-	ci.draw_rect(Rect2(0, top, v.x, v.y - top), Color("8a8c88"))
+	DrawBatch.rect(ci, Rect2(0, top, v.x, v.y - top), Color("8a8c88"))
 	# מרקם בטון: קווי יציקה אופקיים, כתמי רטיבות שזולגים מהכתר, טחב בתחתית (הקיר היה אפור שטוח)
 	var ly := top + 34.0
 	while ly < y:
-		ci.draw_rect(Rect2(0, ly, v.x, 2.0), Color(0.3, 0.31, 0.3, 0.18))
+		DrawBatch.rect(ci, Rect2(0, ly, v.x, 2.0), Color(0.3, 0.31, 0.3, 0.18))
 		ly += 38.0
 	var sp := 70.0
 	var ss := int(floor(sc / sp)) - 1
 	for k in range(ss, ss + int(ceil(v.x / sp)) + 2):
 		var x := float(k) * sp - sc + _h(k, 4) * 40.0
 		var ln := 60.0 + _h(k, 5) * 200.0
-		ci.draw_rect(Rect2(x, top, 6.0 + _h(k, 6) * 12.0, ln), Color(0.25, 0.27, 0.26, 0.16))
-		ci.draw_rect(Rect2(x + 2.0, top, 3.0, ln * 0.6), Color(0.2, 0.22, 0.2, 0.14))
+		DrawBatch.rect(ci, Rect2(x, top, 6.0 + _h(k, 6) * 12.0, ln), Color(0.25, 0.27, 0.26, 0.16))
+		DrawBatch.rect(ci, Rect2(x + 2.0, top, 3.0, ln * 0.6), Color(0.2, 0.22, 0.2, 0.14))
 	Kit.haze_band(ci, v, y - 110.0, y, Color(0.32, 0.4, 0.3, 0.2))
 	var c0 := Color(0.0, 0.0, 0.0, 0.3)
 	var c1 := Color(0.0, 0.0, 0.0, 0.0)
-	ci.draw_polygon(PackedVector2Array([Vector2(0, top), Vector2(v.x, top), Vector2(v.x, top + 60.0), Vector2(0, top + 60.0)]), PackedColorArray([c0, c0, c1, c1]))   # צל מתחת לכתר
+	DrawBatch.polygon(ci, PackedVector2Array([Vector2(0, top), Vector2(v.x, top), Vector2(v.x, top + 60.0), Vector2(0, top + 60.0)]), PackedColorArray([c0, c0, c1, c1]))   # צל מתחת לכתר
 	var period := 220.0
 	var start := int(floor(sc / period)) - 1
 	for k in range(start, start + int(ceil(v.x / period)) + 2):
 		var x := float(k) * period - sc
-		ci.draw_rect(Rect2(x, top, 60.0, v.y - top), Color("7a7c78"))   # תומכה (buttress)
-		ci.draw_rect(Rect2(x + 60.0, top, 4.0, v.y - top), Color("6a6c68"))
-		ci.draw_rect(Rect2(x + 90.0, top + 40.0, 26.0, y - top - 40.0), Color("5a5c58"))   # צינור לחץ
-		ci.draw_rect(Rect2(x + 94.0, top + 40.0, 6.0, y - top - 40.0), Color("6e706c"))
+		DrawBatch.rect(ci, Rect2(x, top, 60.0, v.y - top), Color("7a7c78"))   # תומכה (buttress)
+		DrawBatch.rect(ci, Rect2(x + 60.0, top, 4.0, v.y - top), Color("6a6c68"))
+		DrawBatch.rect(ci, Rect2(x + 90.0, top + 40.0, 26.0, y - top - 40.0), Color("5a5c58"))   # צינור לחץ
+		DrawBatch.rect(ci, Rect2(x + 94.0, top + 40.0, 6.0, y - top - 40.0), Color("6e706c"))
 		if posmod(k, 5) == 2:   # ערוץ שפך עם מים לבנים
 			var cx := x + 130.0
-			ci.draw_rect(Rect2(cx, top, 80.0, v.y - top), Color("5a6a74"))
+			DrawBatch.rect(ci, Rect2(cx, top, 80.0, v.y - top), Color("5a6a74"))
 			for q in 10:
 				var wy := top + fposmod(t * 120.0 + float(q) * 40.0, v.y - top)
-				ci.draw_line(Vector2(cx + 6.0 + float(q % 4) * 18.0, wy), Vector2(cx + 6.0 + float(q % 4) * 18.0, wy + 30.0), Color(0.95, 0.97, 1.0, 0.7), 3.0)
+				DrawBatch.line(ci, Vector2(cx + 6.0 + float(q % 4) * 18.0, wy), Vector2(cx + 6.0 + float(q % 4) * 18.0, wy + 30.0), Color(0.95, 0.97, 1.0, 0.7), 3.0)
 			Art.glow(ci, Vector2(cx + 40.0, y - 10.0), 70.0, Color(1, 1, 1, 0.25))
 		if posmod(k, 4) == 1:
 			E.banner(ci, Vector2(x + 30.0, top + 10.0), 40.0, 160.0, t + float(k))
-	ci.draw_rect(Rect2(0, top - 12.0, v.x, 12.0), Color("9a9c98"))
+	DrawBatch.rect(ci, Rect2(0, top - 12.0, v.x, 12.0), Color("9a9c98"))
 	E.emblem(ci, Vector2(fposmod(800.0 - sc, 1600.0), top + 80.0), 36.0)
 
 
@@ -130,12 +131,12 @@ static func near_parapet(ci: CanvasItem, sc: float, v: Vector2, y: float, t: flo
 	var start := int(floor(sc / period)) - 1
 	for k in range(start, start + int(ceil(v.x / period)) + 2):
 		var x := float(k) * period - sc
-		ci.draw_rect(Rect2(x, y - 40.0, 300.0, 40.0), Color("6a6c6a"))
-		ci.draw_rect(Rect2(x, y - 44.0, 300.0, 5.0), Color("7a7c7a"))
-		ci.draw_line(Vector2(x + 150.0, y - 44.0), Vector2(x + 150.0, y - 150.0), Color("3a3c40"), 3.0)   # עמוד תאורה
-		ci.draw_line(Vector2(x + 150.0, y - 150.0), Vector2(x + 172.0, y - 154.0), Color("3a3c40"), 2.0)
+		DrawBatch.rect(ci, Rect2(x, y - 40.0, 300.0, 40.0), Color("6a6c6a"))
+		DrawBatch.rect(ci, Rect2(x, y - 44.0, 300.0, 5.0), Color("7a7c7a"))
+		DrawBatch.line(ci, Vector2(x + 150.0, y - 44.0), Vector2(x + 150.0, y - 150.0), Color("3a3c40"), 3.0)   # עמוד תאורה
+		DrawBatch.line(ci, Vector2(x + 150.0, y - 150.0), Vector2(x + 172.0, y - 154.0), Color("3a3c40"), 2.0)
 		Art.glow(ci, Vector2(x + 174.0, y - 152.0), 14.0, Color(1.0, 0.95, 0.8, 0.25))
-	ci.draw_rect(Rect2(0, y, v.x, v.y - y), Color("4a4c4a"))
+	DrawBatch.rect(ci, Rect2(0, y, v.x, v.y - y), Color("4a4c4a"))
 
 
 # ============================================================
@@ -149,15 +150,20 @@ class CrestGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
-		draw_rect(Rect2(0, 0, w, depth), Color("5a5c5a"))
-		draw_rect(Rect2(0, 0, w, 4.0), Color("7a7c7a"))
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.rect(self, Rect2(0, 0, w, depth), Color("5a5c5a"))
+		DrawBatch.rect(self, Rect2(0, 0, w, 4.0), Color("7a7c7a"))
 		var x := 0.0
 		while x < w:
-			draw_rect(Rect2(x, 16.0, 40.0, 3.0), Color("d8b830"))
+			DrawBatch.rect(self, Rect2(x, 16.0, 40.0, 3.0), Color("d8b830"))
 			x += 90.0
 		x = 0.0
 		while x < w:   # מפרקי התפשטות
-			draw_line(Vector2(x, 0), Vector2(x, depth), Color("4a4c4a"), 1.0)
+			DrawBatch.line(self, Vector2(x, 0), Vector2(x, depth), Color("4a4c4a"), 1.0)
 			x += 128.0
 
 
@@ -169,18 +175,23 @@ class Gantry extends Node2D:   # עגורן שער (הקומה = add_floor)
 		z_index = -1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var c := Color("c8a028")
 		for px in [0.0, w - 18.0]:   # רגליים
-			draw_rect(Rect2(px, -tier, 18.0, tier), c.darkened(0.15))
+			DrawBatch.rect(self, Rect2(px, -tier, 18.0, tier), c.darkened(0.15))
 			for q in int(tier / 40.0):
-				draw_line(Vector2(px, -tier + float(q) * 40.0), Vector2(px + 18.0, -tier + 40.0 + float(q) * 40.0), c.darkened(0.35), 1.5)
-			draw_rect(Rect2(px - 4.0, -10.0, 26.0, 10.0), Color("3a3a3a"))   # גלגלים
-		draw_rect(Rect2(-10.0, -tier - 4.0, w + 20.0, 16.0), c)   # הקורה
+				DrawBatch.line(self, Vector2(px, -tier + float(q) * 40.0), Vector2(px + 18.0, -tier + 40.0 + float(q) * 40.0), c.darkened(0.35), 1.5)
+			DrawBatch.rect(self, Rect2(px - 4.0, -10.0, 26.0, 10.0), Color("3a3a3a"))   # גלגלים
+		DrawBatch.rect(self, Rect2(-10.0, -tier - 4.0, w + 20.0, 16.0), c)   # הקורה
 		for q in int(w / 20.0) + 1:
-			draw_line(Vector2(float(q) * 20.0, -tier - 4.0), Vector2(float(q) * 20.0, -tier - 26.0), Color("3a3a3a"), 1.2)
-		draw_line(Vector2(0, -tier - 26.0), Vector2(w, -tier - 26.0), Color("3a3a3a"), 2.0)
-		draw_rect(Rect2(w * 0.5 - 30.0, -tier + 12.0, 60.0, 30.0), Color("4a4a4a"))   # עגלת ההרמה
-		draw_line(Vector2(w * 0.5, -tier + 42.0), Vector2(w * 0.5, -tier + 90.0), Color("2a2a2a"), 1.5)
+			DrawBatch.line(self, Vector2(float(q) * 20.0, -tier - 4.0), Vector2(float(q) * 20.0, -tier - 26.0), Color("3a3a3a"), 1.2)
+		DrawBatch.line(self, Vector2(0, -tier - 26.0), Vector2(w, -tier - 26.0), Color("3a3a3a"), 2.0)
+		DrawBatch.rect(self, Rect2(w * 0.5 - 30.0, -tier + 12.0, 60.0, 30.0), Color("4a4a4a"))   # עגלת ההרמה
+		DrawBatch.line(self, Vector2(w * 0.5, -tier + 42.0), Vector2(w * 0.5, -tier + 90.0), Color("2a2a2a"), 1.5)
 		E.emblem(self, Vector2(w * 0.5, -tier + 27.0), 9.0)
 
 
@@ -269,18 +280,23 @@ class Surge extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		# שערי השפך בקצה (תמיד)
 		var gx := 0.0 if dir > 0.0 else w
-		draw_rect(Rect2(gx - 14.0, -110.0, 28.0, 110.0), Color("6a6c6a"))
-		draw_rect(Rect2(gx - 10.0, -100.0 + (40.0 if state == 2 else 0.0), 20.0, 60.0), Color("4a5a64"))
+		DrawBatch.rect(self, Rect2(gx - 14.0, -110.0, 28.0, 110.0), Color("6a6c6a"))
+		DrawBatch.rect(self, Rect2(gx - 10.0, -100.0 + (40.0 if state == 2 else 0.0), 20.0, 60.0), Color("4a5a64"))
 		if state == 1:
 			var on := fposmod(_t * 3.0, 1.0) < 0.5
 			Art.glow(self, Vector2(gx, -118.0), 14.0, Color(1.0, 0.6, 0.1, 0.9 if on else 0.3))
 			var x := 0.0
 			while x <= w:
-				draw_rect(Rect2(x, -3, 30, 3), Color(1.0, 0.6, 0.1, 0.8 if on else 0.3))
+				DrawBatch.rect(self, Rect2(x, -3, 30, 3), Color(1.0, 0.6, 0.1, 0.8 if on else 0.3))
 				x += 60.0
-			draw_string(ThemeDB.fallback_font, Vector2(w * 0.5 - 60.0, -130.0), "FLOODGATES", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1.0, 0.7, 0.3, 0.9 if on else 0.5))
+			DrawBatch.string(self, ThemeDB.fallback_font, Vector2(w * 0.5 - 60.0, -130.0), "FLOODGATES", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1.0, 0.7, 0.3, 0.9 if on else 0.5))
 		elif state == 2:
 			var k := 1.0 - _t / RUN_T
 			var front := (w * clampf(k * 2.0, 0.0, 1.0)) if dir > 0.0 else w * (1.0 - clampf(k * 2.0, 0.0, 1.0))
@@ -297,8 +313,8 @@ class Surge extends Node2D:
 			pts.append(Vector2(r1, -H))
 			pts.append(Vector2(r1, 0))
 			if pts.size() >= 4:
-				draw_colored_polygon(pts, Color(0.55, 0.68, 0.78, 0.75 * a))
-			draw_circle(Vector2(front, -H * 0.6), 26.0, Color(0.95, 0.97, 1.0, 0.7 * a))
+				DrawBatch.colored_polygon(self, pts, Color(0.55, 0.68, 0.78, 0.75 * a))
+			DrawBatch.circle(self, Vector2(front, -H * 0.6), 26.0, Color(0.95, 0.97, 1.0, 0.7 * a))
 
 
 # ---- שנאי ----
@@ -378,20 +394,25 @@ class Transformer extends StaticBody2D:
 				z.take_damage(DMG_Z, z.global_position + Vector2(0, -30), Vector2.UP, false, {"source": "hazard", "fixed": DMG_Z})
 
 	func _draw() -> void:
-		draw_rect(Rect2(-27, -56, 54, 56), Color("5a6a5a"))
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.rect(self, Rect2(-27, -56, 54, 56), Color("5a6a5a"))
 		for q in 5:   # צלעות קירור
-			draw_rect(Rect2(-27 + float(q) * 12.0, -50, 4, 44), Color("4a5a4a"))
+			DrawBatch.rect(self, Rect2(-27 + float(q) * 12.0, -50, 4, 44), Color("4a5a4a"))
 		for q in 3:   # מבדדים
 			var ix := -16.0 + float(q) * 16.0
 			for i in 3:
-				draw_rect(Rect2(ix - 4.0 + float(i), -66.0 - float(i) * 5.0, 8.0 - float(i) * 2.0, 4.0), Color("8a6a4a"))
-			draw_circle(Vector2(ix, -82), 2.5, Color("8a8a8a"))
-		draw_rect(Rect2(-12, -36, 24, 16), Color("d8b830"))
-		draw_colored_polygon(PackedVector2Array([Vector2(1, -34), Vector2(-5, -27), Vector2(0, -27), Vector2(-3, -22), Vector2(5, -30), Vector2(0, -30)]), Color("1a1a1a"))
+				DrawBatch.rect(self, Rect2(ix - 4.0 + float(i), -66.0 - float(i) * 5.0, 8.0 - float(i) * 2.0, 4.0), Color("8a6a4a"))
+			DrawBatch.circle(self, Vector2(ix, -82), 2.5, Color("8a8a8a"))
+		DrawBatch.rect(self, Rect2(-12, -36, 24, 16), Color("d8b830"))
+		DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(1, -34), Vector2(-5, -27), Vector2(0, -27), Vector2(-3, -22), Vector2(5, -30), Vector2(0, -30)]), Color("1a1a1a"))
 		if _charge > 0.0:
 			var k := 1.0 - clampf(_charge / CHARGE_T, 0.0, 1.0)
 			Art.glow(self, Vector2(0, -82), 10.0 + 20.0 * k, Color(0.6, 0.8, 1.0, 0.3 + 0.5 * k))
-			draw_arc(Vector2(0, -40), R * (0.3 + 0.7 * k), 0.0, TAU, 32, Color(0.6, 0.8, 1.0, 0.25), 1.5)
+			DrawBatch.arc(self, Vector2(0, -40), R * (0.3 + 0.7 * k), 0.0, TAU, 32, Color(0.6, 0.8, 1.0, 0.25), 1.5)
 		if _flash > 0.0:
 			for tp in _targets:
 				var to: Vector2 = tp - global_position
@@ -399,7 +420,7 @@ class Transformer extends StaticBody2D:
 				for i in 6:
 					var u := float(i + 1) / 6.0
 					var nxt: Vector2 = Vector2(0, -82).lerp(to, u) + Vector2(randf_range(-10, 10), randf_range(-10, 10)) * (1.0 if i < 5 else 0.0)
-					draw_line(prev, nxt, Color(0.85, 0.95, 1.0, 0.95), 2.0)
+					DrawBatch.line(self, prev, nxt, Color(0.85, 0.95, 1.0, 0.95), 2.0)
 					prev = nxt
 			Art.glow(self, Vector2(0, -82), 40.0, Color(0.7, 0.85, 1.0, 0.6))
 
@@ -455,22 +476,27 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var w := size.x
 		var h := size.y
 		match kind:
 			"jersey":   # מחסום בטון
 				Art.fill_shaded(self, PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w - 8, -h * 0.3), Vector2(w - 14, -h), Vector2(14, -h), Vector2(8, -h * 0.3)]), Color("9a9a94"), 0.15, 0.35, Art.OUTLINE, 1.2)
-				draw_rect(Rect2(w * 0.2, -h * 0.6, w * 0.6, 4), E.RED)
+				DrawBatch.rect(self, Rect2(w * 0.2, -h * 0.6, w * 0.6, 4), E.RED)
 			"cable_drum":   # תוף כבלים
 				var c := Vector2(w * 0.5, -h * 0.5)
-				draw_colored_polygon(Art.ellipse(c, w * 0.5, h * 0.5, 0.0, 18), Color("6a4a2a"))
-				draw_colored_polygon(Art.ellipse(c, w * 0.36, h * 0.36, 0.0, 16), Color("1a1a1a"))
-				draw_colored_polygon(Art.ellipse(c, w * 0.12, h * 0.12, 0.0, 10), Color("6a4a2a"))
+				DrawBatch.colored_polygon(self, Art.ellipse(c, w * 0.5, h * 0.5, 0.0, 18), Color("6a4a2a"))
+				DrawBatch.colored_polygon(self, Art.ellipse(c, w * 0.36, h * 0.36, 0.0, 16), Color("1a1a1a"))
+				DrawBatch.colored_polygon(self, Art.ellipse(c, w * 0.12, h * 0.12, 0.0, 10), Color("6a4a2a"))
 			_:   # שסתום ענק
-				draw_rect(Rect2(w * 0.3, -h * 0.6, w * 0.4, h * 0.6), Color("3a5a7a"))
-				draw_arc(Vector2(w * 0.5, -h * 0.7), w * 0.45, 0.0, TAU, 20, Color("c83020"), 4.0)
+				DrawBatch.rect(self, Rect2(w * 0.3, -h * 0.6, w * 0.4, h * 0.6), Color("3a5a7a"))
+				DrawBatch.arc(self, Vector2(w * 0.5, -h * 0.7), w * 0.45, 0.0, TAU, 20, Color("c83020"), 4.0)
 				for q in 4:
-					draw_line(Vector2(w * 0.5, -h * 0.7), Vector2(w * 0.5, -h * 0.7) + Vector2.from_angle(float(q) * PI * 0.5) * w * 0.45, Color("c83020"), 2.0)
+					DrawBatch.line(self, Vector2(w * 0.5, -h * 0.7), Vector2(w * 0.5, -h * 0.7) + Vector2.from_angle(float(q) * PI * 0.5) * w * 0.45, Color("c83020"), 2.0)
 
 
 # ---- רסס וערפל (מסך) ----
@@ -484,8 +510,13 @@ class DamFX extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for i in 26:
 			var x := fposmod(float(i) * 61.0 + _t * (30.0 + float(i % 4) * 10.0), vp.x)
 			var y := fposmod(float(i) * 97.0 + sin(_t + float(i)) * 20.0 + _t * 12.0, vp.y)
-			draw_circle(Vector2(x, y), 1.2, Color(0.9, 0.95, 1.0, 0.35))
-		draw_rect(Rect2(0, vp.y * 0.6, vp.x, vp.y * 0.4), Color(0.85, 0.9, 0.95, 0.05))
+			DrawBatch.circle(self, Vector2(x, y), 1.2, Color(0.9, 0.95, 1.0, 0.35))
+		DrawBatch.rect(self, Rect2(0, vp.y * 0.6, vp.x, vp.y * 0.4), Color(0.85, 0.9, 0.95, 0.05))

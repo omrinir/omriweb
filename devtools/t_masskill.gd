@@ -1,6 +1,7 @@
 extends SceneTree
 # MASS KILL perf (test only): spawns N zombies around the player, then kills them (all in one frame, or in a stream)
 # and prints frame times for the next seconds. args: level n mode(all|stream) [quality_level -1 = auto]
+# MK_HIT env: (empty) explosive kills, "leg" leg shots, "fire" fire kills.
 # run headless for CPU cost, or under xvfb with --rendering-driver opengl3 to include drawing.
 var lv := 46
 var n := 40
@@ -57,7 +58,9 @@ func _process(_d: float) -> bool:
 			if done >= k:
 				break
 			if is_instance_valid(z) and not z.dead:
-				z.take_damage(999, z.global_position + Vector2(0, -50), Vector2(1, -0.2), true, {"source": "bullet", "shot": f})
+				var hit := OS.get_environment("MK_HIT")   # (empty) explosive, "leg" leg shots, "fire" fire kills
+				var hy: float = -8.0 * z.sc if hit == "leg" else -50.0
+				z.take_damage(999, z.global_position + Vector2(0, hy), Vector2(1, -0.2), hit == "", {"source": "fire" if hit == "fire" else "bullet", "shot": f, "fixed": 999})
 				done += 1
 		times.append(dt)
 		peak = maxi(peak, _count_particles())

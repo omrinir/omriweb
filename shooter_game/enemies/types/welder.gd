@@ -147,13 +147,13 @@ func draw() -> bool:
 	var sh: Vector2 = o.sh
 	var hf: Vector2 = o.hf
 	for q in 2:   # בלוני גז
-		z.draw_rect(Rect2(sh + Vector2(-13.0 + float(q) * 4.0, -2), Vector2(4, 20)), col(Color("6a2a2a") if q == 0 else Color("3a5a3a")))
+		DrawBatch.rect(z, Rect2(sh + Vector2(-13.0 + float(q) * 4.0, -2), Vector2(4, 20)), col(Color("6a2a2a") if q == 0 else Color("3a5a3a")))
 	if welding:   # מסכה למטה
-		z.draw_colored_polygon(PackedVector2Array([head + Vector2(-5, -7), head + Vector2(7, -6), head + Vector2(8, 5), head + Vector2(-4, 6)]), col(Color("2a2a2a")))
-		z.draw_rect(Rect2(head + Vector2(2, -2), Vector2(5, 2.5)), Color(0.3, 0.5, 0.3, 0.9))
+		DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-5, -7), head + Vector2(7, -6), head + Vector2(8, 5), head + Vector2(-4, 6)]), col(Color("2a2a2a")))
+		DrawBatch.rect(z, Rect2(head + Vector2(2, -2), Vector2(5, 2.5)), Color(0.3, 0.5, 0.3, 0.9))
 	else:   # מסכה מורמת
-		z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -6), head + Vector2(6, -10), head + Vector2(8, -7), head + Vector2(-4, -3)]), col(Color("2a2a2a")))
-	z.draw_line(hf, hf + Vector2(9, 3), col(Color("8a8a80")), 2.0)   # מבער
+		DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-6, -6), head + Vector2(6, -10), head + Vector2(8, -7), head + Vector2(-4, -3)]), col(Color("2a2a2a")))
+	DrawBatch.line(z, hf, hf + Vector2(9, 3), col(Color("8a8a80")), 2.0)   # מבער
 	if not z.dead:
 		if welding and fposmod(_spark * 9.0, 1.0) < 0.6:
 			Art.glow(z, hf + Vector2(11, 4), 10.0, Color(0.85, 0.95, 1.0, 0.9))

@@ -137,27 +137,27 @@ func draw() -> bool:
 	var head: Vector2 = o.head
 	var sh: Vector2 = o.sh
 	var hf: Vector2 = o.hf
-	z.draw_line(head + Vector2(-2, -7), head + Vector2(-6, -15), col(E.RED), 2.4)   # נוצה
-	z.draw_line(sh + Vector2(-6, -1), sh + Vector2(8, 16), col(Color("e8e0d0")), 1.6)   # רצועת התוף
+	DrawBatch.line(z, head + Vector2(-2, -7), head + Vector2(-6, -15), col(E.RED), 2.4)   # נוצה
+	DrawBatch.line(z, sh + Vector2(-6, -1), sh + Vector2(8, 16), col(Color("e8e0d0")), 1.6)   # רצועת התוף
 	if intact:
 		var c := Vector2(9, -23)
 		var dc := col(E.RED.lightened(0.3)) if _hit_t > 0.0 else col(E.RED)
-		z.draw_rect(Rect2(c + Vector2(-8, -9), Vector2(16, 18)), dc)
-		z.draw_rect(Rect2(c + Vector2(-9, -10), Vector2(18, 2.5)), col(E.BRASS))
-		z.draw_rect(Rect2(c + Vector2(-9, 7.5), Vector2(18, 2.5)), col(E.BRASS))
+		DrawBatch.rect(z, Rect2(c + Vector2(-8, -9), Vector2(16, 18)), dc)
+		DrawBatch.rect(z, Rect2(c + Vector2(-9, -10), Vector2(18, 2.5)), col(E.BRASS))
+		DrawBatch.rect(z, Rect2(c + Vector2(-9, 7.5), Vector2(18, 2.5)), col(E.BRASS))
 		for q in 4:   # חבלים
 			var x0 := -8.0 + float(q) * 4.0
-			z.draw_line(c + Vector2(x0, -7.5), c + Vector2(x0 + 4.0, 7.5), col(Color("e8e0d0")), 0.8)
+			DrawBatch.line(z, c + Vector2(x0, -7.5), c + Vector2(x0 + 4.0, 7.5), col(Color("e8e0d0")), 0.8)
 		E.emblem(z, c + Vector2(0, 0), 3.4)
 		if drum_hp < DRUM_HP:   # סדקים
-			z.draw_line(c + Vector2(-3, -6), c + Vector2(2, 1), col(Color("1a0a08")), 1.0)
+			DrawBatch.line(z, c + Vector2(-3, -6), c + Vector2(2, 1), col(Color("1a0a08")), 1.0)
 	else:   # שברי תוף תלויים
-		z.draw_line(Vector2(3, -14), Vector2(12, -18), col(E.BRASS), 2.0)
-		z.draw_line(Vector2(5, -30), Vector2(14, -27), col(E.RED_D), 3.0)
-	z.draw_line(hf, hf + Vector2(6, 5), col(Color("d8c8a0")), 1.4)   # מקלות
+		DrawBatch.line(z, Vector2(3, -14), Vector2(12, -18), col(E.BRASS), 2.0)
+		DrawBatch.line(z, Vector2(5, -30), Vector2(14, -27), col(E.RED_D), 3.0)
+	DrawBatch.line(z, hf, hf + Vector2(6, 5), col(Color("d8c8a0")), 1.4)   # מקלות
 	var hb: Vector2 = sh + Vector2(7, -6.0 - 8.0 * (1.0 - up))
-	z.draw_line(hb, hb + Vector2(6, 5), col(Color("d8c8a0")), 1.4)
+	DrawBatch.line(z, hb, hb + Vector2(6, 5), col(Color("d8c8a0")), 1.4)
 	end_draw()
 	if intact and not z.dead and _arm > 0.7:
-		z.draw_arc(Vector2(0, -20), 30.0 + 20.0 * (1.0 - _arm), 0.0, TAU, 24, Color(1.0, 0.3, 0.2, 0.25), 1.5)
+		DrawBatch.arc(z, Vector2(0, -20), 30.0 + 20.0 * (1.0 - _arm), 0.0, TAU, 24, Color(1.0, 0.3, 0.2, 0.25), 1.5)
 	return true

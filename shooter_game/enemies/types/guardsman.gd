@@ -198,24 +198,24 @@ func draw() -> bool:
 	var hip: Vector2 = o.hip
 	var hf: Vector2 = o.hf
 	var white := col(Color("e8e4d8"))
-	z.draw_line(sh + Vector2(-7, 0), hip + Vector2(6, 3), white, 1.6)   # רצועות מוצלבות
-	z.draw_line(sh + Vector2(7, 0), hip + Vector2(-6, 3), white, 1.6)
+	DrawBatch.line(z, sh + Vector2(-7, 0), hip + Vector2(6, 3), white, 1.6)   # רצועות מוצלבות
+	DrawBatch.line(z, sh + Vector2(7, 0), hip + Vector2(-6, 3), white, 1.6)
 	# שאקו
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-5.5, -3), head + Vector2(-5, -17), head + Vector2(6, -18), head + Vector2(6.5, -3)]), col(E.RED))
-	z.draw_rect(Rect2(head + Vector2(-5.5, -18.5), Vector2(12, 2)), col(Color("141414")))
-	z.draw_rect(Rect2(head + Vector2(-5.5, -4.5), Vector2(12, 1.6)), col(E.BRASS))
-	z.draw_rect(Rect2(head + Vector2(2, -3), Vector2(7, 1.4)), col(Color("141414")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-5.5, -3), head + Vector2(-5, -17), head + Vector2(6, -18), head + Vector2(6.5, -3)]), col(E.RED))
+	DrawBatch.rect(z, Rect2(head + Vector2(-5.5, -18.5), Vector2(12, 2)), col(Color("141414")))
+	DrawBatch.rect(z, Rect2(head + Vector2(-5.5, -4.5), Vector2(12, 1.6)), col(E.BRASS))
+	DrawBatch.rect(z, Rect2(head + Vector2(2, -3), Vector2(7, 1.4)), col(Color("141414")))
 	E.emblem(z, head + Vector2(0.5, -10), 2.6)
-	z.draw_line(head + Vector2(-5, -18), head + Vector2(-4, -24), col(Color("f0f0f0")), 2.0)   # נוצה
+	DrawBatch.line(z, head + Vector2(-5, -18), head + Vector2(-4, -24), col(Color("f0f0f0")), 2.0)   # נוצה
 	# רובה + כידון
 	var rifle_aim := aim if state != MARCH else Vector2(0.3, -1)
 	E.rifle(z, hf, rifle_aim)
 	var dn := rifle_aim.normalized()
-	z.draw_line(hf + dn * 17.0, hf + dn * 29.0, col(Color("c8ccd4")), 1.3)
+	DrawBatch.line(z, hf + dn * 17.0, hf + dn * 29.0, col(Color("c8ccd4")), 1.3)
 	if state == WIND and not z.dead:
 		var k := 1.0 - clampf(_st / LUNGE_WIND, 0.0, 1.0)
 		Art.glow(z, hf + dn * 29.0, 3.0 + 5.0 * k, Color(1.0, 1.0, 0.9, 0.3 + 0.5 * k))
 	if swapped and _back_t > 0.0 and not z.dead:
-		z.draw_string(ThemeDB.fallback_font, head + Vector2(-3, -28), "+", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 0.8, 0.7, 0.9))
+		DrawBatch.string(z, ThemeDB.fallback_font, head + Vector2(-3, -28), "+", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 0.8, 0.7, 0.9))
 	end_draw()
 	return true

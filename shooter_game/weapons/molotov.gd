@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  בקבוק תבערה (MOLOTOV) - עף בקשת, נשבר במגע ומשאיר שטח בוער.
 #  השטח הבוער = environment/fire_zone.gd (מצית זומבים, פוגע גם בך!)
@@ -57,6 +58,11 @@ func _shatter(at: Vector2) -> void:
 
 
 func _draw() -> void:
-	draw_colored_polygon(PackedVector2Array([Vector2(-6, -3), Vector2(3, -3), Vector2(5, -1.5), Vector2(10, -1.2), Vector2(10, 1.2), Vector2(5, 1.5), Vector2(3, 3), Vector2(-6, 3)]), Color(0.35, 0.55, 0.3, 0.9))
-	draw_line(Vector2(10, 0), Vector2(13, -1.5), Color("d8c8a0"), 1.6)
-	draw_circle(Vector2(14, -2), 3.0 + sin(_t * 30.0), Color(1.0, 0.6, 0.15, 0.9))
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
+	DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-6, -3), Vector2(3, -3), Vector2(5, -1.5), Vector2(10, -1.2), Vector2(10, 1.2), Vector2(5, 1.5), Vector2(3, 3), Vector2(-6, 3)]), Color(0.35, 0.55, 0.3, 0.9))
+	DrawBatch.line(self, Vector2(10, 0), Vector2(13, -1.5), Color("d8c8a0"), 1.6)
+	DrawBatch.circle(self, Vector2(14, -2), 3.0 + sin(_t * 30.0), Color(1.0, 0.6, 0.15, 0.9))

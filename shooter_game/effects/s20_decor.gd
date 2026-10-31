@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  קישוטים לשלב 20 ("GREEN HELL") - ג'ונגל צפוף עוד יותר. הרקע והאפקטים משותפים עם שלב 19
 #  (effects/s19_decor.gd). כאן רק הצמחייה שבעולם - הכל סטטי (מצויר פעם אחת = כמעט בלי עלות):
@@ -31,6 +32,11 @@ class Undergrowth extends Node2D:
 		z_index = 2
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s20_decor.gd")
@@ -44,12 +50,12 @@ class Undergrowth extends Node2D:
 					var d := Vector2.from_angle(a)
 					var tip := Vector2(x, 0) + d * ln + Vector2(d.x * 8.0, 6.0)
 					var n := d.orthogonal() * 5.0
-					draw_colored_polygon(PackedVector2Array([Vector2(x, 0), Vector2(x, 0) + d * ln * 0.5 + n, tip, Vector2(x, 0) + d * ln * 0.5 - n]), c)
+					DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(x, 0), Vector2(x, 0) + d * ln * 0.5 + n, tip, Vector2(x, 0) + d * ln * 0.5 - n]), c)
 			else:   # עשב
 				for q in 6:
 					var bx := x + float(q) * 4.0 - 10.0
 					var h := r.randf_range(18.0, 36.0)
-					draw_colored_polygon(PackedVector2Array([Vector2(bx - 2.0, 2), Vector2(bx + (float(q) - 2.5) * 3.0, -h), Vector2(bx + 2.0, 2)]), c)
+					DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(bx - 2.0, 2), Vector2(bx + (float(q) - 2.5) * 3.0, -h), Vector2(bx + 2.0, 2)]), c)
 			x += r.randf_range(26.0, 60.0)
 
 
@@ -66,6 +72,11 @@ class Bush extends Node2D:
 		modulate.a = preload("res://effects/s20_decor.gd").BUSH_ALPHA
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s20_decor.gd")
@@ -74,7 +85,7 @@ class Bush extends Node2D:
 		for i in 9:
 			var a := PI + float(i) * PI / 8.0
 			base.append(Vector2(cos(a) * w * 0.5, 4.0 + sin(a) * h * 0.55 * r.randf_range(0.85, 1.05)))
-		draw_colored_polygon(base, S.BUSH[0])
+		DrawBatch.colored_polygon(self, base, S.BUSH[0])
 		# עלים רחבים שנפרשים מהמרכז
 		var n := int(w / 9.0)
 		for i in n:
@@ -85,13 +96,13 @@ class Bush extends Node2D:
 			var ln := h * r.randf_range(0.7, 1.05) * (1.0 - absf(u - 0.5) * 0.6)
 			var o := d.orthogonal() * ln * 0.24
 			var c: Color = S.BUSH[1 + r.randi() % 3]
-			draw_colored_polygon(PackedVector2Array([root, root + d * ln * 0.5 + o, root + d * ln, root + d * ln * 0.5 - o]), c)
-			draw_line(root, root + d * ln * 0.9, Color(0, 0, 0, 0.18), 1.0)
+			DrawBatch.colored_polygon(self, PackedVector2Array([root, root + d * ln * 0.5 + o, root + d * ln, root + d * ln * 0.5 - o]), c)
+			DrawBatch.line(self, root, root + d * ln * 0.9, Color(0, 0, 0, 0.18), 1.0)
 		# עשב בקדמת השיח
 		for q in 8:
 			var bx := r.randf_range(-w * 0.45, w * 0.45)
 			var gh := r.randf_range(14.0, 30.0)
-			draw_colored_polygon(PackedVector2Array([Vector2(bx - 2.0, 4), Vector2(bx + r.randf_range(-6.0, 6.0), -gh), Vector2(bx + 2.0, 4)]), S.BUSH[0])
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(bx - 2.0, 4), Vector2(bx + r.randf_range(-6.0, 6.0), -gh), Vector2(bx + 2.0, 4)]), S.BUSH[0])
 
 	func covers(p: Vector2) -> bool:
 		return absf(p.x - global_position.x) < w * 0.5 + 6.0 and p.y > global_position.y - h - 20.0 and p.y < global_position.y + 30.0
@@ -107,6 +118,11 @@ class Curtain extends Node2D:
 		z_index = 6
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var S := preload("res://effects/s20_decor.gd")
@@ -116,20 +132,20 @@ class Curtain extends Node2D:
 			var u := float(i) / 8.0
 			top.append(Vector2(w * u, r.randf_range(30.0, 70.0)))
 		top.append(Vector2(w + 20.0, -10))
-		draw_colored_polygon(top, S.BUSH[0])
+		DrawBatch.colored_polygon(self, top, S.BUSH[0])
 		# ליאנות שיורדות עם עלים
 		for v in 5:
 			var x := r.randf_range(10.0, w - 10.0)
 			var ln := r.randf_range(drop * 0.45, drop)
 			var sway := r.randf_range(-14.0, 14.0)
 			var pts := PackedVector2Array([Vector2(x, 30), Vector2(x + sway, ln * 0.5), Vector2(x + sway * 0.4, ln)])
-			draw_polyline(pts, S.BUSH[0], 2.5, true)
+			DrawBatch.polyline(self, pts, S.BUSH[0], 2.5, true)
 			for k in int(ln / 26.0):
 				var p := Vector2(x + sway * sin(float(k) / 3.0) * 0.8, 40.0 + float(k) * 26.0)
 				var sd := 1.0 if k % 2 == 0 else -1.0
 				var d := Vector2(sd * 0.8, 0.6).normalized()
 				var o := d.orthogonal() * 4.5
-				draw_colored_polygon(PackedVector2Array([p, p + d * 8.0 + o, p + d * 17.0, p + d * 8.0 - o]), S.BUSH[1 + (k + v) % 3])
+				DrawBatch.colored_polygon(self, PackedVector2Array([p, p + d * 8.0 + o, p + d * 17.0, p + d * 8.0 - o]), S.BUSH[1 + (k + v) % 3])
 
 
 # ---- שיח שהשחקן בתוכו נהיה שקוף ----

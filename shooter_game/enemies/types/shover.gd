@@ -209,22 +209,22 @@ func draw() -> bool:
 	Art.fill_shaded(z, torso, shirt, 0.12, 0.4)
 	for q in 3:   # משבצות
 		var yy := sh.y + 5.0 + float(q) * 6.0
-		z.draw_line(Vector2(sh.x - 8.0, yy), Vector2(sh.x + 9.0, yy), col(Color(0.1, 0.05, 0.05, 0.45)), 1.2)
+		DrawBatch.line(z, Vector2(sh.x - 8.0, yy), Vector2(sh.x + 9.0, yy), col(Color(0.1, 0.05, 0.05, 0.45)), 1.2)
 	for q in 3:
 		var xx := sh.x - 5.0 + float(q) * 6.0
-		z.draw_line(Vector2(xx, sh.y + 1.0), Vector2(xx - 1.0, hip.y), col(Color(0.1, 0.05, 0.05, 0.35)), 1.0)
+		DrawBatch.line(z, Vector2(xx, sh.y + 1.0), Vector2(xx - 1.0, hip.y), col(Color(0.1, 0.05, 0.05, 0.35)), 1.0)
 	Art.fill(z, PackedVector2Array([sh + Vector2(-9, -1), sh + Vector2(-3, 0), hip + Vector2(-2, 2), hip + Vector2(-7, 2), sh + Vector2(-10, 10)]), vest, Art.OUTLINE, 0.9)
 	Art.fill(z, PackedVector2Array([sh + Vector2(4, 0), sh + Vector2(8, 0), sh + Vector2(10, 10), hip + Vector2(8, 2), hip + Vector2(4, 2)]), vest, Art.OUTLINE, 0.9)
-	z.draw_rect(Rect2(hip + Vector2(-7, -1), Vector2(15, 3)), col(Color("3a2a1a")))   # חגורה
-	z.draw_rect(Rect2(hip + Vector2(-1, -1.5), Vector2(4, 4)), col(Color("c8a040")))  # אבזם
+	DrawBatch.rect(z, Rect2(hip + Vector2(-7, -1), Vector2(15, 3)), col(Color("3a2a1a")))   # חגורה
+	DrawBatch.rect(z, Rect2(hip + Vector2(-1, -1.5), Vector2(4, 4)), col(Color("c8a040")))  # אבזם
 	# ראש: זקן + כובע מצחייה
 	Art.oval_shaded(z, head, 6.0, 6.4, sk, 0.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(-4, 1), head + Vector2(6, 1), head + Vector2(5, 7), head + Vector2(0, 9), head + Vector2(-4, 5)]), col(Color("4a3424")), Art.OUTLINE, 0.8)
 	Art.fill(z, PackedVector2Array([head + Vector2(-6.5, -2), head + Vector2(-5, -7.5), head + Vector2(4, -8), head + Vector2(6.5, -3)]), col(Color("e8e0d0")), Art.OUTLINE, 0.9)
-	z.draw_rect(Rect2(head + Vector2(-5, -6), Vector2(10, 3)), col(Color("2a5a8a")))   # פס על הכובע
-	z.draw_line(head + Vector2(5, -2.5), head + Vector2(11, -1.5), col(Color("2a5a8a")), 2.2)   # מצחייה
+	DrawBatch.rect(z, Rect2(head + Vector2(-5, -6), Vector2(10, 3)), col(Color("2a5a8a")))   # פס על הכובע
+	DrawBatch.line(z, head + Vector2(5, -2.5), head + Vector2(11, -1.5), col(Color("2a5a8a")), 2.2)   # מצחייה
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.0, Color(1.0, 0.45, 0.2))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.0, Color(1.0, 0.45, 0.2))
 	z._arm(sh + Vector2(5, 1), hf, sk, shirt)
 	end_draw()
 	return true

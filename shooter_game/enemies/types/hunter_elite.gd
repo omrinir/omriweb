@@ -195,7 +195,7 @@ func draw() -> bool:
 	Art.fill_shaded(z, tail, cloak, 0.12, 0.4)
 	for i in 4:   # רצועות קרועות בקצה הגלימה
 		var a := hip + Vector2(-8.0 - float(i) * 3.0, 4.0 + float(i) * 0.8)
-		z.draw_line(a, a + Vector2(-3.0 + flow * 0.6, 5.0 + float(i % 2) * 2.0), col(Color("3e4a3a") if i % 2 == 0 else Color("2a3330")), 2.0, true)
+		DrawBatch.line(z, a, a + Vector2(-3.0 + flow * 0.6, 5.0 + float(i % 2) * 2.0), col(Color("3e4a3a") if i % 2 == 0 else Color("2a3330")), 2.0, true)
 	# רגל אחורית + יד אחורית עם להב
 	z._leg(hip + Vector2(-1, 0), f[1], col(Art.shade(z.pants, 0.2)), col(Art.shade(z.skin, 0.25)), col(z.shoe))
 	var bh := sh + Vector2(6.0 + sin(p) * 3.0, 12.0)
@@ -203,27 +203,27 @@ func draw() -> bool:
 	_blade(sh.lerp(bh, 0.6), Vector2(1, 0.3), 9.0, bone)
 	z._leg(hip + Vector2(1, 0), f[0], col(z.pants), sk, col(z.shoe))
 	# מגני ברכיים
-	z.draw_circle(Art.joint(hip + Vector2(1, 0), f[0] + Vector2(0, -3), 11.5, 11.5, 1.0), 2.4, col(Color("3a4040")))
+	DrawBatch.circle(z, Art.joint(hip + Vector2(1, 0), f[0] + Vector2(0, -3), 11.5, 11.5, 1.0), 2.4, col(Color("3a4040")))
 	# גוף שפוף + רצועות
 	var body := PackedVector2Array([hip + Vector2(-6, 2), hip + Vector2(5, 3), sh + Vector2(6, 4), sh + Vector2(3, -4), sh + Vector2(-5, -3)])
 	Art.fill_shaded(z, body, cloak, 0.15, 0.4)
-	z.draw_line(sh + Vector2(-3, -2), hip + Vector2(4, 1), col(Color("1a1e1c")), 1.6, true)
-	z.draw_line(hip.lerp(sh, 0.5) + Vector2(-5, 0), hip.lerp(sh, 0.5) + Vector2(6, 2), col(Color("1a1e1c")), 1.6, true)
+	DrawBatch.line(z, sh + Vector2(-3, -2), hip + Vector2(4, 1), col(Color("1a1e1c")), 1.6, true)
+	DrawBatch.line(z, hip.lerp(sh, 0.5) + Vector2(-5, 0), hip.lerp(sh, 0.5) + Vector2(6, 2), col(Color("1a1e1c")), 1.6, true)
 	# ראש בברדס + משקפת לילה
 	Art.oval_shaded(z, head, 6.0, 6.0, sk, 0.2)
 	var hood := PackedVector2Array([head + Vector2(-8, 4), head + Vector2(-8, -4), head + Vector2(-2, -8.5), head + Vector2(5, -7.5), head + Vector2(7, -3), head + Vector2(2, -4), head + Vector2(-3, 6)])
 	Art.fill_shaded(z, hood, cloak, 0.2, 0.45)
 	Art.fill(z, PackedVector2Array([head + Vector2(2, 2.5), head + Vector2(7.5, 2.0), head + Vector2(7.0, 5.0), head + Vector2(2.5, 5.0)]), col(Color("2a0a0c")), Art.OUTLINE, 0.8)
 	for i in 3:   # שיניים חדות
-		z.draw_line(head + Vector2(3.0 + float(i) * 1.5, 2.3), head + Vector2(3.5 + float(i) * 1.5, 3.6), col(Color("e8e0c0")), 0.7)
-	z.draw_line(head + Vector2(-4, -3), head + Vector2(4, -1.5), col(Color("101010")), 1.4, true)   # רצועת משקפת
+		DrawBatch.line(z, head + Vector2(3.0 + float(i) * 1.5, 2.3), head + Vector2(3.5 + float(i) * 1.5, 3.6), col(Color("e8e0c0")), 0.7)
+	DrawBatch.line(z, head + Vector2(-4, -3), head + Vector2(4, -1.5), col(Color("101010")), 1.4, true)   # רצועת משקפת
 	var lens := head + Vector2(4.5, -1.5)
 	var flash := 1.0
 	if state == WINDUP and not z.dead:
 		flash = 1.6 + 0.6 * sin(z._time * 40.0)
 	Art.disc(z, lens, 2.8, col(Color("1a2018")), Art.OUTLINE, 1.0)
 	Art.glow(z, lens, 6.0 * flash, Color(0.5, 1.0, 0.3, minf(0.85, 0.5 * flash)))
-	z.draw_circle(lens, 1.6, Color(0.7, 1.0, 0.5) if not z.dead else Color(0.2, 0.3, 0.2))
+	DrawBatch.circle(z, lens, 1.6, Color(0.7, 1.0, 0.5) if not z.dead else Color(0.2, 0.3, 0.2))
 	# יד קדמית עם להב עצם גדול (מורם בזינוק)
 	var reach: float = 16.0 if lunging or z._bite_anim > 0.0 else 11.0
 	var fh := sh + Vector2(reach, 6.0 - sin(p) * 3.0 - (6.0 if lunging else 0.0))
@@ -237,4 +237,4 @@ func draw() -> bool:
 func _blade(at: Vector2, dir: Vector2, length: float, c: Color) -> void:
 	var n := Vector2(-dir.y, dir.x)
 	Art.fill(z, PackedVector2Array([at + n * 1.6, at + dir * (length * 0.7) + n * 1.5, at + dir * (length + 2.0), at - n * 1.4]), c, Art.OUTLINE, 0.9)
-	z.draw_line(at, at + dir * (length - 1.0), col(Color(0.6, 0.55, 0.45)), 0.6, true)
+	DrawBatch.line(z, at, at + dir * (length - 1.0), col(Color(0.6, 0.55, 0.45)), 0.6, true)

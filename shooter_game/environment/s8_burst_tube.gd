@@ -1,4 +1,5 @@
 extends "res://environment/hazard.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  צינור כליאה שמתפוצץ (שלב 8). גליל זכוכית עם נוזל ירוק ו"נבדק" צף בפנים.
 #    שלם   - בועות עולות, הנבדק זז קצת.
@@ -115,41 +116,46 @@ func _burst() -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var r := 22.0
 	var top := -H
 	# בסיס ומכסה מתכת
-	draw_rect(Rect2(-r - 6, -14, r * 2 + 12, 14), Color("2a3036"))
-	draw_rect(Rect2(-r - 6, -14, r * 2 + 12, 3), Color("4a5258"))
-	draw_rect(Rect2(-r - 6, top - 12, r * 2 + 12, 12), Color("2a3036"))
+	DrawBatch.rect(self, Rect2(-r - 6, -14, r * 2 + 12, 14), Color("2a3036"))
+	DrawBatch.rect(self, Rect2(-r - 6, -14, r * 2 + 12, 3), Color("4a5258"))
+	DrawBatch.rect(self, Rect2(-r - 6, top - 12, r * 2 + 12, 12), Color("2a3036"))
 	for i in 3:   # צינורות מהמכסה למעלה
-		draw_line(Vector2(-12 + i * 12, top - 12), Vector2(-12 + i * 12 + (i - 1) * 6, top - 40), Color("1c2024"), 3.0)
+		DrawBatch.line(self, Vector2(-12 + i * 12, top - 12), Vector2(-12 + i * 12 + (i - 1) * 6, top - 40), Color("1c2024"), 3.0)
 	if burst:   # שארית: זכוכית שבורה + שאריות נוזל
 		var stub := PackedVector2Array([Vector2(-r, -14), Vector2(-r, -40), Vector2(-r + 7, -28), Vector2(-r + 12, -48), Vector2(-r + 18, -30), Vector2(-4, -22), Vector2(-4, -14)])
-		draw_colored_polygon(stub, Color(0.6, 0.85, 0.9, 0.35))
+		DrawBatch.colored_polygon(self, stub, Color(0.6, 0.85, 0.9, 0.35))
 		var stub2 := PackedVector2Array([Vector2(6, -14), Vector2(6, -26), Vector2(12, -36), Vector2(16, -24), Vector2(r, -44), Vector2(r, -14)])
-		draw_colored_polygon(stub2, Color(0.6, 0.85, 0.9, 0.35))
+		DrawBatch.colored_polygon(self, stub2, Color(0.6, 0.85, 0.9, 0.35))
 		var tstub := PackedVector2Array([Vector2(-r, top), Vector2(r, top), Vector2(r, top + 20), Vector2(8, top + 8), Vector2(-6, top + 26), Vector2(-r, top + 12)])
-		draw_colored_polygon(tstub, Color(0.6, 0.85, 0.9, 0.3))
-		draw_rect(Rect2(-r, -18, r * 2, 4), Color(0.4, 0.9, 0.3, 0.6))
+		DrawBatch.colored_polygon(self, tstub, Color(0.6, 0.85, 0.9, 0.3))
+		DrawBatch.rect(self, Rect2(-r, -18, r * 2, 4), Color(0.4, 0.9, 0.3, 0.6))
 		return
 	# נוזל + נבדק צף
 	var lv := top + 10.0
-	draw_rect(Rect2(-r, lv, r * 2, -14 - lv), Color(0.25, 0.75, 0.35, 0.55))
+	DrawBatch.rect(self, Rect2(-r, lv, r * 2, -14 - lv), Color(0.25, 0.75, 0.35, 0.55))
 	var bob := sin(_t * 0.9) * 3.0
 	var sp := Vector2(0, -60 + bob)
-	draw_colored_polygon(PackedVector2Array([sp + Vector2(-6, -24), sp + Vector2(6, -24), sp + Vector2(8, 10), sp + Vector2(3, 30), sp + Vector2(-3, 30), sp + Vector2(-8, 10)]), Color(0.12, 0.22, 0.16, 0.85))
-	draw_circle(sp + Vector2(0, -30), 7.0, Color(0.12, 0.22, 0.16, 0.85))
-	draw_line(sp + Vector2(-6, -18), sp + Vector2(-14, 4 + bob), Color(0.12, 0.22, 0.16, 0.85), 3.0)
-	draw_line(sp + Vector2(6, -18), sp + Vector2(13, 2 - bob), Color(0.12, 0.22, 0.16, 0.85), 3.0)
-	draw_line(sp + Vector2(0, -37), Vector2(0, top), Color(0.1, 0.1, 0.1, 0.6), 1.0)   # כבל מהראש
+	DrawBatch.colored_polygon(self, PackedVector2Array([sp + Vector2(-6, -24), sp + Vector2(6, -24), sp + Vector2(8, 10), sp + Vector2(3, 30), sp + Vector2(-3, 30), sp + Vector2(-8, 10)]), Color(0.12, 0.22, 0.16, 0.85))
+	DrawBatch.circle(self, sp + Vector2(0, -30), 7.0, Color(0.12, 0.22, 0.16, 0.85))
+	DrawBatch.line(self, sp + Vector2(-6, -18), sp + Vector2(-14, 4 + bob), Color(0.12, 0.22, 0.16, 0.85), 3.0)
+	DrawBatch.line(self, sp + Vector2(6, -18), sp + Vector2(13, 2 - bob), Color(0.12, 0.22, 0.16, 0.85), 3.0)
+	DrawBatch.line(self, sp + Vector2(0, -37), Vector2(0, top), Color(0.1, 0.1, 0.1, 0.6), 1.0)   # כבל מהראש
 	for b in _bubbles:
 		var k: float = b[1]
-		draw_circle(Vector2(float(b[0]), lerpf(-16.0, lv + 4.0, k)), 1.5 + k, Color(0.8, 1.0, 0.8, 0.6 * (1.0 - k)))
+		DrawBatch.circle(self, Vector2(float(b[0]), lerpf(-16.0, lv + 4.0, k)), 1.5 + k, Color(0.8, 1.0, 0.8, 0.6 * (1.0 - k)))
 	# זכוכית: השתקפויות
-	draw_rect(Rect2(-r, top, r * 2, H - 14), Color(0.6, 0.85, 0.95, 0.12))
-	draw_line(Vector2(-r + 5, top + 4), Vector2(-r + 5, -20), Color(1, 1, 1, 0.3), 2.0)
-	draw_line(Vector2(-r, top), Vector2(-r, -14), Color(0.7, 0.85, 0.9, 0.6), 1.5)
-	draw_line(Vector2(r, top), Vector2(r, -14), Color(0.7, 0.85, 0.9, 0.6), 1.5)
+	DrawBatch.rect(self, Rect2(-r, top, r * 2, H - 14), Color(0.6, 0.85, 0.95, 0.12))
+	DrawBatch.line(self, Vector2(-r + 5, top + 4), Vector2(-r + 5, -20), Color(1, 1, 1, 0.3), 2.0)
+	DrawBatch.line(self, Vector2(-r, top), Vector2(-r, -14), Color(0.7, 0.85, 0.9, 0.6), 1.5)
+	DrawBatch.line(self, Vector2(r, top), Vector2(r, -14), Color(0.7, 0.85, 0.9, 0.6), 1.5)
 	Art.glow(self, Vector2(0, -60), 40.0, Color(0.4, 1.0, 0.4, 0.12))
 	# סדקים מתפשטים (אזהרה)
 	if _crack >= 0.0:
@@ -163,8 +169,8 @@ func _draw() -> void:
 			for j in 4:
 				cp += Vector2(rr.randf_range(-9, 9), rr.randf_range(-12, 12)) * k
 				pts.append(cp)
-			draw_polyline(pts, Color(1, 1, 1, 0.8), 1.0)
+			DrawBatch.polyline(self, pts, Color(1, 1, 1, 0.8), 1.0)
 		var shake := sin(_crack * 50.0) * 2.0 * k
-		draw_rect(Rect2(-r + shake, top, r * 2, H - 14), Color(1.0, 0.3, 0.2, 0.1 * k))
+		DrawBatch.rect(self, Rect2(-r + shake, top, r * 2, H - 14), Color(1.0, 0.3, 0.2, 0.1 * k))
 		var jet := k * 30.0   # נוזל מתיז מסדק
-		draw_line(Vector2(r, -50), Vector2(r + jet, -40 + jet * 0.4), Color(0.5, 1.0, 0.3, 0.8), 2.0)
+		DrawBatch.line(self, Vector2(r, -50), Vector2(r + jet, -40 + jet * 0.4), Color(0.5, 1.0, 0.3, 0.8), 2.0)

@@ -173,14 +173,14 @@ class Core extends StaticBody2D:   # הגחלת: קליע שפוגע בה (take_
 # ============================================================
 func draw() -> bool:
 	if state == PILE and not z.dead:
-		z.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		DrawBatch.set_transform(z, Vector2.ZERO, 0.0, Vector2.ONE)
 		var k := clampf(1.0 - _st / REFORM_T, 0.0, 1.0)
-		z.draw_colored_polygon(PackedVector2Array([Vector2(-18, 0), Vector2(-10, -7), Vector2(-2, -10 - k * 6.0), Vector2(8, -8), Vector2(18, 0)]), Color("4a4442"))
-		z.draw_colored_polygon(Art.ellipse(Vector2(0, -2), 16.0, 3.0, 0.0, 10), Color("3a3432"))
+		DrawBatch.colored_polygon(z, PackedVector2Array([Vector2(-18, 0), Vector2(-10, -7), Vector2(-2, -10 - k * 6.0), Vector2(8, -8), Vector2(18, 0)]), Color("4a4442"))
+		DrawBatch.colored_polygon(z, Art.ellipse(Vector2(0, -2), 16.0, 3.0, 0.0, 10), Color("3a3432"))
 		var pulse := 0.6 + 0.4 * sin(z._time * (6.0 + k * 14.0))
 		Art.glow(z, Vector2(0, -6), 18.0 + k * 10.0, Color(1.0, 0.45, 0.1, 0.25 * pulse + 0.15 * k))
-		z.draw_circle(Vector2(0, -6), 4.5, Color(1.0, 0.5 + 0.3 * pulse, 0.15))
-		z.draw_circle(Vector2(0, -6), 2.0, Color(1.0, 0.95, 0.6))
+		DrawBatch.circle(z, Vector2(0, -6), 4.5, Color(1.0, 0.5 + 0.3 * pulse, 0.15))
+		DrawBatch.circle(z, Vector2(0, -6), 2.0, Color(1.0, 0.95, 0.6))
 		return true
 	begin_draw()
 	var sk := col(z.skin)
@@ -195,15 +195,15 @@ func draw() -> bool:
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 2.0, 15.0), Art.shade(sk, 0.25), Art.shade(sk, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(6, 2), hip + Vector2(-6, 2)]), sk, 0.1, 0.35)
 	if not z.dead:   # סדקים זוהרים
-		z.draw_polyline(PackedVector2Array([sh + Vector2(-3, 2), sh + Vector2(1, 7), sh + Vector2(-2, 12), hip + Vector2(1, -2)]), crack, 1.4)
-		z.draw_polyline(PackedVector2Array([sh + Vector2(4, 3), sh + Vector2(2, 9)]), crack, 1.2)
+		DrawBatch.polyline(z, PackedVector2Array([sh + Vector2(-3, 2), sh + Vector2(1, 7), sh + Vector2(-2, 12), hip + Vector2(1, -2)]), crack, 1.4)
+		DrawBatch.polyline(z, PackedVector2Array([sh + Vector2(4, 3), sh + Vector2(2, 9)]), crack, 1.2)
 		Art.glow(z, sh + Vector2(0, 8), 14.0, Color(1.0, 0.45, 0.1, 0.15))
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.4, Color(1.0, 0.6, 0.2))
-		z.draw_line(head + Vector2(-2, -4), head + Vector2(1, 0), crack, 1.0)
-		z.draw_line(head + Vector2(1, 3), head + Vector2(5, 3.5), Color(1.0, 0.4, 0.1), 1.2)
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.4, Color(1.0, 0.6, 0.2))
+		DrawBatch.line(z, head + Vector2(-2, -4), head + Vector2(1, 0), crack, 1.0)
+		DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(5, 3.5), Color(1.0, 0.4, 0.1), 1.2)
 	z._arm(sh + Vector2(3, 1), sh + Vector2(10.0 + sin(p) * 3.0, 12.0), sk, sk)
 	end_draw()
 	return true

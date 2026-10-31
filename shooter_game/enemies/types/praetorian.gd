@@ -123,23 +123,23 @@ func draw() -> bool:
 	var sh: Vector2 = o.sh
 	var hf: Vector2 = o.hf
 	for q in 3:   # קשקשים
-		z.draw_line(sh + Vector2(-7, 4.0 + float(q) * 5.0), sh + Vector2(7, 4.0 + float(q) * 5.0), col(Color("c8a040")), 0.8)
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-5, -8), head + Vector2(6, -8), head + Vector2(7, -2)]), col(Color("c8a040")))   # קסדה
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -8), head + Vector2(-2, -15), head + Vector2(5, -14), head + Vector2(4, -8)]), col(E.RED))   # ציצה
-	z.draw_line(hf + Vector2(-14, 0), hf + Vector2(16, 0), col(Color("5a4026")), 1.8)   # רומח
-	z.draw_colored_polygon(PackedVector2Array([hf + Vector2(16, -2), hf + Vector2(23, 0), hf + Vector2(16, 2)]), col(Color("c8ccd4")))
+		DrawBatch.line(z, sh + Vector2(-7, 4.0 + float(q) * 5.0), sh + Vector2(7, 4.0 + float(q) * 5.0), col(Color("c8a040")), 0.8)
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-5, -8), head + Vector2(6, -8), head + Vector2(7, -2)]), col(Color("c8a040")))   # קסדה
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-6, -8), head + Vector2(-2, -15), head + Vector2(5, -14), head + Vector2(4, -8)]), col(E.RED))   # ציצה
+	DrawBatch.line(z, hf + Vector2(-14, 0), hf + Vector2(16, 0), col(Color("5a4026")), 1.8)   # רומח
+	DrawBatch.colored_polygon(z, PackedVector2Array([hf + Vector2(16, -2), hf + Vector2(23, 0), hf + Vector2(16, 2)]), col(Color("c8ccd4")))
 	# המגן
 	var scol := col(E.RED.lightened(0.3)) if _flash > 0.0 else col(E.RED)
 	if thrusting:   # מוזז הצידה
-		z.draw_rect(Rect2(Vector2(-4, -44), Vector2(6, 34)), scol)
+		DrawBatch.rect(z, Rect2(Vector2(-4, -44), Vector2(6, 34)), scol)
 	elif hi:   # מורם מעל הראש
-		z.draw_rect(Rect2(head + Vector2(-12, -18), Vector2(26, 6)), scol)
-		z.draw_rect(Rect2(head + Vector2(-12, -18), Vector2(26, 1.5)), col(Color("c8a040")))
+		DrawBatch.rect(z, Rect2(head + Vector2(-12, -18), Vector2(26, 6)), scol)
+		DrawBatch.rect(z, Rect2(head + Vector2(-12, -18), Vector2(26, 1.5)), col(Color("c8a040")))
 		E.emblem(z, head + Vector2(1, -15), 2.6)
 	else:   # מלפנים
-		z.draw_rect(Rect2(Vector2(8, -48), Vector2(8, 44)), scol)
-		z.draw_rect(Rect2(Vector2(8, -48), Vector2(8, 2)), col(Color("c8a040")))
-		z.draw_rect(Rect2(Vector2(8, -6), Vector2(8, 2)), col(Color("c8a040")))
+		DrawBatch.rect(z, Rect2(Vector2(8, -48), Vector2(8, 44)), scol)
+		DrawBatch.rect(z, Rect2(Vector2(8, -48), Vector2(8, 2)), col(Color("c8a040")))
+		DrawBatch.rect(z, Rect2(Vector2(8, -6), Vector2(8, 2)), col(Color("c8a040")))
 		E.emblem(z, Vector2(12, -26), 3.6)
 	end_draw()
 	return true

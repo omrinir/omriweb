@@ -2,7 +2,7 @@ extends "res://enemies/stationary_boss.gd"
 # ============================================================
 #  THE EMPEROR (הבוס האחרון של שלב 45, "THE RED PALACE") - קיסר המתים על כס המלכות בארמון פטרופוליס.
 #  גלימה אדומה עם פרווה לבנה, כתר זהב עם הנחש העתיק, שרביט עם כדור זוהר. עומד מול הכס על במת המדרגות.
-#  "THEY LEARNED YOU" - הסיכום של כל האימפריה:
+#  "THEY LEARNED YOUR TRICKS" - הסיכום של כל האימפריה:
 #    bolts  - מניפה של BOLT_N כדורי אש מהשרביט, בגובה שכל הרובאים בשלב למדו מההתחמקויות שלך (empire_kit squad_aim_y).
 #    guards - "GUARDS!": קורא ל-GUARD_N משמר (PRAETORIAN) כשיש פחות מ-GUARD_MAX. כל עוד המשמר קרוב לכס (GUARD_R) -
 #             הוא מקבל רק GUARD_MULT נזק ("THE GUARD PROTECTS HIM"). תהרוג את המשמר!
@@ -87,13 +87,18 @@ class Crown extends Node2D:   # הכתר-בומרנג
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := t * 14.0
 		var pts := PackedVector2Array()
 		for q in 10:
 			var r := 12.0 if q % 2 == 0 else 7.0
 			pts.append(Vector2.from_angle(a + float(q) / 10.0 * TAU) * r)
-		draw_colored_polygon(pts, Color("e0b040"))
-		draw_circle(Vector2.ZERO, 4.0, Color("c02020"))
+		DrawBatch.colored_polygon(self, pts, Color("e0b040"))
+		DrawBatch.circle(self, Vector2.ZERO, 4.0, Color("c02020"))
 		A.glow(self, Vector2.ZERO, 16.0, Color(1.0, 0.8, 0.3, 0.3))
 
 
@@ -229,9 +234,9 @@ func draw() -> bool:
 	begin_draw()
 	var k := wind_k()
 	# הכס
-	z.draw_rect(Rect2(Vector2(-16, -70), Vector2(26, 70)), col(Color("5a0e0e")))
-	z.draw_rect(Rect2(Vector2(-18, -74), Vector2(30, 6)), col(Color("c8a040")))
-	z.draw_rect(Rect2(Vector2(-18, -36), Vector2(30, 4)), col(Color("c8a040")))
+	DrawBatch.rect(z, Rect2(Vector2(-16, -70), Vector2(26, 70)), col(Color("5a0e0e")))
+	DrawBatch.rect(z, Rect2(Vector2(-18, -74), Vector2(30, 6)), col(Color("c8a040")))
+	DrawBatch.rect(z, Rect2(Vector2(-18, -36), Vector2(30, 4)), col(Color("c8a040")))
 	E.emblem(z, Vector2(-3, -60), 5.0)
 	var o: Dictionary = E.soldier(self, z, Vector2(16, -4) if winding == "bolts" else Vector2(12, 4), "none", Color("8a1414"), Vector2(-4, -16) if winding == "guards" or winding == "decree" else Vector2(999, 0), 1.5)
 	var head: Vector2 = o.head
@@ -239,21 +244,21 @@ func draw() -> bool:
 	var hip: Vector2 = o.hip
 	var hf: Vector2 = o.hf
 	# גלימה ארוכה
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-9, 0), hip + Vector2(-12, 22), hip + Vector2(10, 22), hip + Vector2(8, 4)]), col(Color("8a1414")))
-	z.draw_colored_polygon(PackedVector2Array([sh + Vector2(-9, -2), sh + Vector2(9, -2), sh + Vector2(7, 4), sh + Vector2(-7, 4)]), col(Color("f0ece4")))   # פרווה
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-9, 0), hip + Vector2(-12, 22), hip + Vector2(10, 22), hip + Vector2(8, 4)]), col(Color("8a1414")))
+	DrawBatch.colored_polygon(z, PackedVector2Array([sh + Vector2(-9, -2), sh + Vector2(9, -2), sh + Vector2(7, 4), sh + Vector2(-7, 4)]), col(Color("f0ece4")))   # פרווה
 	for q in 4:
-		z.draw_circle(sh + Vector2(-6.0 + float(q) * 4.0, 1), 0.6, col(Color("1a1a1a")))
+		DrawBatch.circle(z, sh + Vector2(-6.0 + float(q) * 4.0, 1), 0.6, col(Color("1a1a1a")))
 	# כתר
 	if crowned:
-		z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -4), head + Vector2(-6, -11), head + Vector2(-3, -7), head + Vector2(0, -13), head + Vector2(3, -7), head + Vector2(6, -12), head + Vector2(7, -4)]), col(Color("e0b040")))
-		z.draw_circle(head + Vector2(0.5, -6), 1.4, Color(1.0, 0.2, 0.2))
+		DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-6, -4), head + Vector2(-6, -11), head + Vector2(-3, -7), head + Vector2(0, -13), head + Vector2(3, -7), head + Vector2(6, -12), head + Vector2(7, -4)]), col(Color("e0b040")))
+		DrawBatch.circle(z, head + Vector2(0.5, -6), 1.4, Color(1.0, 0.2, 0.2))
 	# שרביט
-	z.draw_line(hf + Vector2(0, 10), hf + Vector2(0, -16), col(Color("c8a040")), 1.6)
+	DrawBatch.line(z, hf + Vector2(0, 10), hf + Vector2(0, -16), col(Color("c8a040")), 1.6)
 	var orb := hf + Vector2(0, -18)
-	z.draw_circle(orb, 3.0, col(Color("c02020")))
+	DrawBatch.circle(z, orb, 3.0, col(Color("c02020")))
 	if not z.dead:
 		Art.glow(z, orb, 4.0 + 8.0 * (k if winding == "bolts" else 0.2), Color(1.0, 0.3, 0.2, 0.5))
 	end_draw()
 	if guard_near() > 0 and not z.dead:   # הילת המשמר
-		z.draw_arc(Vector2(0, -40.0 * z.sc), 40.0 * z.sc, 0.0, TAU, 32, Color(1.0, 0.8, 0.3, 0.25), 3.0)
+		DrawBatch.arc(z, Vector2(0, -40.0 * z.sc), 40.0 * z.sc, 0.0, TAU, 32, Color(1.0, 0.8, 0.3, 0.25), 3.0)
 	return true

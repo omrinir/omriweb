@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  ROCKET - טיל של ה-ROCKET LAUNCHER (weapons/weapon_db.gd: "projectile": "rocket").
 #  טיל אחד עף ישר (עשן + להבה), ואחרי SPLIT_DIST פיקסלים מתפצל ל-3 טילים קטנים שנופלים בקשת
@@ -163,20 +164,25 @@ func _finish() -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	if _done:
 		return
 	var s := 1.3 if not mini else 0.85
 	# להבה מאחור
 	var fl := (8.0 + sin(_t * 70.0) * 3.0) * s
-	draw_colored_polygon(PackedVector2Array([Vector2(-7, -2.5) * s, Vector2(-7, 2.5) * s, Vector2(-7.0 * s - fl, 0)]), Color(1.0, 0.6, 0.2, 0.9))
-	draw_colored_polygon(PackedVector2Array([Vector2(-7, -1.2) * s, Vector2(-7, 1.2) * s, Vector2(-7.0 * s - fl * 0.55, 0)]), Color(1.0, 0.95, 0.6))
+	DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-7, -2.5) * s, Vector2(-7, 2.5) * s, Vector2(-7.0 * s - fl, 0)]), Color(1.0, 0.6, 0.2, 0.9))
+	DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-7, -1.2) * s, Vector2(-7, 1.2) * s, Vector2(-7.0 * s - fl * 0.55, 0)]), Color(1.0, 0.95, 0.6))
 	Art.glow(self, Vector2(-8, 0) * s, 9.0 * s, Color(1.0, 0.6, 0.2, 0.5))
 	# גוף הטיל
-	draw_rect(Rect2(Vector2(-7, -2.5) * s, Vector2(13, 5) * s), Color("4a5a3a"))
-	draw_colored_polygon(PackedVector2Array([Vector2(6, -2.5) * s, Vector2(11, 0) * s, Vector2(6, 2.5) * s]), Color("c03a2a"))   # ראש נפץ
-	draw_colored_polygon(PackedVector2Array([Vector2(-7, -2.5) * s, Vector2(-4, -2.5) * s, Vector2(-8, -5.5) * s]), Color("3a3a3a"))   # כנפיים
-	draw_colored_polygon(PackedVector2Array([Vector2(-7, 2.5) * s, Vector2(-4, 2.5) * s, Vector2(-8, 5.5) * s]), Color("3a3a3a"))
-	draw_rect(Rect2(Vector2(-7, -2.5) * s, Vector2(13, 5) * s), Art.OUTLINE, false, 1.0)
+	DrawBatch.rect(self, Rect2(Vector2(-7, -2.5) * s, Vector2(13, 5) * s), Color("4a5a3a"))
+	DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(6, -2.5) * s, Vector2(11, 0) * s, Vector2(6, 2.5) * s]), Color("c03a2a"))   # ראש נפץ
+	DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-7, -2.5) * s, Vector2(-4, -2.5) * s, Vector2(-8, -5.5) * s]), Color("3a3a3a"))   # כנפיים
+	DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(-7, 2.5) * s, Vector2(-4, 2.5) * s, Vector2(-8, 5.5) * s]), Color("3a3a3a"))
+	DrawBatch.rect(self, Rect2(Vector2(-7, -2.5) * s, Vector2(13, 5) * s), Art.OUTLINE, false, 1.0)
 
 
 # ============================================================
@@ -293,10 +299,15 @@ class MiniBoomFx extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if _t < 0.12:   # הבזק
 			var k := 1.0 - _t / 0.12
-			draw_circle(Vector2.ZERO, 36.0 * (0.6 + 0.4 * k), Color(1.0, 0.95, 0.75, 0.55 * k))
-			draw_circle(Vector2.ZERO, 16.0, Color(1.0, 1.0, 0.95, 0.9 * k))
+			DrawBatch.circle(self, Vector2.ZERO, 36.0 * (0.6 + 0.4 * k), Color(1.0, 0.95, 0.75, 0.55 * k))
+			DrawBatch.circle(self, Vector2.ZERO, 16.0, Color(1.0, 1.0, 0.95, 0.9 * k))
 
 
 # כתם חריכה קטן שנעלם לאט
@@ -314,8 +325,13 @@ class Scorch extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := clampf(_life, 0.0, 1.0)
-		draw_colored_polygon(Art.ellipse(Vector2.ZERO, 26.0, 4.0, 0.0, 14), Color(0.08, 0.06, 0.05, 0.55 * a))
+		DrawBatch.colored_polygon(self, Art.ellipse(Vector2.ZERO, 26.0, 4.0, 0.0, 14), Color(0.08, 0.06, 0.05, 0.55 * a))
 
 	const Art := preload("res://art.gd")
 

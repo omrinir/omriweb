@@ -131,15 +131,15 @@ func draw() -> bool:
 	z._leg(hip + Vector2(2, 0), f[0], col(Color("1a1a1e")), sk, col(z.shoe))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-6.0 - sin(p) * 2.0, 14.0), Art.shade(sk, 0.25), Art.shade(shirt, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(7, -1), hip + Vector2(-7, -1)]), shirt, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-3, -1), sh + Vector2(1, 4), col(Color("e0e0e0")), 1.0)   # שרוך המשרוקית
-	z.draw_line(sh + Vector2(5, -1), sh + Vector2(1, 4), col(Color("e0e0e0")), 1.0)
-	z.draw_circle(sh + Vector2(1, 5), 1.5, col(Color("c0c4cc")))
-	z.draw_rect(Rect2(sh + Vector2(-6, 4), Vector2(4, 5)), col(Color("e0d020")))   # כיס עם כרטיסים
+	DrawBatch.line(z, sh + Vector2(-3, -1), sh + Vector2(1, 4), col(Color("e0e0e0")), 1.0)   # שרוך המשרוקית
+	DrawBatch.line(z, sh + Vector2(5, -1), sh + Vector2(1, 4), col(Color("e0e0e0")), 1.0)
+	DrawBatch.circle(z, sh + Vector2(1, 5), 1.5, col(Color("c0c4cc")))
+	DrawBatch.rect(z, Rect2(sh + Vector2(-6, 4), Vector2(4, 5)), col(Color("e0d020")))   # כיס עם כרטיסים
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(-1, -4), 4.6, 2.4, 0.0, 10), col(Color("6a6a6a")))   # שיער אפור
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(-1, -4), 4.6, 2.4, 0.0, 10), col(Color("6a6a6a")))   # שיער אפור
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.1, Color(1.0, 0.85, 0.4))
 	var hf := sh + Vector2(10, 6)
 	if state == WHISTLE:
 		hf = head + Vector2(4, 3)
@@ -147,8 +147,8 @@ func draw() -> bool:
 		hf = sh + Vector2(8, -20)
 	z._arm(sh + Vector2(3, 1), hf, sk, shirt)
 	if state == WHISTLE:
-		z.draw_rect(Rect2(hf + Vector2(0, -1), Vector2(4, 3)), col(Color("c0c4cc")))
+		DrawBatch.rect(z, Rect2(hf + Vector2(0, -1), Vector2(4, 3)), col(Color("c0c4cc")))
 	elif state == SHOW:
-		z.draw_rect(Rect2(hf + Vector2(-3, -12), Vector2(7, 10)), Color("ffe020") if _card == "yellow" else Color("e02020"))
+		DrawBatch.rect(z, Rect2(hf + Vector2(-3, -12), Vector2(7, 10)), Color("ffe020") if _card == "yellow" else Color("e02020"))
 	end_draw()
 	return true

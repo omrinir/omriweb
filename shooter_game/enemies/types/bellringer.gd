@@ -136,25 +136,25 @@ func draw() -> bool:
 	z._leg(hip + Vector2(-2, 0), f[1], col(Art.shade(z.pants, 0.25)), sk, col(z.shoe))
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(9, 16), hip + Vector2(-9, 16)]), robe, 0.12, 0.4)   # גלימה ארוכה
-	z.draw_line(hip + Vector2(-6, -2), hip + Vector2(6, -2), col(Color("c8b890")), 1.6)   # חבל חגורה
+	DrawBatch.line(z, hip + Vector2(-6, -2), hip + Vector2(6, -2), col(Color("c8b890")), 1.6)   # חבל חגורה
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	face(head, Vector2(3.0, -0.5))
 	Art.fill(z, PackedVector2Array([head + Vector2(-7, 4), head + Vector2(-6, -5), head + Vector2(0, -8), head + Vector2(6, -6), head + Vector2(6, -2), head + Vector2(-1, -3), head + Vector2(-2, 5)]), robe, Art.OUTLINE, 1.0)   # ברדס
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
+		DrawBatch.circle(z, head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
 	var hb: Vector2
 	var hf: Vector2
 	if _tower != null:   # חבל הפעמון
 		var top_y := -140.0
 		hb = sh + (Vector2(3, -6) if pulling else Vector2(2, -16))
 		hf = sh + (Vector2(5, -2) if pulling else Vector2(4, -10))
-		z.draw_line(Vector2(hf.x, top_y), hf + Vector2(0, 8), col(Color("a08a60")), 2.2)
+		DrawBatch.line(z, Vector2(hf.x, top_y), hf + Vector2(0, 8), col(Color("a08a60")), 2.2)
 	else:
 		hb = sh + Vector2(-5.0 - sin(p) * 2.0, 14.0)
 		var swing := sin(z._time * 20.0) * 0.6 if (pulling or _anim > 0.0) else 0.2
 		hf = sh + Vector2(10, 6 if pulling else 12)
 		var bp := hf + Vector2.from_angle(PI * 0.5 + swing) * 6.0
-		z.draw_line(hf, bp, col(Color("5a4030")), 2.0)
+		DrawBatch.line(z, hf, bp, col(Color("5a4030")), 2.0)
 		Art.fill(z, PackedVector2Array([bp + Vector2(-3, 0), bp + Vector2(3, 0), bp + Vector2(5, 7), bp + Vector2(-5, 7)]), col(Color("c8a040")), Art.OUTLINE, 0.9)
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(robe, 0.3))
 	z._arm(sh + Vector2(3, 1), hf, sk, robe)

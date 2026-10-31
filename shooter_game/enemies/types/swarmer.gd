@@ -282,7 +282,7 @@ func draw_ragdoll(ci: CanvasItem, rag) -> void:
 	var sc: float = z.sc
 	var sk: Color = z.skin
 	var dark := Art.shade(z.skin, 0.3)
-	ci.draw_colored_polygon(Art.ellipse((p[rag.PELVIS] + p[rag.NECK]) * 0.5 + Vector2(0, 7.0 * sc), 16.0 * sc, 2.5 * sc, 0.0, 12), Color(0, 0, 0, 0.22))
+	DrawBatch.colored_polygon(ci, Art.ellipse((p[rag.PELVIS] + p[rag.NECK]) * 0.5 + Vector2(0, 7.0 * sc), 16.0 * sc, 2.5 * sc, 0.0, 12), Color(0, 0, 0, 0.22))
 	for leg in [[rag.KNEE_B, rag.FOOT_B, dark, true], [rag.KNEE_F, rag.FOOT_F, sk, false]]:
 		Art.limb(ci, PackedVector2Array([p[rag.PELVIS], p[leg[0]], p[leg[1]]]), 3.0 * sc, leg[2])
 		if _pants_len > 0.0:
@@ -294,17 +294,17 @@ func draw_ragdoll(ci: CanvasItem, rag) -> void:
 	Art.fill_shaded(ci, PackedVector2Array([p[rag.NECK] + nrm, p[rag.NECK] - nrm * 0.8, p[rag.PELVIS] - nrm * 0.7, p[rag.PELVIS] + nrm * 0.9]), sk, 0.15, 0.45, Art.OUTLINE, 1.1)
 	Art.fill(ci, PackedVector2Array([p[rag.NECK].lerp(p[rag.PELVIS], 0.35) + nrm, p[rag.NECK].lerp(p[rag.PELVIS], 0.35) - nrm * 0.8, p[rag.PELVIS] - nrm * 0.7, p[rag.PELVIS] + nrm * 0.9]), z.shirt, Art.OUTLINE, 1.0)
 	for i in 4:   # חוליות
-		ci.draw_circle(p[rag.NECK].lerp(p[rag.PELVIS], 0.15 + 0.22 * float(i)) + nrm * 0.9, 1.3 * sc, Art.shade(z.skin, -0.15))
+		DrawBatch.circle(ci, p[rag.NECK].lerp(p[rag.PELVIS], 0.15 + 0.22 * float(i)) + nrm * 0.9, 1.3 * sc, Art.shade(z.skin, -0.15))
 	for arm in [[rag.ELBOW_F, rag.HAND_F, sk]]:
 		Art.limb(ci, PackedVector2Array([p[rag.NECK], p[arm[0]], p[arm[1]]]), 2.4 * sc, arm[2])
 		var hd: Vector2 = (p[arm[1]] - p[arm[0]]).normalized()
 		for i in 3:   # טפרים
-			ci.draw_line(p[arm[1]], p[arm[1]] + hd.rotated(-0.45 + float(i) * 0.45) * 4.0 * sc, Color("d8d0b0"), 0.9)
+			DrawBatch.line(ci, p[arm[1]], p[arm[1]] + hd.rotated(-0.45 + float(i) * 0.45) * 4.0 * sc, Color("d8d0b0"), 0.9)
 	var hdir := (p[rag.HEAD] - p[rag.NECK]).normalized()
 	Art.limb(ci, PackedVector2Array([p[rag.NECK], p[rag.HEAD]]), 2.2 * sc, dark)
 	Art.oval_shaded(ci, p[rag.HEAD], 5.6 * sc, 4.4 * sc, sk, hdir.angle())
-	ci.draw_circle(p[rag.HEAD] + hdir * 1.8 * sc + hdir.orthogonal() * 1.2 * sc, 1.3 * sc, Color("120808"))   # עין כבויה
-	ci.draw_line(p[rag.HEAD] + hdir.rotated(0.8) * 3.0 * sc, p[rag.HEAD] + hdir.rotated(1.6) * 4.6 * sc, Color("2a0606"), 1.5 * sc)   # לסת שמוטה
+	DrawBatch.circle(ci, p[rag.HEAD] + hdir * 1.8 * sc + hdir.orthogonal() * 1.2 * sc, 1.3 * sc, Color("120808"))   # עין כבויה
+	DrawBatch.line(ci, p[rag.HEAD] + hdir.rotated(0.8) * 3.0 * sc, p[rag.HEAD] + hdir.rotated(1.6) * 4.6 * sc, Color("2a0606"), 1.5 * sc)   # לסת שמוטה
 
 
 # ============================================================
@@ -337,10 +337,10 @@ func draw() -> bool:
 	Art.fill(z, rags, rag, Art.OUTLINE, 1.0)
 	for i in 3:   # צלעות
 		var c := hip.lerp(sh, 0.62 + float(i) * 0.1) + Vector2(0.0, 2.0)
-		z.draw_line(c, c + Vector2(-1.0, 4.0), col(Art.shade(z.skin, 0.4)), 1.0)
+		DrawBatch.line(z, c, c + Vector2(-1.0, 4.0), col(Art.shade(z.skin, 0.4)), 1.0)
 	for i in 5:   # חוליות בגב
 		var v := hip.lerp(sh, 0.1 + float(i) * 0.2) + Vector2(0.0, -6.5 - sin(float(i) * 1.3) * 0.8)
-		z.draw_circle(v, 1.5, col(Art.shade(z.skin, -0.15)))
+		DrawBatch.circle(z, v, 1.5, col(Art.shade(z.skin, -0.15)))
 	# רגל קדמית
 	_leg(hip + Vector2(1.0, 1.5), p, sk, false, air)
 	# ראש: נמוך ומושט, לסת פתוחה, עיניים זוהרות
@@ -350,19 +350,19 @@ func draw() -> bool:
 	var jaw := 2.5 + 3.0 * bite + absf(sin(z._time * 7.0 + _seed)) * 1.2
 	Art.fill(z, PackedVector2Array([head + Vector2(-1.0, 3.0), head + Vector2(6.5, 1.5), head + Vector2(5.0, 2.5 + jaw), head + Vector2(-1.0, 4.0 + jaw * 0.5)]),
 		col(Art.shade(z.skin, 0.2)), Art.OUTLINE, 1.0)
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(0.0, 3.2), head + Vector2(6.0, 1.8), head + Vector2(4.6, 2.2 + jaw * 0.8)]), Color(0.18, 0.02, 0.02))
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(0.0, 3.2), head + Vector2(6.0, 1.8), head + Vector2(4.6, 2.2 + jaw * 0.8)]), Color(0.18, 0.02, 0.02))
 	for t in 3:   # שיניים
-		z.draw_line(head + Vector2(1.5 + float(t) * 1.6, 2.6), head + Vector2(1.5 + float(t) * 1.6, 3.8), Color(0.9, 0.88, 0.75), 0.8)
+		DrawBatch.line(z, head + Vector2(1.5 + float(t) * 1.6, 2.6), head + Vector2(1.5 + float(t) * 1.6, 3.8), Color(0.9, 0.88, 0.75), 0.8)
 	var eye := head + Vector2(3.2, -2.2)
 	Art.glow(z, eye, 4.0, Color(1.0, 0.45, 0.15, 0.7))
-	z.draw_circle(eye, 1.1, Color(1.0, 0.85, 0.4))
+	DrawBatch.circle(z, eye, 1.1, Color(1.0, 0.85, 0.4))
 	for h in 4:   # שיער דליל
 		var hb := head + Vector2(-4.0 + float(h) * 2.0, -4.5)
-		z.draw_line(hb, hb + Vector2(-4.0 - float(h), -1.0 + sin(z._time * 6.0 + float(h)) * 1.2), col(Color("2a2622")), 0.9)
+		DrawBatch.line(z, hb, hb + Vector2(-4.0 - float(h), -1.0 + sin(z._time * 6.0 + float(h)) * 1.2), col(Color("2a2622")), 0.9)
 	# יד קדמית
 	_arm(sh + Vector2(1.0, 1.5), p, sk, air, bite)
 	if newborn:   # רטוב מהלידה
-		z.draw_line(hip + Vector2(0.0, -4.0), sh + Vector2(0.0, -4.0), Color(0.7, 0.95, 0.6, 0.45), 1.6)
+		DrawBatch.line(z, hip + Vector2(0.0, -4.0), sh + Vector2(0.0, -4.0), Color(0.7, 0.95, 0.6, 0.45), 1.6)
 	end_draw()
 	return true
 
@@ -379,7 +379,7 @@ func _leg(hip: Vector2, ph: float, c: Color, back: bool, air: float) -> void:
 		var pc := col(Art.shade(z.pants, 0.3 if back else 0.0))
 		var end := knee.lerp(foot + Vector2(0.0, -2.0), _pants_len * 0.85)
 		Art.limb(z, PackedVector2Array([hip + Vector2(0.0, -1.0), knee, end]), 3.7, pc)
-		z.draw_line(end + Vector2(-1.8, 0.0), end + Vector2(1.6, 0.6), col(Art.shade(z.pants, -0.25)), 0.8)   # שוליים פרומים
+		DrawBatch.line(z, end + Vector2(-1.8, 0.0), end + Vector2(1.6, 0.6), col(Art.shade(z.pants, -0.25)), 0.8)   # שוליים פרומים
 	Art.fill(z, PackedVector2Array([foot + Vector2(-2.0, -3.0), foot + Vector2(4.0, -2.0), foot + Vector2(4.5, 0.0), foot + Vector2(-2.0, 0.0)]),
 		col(Art.shade(z.skin, 0.35 if back else 0.15)), Art.OUTLINE, 0.8)
 
@@ -393,4 +393,4 @@ func _arm(s: Vector2, ph: float, c: Color, air: float, bite: float) -> void:
 	Art.limb(z, PackedVector2Array([s, elbow, hand]), 2.6, c)
 	for f in 3:   # טפרים
 		var a := -0.5 + float(f) * 0.45
-		z.draw_line(hand, hand + Vector2.from_angle(a + (0.0 if air > 0.5 else 0.9)) * 4.5, col(Color("d8d0b0")), 0.9)
+		DrawBatch.line(z, hand, hand + Vector2.from_angle(a + (0.0 if air > 0.5 else 0.9)) * 4.5, col(Color("d8d0b0")), 0.9)

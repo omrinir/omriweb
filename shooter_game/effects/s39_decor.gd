@@ -1,4 +1,5 @@
 extends RefCounted
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  קישוטים לשלב 39 ("THE STADIUM") - המרקנה בלילה של משחק. אזור חמישי, שלב 3.
 #  קערת יציעים ענקית מלאה בקהל זומבים שקופץ, גג טבעת לבן עם שורות זרקורים, זיקוקים (סינליזדורס) ועשן אדום-ירוק,
@@ -41,7 +42,7 @@ static func stadium_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
 	for i in 5:   # עשן סינליזדורים שנסחף מעל
 		var cx := fposmod(float(i) * 300.0 + t * 12.0, v.x + 400.0) - 200.0
 		var c := Color(0.8, 0.2, 0.2, 0.12) if i % 2 == 0 else Color(0.2, 0.7, 0.3, 0.1)
-		ci.draw_colored_polygon(Art.ellipse(Vector2(cx, v.y * (0.3 + 0.05 * float(i % 3))), 180.0, 40.0, 0.0, 14), c)
+		DrawBatch.colored_polygon(ci, Art.ellipse(Vector2(cx, v.y * (0.3 + 0.05 * float(i % 3))), 180.0, 40.0, 0.0, 14), c)
 	var cyc := fposmod(t, 6.0)   # זיקוק
 	if cyc < 1.2:
 		var k := floori(t / 6.0)
@@ -49,19 +50,19 @@ static func stadium_sky(ci: CanvasItem, v: Vector2, t: float) -> void:
 		var col: Color = TEAM[k % TEAM.size()]
 		for q in 14:
 			var d := Vector2.from_angle(float(q) / 14.0 * TAU) * cyc * 60.0
-			ci.draw_circle(c0 + d + Vector2(0, cyc * cyc * 10.0), 2.0, Color(col, 1.0 - cyc / 1.2))
+			DrawBatch.circle(ci, c0 + d + Vector2(0, cyc * cyc * 10.0), 2.0, Color(col, 1.0 - cyc / 1.2))
 
 
 # ---- היציע שממול ----
 static func far_stands(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> void:
 	var top := y - 250.0
-	ci.draw_rect(Rect2(0, top, v.x, y - top), Color("1a1e2e"))
+	DrawBatch.rect(ci, Rect2(0, top, v.x, y - top), Color("1a1e2e"))
 	# גג טבעת לבן עם זרקורים
-	ci.draw_rect(Rect2(0, top - 30.0, v.x, 22.0), Color("c8ccd8"))
-	ci.draw_rect(Rect2(0, top - 8.0, v.x, 8.0), Color("8a8e9a"))
+	DrawBatch.rect(ci, Rect2(0, top - 30.0, v.x, 22.0), Color("c8ccd8"))
+	DrawBatch.rect(ci, Rect2(0, top - 8.0, v.x, 8.0), Color("8a8e9a"))
 	var lx := -fposmod(sc * 0.3, 40.0)
 	while lx < v.x:
-		ci.draw_rect(Rect2(lx, top - 6.0, 26.0, 5.0), Color(1.0, 1.0, 0.95))
+		DrawBatch.rect(ci, Rect2(lx, top - 6.0, 26.0, 5.0), Color(1.0, 1.0, 0.95))
 		lx += 40.0
 	Art.glow(ci, Vector2(v.x * 0.5, top), v.x * 0.5, Color(1, 1, 1, 0.1))
 	# הקהל: שורות של נקודות צבעוניות שקופצות
@@ -75,7 +76,7 @@ static func far_stands(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float
 			var hsh := _h(i * 31 + r, 5)
 			var jump := maxf(sin(t * 7.0 + float(i) * 0.9 + float(r)), 0.0) * 2.5 if hsh > 0.4 else 0.0
 			var c: Color = TEAM[int(hsh * 10.0) % TEAM.size()].darkened(0.35 + 0.02 * float(rows - r))
-			ci.draw_rect(Rect2(x, ry - jump, 4.0, 4.0), c)
+			DrawBatch.rect(ci, Rect2(x, ry - jump, 4.0, 4.0), c)
 			x += step
 			i += 1
 	var period := 700.0
@@ -85,34 +86,34 @@ static func far_stands(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float
 		var fy := top + 60.0 + _h(k, 6) * 80.0
 		var fc: Color = TEAM[k % TEAM.size()]
 		var w := sin(t * 2.0 + float(k)) * 6.0   # דגל ענק על הקהל
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(fx, fy), Vector2(fx + 120, fy + w), Vector2(fx + 118, fy + 50 - w), Vector2(fx - 2, fy + 50)]), Color(fc, 0.85))
-		ci.draw_line(Vector2(fx + 10, fy + 25), Vector2(fx + 110, fy + 25), Color(1, 1, 1, 0.5), 3.0)
+		DrawBatch.colored_polygon(ci, PackedVector2Array([Vector2(fx, fy), Vector2(fx + 120, fy + w), Vector2(fx + 118, fy + 50 - w), Vector2(fx - 2, fy + 50)]), Color(fc, 0.85))
+		DrawBatch.line(ci, Vector2(fx + 10, fy + 25), Vector2(fx + 110, fy + 25), Color(1, 1, 1, 0.5), 3.0)
 		var fl := Vector2(fx + 200.0, fy + 70.0)   # סינליזדור
 		Art.glow(ci, fl, 30.0, Color(1.0, 0.3, 0.2, 0.5 + 0.2 * sin(t * 20.0 + float(k))))
-		ci.draw_circle(fl, 3.0, Color(1.0, 0.85, 0.7))
-	ci.draw_rect(Rect2(0, y - 6.0, v.x, v.y - y + 6.0), Color("2a3a2a"))
+		DrawBatch.circle(ci, fl, 3.0, Color(1.0, 0.85, 0.7))
+	DrawBatch.rect(ci, Rect2(0, y - 6.0, v.x, v.y - y + 6.0), Color("2a3a2a"))
 
 
 # ---- שלטי לד סביב המגרש ----
 static func mid_boards(ci: CanvasItem, sc: float, v: Vector2, y: float, t: float) -> void:
-	ci.draw_rect(Rect2(0, y - 34.0, v.x, 34.0), Color("101014"))
+	DrawBatch.rect(ci, Rect2(0, y - 34.0, v.x, 34.0), Color("101014"))
 	var seg := 220.0
 	var start := int(floor(sc / seg)) - 1
 	for k in range(start, start + int(ceil(v.x / seg)) + 2):
 		var x := float(k) * seg - sc
 		var phase := int(t * 0.5 + float(k) * 0.3) % 3
 		var c: Color = TEAM[(k + phase) % TEAM.size()]
-		ci.draw_rect(Rect2(x + 2.0, y - 30.0, seg - 4.0, 24.0), c.darkened(0.45))
+		DrawBatch.rect(ci, Rect2(x + 2.0, y - 30.0, seg - 4.0, 24.0), c.darkened(0.45))
 		var tx := fposmod(t * 80.0 + float(k) * 40.0, seg) - 40.0   # טקסט רץ
 		for q in 4:
-			ci.draw_rect(Rect2(x + tx + float(q) * 14.0, y - 24.0, 10.0, 12.0), Color(c.lightened(0.3), 0.9))
+			DrawBatch.rect(ci, Rect2(x + tx + float(q) * 14.0, y - 24.0, 10.0, 12.0), Color(c.lightened(0.3), 0.9))
 		if k % 3 == 1:   # צלם עם מצלמה
 			var cx := x + 120.0
-			ci.draw_rect(Rect2(cx, y - 64.0, 10.0, 30.0), Color("16161c"))
-			ci.draw_circle(Vector2(cx + 5.0, y - 68.0), 5.0, Color("16161c"))
-			ci.draw_rect(Rect2(cx + 8.0, y - 66.0, 18.0, 10.0), Color("16161c"))
-			ci.draw_rect(Rect2(cx + 26.0, y - 64.0, 8.0, 6.0), Color("2a2a34"))
-	ci.draw_rect(Rect2(0, y - 6.0, v.x, v.y - y + 6.0), Color("2a3a2a"))
+			DrawBatch.rect(ci, Rect2(cx, y - 64.0, 10.0, 30.0), Color("16161c"))
+			DrawBatch.circle(ci, Vector2(cx + 5.0, y - 68.0), 5.0, Color("16161c"))
+			DrawBatch.rect(ci, Rect2(cx + 8.0, y - 66.0, 18.0, 10.0), Color("16161c"))
+			DrawBatch.rect(ci, Rect2(cx + 26.0, y - 64.0, 8.0, 6.0), Color("2a2a34"))
+	DrawBatch.rect(ci, Rect2(0, y - 6.0, v.x, v.y - y + 6.0), Color("2a3a2a"))
 
 
 # ---- מסלול ריצה ודשא ----
@@ -125,22 +126,27 @@ class TrackGround extends Node2D:
 		z_index = 1
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		if grass:   # דשא מפוספס
-			draw_rect(Rect2(0, 0, w, depth), Color("2a6a2a"))
+			DrawBatch.rect(self, Rect2(0, 0, w, depth), Color("2a6a2a"))
 			var x := 0.0
 			var i := int(global_position.x / 80.0)
 			while x < w:
-				draw_rect(Rect2(x, 0, 80.0, depth), Color("327a32") if i % 2 == 0 else Color("2a6a2a"))
+				DrawBatch.rect(self, Rect2(x, 0, 80.0, depth), Color("327a32") if i % 2 == 0 else Color("2a6a2a"))
 				x += 80.0
 				i += 1
-			draw_line(Vector2(0, 2), Vector2(w, 2), Color(0.95, 0.95, 0.95, 0.8), 2.0)
+			DrawBatch.line(self, Vector2(0, 2), Vector2(w, 2), Color(0.95, 0.95, 0.95, 0.8), 2.0)
 			for q in int(w / 12.0):
-				draw_line(Vector2(float(q) * 12.0, 0), Vector2(float(q) * 12.0 + 2.0, -4.0), Color("3a8a3a"), 1.0)
+				DrawBatch.line(self, Vector2(float(q) * 12.0, 0), Vector2(float(q) * 12.0 + 2.0, -4.0), Color("3a8a3a"), 1.0)
 			return
-		draw_rect(Rect2(0, 0, w, depth), Color("a83a2a"))   # טרטן
+		DrawBatch.rect(self, Rect2(0, 0, w, depth), Color("a83a2a"))   # טרטן
 		for q in 4:
-			draw_line(Vector2(0, 4.0 + float(q) * 9.0), Vector2(w, 4.0 + float(q) * 9.0), Color(1, 1, 1, 0.55), 1.2)
-		draw_rect(Rect2(0, 0, w, 2.0), Color("d0d0d0"))
+			DrawBatch.line(self, Vector2(0, 4.0 + float(q) * 9.0), Vector2(w, 4.0 + float(q) * 9.0), Color(1, 1, 1, 0.55), 1.2)
+		DrawBatch.rect(self, Rect2(0, 0, w, 2.0), Color("d0d0d0"))
 
 
 # ---- יציע קרוב עם קהל + המעבר העליון ----
@@ -159,41 +165,46 @@ class Stand extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s39_decor.gd")
 		# מדרגות בטון עם כיסאות פלסטיק צבעוניים
 		var rows := 6
 		for rr in rows:   # מלמעלה למטה - כל שורה מכסה רק את הרגליים של השורה שמעליה
 			var r := rows - 1 - rr
 			var ry := -tier - 20.0 - float(r) * 22.0
-			draw_rect(Rect2(-10, ry, w + 20, 22), Color("3a3a44").lightened(0.03 * float(r)))
+			DrawBatch.rect(self, Rect2(-10, ry, w + 20, 22), Color("3a3a44").lightened(0.03 * float(r)))
 			var x := 6.0
 			var i := 0
 			while x < w - 8.0:
 				var c: Color = S.TEAM[(i + r) % 2 * 1 + (0 if r % 3 == 0 else 2)]
-				draw_rect(Rect2(x, ry + 6, 10, 8), c.darkened(0.25))
+				DrawBatch.rect(self, Rect2(x, ry + 6, 10, 8), c.darkened(0.25))
 				# צופה זומבי (לא בכל כיסא)
 				if S._h(i * 7 + r, 3) < 0.6:
 					var up := angry * (6.0 + 3.0 * sin(_t * 12.0 + float(i)))
 					var bob := maxf(sin(_t * 6.0 + float(i) * 0.8 + float(r)), 0.0) * 2.0
 					var sk := Color("7a8a70").darkened(S._h(i, r) * 0.3)
 					var shirt: Color = S.TEAM[int(S._h(i, r + 9) * 10.0) % S.TEAM.size()]
-					draw_rect(Rect2(x + 1, ry - 6 - bob - up * 0.4, 8, 10), shirt.darkened(0.2))
-					draw_circle(Vector2(x + 5, ry - 9 - bob - up * 0.4), 3.5, sk)
+					DrawBatch.rect(self, Rect2(x + 1, ry - 6 - bob - up * 0.4, 8, 10), shirt.darkened(0.2))
+					DrawBatch.circle(self, Vector2(x + 5, ry - 9 - bob - up * 0.4), 3.5, sk)
 					if angry > 0.2:   # ידיים למעלה
-						draw_line(Vector2(x + 1, ry - 4 - bob), Vector2(x - 2, ry - 12 - up), sk, 1.5)
-						draw_line(Vector2(x + 9, ry - 4 - bob), Vector2(x + 12, ry - 12 - up), sk, 1.5)
+						DrawBatch.line(self, Vector2(x + 1, ry - 4 - bob), Vector2(x - 2, ry - 12 - up), sk, 1.5)
+						DrawBatch.line(self, Vector2(x + 9, ry - 4 - bob), Vector2(x + 12, ry - 12 - up), sk, 1.5)
 				x += 14.0
 				i += 1
 		# קיר היציע (מתחת למעבר) + שלט
-		draw_rect(Rect2(-10, -tier, w + 20, tier), Color("2a2a34"))
-		draw_rect(Rect2(20, -tier + 30, w - 40, 26), Color("1a1a22"))
+		DrawBatch.rect(self, Rect2(-10, -tier, w + 20, tier), Color("2a2a34"))
+		DrawBatch.rect(self, Rect2(20, -tier + 30, w - 40, 26), Color("1a1a22"))
 		for q in 5:
-			draw_rect(Rect2(30.0 + float(q) * (w - 60.0) / 5.0, -tier + 36, (w - 80.0) / 5.0, 14), S.TEAM[q].darkened(0.3))
-		draw_rect(Rect2(w * 0.4, -70, 60, 70), Color("101016"))   # מנהרה
-		draw_rect(Rect2(-10, -tier - 4, w + 20, 6), Color("8a8a94"))   # מעקה המעבר
+			DrawBatch.rect(self, Rect2(30.0 + float(q) * (w - 60.0) / 5.0, -tier + 36, (w - 80.0) / 5.0, 14), S.TEAM[q].darkened(0.3))
+		DrawBatch.rect(self, Rect2(w * 0.4, -70, 60, 70), Color("101016"))   # מנהרה
+		DrawBatch.rect(self, Rect2(-10, -tier - 4, w + 20, 6), Color("8a8a94"))   # מעקה המעבר
 		for q in int(w / 24.0) + 1:
-			draw_line(Vector2(-8.0 + float(q) * 24.0, -tier - 4), Vector2(-8.0 + float(q) * 24.0, -tier - 18), Color("8a8a94"), 1.5)
-		draw_line(Vector2(-10, -tier - 18), Vector2(w + 10, -tier - 18), Color("9a9aa4"), 2.0)
+			DrawBatch.line(self, Vector2(-8.0 + float(q) * 24.0, -tier - 4), Vector2(-8.0 + float(q) * 24.0, -tier - 18), Color("8a8a94"), 1.5)
+		DrawBatch.line(self, Vector2(-10, -tier - 18), Vector2(w + 10, -tier - 18), Color("9a9aa4"), 2.0)
 
 
 # ---- הקהל: "THE 12TH MAN" ----
@@ -403,6 +414,11 @@ class CrowdHype extends Node2D:
 		preload("res://particles.gd").burst(m, Vector2(x, global_position.y - tier - 10.0), "smoke", Vector2.UP, 3)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var F := preload("res://effects/flame_fx.gd")
 		var S := preload("res://effects/s39_decor.gd")
 		var font := ThemeDB.fallback_font
@@ -420,19 +436,19 @@ class CrowdHype extends Node2D:
 					var kk := fmod(_t * 0.4 + float(k) / 3.0 + float(q) * 0.21, 1.0)
 					F.glow(self, Vector2(fx + kk * 30.0, fy - 10.0 - kk * 80.0), Vector2(14, 12) * (1.0 + kk * 2.0), Color(0.7, 0.15, 0.12, 0.35 * (1.0 - kk) * heat))
 		# התוף והקאפו (מוגדלים סביב נקודת הבסיס)
-		draw_set_transform(base * (1.0 - CAPO_SCALE), 0.0, Vector2(CAPO_SCALE, CAPO_SCALE))
+		DrawBatch.set_transform(self, base * (1.0 - CAPO_SCALE), 0.0, Vector2(CAPO_SCALE, CAPO_SCALE))
 		var drum := base + Vector2(-16, 0)
 		var shake := 1.5 if _beat_anim > 0.0 else 0.0
 		if drum_hp > 0:
-			draw_rect(Rect2(drum + Vector2(-13, -30 + shake), Vector2(26, 30 - shake)), Color("c02a2a"))
-			draw_rect(Rect2(drum + Vector2(-13, -30 + shake), Vector2(26, 4)), Color("e8e8e8"))
-			draw_rect(Rect2(drum + Vector2(-13, -4), Vector2(26, 4)), Color("e8e8e8"))
+			DrawBatch.rect(self, Rect2(drum + Vector2(-13, -30 + shake), Vector2(26, 30 - shake)), Color("c02a2a"))
+			DrawBatch.rect(self, Rect2(drum + Vector2(-13, -30 + shake), Vector2(26, 4)), Color("e8e8e8"))
+			DrawBatch.rect(self, Rect2(drum + Vector2(-13, -4), Vector2(26, 4)), Color("e8e8e8"))
 			for q in 4:
-				draw_line(drum + Vector2(-13.0 + float(q) * 8.7, -26 + shake), drum + Vector2(-9.0 + float(q) * 8.7, -4), Color("e0d020"), 1.2)
+				DrawBatch.line(self, drum + Vector2(-13.0 + float(q) * 8.7, -26 + shake), drum + Vector2(-9.0 + float(q) * 8.7, -4), Color("e0d020"), 1.2)
 		else:   # שבור
-			draw_rect(Rect2(drum + Vector2(-13, -12), Vector2(26, 12)), Color("7a1a1a"))
-			draw_line(drum + Vector2(-13, -12), drum + Vector2(-4, -20), Color("e8e8e8"), 2.0)
-			draw_line(drum + Vector2(13, -12), drum + Vector2(5, -18), Color("e8e8e8"), 2.0)
+			DrawBatch.rect(self, Rect2(drum + Vector2(-13, -12), Vector2(26, 12)), Color("7a1a1a"))
+			DrawBatch.line(self, drum + Vector2(-13, -12), drum + Vector2(-4, -20), Color("e8e8e8"), 2.0)
+			DrawBatch.line(self, drum + Vector2(13, -12), drum + Vector2(5, -18), Color("e8e8e8"), 2.0)
 		# הקאפו
 		var cp := base + Vector2(8, 0)
 		var sk := Color("7a8a70")
@@ -441,52 +457,52 @@ class CrowdHype extends Node2D:
 			sk = Color.WHITE
 			shirt = Color.WHITE
 		if capo_dead:   # שוכב על המעבר
-			draw_rect(Rect2(cp + Vector2(-6, -7), Vector2(26, 7)), shirt.darkened(0.3))
-			draw_circle(cp + Vector2(23, -4), 4.5, sk.darkened(0.2))
-			draw_rect(Rect2(cp + Vector2(-20, -4), Vector2(14, 4)), Color("2a2a34"))
+			DrawBatch.rect(self, Rect2(cp + Vector2(-6, -7), Vector2(26, 7)), shirt.darkened(0.3))
+			DrawBatch.circle(self, cp + Vector2(23, -4), 4.5, sk.darkened(0.2))
+			DrawBatch.rect(self, Rect2(cp + Vector2(-20, -4), Vector2(14, 4)), Color("2a2a34"))
 		else:
 			var duck := 18.0 if ducking else 0.0
 			var bob := (maxf(sin(_t * 9.0), 0.0) * 4.0 * hype / 100.0) if not ducking else 0.0
 			var hip := cp + Vector2(0, -16 + duck * 0.5 - bob)
 			var sh := cp + Vector2(1, -32 + duck - bob)
 			var head := sh + Vector2(2, -8)
-			draw_line(hip + Vector2(-2, 0), cp + Vector2(-4, 0), Color("2a2a34"), 4.0)   # רגליים
-			draw_line(hip + Vector2(2, 0), cp + Vector2(4, 0), Color("2a2a34"), 4.0)
-			draw_colored_polygon(PackedVector2Array([sh + Vector2(-7, 0), sh + Vector2(7, 0), hip + Vector2(6, 0), hip + Vector2(-6, 0)]), shirt)
-			draw_line(sh + Vector2(-7, 1), sh + Vector2(7, 1), Color("2a8a3a"), 2.0)
-			draw_string(font, sh + Vector2(-4, 12), "12", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("2a8a3a"))
-			draw_circle(head, 5.0, sk)
-			draw_circle(head + Vector2(2.5, -0.5), 1.1, Color(1.0, 0.85, 0.4))
+			DrawBatch.line(self, hip + Vector2(-2, 0), cp + Vector2(-4, 0), Color("2a2a34"), 4.0)   # רגליים
+			DrawBatch.line(self, hip + Vector2(2, 0), cp + Vector2(4, 0), Color("2a2a34"), 4.0)
+			DrawBatch.colored_polygon(self, PackedVector2Array([sh + Vector2(-7, 0), sh + Vector2(7, 0), hip + Vector2(6, 0), hip + Vector2(-6, 0)]), shirt)
+			DrawBatch.line(self, sh + Vector2(-7, 1), sh + Vector2(7, 1), Color("2a8a3a"), 2.0)
+			DrawBatch.string(self, font, sh + Vector2(-4, 12), "12", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("2a8a3a"))
+			DrawBatch.circle(self, head, 5.0, sk)
+			DrawBatch.circle(self, head + Vector2(2.5, -0.5), 1.1, Color(1.0, 0.85, 0.4))
 			if not ducking:   # מגפון מורם אל המסלול + מקל תוף ביד השנייה
 				var hand := sh + Vector2(10, -6 - (3.0 if _beat_anim > 0.0 else 0.0))
-				draw_line(sh + Vector2(5, 2), hand, sk, 2.5)
-				draw_colored_polygon(PackedVector2Array([hand + Vector2(0, -2), hand + Vector2(10, -6), hand + Vector2(10, 6), hand + Vector2(0, 2)]), Color("e8e8e8"))
-				draw_line(sh + Vector2(-5, 2), drum + Vector2(4, -32 + (4.0 if _beat_anim > 0.0 else 0.0)), sk, 2.0)
+				DrawBatch.line(self, sh + Vector2(5, 2), hand, sk, 2.5)
+				DrawBatch.colored_polygon(self, PackedVector2Array([hand + Vector2(0, -2), hand + Vector2(10, -6), hand + Vector2(10, 6), hand + Vector2(0, 2)]), Color("e8e8e8"))
+				DrawBatch.line(self, sh + Vector2(-5, 2), drum + Vector2(4, -32 + (4.0 if _beat_anim > 0.0 else 0.0)), sk, 2.0)
 				if hype > 20.0:   # גלי קול
 					for q in 3:
 						var r := 8.0 + fmod(_t * 30.0 + float(q) * 8.0, 24.0)
-						draw_arc(hand + Vector2(10, 0), r, -0.6, 0.6, 8, Color(1, 1, 1, 0.5 * (1.0 - r / 32.0)), 1.5)
-		draw_set_transform_matrix(Transform2D.IDENTITY)
+						DrawBatch.arc(self, hand + Vector2(10, 0), r, -0.6, 0.6, 8, Color(1, 1, 1, 0.5 * (1.0 - r / 32.0)), 1.5)
+		DrawBatch.set_transform_matrix(self, Transform2D.IDENTITY)
 		# מד ההיפ מעל היציע
 		var mp := Vector2(cx - 90.0, -tier - 200.0)
 		if capo_dead:
 			if _quiet > 0.0:
-				draw_string(font, mp + Vector2(0, -6), "QUIET", HORIZONTAL_ALIGNMENT_CENTER, 180, 16, Color(0.8, 0.8, 0.8, clampf(_quiet, 0.0, 1.0)))
+				DrawBatch.string(self, font, mp + Vector2(0, -6), "QUIET", HORIZONTAL_ALIGNMENT_CENTER, 180, 16, Color(0.8, 0.8, 0.8, clampf(_quiet, 0.0, 1.0)))
 		else:
 			var k := hype / 100.0
 			var col := Color("2ab04a").lerp(Color("e0d020"), clampf(k * 2.0, 0.0, 1.0)).lerp(Color("e02a2a"), clampf(k * 2.0 - 1.0, 0.0, 1.0))
 			if k > 0.75:
 				col = col.lightened(0.25 * maxf(sin(_t * 14.0), 0.0))
-			draw_rect(Rect2(mp + Vector2(-3, -3), Vector2(186, 18)), Color(0, 0, 0, 0.65))
-			draw_rect(Rect2(mp, Vector2(180.0 * k, 12)), col)
-			draw_rect(Rect2(mp, Vector2(180, 12)), Color(1, 1, 1, 0.6), false, 1.5)
+			DrawBatch.rect(self, Rect2(mp + Vector2(-3, -3), Vector2(186, 18)), Color(0, 0, 0, 0.65))
+			DrawBatch.rect(self, Rect2(mp, Vector2(180.0 * k, 12)), col)
+			DrawBatch.rect(self, Rect2(mp, Vector2(180, 12)), Color(1, 1, 1, 0.6), false, 1.5)
 			var label := "CROWD HYPE" if _cd <= 0.0 else "CROWD HYPE  (%ds)" % int(ceil(_cd))
-			draw_string(font, mp + Vector2(0, -8), label, HORIZONTAL_ALIGNMENT_CENTER, 180, 13, Color(1, 1, 1, 0.9))
+			DrawBatch.string(self, font, mp + Vector2(0, -8), label, HORIZONTAL_ALIGNMENT_CENTER, 180, 13, Color(1, 1, 1, 0.9))
 		if _banner > 0.0:   # PITCH INVASION!
 			var a := clampf(_banner, 0.0, 1.0)
 			var sc := 1.0 + 0.08 * sin(_t * 16.0)
-			draw_string_outline(font, Vector2(cx - 200, -tier - 230), "PITCH INVASION!", HORIZONTAL_ALIGNMENT_CENTER, 400, int(30 * sc), 6, Color(0, 0, 0, a))
-			draw_string(font, Vector2(cx - 200, -tier - 230), "PITCH INVASION!", HORIZONTAL_ALIGNMENT_CENTER, 400, int(30 * sc), Color(1.0, 0.25, 0.15, a))
+			DrawBatch.string_outline(self, font, Vector2(cx - 200, -tier - 230), "PITCH INVASION!", HORIZONTAL_ALIGNMENT_CENTER, 400, int(30 * sc), 6, Color(0, 0, 0, a))
+			DrawBatch.string(self, font, Vector2(cx - 200, -tier - 230), "PITCH INVASION!", HORIZONTAL_ALIGNMENT_CENTER, 400, int(30 * sc), Color(1.0, 0.25, 0.15, a))
 
 
 # אזור הפגיעה של הקאפו (קליעים פוגעים בשכבה 4)
@@ -534,10 +550,15 @@ class Flare extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var F := preload("res://effects/flame_fx.gd")
-		draw_line(Vector2(-6, 0), Vector2(5, 0), Color("c02a2a"), 3.0)
+		DrawBatch.line(self, Vector2(-6, 0), Vector2(5, 0), Color("c02a2a"), 3.0)
 		F.glow(self, Vector2(6, 0), Vector2(12, 12), Color(1.0, 0.3, 0.15, 0.7))
-		draw_circle(Vector2(6, 0), 2.5, Color(1.0, 0.85, 0.6))
+		DrawBatch.circle(self, Vector2(6, 0), 2.5, Color(1.0, 0.85, 0.6))
 		for k in 3:   # עשן אדום נגרר
 			var kk := float(k) / 3.0
 			F.glow(self, Vector2(-8.0 - kk * 20.0, 0), Vector2(5, 5) * (1.0 + kk), Color(0.8, 0.2, 0.15, 0.4 * (1.0 - kk)))
@@ -580,19 +601,24 @@ class Floodlight extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var top := Vector2(0, -HEIGHT)
-		draw_line(Vector2(-8, 0), top + Vector2(-4, 10), Color("4a4a54"), 4.0)   # המגדל
-		draw_line(Vector2(8, 0), top + Vector2(4, 10), Color("4a4a54"), 4.0)
+		DrawBatch.line(self, Vector2(-8, 0), top + Vector2(-4, 10), Color("4a4a54"), 4.0)   # המגדל
+		DrawBatch.line(self, Vector2(8, 0), top + Vector2(4, 10), Color("4a4a54"), 4.0)
 		for q in 8:
 			var y := -float(q) * HEIGHT / 8.0
-			draw_line(Vector2(-7, y), Vector2(7, y - HEIGHT / 8.0), Color("4a4a54"), 1.0)
-		draw_rect(Rect2(top + Vector2(-26, -14), Vector2(52, 20)), Color("2a2a34"))
+			DrawBatch.line(self, Vector2(-7, y), Vector2(7, y - HEIGHT / 8.0), Color("4a4a54"), 1.0)
+		DrawBatch.rect(self, Rect2(top + Vector2(-26, -14), Vector2(52, 20)), Color("2a2a34"))
 		for q in 4:
-			draw_circle(top + Vector2(-18.0 + float(q) * 12.0, -4.0), 4.5, Color(1.0, 1.0, 0.9))
+			DrawBatch.circle(self, top + Vector2(-18.0 + float(q) * 12.0, -4.0), 4.5, Color(1.0, 1.0, 0.9))
 		var bx := beam_x() - global_position.x
 		var spot := _cd > 3.0
-		draw_colored_polygon(PackedVector2Array([top + Vector2(-14, 0), top + Vector2(14, 0), Vector2(bx + 50.0, 0), Vector2(bx - 50.0, 0)]), Color(1.0, 0.98, 0.85, 0.12 if not spot else 0.25))
-		draw_colored_polygon(Art.ellipse(Vector2(bx, -2), 52.0, 7.0, 0.0, 16), Color(1.0, 0.98, 0.85, 0.3 if not spot else 0.55))
+		DrawBatch.colored_polygon(self, PackedVector2Array([top + Vector2(-14, 0), top + Vector2(14, 0), Vector2(bx + 50.0, 0), Vector2(bx - 50.0, 0)]), Color(1.0, 0.98, 0.85, 0.12 if not spot else 0.25))
+		DrawBatch.colored_polygon(self, Art.ellipse(Vector2(bx, -2), 52.0, 7.0, 0.0, 16), Color(1.0, 0.98, 0.85, 0.3 if not spot else 0.55))
 
 
 # ---- השער ----
@@ -604,13 +630,18 @@ class Goal extends Node2D:
 		z_index = -2
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		for q in int(w / 12.0) + 1:   # רשת
-			draw_line(Vector2(float(q) * 12.0, -h), Vector2(float(q) * 12.0 + 20.0, 0), Color(1, 1, 1, 0.25), 1.0)
+			DrawBatch.line(self, Vector2(float(q) * 12.0, -h), Vector2(float(q) * 12.0 + 20.0, 0), Color(1, 1, 1, 0.25), 1.0)
 		for q in int(h / 12.0) + 1:
-			draw_line(Vector2(0, -float(q) * 12.0), Vector2(w + 20.0, -float(q) * 12.0 + 6.0), Color(1, 1, 1, 0.25), 1.0)
-		draw_rect(Rect2(-4, -h - 4, w + 8, 6), Color("f0f0f0"))   # משקוף
-		draw_rect(Rect2(-4, -h, 6, h), Color("f0f0f0"))   # קורות
-		draw_rect(Rect2(w - 2, -h, 6, h), Color("f0f0f0"))
+			DrawBatch.line(self, Vector2(0, -float(q) * 12.0), Vector2(w + 20.0, -float(q) * 12.0 + 6.0), Color(1, 1, 1, 0.25), 1.0)
+		DrawBatch.rect(self, Rect2(-4, -h - 4, w + 8, 6), Color("f0f0f0"))   # משקוף
+		DrawBatch.rect(self, Rect2(-4, -h, 6, h), Color("f0f0f0"))   # קורות
+		DrawBatch.rect(self, Rect2(w - 2, -h, 6, h), Color("f0f0f0"))
 
 
 # ---- מכשולים ----
@@ -638,6 +669,11 @@ class Obstacle extends Node2D:
 		return Rect2(global_position + Vector2(0.0, -size.y), size)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = seed_v
 		var w := size.x
@@ -647,19 +683,19 @@ class Obstacle extends Node2D:
 			"ad_board":   # שלט פרסומת נייד (משולש)
 				var c: Color = S.TEAM[r.randi() % S.TEAM.size()]
 				Art.fill_shaded(self, PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w - 4, -h), Vector2(4, -h)]), c.darkened(0.2), 0.15, 0.35, Art.OUTLINE, 1.2)
-				draw_rect(Rect2(10, -h * 0.65, w * 0.6, h * 0.3), Color(1, 1, 1, 0.8))
-				draw_circle(Vector2(w * 0.82, -h * 0.5), h * 0.22, Color(1, 1, 1, 0.8))
+				DrawBatch.rect(self, Rect2(10, -h * 0.65, w * 0.6, h * 0.3), Color(1, 1, 1, 0.8))
+				DrawBatch.circle(self, Vector2(w * 0.82, -h * 0.5), h * 0.22, Color(1, 1, 1, 0.8))
 			"bench":   # ספסל מחליפים עם גג פרספקס
-				draw_rect(Rect2(4, -h * 0.35, w - 8, h * 0.12), Color("2a4ab0"))
+				DrawBatch.rect(self, Rect2(4, -h * 0.35, w - 8, h * 0.12), Color("2a4ab0"))
 				for q in 4:
-					draw_rect(Rect2(10.0 + float(q) * (w - 20.0) / 4.0, -h * 0.55, (w - 30.0) / 4.0, h * 0.2), Color("2a4ab0").lightened(0.15))
-				draw_line(Vector2(4, 0), Vector2(4, -h), Color("8a8a94"), 3.0)
-				draw_line(Vector2(w - 4, 0), Vector2(w - 4, -h), Color("8a8a94"), 3.0)
-				draw_colored_polygon(PackedVector2Array([Vector2(0, -h), Vector2(w, -h), Vector2(w - 6, -h + 8), Vector2(6, -h + 8)]), Color(0.7, 0.85, 1.0, 0.45))
+					DrawBatch.rect(self, Rect2(10.0 + float(q) * (w - 20.0) / 4.0, -h * 0.55, (w - 30.0) / 4.0, h * 0.2), Color("2a4ab0").lightened(0.15))
+				DrawBatch.line(self, Vector2(4, 0), Vector2(4, -h), Color("8a8a94"), 3.0)
+				DrawBatch.line(self, Vector2(w - 4, 0), Vector2(w - 4, -h), Color("8a8a94"), 3.0)
+				DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(0, -h), Vector2(w, -h), Vector2(w - 6, -h + 8), Vector2(6, -h + 8)]), Color(0.7, 0.85, 1.0, 0.45))
 			_:   # ארגזי שתייה
 				for q in 2:
 					Art.fill(self, PackedVector2Array([Vector2(2.0 + float(q) * w * 0.5, 0), Vector2(w * 0.5 - 2.0 + float(q) * w * 0.5, 0), Vector2(w * 0.5 - 2.0 + float(q) * w * 0.5, -h * (0.8 + 0.2 * float(q))), Vector2(2.0 + float(q) * w * 0.5, -h * (0.8 + 0.2 * float(q)))]), Color("e04020") if q == 0 else Color("2a8ad0"), Art.OUTLINE, 1.0)
-					draw_rect(Rect2(6.0 + float(q) * w * 0.5, -h * 0.55, w * 0.5 - 12.0, 5), Color(1, 1, 1, 0.8))
+					DrawBatch.rect(self, Rect2(6.0 + float(q) * w * 0.5, -h * 0.55, w * 0.5 - 12.0, 5), Color(1, 1, 1, 0.8))
 
 
 # ---- קונפטי ונייר על המסך ----
@@ -674,11 +710,16 @@ class StadiumFX extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var S := preload("res://effects/s39_decor.gd")
 		var gy: float = (get_viewport().get_canvas_transform() * Vector2(0, floor_y)).y
 		for i in 26:
 			var x := fposmod(float(i) * 89.0 + sin(_t + float(i)) * 30.0 + _t * 10.0, vp.x)
 			var y := fposmod(float(i) * 53.0 + _t * (40.0 + float(i % 4) * 10.0), maxf(gy, 10.0))
 			var c: Color = S.TEAM[i % S.TEAM.size()]
-			draw_rect(Rect2(x, y, 4.0, 2.5), Color(c, 0.75))
-		draw_rect(Rect2(0, 0, vp.x, vp.y), Color(0.9, 0.95, 1.0, 0.03))
+			DrawBatch.rect(self, Rect2(x, y, 4.0, 2.5), Color(c, 0.75))
+		DrawBatch.rect(self, Rect2(0, 0, vp.x, vp.y), Color(0.9, 0.95, 1.0, 0.03))

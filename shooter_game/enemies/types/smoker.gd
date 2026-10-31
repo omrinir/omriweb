@@ -130,9 +130,14 @@ class Canister extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
-		draw_rect(Rect2(-4, -7, 8, 14), Color("5a5a3a"))
-		draw_rect(Rect2(-4, -7, 8, 3), Color("c0a020"))
-		draw_circle(Vector2(0, -9), 2.0 + sin(_t * 30.0), Color(0.3, 0.3, 0.3, 0.8))
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
+		DrawBatch.rect(self, Rect2(-4, -7, 8, 14), Color("5a5a3a"))
+		DrawBatch.rect(self, Rect2(-4, -7, 8, 3), Color("c0a020"))
+		DrawBatch.circle(self, Vector2(0, -9), 2.0 + sin(_t * 30.0), Color(0.3, 0.3, 0.3, 0.8))
 
 
 # ---- ענן עשן שחור סמיך: מצויר מעל הכל - מה שבפנים לא נראה ----
@@ -161,6 +166,11 @@ class SmokeCloud extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var r := RandomNumberGenerator.new()
 		r.seed = _seed
 		var grow := clampf(_t / 0.6, 0.0, 1.0)
@@ -171,10 +181,10 @@ class SmokeCloud extends Node2D:
 			var pr := r.randf_range(radius * 0.35, radius * 0.55) * (0.6 + 0.4 * grow)
 			var p := Vector2.from_angle(a) * dd * Vector2(1.2, 0.7) + Vector2(sin(_t * 0.8 + float(q)) * 6.0, -_t * 2.0)
 			var g := r.randf_range(0.08, 0.16)
-			draw_circle(p, pr, Color(g, g * 0.95, g * 0.9, 0.8 * fade))
+			DrawBatch.circle(self, p, pr, Color(g, g * 0.95, g * 0.9, 0.8 * fade))
 		for q in 5:   # שוליים בהירים יותר
 			var a := r.randf() * TAU
-			draw_circle(Vector2.from_angle(a) * radius * 0.6 * grow, radius * 0.3, Color(0.3, 0.28, 0.26, 0.35 * fade))
+			DrawBatch.circle(self, Vector2.from_angle(a) * radius * 0.6 * grow, radius * 0.3, Color(0.3, 0.28, 0.26, 0.35 * fade))
 
 
 # ============================================================
@@ -193,23 +203,23 @@ func draw() -> bool:
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	var tank := sh + Vector2(-10, 8)   # מיכל על הגב
 	Art.fill_shaded(z, PackedVector2Array([tank + Vector2(-5, -10), tank + Vector2(5, -10), tank + Vector2(5, 10), tank + Vector2(-5, 10)]), col(Color("6a6a4a")), 0.2, 0.4, Art.OUTLINE, 1.1)
-	z.draw_rect(Rect2(tank + Vector2(-5, -6), Vector2(10, 3)), col(Color("c0a020")))
+	DrawBatch.rect(z, Rect2(tank + Vector2(-5, -6), Vector2(10, 3)), col(Color("c0a020")))
 	var hb := sh + Vector2(-5.0 - sin(p) * 2.0, 15.0)
 	var hf := sh + Vector2(9.0 + sin(p) * 2.0, 12.0)
 	if state == AIM:
 		hf = sh + Vector2(6, -14)
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(suit, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(6, 2), hip + Vector2(-6, 2)]), suit, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-5, 2), sh + Vector2(5, 2), col(Color("8a7a30")), 1.5)   # רצועות
+	DrawBatch.line(z, sh + Vector2(-5, 2), sh + Vector2(5, 2), col(Color("8a7a30")), 1.5)   # רצועות
 	Art.oval_shaded(z, head, 5.4, 6.0, col(Color("3a3a32")), 0.0)   # מסכת גז
 	if not z.dead:
-		z.draw_circle(head + Vector2(1.5, -2.0), 1.8, Color(0.75, 0.85, 0.6, 0.9))   # משקפיים
-		z.draw_circle(head + Vector2(4.5, -2.0), 1.8, Color(0.75, 0.85, 0.6, 0.9))
-	z.draw_circle(head + Vector2(5.5, 3.0), 2.8, col(Color("5a5a4a")))   # פילטר
-	z.draw_circle(head + Vector2(5.5, 3.0), 1.4, col(Color("2a2a22")))
-	z.draw_polyline(PackedVector2Array([head + Vector2(3, 5), sh + Vector2(-4, 4), tank + Vector2(0, -10)]), col(Color("2a2a22")), 1.6)   # צינור
+		DrawBatch.circle(z, head + Vector2(1.5, -2.0), 1.8, Color(0.75, 0.85, 0.6, 0.9))   # משקפיים
+		DrawBatch.circle(z, head + Vector2(4.5, -2.0), 1.8, Color(0.75, 0.85, 0.6, 0.9))
+	DrawBatch.circle(z, head + Vector2(5.5, 3.0), 2.8, col(Color("5a5a4a")))   # פילטר
+	DrawBatch.circle(z, head + Vector2(5.5, 3.0), 1.4, col(Color("2a2a22")))
+	DrawBatch.polyline(z, PackedVector2Array([head + Vector2(3, 5), sh + Vector2(-4, 4), tank + Vector2(0, -10)]), col(Color("2a2a22")), 1.6)   # צינור
 	z._arm(sh + Vector2(3, 1), hf, sk, suit)
 	if state == AIM:
-		z.draw_rect(Rect2(hf + Vector2(-3, -10), Vector2(6, 10)), col(Color("5a5a3a")))
+		DrawBatch.rect(z, Rect2(hf + Vector2(-3, -10), Vector2(6, 10)), col(Color("5a5a3a")))
 	end_draw()
 	return true

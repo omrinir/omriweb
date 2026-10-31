@@ -149,24 +149,24 @@ func draw() -> bool:
 	var ry := 13.0 * pulse
 	var sac_col := col(z.shirt).lerp(Color(1.0, 0.32, 0.25), 0.5 * lab)
 	Art.glow(z, sc0, rx * 1.5, Color(1.0, 0.35, 0.3, 0.2 + 0.4 * lab))
-	z.draw_colored_polygon(Art.ellipse(sc0 + Vector2(0.0, 1.5), rx + 1.5, ry + 1.5, 0.0, 24), Art.OUTLINE)
-	z.draw_colored_polygon(Art.ellipse(sc0, rx, ry, 0.0, 24), Color(sac_col, 0.93))
-	z.draw_colored_polygon(Art.ellipse(sc0 + Vector2(1.0, 4.0), rx * 0.8, ry * 0.6, 0.0, 18), Color(sac_col.darkened(0.25), 0.6))
+	DrawBatch.colored_polygon(z, Art.ellipse(sc0 + Vector2(0.0, 1.5), rx + 1.5, ry + 1.5, 0.0, 24), Art.OUTLINE)
+	DrawBatch.colored_polygon(z, Art.ellipse(sc0, rx, ry, 0.0, 24), Color(sac_col, 0.93))
+	DrawBatch.colored_polygon(z, Art.ellipse(sc0 + Vector2(1.0, 4.0), rx * 0.8, ry * 0.6, 0.0, 18), Color(sac_col.darkened(0.25), 0.6))
 	for i in 4:   # הקטנים בפנים: צלליות מכורבלות שזזות
 		var a := t * (0.9 + 0.2 * float(i)) + float(i) * 1.7
 		var kp := sc0 + Vector2(cos(a) * rx * 0.45, sin(a * 1.3) * ry * 0.4 + 2.0)
 		var kr := Vector2.from_angle(a * 0.7)
-		z.draw_colored_polygon(Art.ellipse(kp, 4.4, 2.7, kr.angle(), 10), Color(0.28, 0.07, 0.1, 0.55))
-		z.draw_circle(kp + kr * 3.8, 1.9, Color(0.28, 0.07, 0.1, 0.6))
-		z.draw_line(kp - kr * 2.0, kp - kr * 4.5 + kr.orthogonal() * 2.0 * sin(t * 8.0 + float(i)), Color(0.28, 0.07, 0.1, 0.5), 1.0)
+		DrawBatch.colored_polygon(z, Art.ellipse(kp, 4.4, 2.7, kr.angle(), 10), Color(0.28, 0.07, 0.1, 0.55))
+		DrawBatch.circle(z, kp + kr * 3.8, 1.9, Color(0.28, 0.07, 0.1, 0.6))
+		DrawBatch.line(z, kp - kr * 2.0, kp - kr * 4.5 + kr.orthogonal() * 2.0 * sin(t * 8.0 + float(i)), Color(0.28, 0.07, 0.1, 0.5), 1.0)
 	for v in 6:   # ורידים
 		var va := -2.9 + float(v) * 0.55
-		z.draw_polyline(PackedVector2Array([sc0 + Vector2.from_angle(va) * rx * 0.25, sc0 + Vector2.from_angle(va + 0.18) * rx * 0.62, sc0 + Vector2.from_angle(va - 0.05) * rx * 0.97]), Color(0.5, 0.1, 0.18, 0.55), 0.9)
-	z.draw_arc(sc0 + Vector2(-4.0, -4.0), rx * 0.6, -2.7, -1.7, 8, Color(1, 1, 1, 0.4), 1.5)   # הברקה
+		DrawBatch.polyline(z, PackedVector2Array([sc0 + Vector2.from_angle(va) * rx * 0.25, sc0 + Vector2.from_angle(va + 0.18) * rx * 0.62, sc0 + Vector2.from_angle(va - 0.05) * rx * 0.97]), Color(0.5, 0.1, 0.18, 0.55), 0.9)
+	DrawBatch.arc(z, sc0 + Vector2(-4.0, -4.0), rx * 0.6, -2.7, -1.7, 8, Color(1, 1, 1, 0.4), 1.5)   # הברקה
 	if lab > 0.0:   # טיפות נוזל
 		for d in 3:
 			var dp := sc0 + Vector2(-6.0 + float(d) * 6.0, ry - 1.0 + fmod(t * 30.0 + float(d) * 7.0, 9.0))
-			z.draw_circle(dp, 1.0, Color(0.85, 0.95, 0.6, 0.7))
+			DrawBatch.circle(z, dp, 1.0, Color(0.85, 0.95, 0.6, 0.7))
 	# גו: גב מקומר עם דבשת, חזה רחב, מותניים צרים
 	var spine := [hip + Vector2(-7.0, 2.0), hip + Vector2(-3.0, -10.0), hip.lerp(sh, 0.3) + Vector2(0.0, -17.0 - breathe),
 		hip.lerp(sh, 0.6) + Vector2(0.0, -16.0 - breathe), sh + Vector2(-2.0, -10.0), sh + Vector2(7.0, -5.0)]
@@ -175,10 +175,10 @@ func draw() -> bool:
 	Art.fill_shaded(z, body, sk, 0.16, 0.45)
 	for i in 5:   # פצעים וכתמים
 		var sp := hip.lerp(sh, 0.15 + float(i) * 0.17) + Vector2(sin(float(i) * 2.3) * 3.0, -8.0 + cos(float(i) * 1.7) * 4.0)
-		z.draw_colored_polygon(Art.ellipse(sp, 2.2 + float(i % 2), 1.4, float(i), 8), col(Color(0.5, 0.18, 0.2, 0.75)))
+		DrawBatch.colored_polygon(z, Art.ellipse(sp, 2.2 + float(i % 2), 1.4, float(i), 8), col(Color(0.5, 0.18, 0.2, 0.75)))
 	for i in 4:   # צלעות בולטות
 		var rb := hip.lerp(sh, 0.45 + float(i) * 0.12) + Vector2(0.0, -4.0)
-		z.draw_polyline(PackedVector2Array([rb + Vector2(-2.0, -5.0), rb + Vector2(0.0, 0.0), rb + Vector2(-1.0, 5.0)]), col(Art.shade(z.skin, 0.32)), 1.1)
+		DrawBatch.polyline(z, PackedVector2Array([rb + Vector2(-2.0, -5.0), rb + Vector2(0.0, 0.0), rb + Vector2(-1.0, 5.0)]), col(Art.shade(z.skin, 0.32)), 1.1)
 	for i in 7:   # עמוד שדרה עם קוצים
 		var k := float(i) / 6.0
 		var a: Vector2 = spine[1].lerp(spine[2], k * 2.0) if k < 0.5 else spine[2].lerp(spine[4], (k - 0.5) * 2.0)
@@ -194,29 +194,29 @@ func draw() -> bool:
 	for h in 6:   # שיער מאחור
 		var hb := head + Vector2(-6.0 + float(h) * 1.6, -5.5)
 		var sway := sin(t * 2.2 + float(h) * 0.6) * 2.0
-		z.draw_polyline(PackedVector2Array([hb, hb + Vector2(-4.0, 7.0), hb + Vector2(-5.0 + sway, 17.0 + float(h % 3) * 4.0)]), Color(0.05, 0.04, 0.05), 1.6)
+		DrawBatch.polyline(z, PackedVector2Array([hb, hb + Vector2(-4.0, 7.0), hb + Vector2(-5.0 + sway, 17.0 + float(h % 3) * 4.0)]), Color(0.05, 0.04, 0.05), 1.6)
 	var skull := PackedVector2Array([head + Vector2(-6.0, -4.0), head + Vector2(-1.0, -7.5), head + Vector2(6.0, -5.0), head + Vector2(9.0, -1.0),
 		head + Vector2(8.0, 3.0), head + Vector2(1.0, 4.0), head + Vector2(-5.0, 2.0)])
 	Art.fill_shaded(z, skull, col(Art.shade(z.skin, -0.08)), 0.0, 0.35)
 	var jaw := 2.0 + 7.0 * scream
 	Art.fill(z, PackedVector2Array([head + Vector2(0.0, 2.5), head + Vector2(8.5, 1.0), head + Vector2(6.5, 3.0 + jaw), head + Vector2(0.5, 3.5 + jaw * 0.7)]), col(Art.shade(z.skin, 0.25)), Art.OUTLINE, 1.0)
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(1.0, 2.8), head + Vector2(8.0, 1.6), head + Vector2(6.0, 2.5 + jaw * 0.85)]), Color(0.2, 0.02, 0.04))
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(1.0, 2.8), head + Vector2(8.0, 1.6), head + Vector2(6.0, 2.5 + jaw * 0.85)]), Color(0.2, 0.02, 0.04))
 	for tth in 4:
 		var tx := 1.8 + float(tth) * 1.7
-		z.draw_line(head + Vector2(tx, 2.2), head + Vector2(tx, 3.6), Color(0.92, 0.9, 0.78), 0.9)
+		DrawBatch.line(z, head + Vector2(tx, 2.2), head + Vector2(tx, 3.6), Color(0.92, 0.9, 0.78), 0.9)
 	for e in 2:   # עיניים זוהרות
 		var ep := head + Vector2(3.0 + float(e) * 3.2, -2.5)
 		Art.glow(z, ep, 3.8, Color(1.0, 0.3, 0.2, 0.75))
-		z.draw_circle(ep, 1.0, Color(1.0, 0.85, 0.5))
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(4.6, -2.4), 4.6, 2.2, 0.0, 12), Color(0.08, 0.04, 0.05))   # ארובות עיניים
+		DrawBatch.circle(z, ep, 1.0, Color(1.0, 0.85, 0.5))
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(4.6, -2.4), 4.6, 2.2, 0.0, 12), Color(0.08, 0.04, 0.05))   # ארובות עיניים
 	for h in 2:   # קווצות שיער בצדדים
 		var hb := head + Vector2(-4.0 + float(h) * 2.0, -6.5)
 		var sway := sin(t * 2.0 + float(h)) * 1.5
-		z.draw_polyline(PackedVector2Array([hb, hb + Vector2(-0.5, 7.0), hb + Vector2(-1.0 + sway, 15.0 + float(h) * 5.0)]), Color(0.06, 0.05, 0.06), 1.4)
+		DrawBatch.polyline(z, PackedVector2Array([hb, hb + Vector2(-0.5, 7.0), hb + Vector2(-1.0 + sway, 15.0 + float(h) * 5.0)]), Color(0.06, 0.05, 0.06), 1.4)
 	for e in 2:
 		var ep2 := head + Vector2(3.0 + float(e) * 3.2, -2.5)
 		Art.glow(z, ep2, 3.8, Color(1.0, 0.3, 0.2, 0.75))
-		z.draw_circle(ep2, 1.1, Color(1.0, 0.85, 0.5))
+		DrawBatch.circle(z, ep2, 1.1, Color(1.0, 0.85, 0.5))
 	end_draw()
 	return true
 
@@ -228,6 +228,6 @@ func _limb(top: Vector2, ph: float, c: Color, front: bool) -> void:
 	var mid := top.lerp(foot, 0.48) + (Vector2(-7.0, 0.0) if front else Vector2(8.0, -1.0))
 	Art.limb(z, PackedVector2Array([top, mid]), 5.2 if not front else 4.4, c)
 	Art.limb(z, PackedVector2Array([mid, foot + Vector2(0.0, -2.0)]), 3.4 if not front else 3.0, c)
-	z.draw_circle(mid, 2.4 if not front else 2.0, c.darkened(0.15))   # מפרק
+	DrawBatch.circle(z, mid, 2.4 if not front else 2.0, c.darkened(0.15))   # מפרק
 	for f in 3:   # טפרים
-		z.draw_line(foot + Vector2(-1.0, -1.0), foot + Vector2(2.5 + float(f) * 1.8, 0.2), col(Color("d8ccb0")), 1.1)
+		DrawBatch.line(z, foot + Vector2(-1.0, -1.0), foot + Vector2(2.5 + float(f) * 1.8, 0.2), col(Color("d8ccb0")), 1.1)

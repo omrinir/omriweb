@@ -213,15 +213,15 @@ func draw() -> bool:
 		var c := Vector2(0, -19)
 		var r := 18.0
 		Art.disc(z, c, r, col(Color("7a5430")), Art.OUTLINE, 1.3)
-		z.draw_arc(c, r - 1.5, 0.0, TAU, 22, col(Color("3a3a40")), 2.4)
-		z.draw_arc(c, r * 0.55, 0.0, TAU, 16, col(Color("3a3a40")), 1.6)
+		DrawBatch.arc(z, c, r - 1.5, 0.0, TAU, 22, col(Color("3a3a40")), 2.4)
+		DrawBatch.arc(z, c, r * 0.55, 0.0, TAU, 16, col(Color("3a3a40")), 1.6)
 		for q in 6:   # דפנות שמסתובבות
 			var a := _rot + float(q) * TAU / 6.0
-			z.draw_line(c + Vector2.from_angle(a) * r * 0.58, c + Vector2.from_angle(a) * (r - 3.0), col(Color("4a3018")), 1.2)
-		z.draw_circle(c + Vector2.from_angle(_rot) * r * 0.3, 2.0, col(Color("2a1a10")))   # פקק
-		z.draw_circle(c + Vector2.from_angle(_rot + 2.0) * r * 0.8, 1.6, col(Color(0.45, 0.05, 0.25, 0.9)))
+			DrawBatch.line(z, c + Vector2.from_angle(a) * r * 0.58, c + Vector2.from_angle(a) * (r - 3.0), col(Color("4a3018")), 1.2)
+		DrawBatch.circle(z, c + Vector2.from_angle(_rot) * r * 0.3, 2.0, col(Color("2a1a10")))   # פקק
+		DrawBatch.circle(z, c + Vector2.from_angle(_rot + 2.0) * r * 0.8, 1.6, col(Color(0.45, 0.05, 0.25, 0.9)))
 		for q in 3:   # קווי מהירות
-			z.draw_line(c + Vector2(-r - 4.0 - float(q) * 6.0, -8.0 + float(q) * 8.0), c + Vector2(-r - 14.0 - float(q) * 6.0, -8.0 + float(q) * 8.0), Color(1, 1, 1, 0.25), 1.2)
+			DrawBatch.line(z, c + Vector2(-r - 4.0 - float(q) * 6.0, -8.0 + float(q) * 8.0), c + Vector2(-r - 14.0 - float(q) * 6.0, -8.0 + float(q) * 8.0), Color(1, 1, 1, 0.25), 1.2)
 		end_draw()
 		return true
 	begin_draw()
@@ -247,21 +247,21 @@ func draw() -> bool:
 	# ראש (מאחורי שפת החבית)
 	if not z.dead or not z._headless:
 		Art.oval_shaded(z, head, 5.6, 6.0, sk, 0.0)
-		z.draw_colored_polygon(Art.ellipse(head + Vector2(-1, -4.5), 5.2, 2.2, -0.1, 10), col(Color("3a3028")))   # שיער דליל / כובע גרב
+		DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(-1, -4.5), 5.2, 2.2, -0.1, 10), col(Color("3a3028")))   # שיער דליל / כובע גרב
 		if not z.dead:
-			z.draw_circle(head + Vector2(3, -0.5), 1.1, Color(1.0, 0.4, 0.5))
-		z.draw_line(head + Vector2(1, 3), head + Vector2(5, 2.5), col(Color("4a1a2a")), 1.2)
+			DrawBatch.circle(z, head + Vector2(3, -0.5), 1.1, Color(1.0, 0.4, 0.5))
+		DrawBatch.line(z, head + Vector2(1, 3), head + Vector2(5, 2.5), col(Color("4a1a2a")), 1.2)
 	if has_barrel():
 		_barrel(top, bot)
 	else:   # שאריות: חישוק תחתון + דפנות שבורות, בגדים מוכתמים ביין
 		var torso := PackedVector2Array([Vector2(-8, -42), Vector2(8, -42), Vector2(9, -14), Vector2(-9, -14)])
 		Art.fill_shaded(z, torso, col(z.shirt), 0.15, 0.35)
 		for q in 4:
-			z.draw_circle(Vector2(-5.0 + float(q) * 3.0, -30.0 + float(q % 2) * 6.0), 2.5, col(Color(0.4, 0.04, 0.2, 0.8)))
+			DrawBatch.circle(z, Vector2(-5.0 + float(q) * 3.0, -30.0 + float(q % 2) * 6.0), 2.5, col(Color(0.4, 0.04, 0.2, 0.8)))
 		for q in 5:
 			var x := -12.0 + float(q) * 6.0
 			Art.fill(z, PackedVector2Array([Vector2(x, -9), Vector2(x + 5, -9), Vector2(x + 4, -20.0 + float(q % 3) * 3.0), Vector2(x + 1, -24.0 + float(q % 2) * 4.0)]), col(Color("7a5430")), Art.OUTLINE, 0.8)
-		z.draw_line(Vector2(-13, -11), Vector2(13, -11), col(Color("3a3a40")), 2.0)
+		DrawBatch.line(z, Vector2(-13, -11), Vector2(13, -11), col(Color("3a3a40")), 2.0)
 	# יד קדמית
 	var hf := Vector2(21.0 + sin(p) * 2.0, -17.0).lerp(Vector2(14, -30), tuck) + shake
 	if z._bite_anim > 0.0:
@@ -285,22 +285,22 @@ func _barrel(top: Vector2, bot: Vector2) -> void:
 	Art.fill_shaded(z, pts, wcol, 0.18, 0.4)
 	for q in 4:   # דפנות
 		var x := -8.0 + float(q) * 5.5
-		z.draw_line(Vector2(top.x + x, top.y + 1.0), Vector2(top.x + x * 1.2, bot.y - 1.0), col(Color("4a3018")), 0.9)
+		DrawBatch.line(z, Vector2(top.x + x, top.y + 1.0), Vector2(top.x + x * 1.2, bot.y - 1.0), col(Color("4a3018")), 0.9)
 	for yy in [0.12, 0.5, 0.88]:   # חישוקי ברזל
 		var y: float = top.y + h * float(yy)
 		var wd := 13.0 + sin(float(yy) * PI) * 3.5
-		z.draw_line(Vector2(top.x - wd, y), Vector2(top.x + wd, y), col(Color("2e2e34")), 2.6)
-		z.draw_line(Vector2(top.x - wd, y - 1.0), Vector2(top.x + wd, y - 1.0), col(Color("6a6a74")), 0.8)
-	z.draw_colored_polygon(Art.ellipse(top, 13.0, 3.0, 0.0, 14), col(Color("5a3a20")))   # שפה עליונה
+		DrawBatch.line(z, Vector2(top.x - wd, y), Vector2(top.x + wd, y), col(Color("2e2e34")), 2.6)
+		DrawBatch.line(z, Vector2(top.x - wd, y - 1.0), Vector2(top.x + wd, y - 1.0), col(Color("6a6a74")), 0.8)
+	DrawBatch.colored_polygon(z, Art.ellipse(top, 13.0, 3.0, 0.0, 14), col(Color("5a3a20")))   # שפה עליונה
 	# כתמי יין ופגיעות
 	var dmg := 1.0 - float(barrel_hp) / float(BARREL_HP)
-	z.draw_line(top + Vector2(6, 6), top + Vector2(7, 22), col(Color(0.42, 0.04, 0.22, 0.85)), 2.0)
-	z.draw_circle(top + Vector2(-4, 26), 3.0, col(Color(0.42, 0.04, 0.22, 0.6)))
+	DrawBatch.line(z, top + Vector2(6, 6), top + Vector2(7, 22), col(Color(0.42, 0.04, 0.22, 0.85)), 2.0)
+	DrawBatch.circle(z, top + Vector2(-4, 26), 3.0, col(Color(0.42, 0.04, 0.22, 0.6)))
 	for q in int(dmg * 6.0):   # סדקים
 		var c := top + Vector2(-9.0 + float(q * 7 % 18), 8.0 + float(q * 11 % 26))
-		z.draw_line(c, c + Vector2(4, 3), col(Color("2a1a0e")), 1.2)
-		z.draw_line(c + Vector2(4, 3), c + Vector2(2, 7), col(Color("2a1a0e")), 1.0)
-	z.draw_string(ThemeDB.fallback_font, top + Vector2(-8, 22), "1946", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, col(Color(0.15, 0.08, 0.04, 0.8)))
+		DrawBatch.line(z, c, c + Vector2(4, 3), col(Color("2a1a0e")), 1.2)
+		DrawBatch.line(z, c + Vector2(4, 3), c + Vector2(2, 7), col(Color("2a1a0e")), 1.0)
+	DrawBatch.string(z, ThemeDB.fallback_font, top + Vector2(-8, 22), "1946", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, col(Color(0.15, 0.08, 0.04, 0.8)))
 	if _crack > 0.0:
 		Art.glow(z, top + Vector2(0, h * 0.5), 10.0, Color(1, 0.9, 0.7, 0.4))
 

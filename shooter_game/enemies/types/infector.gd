@@ -179,10 +179,10 @@ func draw() -> bool:
 	var body := PackedVector2Array([sh + Vector2(-8, -3), sh + Vector2(6, -1), hip + Vector2(8, -1), hip + Vector2(6, 4), hip + Vector2(1, 2), hip + Vector2(-3, 5), hip + Vector2(-8, 2), sh + Vector2(-10, 6)])
 	Art.fill_shaded(z, body, suit, 0.15, 0.4, Art.OUTLINE, 1.3)
 	Art.fill(z, PackedVector2Array([sh + Vector2(0, 6), sh + Vector2(5, 5), sh + Vector2(4, 12), sh + Vector2(1, 10)]), Art.shade(sk, 0.1), Art.NONE)   # קרע
-	z.draw_line(hip + Vector2(-8, -2), hip + Vector2(8, -3), suit_d, 2.0, true)
+	DrawBatch.line(z, hip + Vector2(-8, -2), hip + Vector2(8, -3), suit_d, 2.0, true)
 	for i in 3:   # פסים מחזירי אור
 		var y := sh.y + 7.0 + float(i) * 4.0
-		z.draw_line(Vector2(sh.x - 7.0 + float(i), y), Vector2(sh.x - 3.0 + float(i), y + 1.0), col(Color("d8d8c8")), 1.0)
+		DrawBatch.line(z, Vector2(sh.x - 7.0 + float(i), y), Vector2(sh.x - 3.0 + float(i), y + 1.0), col(Color("d8d8c8")), 1.0)
 	# שק המוגלה על הגב (פועם, מתכווץ בזריקה)
 	var pulse := 1.0 + 0.06 * sin(z._time * 3.2) - 0.12 * throw_k
 	var sac_c := sh + Vector2(-11.0, 4.0)
@@ -192,17 +192,17 @@ func draw() -> bool:
 		for i in 4:   # גושים ירוקים זוהרים בתוך השק
 			var bp := sac_c + Vector2(sin(z._time * 1.3 + float(i) * 1.7) * 4.0, cos(z._time * 1.1 + float(i) * 2.3) * 6.0)
 			Art.glow(z, bp, 4.5, Color(0.55, 1.0, 0.3, 0.55))
-			z.draw_circle(bp, 1.4, Color(0.75, 1.0, 0.5))
-	z.draw_line(sac_c + Vector2(2, -12), sh + Vector2(-2, -1), col(Color("3a2a1a")), 1.6, true)   # רצועה
+			DrawBatch.circle(z, bp, 1.4, Color(0.75, 1.0, 0.5))
+	DrawBatch.line(z, sac_c + Vector2(2, -12), sh + Vector2(-2, -1), col(Color("3a2a1a")), 1.6, true)   # רצועה
 	# גבעולי נבגים על הכתף
 	for i in 3:
 		var base := sh + Vector2(-5.0 + float(i) * 3.0, -3.0)
 		var tip := base + Vector2(-2.0 + float(i) + sin(z._time * 2.0 + float(i)) * 1.2, -7.0 - float(i % 2) * 2.0)
-		z.draw_line(base, tip, col(Color("5a6a3a")), 1.3, true)
-		z.draw_circle(tip, 1.6, col(Color("9ac040")))
+		DrawBatch.line(z, base, tip, col(Color("5a6a3a")), 1.3, true)
+		DrawBatch.circle(z, tip, 1.6, col(Color("9ac040")))
 	for q in _puffs:
 		var k: float = q[2] / 1.2
-		z.draw_circle(q[0], 1.5 + k * 3.0, Color(0.6, 0.9, 0.35, 0.45 * (1.0 - k)))
+		DrawBatch.circle(z, q[0], 1.5 + k * 3.0, Color(0.6, 0.9, 0.35, 0.45 * (1.0 - k)))
 	# יד אחורית
 	z._arm(sh + Vector2(-2, 1), sh + Vector2(2.0, 15.0 + sin(p) * 2.0), col(Art.shade(z.skin, 0.25)), suit_d)
 	# ראש: מכוסה בגידולים, לסת עם זיפים, עיניים ירוקות
@@ -212,10 +212,10 @@ func draw() -> bool:
 	Art.fill(z, PackedVector2Array([head + Vector2(2, 2), head + Vector2(7, 1.5), head + Vector2(6.5, 5 + throw_k * 3.0), head + Vector2(2.5, 5.5 + throw_k * 3.0)]), col(Color("2a0c1a")), Art.OUTLINE, 0.8)
 	for i in 4:   # זיפים / זרועות קטנות סביב הפה
 		var mp := head + Vector2(3.0 + float(i) * 1.2, 5.0 + throw_k * 3.0)
-		z.draw_line(mp, mp + Vector2(sin(z._time * 6.0 + float(i)) * 1.0, 3.0), col(Color("6a2a4a")), 0.8, true)
+		DrawBatch.line(z, mp, mp + Vector2(sin(z._time * 6.0 + float(i)) * 1.0, 3.0), col(Color("6a2a4a")), 0.8, true)
 	var eye := head + Vector2(3.8, -1.5)
 	Art.glow(z, eye, 4.0, Color(0.55, 1.0, 0.3, 0.7))
-	z.draw_circle(eye, 1.0, Color(0.8, 1.0, 0.6))
+	DrawBatch.circle(z, eye, 1.0, Color(0.8, 1.0, 0.6))
 	# יד קדמית: מניפה מעל הראש כשזורק
 	var hand := sh + Vector2(10.0, 8.0 - sin(p) * 2.0)
 	if throw_k > 0.0:

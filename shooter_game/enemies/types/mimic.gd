@@ -142,12 +142,12 @@ func draw() -> bool:
 	var m := _m
 	var size: float = z.sc
 	var jit := Vector2.ZERO
-	if state == MORPH:   # עוויתות
+	if state == MORPH and not z.dead:   # עוויתות (גופה: לא - נשארת שקטה)
 		jit = Vector2(randf_range(-1.5, 1.5), randf_range(-1.0, 1.0)) * (1.0 + 2.0 * m)
 	if z.is_on_floor():
 		Art.ground_shadow(z, Vector2.ZERO, 11.0 * size)
 	var base := Transform2D(0.0, Vector2(z._dir * size / (1.0 + 0.3 * (1.0 if state == HUNT else 0.0)) * (1.0 + 0.3 * m), size / (1.0 + 0.3 * (1.0 if state == HUNT else 0.0)) * (1.0 + 0.3 * m)), 0.0, jit)
-	z.draw_set_transform_matrix(base)
+	DrawBatch.set_transform_matrix(z, base)
 	var gray := Color("8a9088")
 	var skin: Color = (_c.skin as Color).lerp(gray, m)
 	var hair: Color = (_c.hair as Color).lerp(Color("2a2a26"), m * 0.7)
@@ -201,11 +201,11 @@ func draw() -> bool:
 		hip + Vector2(6.0, 1.0), hip + Vector2(-6.0, 1.0), hip + Vector2(-4.5, -7.0), sh + Vector2(-7.0, 4.0),
 	])
 	Art.fill_shaded(z, body, top, 0.15, 0.3, Art.OUTLINE, 1.2)
-	z.draw_line(hip + Vector2(-6.0, -1.0), hip + Vector2(6.0, -1.0), Art.shade(pants, 0.3), 2.0, true)
+	DrawBatch.line(z, hip + Vector2(-6.0, -1.0), hip + Vector2(6.0, -1.0), Art.shade(pants, 0.3), 2.0, true)
 	if m > 0.05:   # צלעות / עמוד שדרה בולטים מבעד לחולצה הקרועה
 		for i in 3:
 			var y := sh.y + 4.0 + float(i) * 3.5
-			z.draw_line(Vector2(sh.x - 4.0, y), Vector2(sh.x + 3.0, y + 1.0), Color(0.75, 0.75, 0.7, m * 0.8), 1.0)
+			DrawBatch.line(z, Vector2(sh.x - 4.0, y), Vector2(sh.x + 3.0, y + 1.0), Color(0.75, 0.75, 0.7, m * 0.8), 1.0)
 	Art.limb(z, PackedVector2Array([sh + Vector2(1.0, 0.0), head + Vector2(-0.5, 4.0)]), 3.4 + m, skin)
 	# ראש
 	Art.oval(z, head + Vector2(-1.5, -1.5), 6.6, 6.8, hair)
@@ -215,12 +215,12 @@ func draw() -> bool:
 	var eye := head + Vector2(3.0, -0.8)
 	if m < 0.3:
 		Art.oval(z, eye, 0.9, 1.2, Color("1a1010"), 0.0, Art.NONE)
-		z.draw_line(eye + Vector2(-0.6, -1.3), eye + Vector2(1.6, -1.8), Color("1a1010"), 0.7, true)
-		z.draw_line(head + Vector2(3.0, 3.4), head + Vector2(4.6, 3.2), Color("a8404a"), 1.1, true)
-		z.draw_circle(head + Vector2(-1.0, 2.0), 0.7, Color("d8c070"))
+		DrawBatch.line(z, eye + Vector2(-0.6, -1.3), eye + Vector2(1.6, -1.8), Color("1a1010"), 0.7, true)
+		DrawBatch.line(z, head + Vector2(3.0, 3.4), head + Vector2(4.6, 3.2), Color("a8404a"), 1.1, true)
+		DrawBatch.circle(z, head + Vector2(-1.0, 2.0), 0.7, Color("d8c070"))
 	else:   # עיניים לבנות זוהרות
 		Art.glow(z, eye, 4.0 * m, Color(1.0, 0.95, 0.85, 0.6 * m))
-		z.draw_circle(eye, 1.3, Color(1.0, 1.0, 0.95))
+		DrawBatch.circle(z, eye, 1.3, Color(1.0, 1.0, 0.95))
 	if m > 0.1:   # הלסת נקרעת לאורך הפנים עד החזה, שורות שיניים
 		var top_p := head + Vector2(4.5, 1.0)
 		var bot_p := sh + Vector2(6.0, 8.0 * m)
@@ -233,10 +233,10 @@ func draw() -> bool:
 			var u := 0.12 + float(i) * 0.15
 			var c := top_p.lerp(bot_p, u)
 			var wk := sin(u * PI) * w
-			z.draw_colored_polygon(PackedVector2Array([c + nrm * wk, c + nrm * wk + dirv * 1.2, c + nrm * (wk - 2.2)]), Color(0.95, 0.92, 0.8, m))
-			z.draw_colored_polygon(PackedVector2Array([c - nrm * wk, c - nrm * wk + dirv * 1.2, c - nrm * (wk - 2.2)]), Color(0.95, 0.92, 0.8, m))
+			DrawBatch.colored_polygon(z, PackedVector2Array([c + nrm * wk, c + nrm * wk + dirv * 1.2, c + nrm * (wk - 2.2)]), Color(0.95, 0.92, 0.8, m))
+			DrawBatch.colored_polygon(z, PackedVector2Array([c - nrm * wk, c - nrm * wk + dirv * 1.2, c - nrm * (wk - 2.2)]), Color(0.95, 0.92, 0.8, m))
 	_arm(fs, fh, skin, top, m)
-	z.draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform_matrix(z, Transform2D.IDENTITY)
 	return true
 
 
@@ -251,7 +251,7 @@ func _arm(shoulder: Vector2, hand: Vector2, skin: Color, sleeve: Color, m: float
 		var d := (hand - elbow).normalized()
 		for i in 3:
 			var a := d.rotated(-0.5 + float(i) * 0.5)
-			z.draw_line(hand, hand + a * 6.0 * m, Color(0.9, 0.88, 0.8), 1.0, true)
+			DrawBatch.line(z, hand, hand + a * 6.0 * m, Color(0.9, 0.88, 0.8), 1.0, true)
 
 
 func _leg(hip: Vector2, foot: Vector2, pants: Color, boots: Color) -> void:

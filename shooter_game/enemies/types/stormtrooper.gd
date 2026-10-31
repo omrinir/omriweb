@@ -153,18 +153,18 @@ func draw() -> bool:
 	if _roll > 0.0 and not z.dead:
 		begin_draw()
 		var a := (1.0 - _roll / ROLL_T) * TAU
-		z.draw_colored_polygon(Art.ellipse(Vector2(0, -14), 13.0, 11.0, a, 12), col(Color("2a2624")))
-		z.draw_circle(Vector2(0, -14) + Vector2.from_angle(a) * 8.0, 5.0, col(Color("3a3a3a")))
+		DrawBatch.colored_polygon(z, Art.ellipse(Vector2(0, -14), 13.0, 11.0, a, 12), col(Color("2a2624")))
+		DrawBatch.circle(z, Vector2(0, -14) + Vector2.from_angle(a) * 8.0, 5.0, col(Color("3a3a3a")))
 		end_draw()
 		return true
 	begin_draw()
 	var o: Dictionary = E.soldier(self, z, Vector2(12, 1), "gasmask", Color("2a2624"))
 	var hip: Vector2 = o.hip
 	var hf: Vector2 = o.hf
-	z.draw_colored_polygon(PackedVector2Array([hip + Vector2(-8, 4), hip + Vector2(8, 4), hip + Vector2(10, 14), hip + Vector2(-10, 14)]), col(Color("2a2624")))   # שולי המעיל
+	DrawBatch.colored_polygon(z, PackedVector2Array([hip + Vector2(-8, 4), hip + Vector2(8, 4), hip + Vector2(10, 14), hip + Vector2(-10, 14)]), col(Color("2a2624")))   # שולי המעיל
 	for q in 3:   # רימונים על החגורה
-		z.draw_circle(hip + Vector2(-6.0 + float(q) * 5.0, 1), 1.8, col(Color("3a4a2a")))
-	z.draw_rect(Rect2(hf + Vector2(-2, -2), Vector2(11, 3)), col(Color("1a1a1a")))
-	z.draw_rect(Rect2(hf + Vector2(2, 0), Vector2(2, 5)), col(Color("1a1a1a")))
+		DrawBatch.circle(z, hip + Vector2(-6.0 + float(q) * 5.0, 1), 1.8, col(Color("3a4a2a")))
+	DrawBatch.rect(z, Rect2(hf + Vector2(-2, -2), Vector2(11, 3)), col(Color("1a1a1a")))
+	DrawBatch.rect(z, Rect2(hf + Vector2(2, 0), Vector2(2, 5)), col(Color("1a1a1a")))
 	end_draw()
 	return true

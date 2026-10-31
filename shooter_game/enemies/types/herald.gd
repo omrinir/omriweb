@@ -123,16 +123,16 @@ func draw() -> bool:
 	var head: Vector2 = o.head
 	var hf: Vector2 = o.hf
 	var sh: Vector2 = o.sh
-	z.draw_line(sh + Vector2(-7, 2), sh + Vector2(7, 2), col(Color("c8a040")), 1.4)   # עיטור
-	z.draw_colored_polygon(PackedVector2Array([head + Vector2(-6, -3), head + Vector2(-4, -8), head + Vector2(6, -8), head + Vector2(7, -3)]), col(Color("2a1a1a")))   # כובע
-	z.draw_line(head + Vector2(-3, -8), head + Vector2(-9, -18), col(Color("f0f0f0")), 2.4)   # נוצה
+	DrawBatch.line(z, sh + Vector2(-7, 2), sh + Vector2(7, 2), col(Color("c8a040")), 1.4)   # עיטור
+	DrawBatch.colored_polygon(z, PackedVector2Array([head + Vector2(-6, -3), head + Vector2(-4, -8), head + Vector2(6, -8), head + Vector2(7, -3)]), col(Color("2a1a1a")))   # כובע
+	DrawBatch.line(z, head + Vector2(-3, -8), head + Vector2(-9, -18), col(Color("f0f0f0")), 2.4)   # נוצה
 	var tip := hf + (Vector2(20, -8) if up else Vector2(12, 10))
-	z.draw_line(hf, tip, col(Color("d8b040")), 1.8)   # חצוצרה
-	z.draw_colored_polygon(PackedVector2Array([tip + Vector2(0, -3), tip + Vector2(5, -5), tip + Vector2(5, 5), tip + Vector2(0, 3)]), col(Color("d8b040")))
+	DrawBatch.line(z, hf, tip, col(Color("d8b040")), 1.8)   # חצוצרה
+	DrawBatch.colored_polygon(z, PackedVector2Array([tip + Vector2(0, -3), tip + Vector2(5, -5), tip + Vector2(5, 5), tip + Vector2(0, 3)]), col(Color("d8b040")))
 	var mid := hf.lerp(tip, 0.5)
-	z.draw_rect(Rect2(mid + Vector2(-4, 1), Vector2(9, 8)), col(E.RED))   # דגלון
+	DrawBatch.rect(z, Rect2(mid + Vector2(-4, 1), Vector2(9, 8)), col(E.RED))   # דגלון
 	E.emblem(z, mid + Vector2(0.5, 5), 2.2)
 	end_draw()
 	if _decree_left > 0.0 and not z.dead:
-		z.draw_arc(Vector2(0, -30), DECREE_R * 0.15 + 6.0 * sin(float(Engine.get_physics_frames()) * 0.2), 0.0, TAU, 20, Color(1.0, 0.85, 0.3, 0.35), 2.0)
+		DrawBatch.arc(z, Vector2(0, -30), DECREE_R * 0.15 + 6.0 * sin(float(Engine.get_physics_frames()) * 0.2), 0.0, TAU, 20, Color(1.0, 0.85, 0.3, 0.35), 2.0)
 	return true

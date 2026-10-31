@@ -123,20 +123,20 @@ func draw() -> bool:
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(-5.0 - sin(p) * 3.0, 15.0), Art.shade(sk, 0.25), Art.shade(coat, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(8, 9), hip + Vector2(-8, 9)]), coat, 0.15, 0.4)
-	z.draw_rect(Rect2(hip + Vector2(-7, -3), Vector2(15, 3)), col(Color("2a2018")))
+	DrawBatch.rect(z, Rect2(hip + Vector2(-7, -3), Vector2(15, 3)), col(Color("2a2018")))
 	Art.oval_shaded(z, head, 5.4, 5.8, sk, 0.0)
 	face(head)
 	Art.fill(z, PackedVector2Array([head + Vector2(-6, -2), head + Vector2(-5, -6), head + Vector2(4, -7), head + Vector2(7, -3)]), col(Color("3a3226")), Art.OUTLINE, 0.9)   # כובע צמר
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
+		DrawBatch.circle(z, head + Vector2(3.5, -0.5), 0.9, Color(1.0, 0.5, 0.2))
 	var hand: Vector2
 	if _anim > 0.0 and not z.dead:   # שורק: יד לפה
 		hand = head + Vector2(5, 3)
-		z.draw_line(hand, hand + Vector2(3, 0), col(Color("c8c8cc")), 2.0)
+		DrawBatch.line(z, hand, hand + Vector2(3, 0), col(Color("c8c8cc")), 2.0)
 	else:
 		hand = sh + Vector2(10.0 + sin(p) * 2.0, 12.0)
 	z._arm(sh + Vector2(3, 1), hand, sk, coat)
-	z.draw_circle(hand, 2.6, col(Color("5a4030")))   # כפפה
+	DrawBatch.circle(z, hand, 2.6, col(Color("5a4030")))   # כפפה
 	if state == LEASH and not z.dead:   # הכלבים ברצועה
 		for i in DOGS:
 			var dp := Vector2(16.0 + float(i) * 15.0 + sin(z._time * 3.0 + float(i)) * 2.0, 0)
@@ -144,10 +144,10 @@ func draw() -> bool:
 			var body := PackedVector2Array([dp + Vector2(-9, -7 - bob), dp + Vector2(4, -9 - bob), dp + Vector2(7, -6 - bob), dp + Vector2(5, -3), dp + Vector2(-9, -3)])
 			Art.fill(z, body, col(Color("4a4440")), Art.OUTLINE, 1.0)
 			Art.fill(z, PackedVector2Array([dp + Vector2(4, -12 - bob), dp + Vector2(11, -11 - bob), dp + Vector2(12, -8 - bob), dp + Vector2(5, -7 - bob)]), col(Color("4a4440")), Art.OUTLINE, 1.0)   # ראש
-			z.draw_line(dp + Vector2(5, -12 - bob), dp + Vector2(6, -15 - bob), col(Color("3a3430")), 1.6)   # אוזן
+			DrawBatch.line(z, dp + Vector2(5, -12 - bob), dp + Vector2(6, -15 - bob), col(Color("3a3430")), 1.6)   # אוזן
 			for lx in [-7.0, -3.0, 2.0, 5.0]:
-				z.draw_line(dp + Vector2(lx, -3), dp + Vector2(lx + sin(p * 2.0 + lx) * 1.5, 0), col(Color("3a3430")), 1.6)
-			z.draw_circle(dp + Vector2(9, -10 - bob), 0.9, Color(1.0, 0.25, 0.15))
-			z.draw_line(hand, dp + Vector2(4, -9 - bob), col(Color("2a2018")), 1.0)   # רצועה
+				DrawBatch.line(z, dp + Vector2(lx, -3), dp + Vector2(lx + sin(p * 2.0 + lx) * 1.5, 0), col(Color("3a3430")), 1.6)
+			DrawBatch.circle(z, dp + Vector2(9, -10 - bob), 0.9, Color(1.0, 0.25, 0.15))
+			DrawBatch.line(z, hand, dp + Vector2(4, -9 - bob), col(Color("2a2018")), 1.0)   # רצועה
 	end_draw()
 	return true

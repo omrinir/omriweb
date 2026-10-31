@@ -1,4 +1,5 @@
 extends "res://levels/stage_base.gd"
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  STAGE 13 - "DUNES OF BONE" (אזור צפון-מזרח, שלב 4) - "THEY RISE FROM THE SAND"
 #  ים של דיונות לבנות עם לגונות טורקיז (השראה: לנסואיס מרניינסס), מלא עצמות: שלד לווייתן
@@ -81,17 +82,17 @@ func build_background(layer: CanvasLayer) -> Node:
 		Kit.gradient_sky(ci, v, [Color("8ab0c8"), Color("b0cad6"), Color("d8e2e0"), Color("f0ead8"), Color("f4e8c8")])
 		var sun := Vector2(v.x * 0.5, 90.0)
 		for i in 4:
-			ci.draw_circle(sun, 120.0 - float(i) * 25.0, Color(1.0, 1.0, 0.95, 0.08 + float(i) * 0.04))
-		ci.draw_circle(sun, 34.0, Color(1.0, 1.0, 0.97))
+			DrawBatch.circle(ci, sun, 120.0 - float(i) * 25.0, Color(1.0, 1.0, 0.95, 0.08 + float(i) * 0.04))
+		DrawBatch.circle(ci, sun, 34.0, Color(1.0, 1.0, 0.97))
 		for i in 3:   # נשרים חגים
 			var c := Vector2(v.x * (0.3 + 0.2 * float(i)), 160.0 + float(i) * 25.0)
 			var a := t * (0.3 + 0.08 * float(i)) + float(i) * 2.2
 			var p := c + Vector2(cos(a) * 80.0, sin(a) * 20.0)
 			var fl := sin(t * 2.5 + float(i)) * 3.0
-			ci.draw_polyline(PackedVector2Array([p + Vector2(-12, -2 + fl), p + Vector2(-4, 1), p, p + Vector2(4, 1), p + Vector2(12, -2 + fl)]), Color(0.15, 0.12, 0.1, 0.75), 2.0)
+			DrawBatch.polyline(ci, PackedVector2Array([p + Vector2(-12, -2 + fl), p + Vector2(-4, 1), p, p + Vector2(4, 1), p + Vector2(12, -2 + fl)]), Color(0.15, 0.12, 0.1, 0.75), 2.0)
 		for i in 4:   # מיראז' - פס רועד באופק
 			var y := 470.0 + float(i) * 4.0
-			ci.draw_line(Vector2(0, y + sin(t * 3.0 + float(i)) * 1.5), Vector2(v.x, y + sin(t * 2.6 + float(i) * 2.0) * 1.5), Color(0.75, 0.85, 0.9, 0.12), 3.0)
+			DrawBatch.line(ci, Vector2(0, y + sin(t * 3.0 + float(i)) * 1.5), Vector2(v.x, y + sin(t * 2.6 + float(i) * 2.0) * 1.5), Color(0.75, 0.85, 0.9, 0.12), 3.0)
 	# שכבה 1: דיונות לבנות רחוקות עם לגונות, שלד לווייתן ענק
 	bg.add_layer(0.10, func(ci: CanvasItem, sc: float, v: Vector2, t: float):
 		Decor.dune_band(ci, sc, v, 500.0, 60.0, Color("d6ccb4"), Color("5ac0c8"), 3)
@@ -121,7 +122,7 @@ func build_background(layer: CanvasLayer) -> Node:
 		for k in range(start, start + 3):
 			var x := float(k) * period - sc
 			for i in 5:
-				ci.draw_arc(Vector2(x + 300.0 + float(i) * 14.0, 610.0), 22.0, PI + 0.3, TAU - 0.6, 8, Color("e0d8c4"), 3.0)
+				DrawBatch.arc(ci, Vector2(x + 300.0 + float(i) * 14.0, 610.0), 22.0, PI + 0.3, TAU - 0.6, 8, Color("e0d8c4"), 3.0)
 		Kit.ground_fade(ci, v, 600.0))
 	layer.add_child(bg)
 	return bg

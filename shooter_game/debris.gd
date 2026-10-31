@@ -1,4 +1,5 @@
 extends Node2D
+const DrawBatch := preload("res://effects/draw_batch.gd")
 # ============================================================
 #  שבר של לבנה. נוצר ע"י brick.gd כשלבנה נסדקת או נשברת.
 #  עף, נופל בכבידה, קופץ קצת על הריצפה ואז נעלם בהדרגה.
@@ -48,5 +49,10 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
+	DrawBatch.begin(self)
+	_draw_b()
+	DrawBatch.end(self)
+
+func _draw_b() -> void:
 	var a := clampf(life / fade_time, 0.0, 1.0)
-	draw_rect(Rect2(-size / 2.0, size), Color(color, a))
+	DrawBatch.rect(self, Rect2(-size / 2.0, size), Color(color, a))

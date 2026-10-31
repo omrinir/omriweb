@@ -141,32 +141,32 @@ func draw() -> bool:
 	var blowing: bool = state == WIND or state == BLOW
 	z._leg(hip + Vector2(-2, 0), f[1], col(Art.shade(z.pants, 0.25)), sk, col(z.shoe))
 	z._leg(hip + Vector2(2, 0), f[0], col(z.pants), sk, col(z.shoe))
-	z.draw_line(hip + Vector2(-3, 2), f[1] + Vector2(0, -3), col(Color("e0b030")), 1.0)   # פס זהב במכנסיים
+	DrawBatch.line(z, hip + Vector2(-3, 2), f[1] + Vector2(0, -3), col(Color("e0b030")), 1.0)   # פס זהב במכנסיים
 	z._arm(sh + Vector2(-3, 1), sh + Vector2(6, 10), Art.shade(sk, 0.25), Art.shade(coat, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-8, -1), sh + Vector2(8, 0), hip + Vector2(8, 3), hip + Vector2(-8, 3)]), coat, 0.12, 0.4)
 	for q in 3:   # קישוטי זהב
-		z.draw_line(sh + Vector2(-5, 3.0 + float(q) * 5.0), sh + Vector2(5, 3.0 + float(q) * 5.0), gold, 1.4)
-	z.draw_rect(Rect2(sh + Vector2(-10, -2), Vector2(5, 3)), gold)   # כותפת
+		DrawBatch.line(z, sh + Vector2(-5, 3.0 + float(q) * 5.0), sh + Vector2(5, 3.0 + float(q) * 5.0), gold, 1.4)
+	DrawBatch.rect(z, Rect2(sh + Vector2(-10, -2), Vector2(5, 3)), gold)   # כותפת
 	# הטובה: צינור עגול סביב הגוף + פעמון מעל הכתף
-	z.draw_arc(sh + Vector2(-1, 10), 11.0, 0.0, TAU, 18, gold, 3.0)
+	DrawBatch.arc(z, sh + Vector2(-1, 10), 11.0, 0.0, TAU, 18, gold, 3.0)
 	var bell := sh + Vector2(10, -18)
-	z.draw_line(sh + Vector2(-8, 4), bell + Vector2(-4, 6), gold, 4.0)
-	z.draw_colored_polygon(PackedVector2Array([bell + Vector2(-6, 6), bell + Vector2(-2, -6), bell + Vector2(8, -12), bell + Vector2(14, -4), bell + Vector2(4, 8)]), gold)
-	z.draw_colored_polygon(Art.ellipse(bell + Vector2(10, -8), 3.5, 6.0, -0.7, 10), col(Color("6a4a10")))
+	DrawBatch.line(z, sh + Vector2(-8, 4), bell + Vector2(-4, 6), gold, 4.0)
+	DrawBatch.colored_polygon(z, PackedVector2Array([bell + Vector2(-6, 6), bell + Vector2(-2, -6), bell + Vector2(8, -12), bell + Vector2(14, -4), bell + Vector2(4, 8)]), gold)
+	DrawBatch.colored_polygon(z, Art.ellipse(bell + Vector2(10, -8), 3.5, 6.0, -0.7, 10), col(Color("6a4a10")))
 	Art.oval_shaded(z, head, 5.2 + (1.0 if blowing else 0.0), 5.8, sk, 0.0)
 	if blowing:   # לחיים נפוחות
-		z.draw_circle(head + Vector2(4, 2), 3.0, col(Color("a8b48a")))
-	z.draw_rect(Rect2(head + Vector2(-5.5, -8), Vector2(11, 5)), col(Color("1e1e2a")))   # כובע מצחייה
-	z.draw_line(head + Vector2(4, -3.5), head + Vector2(10, -3), col(Color("1a1418")), 2.0)
-	z.draw_rect(Rect2(head + Vector2(-1, -7.5), Vector2(3, 3)), gold)
+		DrawBatch.circle(z, head + Vector2(4, 2), 3.0, col(Color("a8b48a")))
+	DrawBatch.rect(z, Rect2(head + Vector2(-5.5, -8), Vector2(11, 5)), col(Color("1e1e2a")))   # כובע מצחייה
+	DrawBatch.line(z, head + Vector2(4, -3.5), head + Vector2(10, -3), col(Color("1a1418")), 2.0)
+	DrawBatch.rect(z, Rect2(head + Vector2(-1, -7.5), Vector2(3, 3)), gold)
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.0, Color(0.85, 0.9, 0.5))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.0, Color(0.85, 0.9, 0.5))
 	z._arm(sh + Vector2(3, 1), sh + Vector2(8, 4), sk, coat)
 	if _ring > 0.0:   # גל קול
 		var k := 1.0 - _ring / 0.5
 		for q in 3:
-			z.draw_arc(bell + Vector2(10, -8), 10.0 + k * 60.0 + float(q) * 12.0, -0.7, 0.7, 10, Color(1.0, 0.9, 0.5, (1.0 - k) * 0.6), 2.0)
+			DrawBatch.arc(z, bell + Vector2(10, -8), 10.0 + k * 60.0 + float(q) * 12.0, -0.7, 0.7, 10, Color(1.0, 0.9, 0.5, (1.0 - k) * 0.6), 2.0)
 	elif blowing and _st > 0.0:   # אזהרה
-		z.draw_circle(bell + Vector2(10, -8), 4.0 + sin(z._time * 30.0) * 1.5, Color(1.0, 0.9, 0.5, 0.5))
+		DrawBatch.circle(z, bell + Vector2(10, -8), 4.0 + sin(z._time * 30.0) * 1.5, Color(1.0, 0.9, 0.5, 0.5))
 	end_draw()
 	return true

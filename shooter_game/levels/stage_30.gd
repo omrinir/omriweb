@@ -1,6 +1,6 @@
 extends "res://levels/stage_base.gd"
 # ============================================================
-#  STAGE 30 - "FROZEN VILLAGE" (אזור רביעי - האנדים, שלב 3) - "THEY LEARNED THE COLD"
+#  STAGE 30 - "FROZEN VILLAGE" (אזור רביעי - האנדים, שלב 3) - "THEY LEARNED THE WINTER"
 #  כפר אנדי גבוה בסופת שלג (effects/s30_decor.gd): בתי אדובי עם ארובות מעשנות, כנסייה קולוניאלית, אלפקות,
 #  כביסה קפואה, חביות אש (מחממות), שלג כבד.
 #  קומה שנייה: גגות הבתים (HOUSES, "roof") עם סולמות. מגדל הפעמון (TOWER) - שם ה-BELLRINGER.

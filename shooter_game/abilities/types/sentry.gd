@@ -116,13 +116,18 @@ class Turret extends Node2D:
 		preload("res://particles.gd").burst(get_parent(), global_position + Vector2(0, -20), "smoke", Vector2.UP, 8)
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var k := clampf(life / 1.0, 0.0, 1.0)   # מהבהב בשנייה האחרונה
 		if life < 1.0 and int(_t * 12.0) % 2 == 0:
 			return
 		var up := -24.0 * _deploy
 		# חצובה
 		for lx: float in [-14.0, 0.0, 14.0]:
-			draw_line(Vector2(0, up + 8.0), Vector2(lx, 0), Color("2a2c26"), 2.4, true)
+			DrawBatch.line(self, Vector2(0, up + 8.0), Vector2(lx, 0), Color("2a2c26"), 2.4, true)
 		Art.fill(self, PackedVector2Array([Vector2(-4, up + 4), Vector2(4, up + 4), Vector2(3, up + 12), Vector2(-3, up + 12)]), Color("3a3c34"), Art.OUTLINE, 1.0)
 		# גוף + קנה מסתובב
 		var d := Vector2.from_angle(_aim)
@@ -132,10 +137,10 @@ class Turret extends Node2D:
 		var body := PackedVector2Array([c - d * 8.0 - n * 6.0 * flip, c + d * 8.0 - n * 6.0 * flip, c + d * 8.0 + n * 5.0 * flip, c - d * 8.0 + n * 5.0 * flip])
 		Art.fill_shaded(self, body, Color("8a8a3a"), 0.25, 0.35, Art.OUTLINE, 1.2)
 		Art.limb(self, PackedVector2Array([c + d * 8.0, c + d * 24.0]), 2.6, Color("26262c"), Art.OUTLINE)
-		draw_rect(Rect2(c - d * 2.0 + n * 5.0 * flip - Vector2(3, 3), Vector2(6, 6)), Color("3a4a2a"))   # קופסת תחמושת
+		DrawBatch.rect(self, Rect2(c - d * 2.0 + n * 5.0 * flip - Vector2(3, 3), Vector2(6, 6)), Color("3a4a2a"))   # קופסת תחמושת
 		var led := Color(1.0, 0.2, 0.15) if _target != null else Color(0.3, 1.0, 0.4)
-		draw_circle(c - d * 4.0 - n * 3.0 * flip, 1.6, Color(led, 0.6 + 0.4 * sin(_t * 10.0)))
+		DrawBatch.circle(self, c - d * 4.0 - n * 3.0 * flip, 1.6, Color(led, 0.6 + 0.4 * sin(_t * 10.0)))
 		if _target != null:   # קרן לייזר דקה למטרה
-			draw_line(c + d * 24.0, c + d * 140.0, Color(1.0, 0.2, 0.15, 0.25 * k), 1.0, true)
+			DrawBatch.line(self, c + d * 24.0, c + d * 140.0, Color(1.0, 0.2, 0.15, 0.25 * k), 1.0, true)
 		if _flash > 0.0:
 			Art.glow(self, c + d * 28.0, 10.0, Color(1.0, 0.8, 0.35, 0.9))

@@ -225,7 +225,7 @@ func on_death() -> void:
 func draw() -> bool:
 	if z.dead or state == FOOT:
 		return _draw_man(Vector2.ZERO, false)
-	z.draw_set_transform(Vector2.ZERO, 0.0, Vector2(z._dir * z.sc, z.sc))
+	DrawBatch.set_transform(z, Vector2.ZERO, 0.0, Vector2(z._dir * z.sc, z.sc))
 	var S := preload("res://effects/s31_decor.gd")
 	var bob := sin(_bob * 2.2) * 1.5
 	var sink := 0.0
@@ -237,22 +237,22 @@ func draw() -> bool:
 	var hull := PackedVector2Array([Vector2(-40, wy + 6), Vector2(36, wy + 6), Vector2(50, wy - 10), Vector2(44, wy - 8), Vector2(36, wy - 4), Vector2(-34, wy - 4), Vector2(-44, wy - 12), Vector2(-50, wy - 14)])
 	Art.fill_shaded(z, hull, reed, 0.15, 0.4, Art.OUTLINE, 1.5)
 	for q in 3:
-		z.draw_line(Vector2(-34, wy - 1.0 + float(q) * 2.5), Vector2(36, wy - 1.0 + float(q) * 2.5), Color(0.35, 0.25, 0.1, 0.45), 1.0)
+		DrawBatch.line(z, Vector2(-34, wy - 1.0 + float(q) * 2.5), Vector2(36, wy - 1.0 + float(q) * 2.5), Color(0.35, 0.25, 0.1, 0.45), 1.0)
 	if dmg > 0.4:   # חורים בסירה
-		z.draw_circle(Vector2(-10, wy + 1), 3.0, Color(0.1, 0.1, 0.1, 0.7))
-		z.draw_circle(Vector2(14, wy + 2), 2.5, Color(0.1, 0.1, 0.1, 0.7))
+		DrawBatch.circle(z, Vector2(-10, wy + 1), 3.0, Color(0.1, 0.1, 0.1, 0.7))
+		DrawBatch.circle(z, Vector2(14, wy + 2), 2.5, Color(0.1, 0.1, 0.1, 0.7))
 	var head := Vector2(52, wy - 24)   # ראש פומה
-	z.draw_line(Vector2(46, wy - 9), head + Vector2(-3, 6), reed, 6.0)
+	DrawBatch.line(z, Vector2(46, wy - 9), head + Vector2(-3, 6), reed, 6.0)
 	Art.fill(z, PackedVector2Array([head + Vector2(-8, 4), head + Vector2(-4, -6), head + Vector2(2, -8), head + Vector2(8, -4), head + Vector2(10, 2), head + Vector2(2, 6)]), reed, Art.OUTLINE, 1.2)
-	z.draw_circle(head + Vector2(3, -3), 1.4, Color("2a1a0a"))
+	DrawBatch.circle(z, head + Vector2(3, -3), 1.4, Color("2a1a0a"))
 	for k in _aboard:   # נוסעים יושבים
 		var px := -26.0 + float(k) * 16.0
 		var pc := col(Color("7a8a6a"))
 		Art.fill(z, PackedVector2Array([Vector2(px - 5, wy - 4), Vector2(px + 5, wy - 4), Vector2(px + 4, wy - 18), Vector2(px - 4, wy - 18)]), col([Color("8a3a2a"), Color("3a5a7a")][k % 2]), Art.OUTLINE, 1.0)
 		Art.oval_shaded(z, Vector2(px + 1, wy - 23), 4.2, 4.6, pc, 0.0)
-		z.draw_circle(Vector2(px + 3, wy - 23.5), 0.8, Color(0.9, 0.9, 0.5))
+		DrawBatch.circle(z, Vector2(px + 3, wy - 23.5), 0.8, Color(0.9, 0.9, 0.5))
 	_draw_man(Vector2(12, wy - 2), true)
-	z.draw_set_transform_matrix(Transform2D.IDENTITY)
+	DrawBatch.set_transform_matrix(z, Transform2D.IDENTITY)
 	return true
 
 
@@ -278,17 +278,17 @@ func _draw_man(o: Vector2, in_boat: bool) -> bool:
 		hf = sh + Vector2(10 + reach * 0.3, 6)
 		var top := hb + Vector2(-14 + reach, -40)
 		var tip := hf + Vector2(44 + reach, 26)
-		z.draw_line(top, tip, col(Color("6a4a2a")), 2.4)
+		DrawBatch.line(z, top, tip, col(Color("6a4a2a")), 2.4)
 	z._arm(sh + Vector2(-3, 1), hb, Art.shade(sk, 0.25), Art.shade(vest, 0.3))
 	Art.fill_shaded(z, PackedVector2Array([sh + Vector2(-7, -1), sh + Vector2(7, 0), hip + Vector2(6, 2), hip + Vector2(-6, 2)]), vest, 0.12, 0.4)
-	z.draw_line(sh + Vector2(-4, 2), hip + Vector2(-3, 0), col(Color("e0c040")), 1.5)   # רקמה
+	DrawBatch.line(z, sh + Vector2(-4, 2), hip + Vector2(-3, 0), col(Color("e0c040")), 1.5)   # רקמה
 	Art.oval_shaded(z, head, 5.2, 5.8, sk, 0.0)
 	# כובע קש רחב
-	z.draw_colored_polygon(Art.ellipse(head + Vector2(0, -4), 10.0, 2.4, 0.0, 12), col(Color("d8c080")))
+	DrawBatch.colored_polygon(z, Art.ellipse(head + Vector2(0, -4), 10.0, 2.4, 0.0, 12), col(Color("d8c080")))
 	Art.fill(z, PackedVector2Array([head + Vector2(-5, -4), head + Vector2(-4, -10), head + Vector2(4, -10), head + Vector2(5, -4)]), col(Color("c8b070")), Art.OUTLINE, 1.0)
-	z.draw_line(head + Vector2(-5, -5.5), head + Vector2(5, -5.5), col(Color("8a2a2a")), 1.4)
+	DrawBatch.line(z, head + Vector2(-5, -5.5), head + Vector2(5, -5.5), col(Color("8a2a2a")), 1.4)
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -0.5), 1.0, Color(0.85, 0.9, 0.5))
+		DrawBatch.circle(z, head + Vector2(3.0, -0.5), 1.0, Color(0.85, 0.9, 0.5))
 	z._arm(sh + Vector2(3, 1), hf, sk, vest)
 	if not in_boat:
 		end_draw()

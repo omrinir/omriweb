@@ -419,13 +419,18 @@ class Wave extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		DrawBatch.begin(self)
+		_draw_b()
+		DrawBatch.end(self)
+
+	func _draw_b() -> void:
 		var a := 1.0 - _d / RANGE
 		var x := dir * _d
 		for q in 5:
 			var xx := x - dir * float(q) * 9.0
 			var h := (16.0 - float(q) * 3.0) * a
-			draw_colored_polygon(PackedVector2Array([Vector2(xx - 8.0, 0), Vector2(xx, -h), Vector2(xx + 8.0, 0)]), Color(0.35, 0.3, 0.22, 0.8 * a))
-		draw_circle(Vector2(x, -6.0), 12.0 * a, Color(0.5, 0.45, 0.38, 0.35 * a))
+			DrawBatch.colored_polygon(self, PackedVector2Array([Vector2(xx - 8.0, 0), Vector2(xx, -h), Vector2(xx + 8.0, 0)]), Color(0.35, 0.3, 0.22, 0.8 * a))
+		DrawBatch.circle(self, Vector2(x, -6.0), 12.0 * a, Color(0.5, 0.45, 0.38, 0.35 * a))
 
 
 # ============================================================
@@ -492,30 +497,30 @@ func draw() -> bool:
 	for v in [Vector2(-10, -19), Vector2(-15, -31), Vector2(-13, -44), Vector2(-6, -51), Vector2(4, -50), Vector2(12, -44), Vector2(14, -33), Vector2(11, -24), Vector2(8, -18)]:
 		torso.append(L.call(v))
 	Art.fill_shaded(z, torso, sk, 0.16, 0.42)
-	z.draw_polyline(PackedVector2Array([L.call(Vector2(2, -44)), L.call(Vector2(8, -38)), L.call(Vector2(7, -30))]), Color(0.2, 0.18, 0.12, 0.5), 1.2)   # שריר חזה
-	z.draw_line(L.call(Vector2(-2, -32)), L.call(Vector2(6, -26)), Color(0.2, 0.18, 0.12, 0.4), 1.0)
+	DrawBatch.polyline(z, PackedVector2Array([L.call(Vector2(2, -44)), L.call(Vector2(8, -38)), L.call(Vector2(7, -30))]), Color(0.2, 0.18, 0.12, 0.5), 1.2)   # שריר חזה
+	DrawBatch.line(z, L.call(Vector2(-2, -32)), L.call(Vector2(6, -26)), Color(0.2, 0.18, 0.12, 0.4), 1.0)
 	# פונצ'ו קרוע על הגבנון (שולי זיגזג)
 	var pon := PackedVector2Array()
 	for v in [Vector2(5, -50), Vector2(-6, -53), Vector2(-14, -46), Vector2(-17, -32), Vector2(-16, -24), Vector2(-13, -28), Vector2(-11, -22), Vector2(-8, -28), Vector2(-5, -24), Vector2(-3, -32), Vector2(2, -38), Vector2(7, -42)]:
 		pon.append(L.call(v))
 	Art.fill_shaded(z, pon, poncho, 0.14, 0.35)
-	z.draw_polyline(PackedVector2Array([L.call(Vector2(-14, -40)), L.call(Vector2(-4, -46)), L.call(Vector2(4, -47))]), col(Color("d8b060")), 1.2)   # פס
-	z.draw_polyline(PackedVector2Array([L.call(Vector2(-15, -35)), L.call(Vector2(-6, -41)), L.call(Vector2(1, -41))]), col(Color("2a1410")), 1.2)
+	DrawBatch.polyline(z, PackedVector2Array([L.call(Vector2(-14, -40)), L.call(Vector2(-4, -46)), L.call(Vector2(4, -47))]), col(Color("d8b060")), 1.2)   # פס
+	DrawBatch.polyline(z, PackedVector2Array([L.call(Vector2(-15, -35)), L.call(Vector2(-6, -41)), L.call(Vector2(1, -41))]), col(Color("2a1410")), 1.2)
 	# חגורה רחבה עם מטבעות כסף (רסטרה)
-	z.draw_rect(Rect2(hip + Vector2(-11, -4), Vector2(22, 6)), col(Color("3a2418")))
+	DrawBatch.rect(z, Rect2(hip + Vector2(-11, -4), Vector2(22, 6)), col(Color("3a2418")))
 	for q in 4:
-		z.draw_circle(hip + Vector2(-7.0 + float(q) * 5.0, -1.0), 1.7, col(Color("cfd0c8")))
+		DrawBatch.circle(z, hip + Vector2(-7.0 + float(q) * 5.0, -1.0), 1.7, col(Color("cfd0c8")))
 	# ראש שור נמוך, לפני הכתפיים
 	var head: Vector2 = L.call(Vector2(15, -41)) + Vector2(0, head_dy)
 	Art.oval_shaded(z, head, 6.4, 5.6, sk, 0.15)
 	Art.oval(z, head + Vector2(5.5, 2.0), 3.6, 3.0, skd, 0.0)   # חוטם
-	z.draw_circle(head + Vector2(7.5, 1.8), 0.8, Color(0.1, 0.05, 0.05))
-	z.draw_line(head + Vector2(-2, -3.2), head + Vector2(5, -2.4), col(Color("2a2420")), 1.6)   # גבה כועסת
+	DrawBatch.circle(z, head + Vector2(7.5, 1.8), 0.8, Color(0.1, 0.05, 0.05))
+	DrawBatch.line(z, head + Vector2(-2, -3.2), head + Vector2(5, -2.4), col(Color("2a2420")), 1.6)   # גבה כועסת
 	if not z.dead:
-		z.draw_circle(head + Vector2(3.0, -1.0), 1.2, Color(1.0, 0.25, 0.15))
+		DrawBatch.circle(z, head + Vector2(3.0, -1.0), 1.2, Color(1.0, 0.25, 0.15))
 		Art.glow(z, head + Vector2(3.0, -1.0), 4.0, Color(1.0, 0.2, 0.1, 0.4))
 	Art.fill(z, PackedVector2Array([head + Vector2(0, 3), head + Vector2(7, 4), head + Vector2(6, 7), head + Vector2(0, 6.5)]), col(Color("2a0a0a")), Art.OUTLINE, 0.8)   # לסת
-	z.draw_line(head + Vector2(1, 4), head + Vector2(6, 4.6), bone, 0.9)   # שיניים
+	DrawBatch.line(z, head + Vector2(1, 4), head + Vector2(6, 4.6), bone, 0.9)   # שיניים
 	# קרני עצם: יוצאות מהצדדים, מתעקלות למעלה וקדימה (בהסתערות - ישר קדימה)
 	var fwd := state == CHARGE or state == PAW
 	var h1 := [head + Vector2(-3, -4), head + Vector2(-6, -9), head + Vector2(-4, -14), head + Vector2(1, -16)]
@@ -530,7 +535,7 @@ func draw() -> bool:
 	if state == STUN and not z.dead:   # כוכבים מעל הראש
 		for q in 3:
 			var a: float = z._time * 4.0 + float(q) * TAU / 3.0
-			z.draw_circle(head + Vector2(cos(a) * 10.0, -20.0 + sin(a) * 3.0), 1.6, Color(1.0, 0.92, 0.5))
+			DrawBatch.circle(z, head + Vector2(cos(a) * 10.0, -20.0 + sin(a) * 3.0), 1.6, Color(1.0, 0.92, 0.5))
 	end_draw()
 	return true
 
@@ -540,7 +545,7 @@ func _big_arm(s: Vector2, h: Vector2, c: Color) -> void:
 	Art.limb(z, PackedVector2Array([s, el]), 8.5, c, Art.OUTLINE, true, false)
 	Art.limb(z, PackedVector2Array([el, h]), 7.5, c)
 	Art.disc(z, h, 5.2, c)   # אגרוף ענק
-	z.draw_line(h + Vector2(-2.5, -2), h + Vector2(2.5, -3), Color(0.2, 0.15, 0.1, 0.6), 1.0)
+	DrawBatch.line(z, h + Vector2(-2.5, -2), h + Vector2(2.5, -3), Color(0.2, 0.15, 0.1, 0.6), 1.0)
 
 
 # קרן מחודדת: עבה בבסיס, דקה בקצה
